@@ -86,6 +86,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.15 0.02 250); /* Deep cool blue-gray */
   --foreground: oklch(0.985 0 0);
 
