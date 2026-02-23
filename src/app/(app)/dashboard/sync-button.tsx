@@ -27,8 +27,8 @@ export function SyncButton() {
       } else {
         toast.error(`Sync failed: ${data.error}`, { id: "sync-toast" });
       }
-    } catch (error: any) {
-      toast.error(`An error occurred: ${error.message}`, { id: "sync-toast" });
+    } catch (error) {
+      toast.error(`An error occurred: ${error instanceof Error ? error.message : "Unknown error"}`, { id: "sync-toast" });
     } finally {
       setIsSyncing(false);
     }

@@ -103,7 +103,7 @@ export function ReportsTable({ limit, showViewAll }: { limit?: number; showViewA
           </div>
           <h3 className="text-xl font-medium text-foreground font-outfit">No reports generated</h3>
           <p className="max-w-sm mt-3 text-muted-foreground leading-relaxed">
-            You haven't generated any SEO reports yet. Sync your properties and click "New Report" to start.
+            You haven&apos;t generated any SEO reports yet. Sync your properties and click &quot;New Report&quot; to start.
           </p>
         </div>
       ) : (

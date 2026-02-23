@@ -73,8 +73,8 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
       setOpen(false);
       onCreated?.();
       router.push(`/reports/${data.report.id}`);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsSubmitting(false);
     }

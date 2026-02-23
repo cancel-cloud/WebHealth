@@ -175,7 +175,7 @@ export default function SettingsPage() {
                   <DialogHeader>
                     <DialogTitle>Sign out of all devices?</DialogTitle>
                     <DialogDescription>
-                      This will revoke all active sessions. You'll be signed out on this device too.
+                      This will revoke all active sessions. You&apos;ll be signed out on this device too.
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>
