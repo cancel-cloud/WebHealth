@@ -22,8 +22,8 @@ export function AutoSync({ hasProperties }: { hasProperties: boolean }) {
           } else {
             toast.error(`Auto-sync failed: ${data.error}`, { id: "auto-sync" });
           }
-        } catch (err: any) {
-          toast.error(`Auto-sync error: ${err.message}`, { id: "auto-sync" });
+        } catch (err) {
+          toast.error(`Auto-sync error: ${err instanceof Error ? err.message : "Unknown error"}`, { id: "auto-sync" });
         }
       };
       run();
