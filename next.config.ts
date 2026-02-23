@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
+  allowedDevOrigins: ["webaudit-79.localcan.dev"],
 };
 
 export default nextConfig;
