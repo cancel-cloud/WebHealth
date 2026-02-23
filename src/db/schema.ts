@@ -126,3 +126,17 @@ export const crawls = pgTable("crawls", {
   data: jsonb("data"), // Array of structural issues (missing H1, bad titles)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const userSettings = pgTable("user_settings", {
+  id:             text("id").primaryKey(),
+  userId:         text("user_id").notNull().unique()
+                    .references(() => user.id, { onDelete: "cascade" }),
+  // Notification preferences
+  weeklyDigest:   boolean("weekly_digest").default(false).notNull(),
+  reportComplete: boolean("report_complete").default(true).notNull(),
+  syncFailure:    boolean("sync_failure").default(true).notNull(),
+  // Billing preferences
+  emailReceipts:  boolean("email_receipts").default(true).notNull(),
+  createdAt:      timestamp("created_at").defaultNow().notNull(),
+  updatedAt:      timestamp("updated_at").defaultNow().notNull(),
+});

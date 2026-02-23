@@ -3,19 +3,40 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { useTheme } from "next-themes";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LayoutDashboard, FileText, Globe, Settings, LogOut } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { Badge } from "@/components/ui/badge";
+import {
+  LayoutDashboard,
+  FileText,
+  Globe,
+  Settings,
+  LogOut,
+  Sun,
+  Moon,
+  Monitor,
+  MessageSquare,
+} from "lucide-react";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -27,6 +48,7 @@ const NAV_ITEMS = [
 export function AppSidebar() {
   const { data: session } = authClient.useSession();
   const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
 
   const handleSignOut = async () => {
     await authClient.signOut({
@@ -36,66 +58,161 @@ export function AppSidebar() {
     });
   };
 
+  const ThemeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
+
   return (
     <Sidebar collapsible="icon">
+      {/* ── Header: logo ── */}
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild size="lg" className="data-[slot=sidebar-menu-button]:!p-1.5">
+            <SidebarMenuButton asChild size="lg" tooltip="WebAudit">
               <Link href="/dashboard">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-blue-500 shadow-lg shadow-primary/20 flex-shrink-0">
                   <div aria-hidden="true" className="h-3 w-3 rounded-full bg-white" />
                 </div>
-                <span className="font-extrabold text-lg tracking-tighter font-outfit">WebAudit</span>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-extrabold text-base tracking-tighter font-outfit">WebAudit</span>
+                </div>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
+      {/* ── Nav items ── */}
       <SidebarContent>
-        <SidebarMenu>
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-            return (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                  <Link href={item.href} aria-label={item.label}>
-                    <Icon aria-hidden="true" />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  pathname === item.href || pathname.startsWith(item.href + "/");
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                      <Link href={item.href}>
+                        <Icon aria-hidden="true" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
+      {/* ── Footer: profile → theme → sign out ── */}
       <SidebarFooter>
         <SidebarMenu>
+
+          {/* Profile — opens popup */}
           <SidebarMenuItem>
-            <div className="flex items-center gap-2 px-2 py-1.5">
-              <Avatar className="h-7 w-7 flex-shrink-0">
-                <AvatarImage src={session?.user?.image ?? ""} alt={session?.user?.name ?? "User"} />
-                <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
-                  {session?.user?.name?.charAt(0).toUpperCase() ?? "U"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <p className="text-sm font-medium truncate">{session?.user?.name ?? ""}</p>
-                <p className="text-xs text-muted-foreground truncate">{session?.user?.email ?? ""}</p>
-              </div>
-              <ThemeToggle />
-              <button
-                onClick={handleSignOut}
-                aria-label="Sign out"
-                className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-sidebar-accent text-muted-foreground hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-ring flex-shrink-0"
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  tooltip={session?.user?.name ?? "Profile"}
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                >
+                  <Avatar className="h-8 w-8 rounded-lg flex-shrink-0">
+                    <AvatarImage
+                      src={session?.user?.image ?? ""}
+                      alt={session?.user?.name ?? "User"}
+                    />
+                    <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold text-sm">
+                      {session?.user?.name?.charAt(0).toUpperCase() ?? "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">{session?.user?.name ?? ""}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {session?.user?.email ?? ""}
+                    </span>
+                  </div>
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent
+                className="w-56 rounded-xl"
+                side="top"
+                align="start"
+                sideOffset={4}
               >
-                <LogOut aria-hidden="true" className="h-4 w-4" />
-              </button>
-            </div>
+                <DropdownMenuLabel className="p-0 font-normal">
+                  <div className="flex items-center justify-between px-3 py-2.5">
+                    <span className="font-semibold text-sm truncate">
+                      {session?.user?.name ?? ""}
+                    </span>
+                    <Badge variant="outline" className="ml-2 text-xs flex-shrink-0">
+                      Free
+                    </Badge>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/settings" className="cursor-pointer">
+                    <Settings aria-hidden="true" className="mr-2 h-4 w-4" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  <MessageSquare aria-hidden="true" className="mr-2 h-4 w-4" />
+                  Feedback
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                >
+                  <LogOut aria-hidden="true" className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
+
+          {/* Theme toggle */}
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton tooltip="Theme">
+                  <ThemeIcon aria-hidden="true" />
+                  <span>Theme</span>
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" sideOffset={4}>
+                <DropdownMenuItem onClick={() => setTheme("light")} className="cursor-pointer">
+                  <Sun aria-hidden="true" className="mr-2 h-4 w-4" />
+                  Light
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")} className="cursor-pointer">
+                  <Moon aria-hidden="true" className="mr-2 h-4 w-4" />
+                  Dark
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("system")} className="cursor-pointer">
+                  <Monitor aria-hidden="true" className="mr-2 h-4 w-4" />
+                  System
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+
+          {/* Sign out */}
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Sign out"
+              onClick={handleSignOut}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <LogOut aria-hidden="true" />
+              <span>Sign out</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
         </SidebarMenu>
       </SidebarFooter>
 
