@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { FileText, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { NewReportDialog } from "./new-report-dialog";
 import { useRouter } from "next/navigation";
 
@@ -23,7 +24,7 @@ type ReportType = {
   createdAt: string;
 };
 
-export function ReportsTable() {
+export function ReportsTable({ limit, showViewAll }: { limit?: number; showViewAll?: boolean } = {}) {
   const router = useRouter();
   const [reports, setReports] = useState<ReportType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,11 +72,20 @@ export function ReportsTable() {
     }
   };
 
+  const displayedReports = limit ? reports.slice(0, limit) : reports;
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-extrabold tracking-tight font-outfit">Recent Reports</h2>
-        <NewReportDialog onCreated={fetchReports} />
+        <div className="flex items-center gap-2">
+          {showViewAll && reports.length > 0 && (
+            <Link href="/reports" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+              View all reports <ArrowRight aria-hidden="true" className="h-3 w-3" />
+            </Link>
+          )}
+          <NewReportDialog onCreated={fetchReports} />
+        </div>
       </div>
 
       {loading ? (
@@ -108,7 +118,7 @@ export function ReportsTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reports.map((report) => (
+              {displayedReports.map((report) => (
                 <TableRow
                   key={report.id}
                   className="cursor-pointer hover:bg-muted/30 border-border/50 transition-colors group"

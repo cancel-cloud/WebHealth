@@ -1,0 +1,34 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
+export function AutoSync({ hasProperties }: { hasProperties: boolean }) {
+  const router = useRouter();
+  const hasFired = useRef(false);
+
+  useEffect(() => {
+    if (!hasProperties && !hasFired.current) {
+      hasFired.current = true;
+      const run = async () => {
+        toast("Fetching your Google properties…", { id: "auto-sync" });
+        try {
+          const res = await fetch("/api/properties/sync", { method: "POST" });
+          const data = await res.json();
+          if (res.ok) {
+            toast.success(`Properties synced! Found ${data.count} new properties.`, { id: "auto-sync" });
+            router.refresh();
+          } else {
+            toast.error(`Auto-sync failed: ${data.error}`, { id: "auto-sync" });
+          }
+        } catch (err: any) {
+          toast.error(`Auto-sync error: ${err.message}`, { id: "auto-sync" });
+        }
+      };
+      run();
+    }
+  }, [hasProperties, router]);
+
+  return null;
+}
