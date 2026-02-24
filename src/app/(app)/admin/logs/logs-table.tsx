@@ -31,7 +31,15 @@ interface LogEntry {
   targetUserEmail: string | null;
 }
 
-const ACTION_OPTIONS = ["property_sync", "metrics_sync", "report_process"];
+const ACTION_OPTIONS = [
+  "user_signin",
+  "property_sync",
+  "report_create",
+  "report_process",
+  "property_link_ga4",
+  "user_deleted",
+  "metrics_sync",
+];
 const STATUS_OPTIONS = ["started", "success", "failed"];
 
 const statusVariant = (status: string) => {
@@ -47,6 +55,7 @@ export function LogsTable({ initialLogs }: { initialLogs: LogEntry[] }) {
   const [status, setStatus] = useState<string>("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const refresh = useCallback(async () => {
@@ -57,13 +66,14 @@ export function LogsTable({ initialLogs }: { initialLogs: LogEntry[] }) {
       if (status && status !== "all") params.set("status", status);
       if (from) params.set("from", from);
       if (to) params.set("to", to);
+      if (userEmail.trim()) params.set("userEmail", userEmail.trim());
       const res = await fetch(`/api/admin/logs?${params.toString()}`);
       const data = await res.json();
       setLogs(data.logs ?? []);
     } finally {
       setLoading(false);
     }
-  }, [action, status, from, to]);
+  }, [action, status, from, to, userEmail]);
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
@@ -119,6 +129,14 @@ export function LogsTable({ initialLogs }: { initialLogs: LogEntry[] }) {
           value={to}
           onChange={(e) => setTo(e.target.value)}
           className="w-36"
+        />
+
+        <Input
+          type="text"
+          placeholder="Filter by user email…"
+          value={userEmail}
+          onChange={(e) => setUserEmail(e.target.value)}
+          className="w-52"
         />
 
         <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>

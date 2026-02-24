@@ -4,10 +4,18 @@ import { redirect } from "next/navigation";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
+import { db } from "@/db";
+import { eq } from "drizzle-orm";
+import { RestrictionNotice } from "@/components/restriction-notice";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/");
+
+  const userRecord = await db.query.user.findFirst({
+    where: (u) => eq(u.id, session.user.id),
+    columns: { isRestricted: true, restrictionMessage: true },
+  });
 
   return (
     <SidebarProvider>
@@ -18,6 +26,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Separator orientation="vertical" className="mr-2 h-4" />
         </header>
         <main className="flex-1 p-6">{children}</main>
+        {userRecord?.isRestricted && (
+          <RestrictionNotice message={userRecord.restrictionMessage ?? ""} />
+        )}
       </SidebarInset>
     </SidebarProvider>
   );

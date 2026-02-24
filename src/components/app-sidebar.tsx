@@ -49,6 +49,7 @@ import {
   Users,
   ScrollText,
   Flag,
+  SlidersHorizontal,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -63,6 +64,7 @@ const ADMIN_ITEMS = [
   { title: "User Management", url: "/admin/users", icon: Users },
   { title: "System Logs", url: "/admin/logs", icon: ScrollText },
   { title: "Feature Flags", url: "/admin/feature-flags", icon: Flag },
+  { title: "Global Settings", url: "/admin/global-settings", icon: SlidersHorizontal },
 ];
 
 const ADMIN_EMAIL = "lukas@devbrew.dev";
