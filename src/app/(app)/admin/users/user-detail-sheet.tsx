@@ -104,14 +104,14 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
   return (
     <>
       <Sheet open={!!user} onOpenChange={(open) => !open && onClose()}>
-        <SheetContent className="overflow-y-auto">
-          <SheetHeader>
+        <SheetContent className="overflow-y-auto w-full sm:max-w-xl lg:max-w-2xl">
+          <SheetHeader className="px-4 pt-6 pr-12 sm:px-6">
             <SheetTitle>{user?.name}</SheetTitle>
             <SheetDescription>{user?.email}</SheetDescription>
           </SheetHeader>
 
           {user && (
-            <div className="mt-6 space-y-6 text-sm">
+            <div className="mt-2 space-y-6 px-4 pb-6 text-sm sm:px-6">
               {/* ── Stats ── */}
               <div className="space-y-3">
                 <h3 className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">

@@ -30,8 +30,47 @@ type Property = {
   id: string;
   name: string;
   type: string;
+  url?: string | null;
   ga4PropertyId: string | null;
 };
+
+function normalizeGscSiteKey(property: Property): string {
+  const raw = (property.url || property.id.replace(/^gsc_/, "") || property.name || "").trim();
+  if (!raw) return property.id;
+
+  if (raw.startsWith("sc-domain:")) {
+    return `site:${raw.slice("sc-domain:".length).toLowerCase().replace(/^www\./, "")}`;
+  }
+
+  try {
+    const parsed = new URL(raw);
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    const path = parsed.pathname.replace(/\/+$/, "") || "/";
+    // Treat root URL-prefix properties as the same site as a matching sc-domain property.
+    if (path === "/") return `site:${host}`;
+    return `site-path:${host}${path}`;
+  } catch {
+    return raw.toLowerCase();
+  }
+}
+
+function propertyLabel(property: Property): string {
+  const raw = (property.url || property.name || "").trim();
+  if (!raw) return property.id;
+
+  if (raw.startsWith("sc-domain:")) {
+    return raw.slice("sc-domain:".length);
+  }
+
+  try {
+    const parsed = new URL(raw);
+    const host = parsed.hostname.toLowerCase();
+    const path = parsed.pathname.replace(/\/+$/, "") || "/";
+    return path === "/" ? host : `${host}${path}`;
+  } catch {
+    return raw;
+  }
+}
 
 async function pollUntilComplete(reportId: string): Promise<void> {
   const MAX_POLLS = 60; // 5 minutes max
@@ -68,8 +107,23 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
     }
   }, [open]);
 
-  // Only GSC properties are reportable
-  const gscProperties = allProperties.filter((p) => p.type === "gsc");
+  // Reports are created from GSC properties only.
+  // Deduplicate by canonical GSC site URL/domain so GA entries and duplicate site variants
+  // do not appear multiple times in the picker.
+  const gscProperties = Array.from(
+    allProperties
+      .filter((p) => p.id.startsWith("gsc_") || p.type === "gsc")
+      .reduce((map, p) => {
+        const key = normalizeGscSiteKey(p);
+        const existing = map.get(key);
+        // Prefer the entry that already has a linked GA4 property, otherwise keep the first.
+        if (!existing || (!existing.ga4PropertyId && p.ga4PropertyId)) {
+          map.set(key, p);
+        }
+        return map;
+      }, new Map<string, Property>())
+      .values(),
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,13 +227,13 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
                 </p>
               ) : (
                 <Select value={propertyId} onValueChange={setPropertyId} required>
-                  <SelectTrigger id="property">
+                  <SelectTrigger id="property" className="w-half">
                     <SelectValue placeholder="Select a property…" />
                   </SelectTrigger>
                   <SelectContent>
                     {gscProperties.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
-                        {p.name}
+                        {propertyLabel(p)}
                       </SelectItem>
                     ))}
                   </SelectContent>

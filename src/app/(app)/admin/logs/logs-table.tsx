@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { Fragment, useState, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -165,9 +165,8 @@ export function LogsTable({ initialLogs }: { initialLogs: LogEntry[] }) {
             </TableRow>
           )}
           {logs.map((log) => (
-            <>
+            <Fragment key={log.id}>
               <TableRow
-                key={log.id}
                 className="cursor-pointer"
                 onClick={() => toggleExpand(log.id)}
               >
@@ -201,7 +200,7 @@ export function LogsTable({ initialLogs }: { initialLogs: LogEntry[] }) {
                   </TableCell>
                 </TableRow>
               )}
-            </>
+            </Fragment>
           ))}
         </TableBody>
       </Table>
