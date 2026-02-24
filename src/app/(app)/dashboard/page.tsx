@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
 import { properties as propertiesSchema } from "@/db/schema";
@@ -43,23 +44,31 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="group p-6 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <Link
+          href="/properties"
+          className="group block p-6 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label="Go to Properties page"
+        >
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <h3 className="font-medium text-muted-foreground mb-1">Properties</h3>
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-bold font-outfit text-foreground">{propertyCount}</span>
           </div>
-        </div>
+        </Link>
 
-        <div className="group p-6 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <Link
+          href="/reports"
+          className="group block p-6 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label="Go to Reports page"
+        >
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <h3 className="font-medium text-muted-foreground mb-1">Reports Generated</h3>
           {/* TODO[report-count]: Hardcoded to 0 — not queried from DB */}
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-bold font-outfit text-foreground">0</span>
             <span className="text-sm font-medium text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">New</span>
           </div>
-        </div>
+        </Link>
 
         <div className="group p-6 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

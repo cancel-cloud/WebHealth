@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserDetailSheet } from "./user-detail-sheet";
 
@@ -71,6 +72,7 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
             <TableHead className="text-right">Reports</TableHead>
             <TableHead>Last Sign In</TableHead>
             <TableHead>Joined</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -102,11 +104,24 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
               <TableCell className="text-muted-foreground text-sm">
                 {new Date(u.createdAt).toLocaleDateString()}
               </TableCell>
+              <TableCell className="text-right">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedUser(u);
+                  }}
+                >
+                  Edit
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
           {filtered.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                 No users found
               </TableCell>
             </TableRow>
