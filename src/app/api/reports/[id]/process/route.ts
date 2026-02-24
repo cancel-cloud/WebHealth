@@ -5,6 +5,7 @@ import { eq, and } from 'drizzle-orm';
 import { crawlWebsite } from '@/lib/crawl';
 import { getGoogleAuthClient, fetchGscMetrics, fetchGa4Metrics } from '@/lib/google/api';
 import { generateQuickWins } from '@/lib/openai';
+import { isEnabled } from '@/lib/feature-flags';
 
 // POST /api/reports/[id]/process — internal route to process a queued report
 export async function POST(
@@ -50,21 +51,26 @@ export async function POST(
       googleAccount.refreshToken ?? undefined
     );
 
-    // 1. Crawl the website
-    const crawlId = `crawl_${Date.now()}`;
-    await db.insert(crawls).values({
-      id: crawlId,
-      reportId,
-      propertyId: report.propertyId,
-      status: 'running',
-    });
+    // 1. Crawl the website (if enabled for this team owner)
+    const crawlingEnabled = await isEnabled('crawling_enabled', teamOwner.userId);
+    let crawlData: Awaited<ReturnType<typeof crawlWebsite>> | null = null;
 
-    const crawlData = await crawlWebsite(property.url, 50);
+    if (crawlingEnabled) {
+      const crawlId = `crawl_${Date.now()}`;
+      await db.insert(crawls).values({
+        id: crawlId,
+        reportId,
+        propertyId: report.propertyId,
+        status: 'running',
+      });
 
-    await db
-      .update(crawls)
-      .set({ status: 'complete', data: crawlData, pagesCrawled: crawlData.pages.length })
-      .where(eq(crawls.id, crawlId));
+      crawlData = await crawlWebsite(property.url, 50);
+
+      await db
+        .update(crawls)
+        .set({ status: 'complete', data: crawlData, pagesCrawled: crawlData.pages.length })
+        .where(eq(crawls.id, crawlId));
+    }
 
     // 2. Fetch GSC metrics for both periods
     const [gscCurrent, gscCompare] = await Promise.all([
@@ -86,8 +92,9 @@ export async function POST(
       crawl: crawlData,
     };
 
-    // 4. AI Quick Wins
-    const quickWins = await generateQuickWins(reportData);
+    // 4. AI Quick Wins (if enabled for this team owner)
+    const aiEnabled = await isEnabled('ai_quick_wins_enabled', teamOwner.userId);
+    const quickWins = aiEnabled ? await generateQuickWins(reportData) : null;
 
     // 5. Mark as complete
     await db
