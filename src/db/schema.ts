@@ -6,6 +6,7 @@ import {
   jsonb,
   date,
   integer,
+  unique,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -140,3 +141,32 @@ export const userSettings = pgTable("user_settings", {
   createdAt:      timestamp("created_at").defaultNow().notNull(),
   updatedAt:      timestamp("updated_at").defaultNow().notNull(),
 });
+
+// Admin Tables
+
+export const systemLogs = pgTable("system_logs", {
+  id: text("id").primaryKey(),
+  action: text("action").notNull(), // 'property_sync' | 'metrics_sync' | 'report_process'
+  triggeredBy: text("triggered_by").notNull().references(() => user.id),
+  targetUserId: text("target_user_id").references(() => user.id),
+  status: text("status").notNull(), // 'started' | 'success' | 'failed'
+  details: jsonb("details"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const featureFlags = pgTable("feature_flags", {
+  id: text("id").primaryKey(),
+  name: text("name").unique().notNull(),
+  description: text("description"),
+  enabledGlobally: boolean("enabled_globally").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const userFeatureFlags = pgTable("user_feature_flags", {
+  id: text("id").primaryKey(),
+  flagId: text("flag_id").notNull().references(() => featureFlags.id),
+  userId: text("user_id").notNull().references(() => user.id),
+  enabled: boolean("enabled").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [unique().on(t.flagId, t.userId)]);

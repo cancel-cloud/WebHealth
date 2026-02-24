@@ -5,6 +5,7 @@ import { reports, teamMembers, properties } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { nanoid } from 'nanoid';
+import { isEnabled } from '@/lib/feature-flags';
 
 // GET /api/reports — fetch all reports for the current user's team
 export async function GET() {
@@ -60,6 +61,9 @@ export async function POST(req: Request) {
     }
 
     const ga4Missing = !property.ga4PropertyId;
+    const scheduledReportsEnabled = await isEnabled('scheduled_reports_enabled', session.user.id);
+    // If scheduled_reports_enabled is off for this user, treat ga4Missing as false (don't schedule)
+    const shouldSchedule = ga4Missing && scheduledReportsEnabled;
     const reportId = `rep_${nanoid(12)}`;
 
     const [newReport] = await db
@@ -72,17 +76,17 @@ export async function POST(req: Request) {
         dateRangeEnd,
         compareRangeStart,
         compareRangeEnd,
-        status: ga4Missing ? 'scheduled' : 'queued',
+        status: shouldSchedule ? 'scheduled' : 'queued',
       })
       .returning();
 
-    if (!ga4Missing) {
+    if (!shouldSchedule) {
       // Fire-and-forget: trigger async processing via internal route
       const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000';
       fetch(`${baseUrl}/api/reports/${reportId}/process`, { method: 'POST' }).catch(() => {});
     }
 
-    return NextResponse.json({ report: newReport, ga4Missing }, { status: 201 });
+    return NextResponse.json({ report: newReport, ga4Missing: shouldSchedule }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating report:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

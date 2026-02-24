@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useTheme } from "next-themes";
 import {
@@ -10,12 +11,18 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +43,12 @@ import {
   Moon,
   Monitor,
   MessageSquare,
+  ShieldCheck,
+  ChevronDown,
+  RefreshCw,
+  Users,
+  ScrollText,
+  Flag,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -45,10 +58,22 @@ const NAV_ITEMS = [
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
+const ADMIN_ITEMS = [
+  { title: "Syncing", url: "/admin/syncing", icon: RefreshCw },
+  { title: "User Management", url: "/admin/users", icon: Users },
+  { title: "System Logs", url: "/admin/logs", icon: ScrollText },
+  { title: "Feature Flags", url: "/admin/feature-flags", icon: Flag },
+];
+
+const ADMIN_EMAIL = "lukas@devbrew.dev";
+
 export function AppSidebar() {
   const { data: session } = authClient.useSession();
   const pathname = usePathname();
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setMounted(true); }, []);
 
   const handleSignOut = async () => {
     await authClient.signOut({
@@ -58,7 +83,8 @@ export function AppSidebar() {
     });
   };
 
-  const ThemeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
+  const ThemeIcon = !mounted ? Monitor : resolvedTheme === "dark" ? Moon : Sun;
+  const isAdmin = session?.user?.email === ADMIN_EMAIL;
 
   return (
     <Sidebar collapsible="icon">
@@ -103,6 +129,44 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* ── Admin section (only for lukas@devbrew.dev) ── */}
+        {isAdmin && (
+          <SidebarGroup>
+            <Collapsible defaultOpen={false} className="group/admin">
+              <CollapsibleTrigger asChild>
+                <SidebarGroupLabel className="cursor-pointer flex items-center justify-between w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md px-2 transition-colors">
+                  <span className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                    Admin
+                  </span>
+                  <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]/admin:rotate-180" />
+                </SidebarGroupLabel>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {ADMIN_ITEMS.map((item) => {
+                      const Icon = item.icon;
+                      const isActive =
+                        pathname === item.url || pathname.startsWith(item.url + "/");
+                      return (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                            <Link href={item.url}>
+                              <Icon aria-hidden="true" />
+                              <span>{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       {/* ── Footer: profile → theme → sign out ── */}
