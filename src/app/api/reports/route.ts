@@ -59,6 +59,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Property not found or unauthorized' }, { status: 404 });
     }
 
+    const ga4Missing = !property.ga4PropertyId;
     const reportId = `rep_${nanoid(12)}`;
 
     const [newReport] = await db
@@ -71,15 +72,17 @@ export async function POST(req: Request) {
         dateRangeEnd,
         compareRangeStart,
         compareRangeEnd,
-        status: 'queued',
+        status: ga4Missing ? 'scheduled' : 'queued',
       })
       .returning();
 
-    // Fire-and-forget: trigger async processing via internal route
-    const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000';
-    fetch(`${baseUrl}/api/reports/${reportId}/process`, { method: 'POST' }).catch(() => {});
+    if (!ga4Missing) {
+      // Fire-and-forget: trigger async processing via internal route
+      const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000';
+      fetch(`${baseUrl}/api/reports/${reportId}/process`, { method: 'POST' }).catch(() => {});
+    }
 
-    return NextResponse.json({ report: newReport }, { status: 201 });
+    return NextResponse.json({ report: newReport, ga4Missing }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating report:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
