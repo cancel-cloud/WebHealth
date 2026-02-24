@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { systemLogs, user } from "@/db/schema";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, lte, desc, or, ilike, inArray } from "drizzle-orm";
 import { headers } from "next/headers";
 
 const ADMIN_EMAIL = "lukas@devbrew.dev";
@@ -19,6 +19,7 @@ export async function GET(req: Request) {
     const status = searchParams.get("status");
     const from = searchParams.get("from");
     const to = searchParams.get("to");
+    const userEmail = searchParams.get("userEmail");
     const limit = Math.min(parseInt(searchParams.get("limit") ?? "50"), 200);
 
     const conditions = [];
@@ -26,6 +27,24 @@ export async function GET(req: Request) {
     if (status) conditions.push(eq(systemLogs.status, status));
     if (from) conditions.push(gte(systemLogs.createdAt, new Date(from)));
     if (to) conditions.push(lte(systemLogs.createdAt, new Date(to)));
+
+    // If userEmail filter: find matching user IDs first, then filter logs
+    if (userEmail && userEmail.trim()) {
+      const matchingUsers = await db
+        .select({ id: user.id })
+        .from(user)
+        .where(ilike(user.email, `%${userEmail.trim()}%`));
+      const ids = matchingUsers.map((u) => u.id);
+      if (ids.length === 0) {
+        return NextResponse.json({ logs: [] });
+      }
+      conditions.push(
+        or(
+          inArray(systemLogs.triggeredBy, ids),
+          inArray(systemLogs.targetUserId, ids),
+        ),
+      );
+    }
 
     const triggeredByUser = db
       .select({ id: user.id, name: user.name, email: user.email })
