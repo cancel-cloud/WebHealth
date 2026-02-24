@@ -56,12 +56,22 @@ export default function SettingsPage() {
       .then(setSettings);
   }, []);
 
+  const SETTING_LABELS: Record<keyof Settings, string> = {
+    weeklyDigest: "Weekly digest",
+    reportComplete: "Report complete",
+    syncFailure: "Sync failure alerts",
+    emailReceipts: "Email receipts",
+  };
+
   const updateSetting = async (key: keyof Settings, value: boolean) => {
     setSettings((prev) => (prev ? { ...prev, [key]: value } : prev));
     await fetch("/api/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ [key]: value }),
+    });
+    toast.success("Preference saved", {
+      description: `${SETTING_LABELS[key]} ${value ? "enabled" : "disabled"}.`,
     });
   };
 
@@ -189,7 +199,7 @@ export default function SettingsPage() {
 
         {/* Right panel */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-8">
+          <div className="p-8 max-w-[70%] mx-auto">
             <Tabs defaultValue="account">
               <TabsList className="mb-8">
                 <TabsTrigger value="account">Account</TabsTrigger>
