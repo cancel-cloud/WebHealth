@@ -17,6 +17,8 @@ export const user = pgTable("user", {
   image: text("image"),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
+  isRestricted: boolean("is_restricted").default(false).notNull(),
+  restrictionMessage: text("restriction_message"),
 });
 
 export const session = pgTable("session", {
@@ -93,6 +95,7 @@ export const properties = pgTable("properties", {
   ga4PropertyId: text("ga4_property_id"), // To link GSC to GA4
   syncStatus: text("sync_status").default("pending").notNull(), // pending, syncing, complete, failed
   lastSyncedAt: timestamp("last_synced_at"),
+  active: boolean("active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -170,3 +173,12 @@ export const userFeatureFlags = pgTable("user_feature_flags", {
   enabled: boolean("enabled").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [unique().on(t.flagId, t.userId)]);
+
+export const planSettings = pgTable("plan_settings", {
+  id: text("id").primaryKey(),
+  tier: text("tier").unique().notNull(), // 'free' | 'pro' | 'team'
+  displayName: text("display_name").notNull(),
+  reportsPerMonth: integer("reports_per_month"), // null = unlimited
+  maxProperties: integer("max_properties"), // null = unlimited
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

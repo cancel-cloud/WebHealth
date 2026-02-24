@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
-import { reports, teamMembers, properties } from '@/db/schema';
+import { reports, teamMembers, properties, systemLogs } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { nanoid } from 'nanoid';
@@ -25,9 +25,10 @@ export async function GET() {
     });
 
     return NextResponse.json({ reports: teamReports });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching reports:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -86,9 +87,19 @@ export async function POST(req: Request) {
       fetch(`${baseUrl}/api/reports/${reportId}/process`, { method: 'POST' }).catch(() => {});
     }
 
+    db.insert(systemLogs).values({
+      id: `log_${nanoid(12)}`,
+      action: 'report_create',
+      triggeredBy: session.user.id,
+      targetUserId: session.user.id,
+      status: 'success',
+      details: { reportId, propertyId, teamId, scheduled: shouldSchedule },
+    }).catch(() => {});
+
     return NextResponse.json({ report: newReport, ga4Missing: shouldSchedule }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating report:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

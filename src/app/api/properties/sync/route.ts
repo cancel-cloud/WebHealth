@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
-import { properties, teamMembers } from '@/db/schema';
+import { properties, teamMembers, systemLogs } from '@/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { getGoogleAuthClient, fetchGscProperties, fetchGa4Properties } from '@/lib/google/api';
 import { headers } from 'next/headers';
+import { nanoid } from 'nanoid';
 
 export async function POST(req: Request) {
   try {
@@ -130,9 +131,19 @@ export async function POST(req: Request) {
       }
     }
 
+    db.insert(systemLogs).values({
+      id: `log_${nanoid(12)}`,
+      action: 'property_sync',
+      triggeredBy: session.user.id,
+      targetUserId: session.user.id,
+      status: 'success',
+      details: { gscCount, ga4Count, autoLinked },
+    }).catch(() => {});
+
     return NextResponse.json({ success: true, gscCount, ga4Count, autoLinked });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error syncing properties:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
