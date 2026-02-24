@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { reports, crawls, properties, teamMembers } from '@/db/schema';
+import { reports, crawls, properties, teamMembers, systemLogs } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import { crawlWebsite } from '@/lib/crawl';
 import { getGoogleAuthClient, fetchGscMetrics, fetchGa4Metrics } from '@/lib/google/api';
 import { generateQuickWins } from '@/lib/openai';
@@ -13,6 +14,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: reportId } = await params;
+  let logUserId: string | undefined;
 
   try {
     // Mark as processing
@@ -39,6 +41,7 @@ export async function POST(
         and(eq(tm.teamId, report.teamId), eq(tm.role, 'owner')),
     });
     if (!teamOwner) throw new Error('No team owner found');
+    logUserId = teamOwner.userId;
 
     const googleAccounts = await db.query.account.findMany({
       where: (a, { eq }) => eq(a.userId, teamOwner.userId),
@@ -102,10 +105,34 @@ export async function POST(
       .set({ status: 'complete', data: reportData, quickWins })
       .where(eq(reports.id, reportId));
 
+    if (logUserId) {
+      db.insert(systemLogs).values({
+        id: `log_${nanoid(12)}`,
+        action: 'report_process',
+        triggeredBy: logUserId,
+        targetUserId: logUserId,
+        status: 'success',
+        details: { reportId },
+      }).catch(() => {});
+    }
+
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Internal server error';
     console.error(`Error processing report ${reportId}:`, error);
     await db.update(reports).set({ status: 'failed' }).where(eq(reports.id, reportId));
-    return NextResponse.json({ error: error.message }, { status: 500 });
+
+    if (logUserId) {
+      db.insert(systemLogs).values({
+        id: `log_${nanoid(12)}`,
+        action: 'report_process',
+        triggeredBy: logUserId,
+        targetUserId: logUserId,
+        status: 'failed',
+        details: { reportId, error: message },
+      }).catch(() => {});
+    }
+
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

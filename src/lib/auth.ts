@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { teams, teamMembers } from "@/db/schema";
+import { teams, teamMembers, systemLogs } from "@/db/schema";
 import { nanoid } from "nanoid";
 
 export const auth = betterAuth({
@@ -49,6 +49,23 @@ export const auth = betterAuth({
             userId: user.id,
             role: "owner",
           });
+        },
+      },
+    },
+    session: {
+      create: {
+        after: async (session) => {
+          db.insert(systemLogs).values({
+            id: `log_${nanoid(12)}`,
+            action: "user_signin",
+            triggeredBy: session.userId,
+            targetUserId: session.userId,
+            status: "success",
+            details: {
+              ipAddress: session.ipAddress,
+              userAgent: session.userAgent,
+            },
+          }).catch(() => {});
         },
       },
     },

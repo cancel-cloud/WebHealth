@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
-import { properties, reports } from '@/db/schema';
+import { properties, reports, systemLogs } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { headers } from 'next/headers';
+import { nanoid } from 'nanoid';
 
 // PATCH /api/properties/[id]/link-ga4
 // Body: { ga4PropertyId: string } — numeric ID like "123456789"
@@ -69,6 +70,15 @@ export async function PATCH(
       // Fire-and-forget processing
       fetch(`${baseUrl}/api/reports/${report.id}/process`, { method: 'POST' }).catch(() => {});
     }
+
+    db.insert(systemLogs).values({
+      id: `log_${nanoid(12)}`,
+      action: 'property_link_ga4',
+      triggeredBy: session.user.id,
+      targetUserId: session.user.id,
+      status: 'success',
+      details: { gscPropertyId, ga4PropertyId, scheduledReportsStarted: scheduledReports.length },
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,
