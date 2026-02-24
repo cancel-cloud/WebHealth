@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export function SyncButton() {
+export function SyncButton({ onSynced }: { onSynced?: () => void } = {}) {
   const [isSyncing, setIsSyncing] = useState(false);
   const router = useRouter();
 
@@ -22,7 +22,13 @@ export function SyncButton() {
       const data = await res.json();
 
       if (res.ok) {
-        toast.success(`Successfully synced ${data.count} new properties.`, { id: "sync-toast" });
+        const parts = [];
+        if (data.gscCount > 0) parts.push(`${data.gscCount} GSC`);
+        if (data.ga4Count > 0) parts.push(`${data.ga4Count} GA4`);
+        const newProps = parts.length > 0 ? parts.join(", ") : "0";
+        const autoMsg = data.autoLinked > 0 ? ` • ${data.autoLinked} auto-linked` : "";
+        toast.success(`Synced ${newProps} new properties${autoMsg}.`, { id: "sync-toast" });
+        onSynced?.();
         router.refresh();
       } else {
         toast.error(`Sync failed: ${data.error}`, { id: "sync-toast" });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -10,8 +10,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Globe } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Globe, Link2 } from "lucide-react";
 import { SyncButton } from "../dashboard/sync-button";
+import { toast } from "sonner";
 
 type Property = {
   id: string;
@@ -20,6 +37,7 @@ type Property = {
   type: string;
   syncStatus: string;
   lastSyncedAt: string | null;
+  ga4PropertyId: string | null;
 };
 
 function getSyncStatusBadge(status: string) {
@@ -37,17 +55,119 @@ function getSyncStatusBadge(status: string) {
   }
 }
 
+function LinkGa4Dialog({
+  gscProperty,
+  ga4Properties,
+  onLinked,
+}: {
+  gscProperty: Property;
+  ga4Properties: Property[];
+  onLinked: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [selectedGa4Id, setSelectedGa4Id] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const unlinkedGa4 = ga4Properties;
+
+  const handleLink = async () => {
+    if (!selectedGa4Id) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/properties/${gscProperty.id}/link-ga4`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ga4PropertyId: selectedGa4Id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to link GA4");
+
+      const msg =
+        data.scheduledReportsStarted > 0
+          ? `GA4 linked! ${data.scheduledReportsStarted} scheduled report${data.scheduledReportsStarted > 1 ? "s have" : " has"} started.`
+          : "GA4 linked!";
+      toast.success(msg);
+      setOpen(false);
+      onLinked();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-7 text-xs gap-1"
+        onClick={() => setOpen(true)}
+        disabled={unlinkedGa4.length === 0}
+      >
+        <Link2 className="h-3 w-3" />
+        Link GA4
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="font-outfit">Link GA4 Property</DialogTitle>
+            <DialogDescription>
+              Select a GA4 property to link with <strong>{gscProperty.name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Select value={selectedGa4Id} onValueChange={setSelectedGa4Id}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a GA4 property…" />
+              </SelectTrigger>
+              <SelectContent>
+                {unlinkedGa4.map((p) => (
+                  <SelectItem key={p.id} value={p.id.replace("ga4_", "")}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleLink} disabled={!selectedGa4Id || isSubmitting} className="rounded-full">
+              {isSubmitting ? "Linking…" : "Link"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadProperties = useCallback(() => {
     fetch("/api/properties")
       .then((r) => r.json())
       .then((data) => setProperties(data.properties ?? []))
       .catch(() => setProperties([]))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadProperties();
+  }, [loadProperties]);
+
+  const gscProperties = properties.filter((p) => p.type === "gsc");
+  const ga4Properties = properties.filter((p) => p.type === "ga4");
+
+  // Build a lookup: numeric GA4 ID → display name
+  const ga4ById = Object.fromEntries(
+    ga4Properties.map((p) => [p.id.replace("ga4_", ""), p.name])
+  );
 
   return (
     <div className="space-y-6">
@@ -58,7 +178,7 @@ export default function PropertiesPage() {
           </h1>
           <p className="text-muted-foreground mt-1">Google Search Console and Analytics properties synced to your account.</p>
         </div>
-        <SyncButton />
+        <SyncButton onSynced={loadProperties} />
       </div>
 
       {loading ? (
@@ -87,6 +207,7 @@ export default function PropertiesPage() {
                 <TableHead className="py-4 font-medium">Name</TableHead>
                 <TableHead className="py-4 font-medium">URL</TableHead>
                 <TableHead className="py-4 font-medium">Type</TableHead>
+                <TableHead className="py-4 font-medium">GA4</TableHead>
                 <TableHead className="py-4 font-medium">Sync Status</TableHead>
                 <TableHead className="py-4 font-medium text-right">Last Synced</TableHead>
               </TableRow>
@@ -102,6 +223,23 @@ export default function PropertiesPage() {
                     <Badge variant="outline" className="uppercase text-xs font-mono">
                       {property.type}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="py-4">
+                    {property.type === "gsc" ? (
+                      property.ga4PropertyId ? (
+                        <span className="text-sm text-muted-foreground">
+                          {ga4ById[property.ga4PropertyId] ?? property.ga4PropertyId}
+                        </span>
+                      ) : (
+                        <LinkGa4Dialog
+                          gscProperty={property}
+                          ga4Properties={ga4Properties}
+                          onLinked={loadProperties}
+                        />
+                      )
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="py-4">{getSyncStatusBadge(property.syncStatus)}</TableCell>
                   <TableCell className="text-right text-muted-foreground text-sm py-4">

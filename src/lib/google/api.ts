@@ -21,10 +21,26 @@ export async function fetchGscProperties(authClient: any) {
   return response.data.siteEntry || [];
 }
 
-export async function fetchGa4Properties(authClient: any) {
+export type Ga4PropertyInfo = {
+  propertyId: string;   // numeric, e.g. "123456789"
+  displayName: string;  // e.g. "example.com" or "My Site"
+};
+
+export async function fetchGa4Properties(authClient: any): Promise<Ga4PropertyInfo[]> {
   const analyticsAdmin = google.analyticsadmin({ version: "v1beta", auth: authClient });
   const response = await analyticsAdmin.accountSummaries.list();
-  return response.data.accountSummaries || [];
+  const summaries = response.data.accountSummaries || [];
+
+  const flat: Ga4PropertyInfo[] = [];
+  for (const account of summaries) {
+    for (const prop of (account.propertySummaries || [])) {
+      if (!prop.property || !prop.displayName) continue;
+      // prop.property is like "properties/123456789"
+      const propertyId = prop.property.replace("properties/", "");
+      flat.push({ propertyId, displayName: prop.displayName });
+    }
+  }
+  return flat;
 }
 
 export type GscMetrics = {
