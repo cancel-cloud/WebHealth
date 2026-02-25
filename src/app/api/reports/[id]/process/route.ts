@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { reports, crawls, properties, teamMembers, systemLogs } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { reports, crawls, systemLogs } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { crawlWebsite } from '@/lib/crawl';
-import { getGoogleAuthClient, fetchGscMetrics, fetchGa4Metrics } from '@/lib/google/api';
+import { getGoogleAuthClient, fetchGscMetrics, fetchGa4Metrics, fetchGa4ReportProfile } from '@/lib/google/api';
 import { generateQuickWins } from '@/lib/openai';
 import { isEnabled } from '@/lib/feature-flags';
+import { composeReportMetricsFromCache, ensureMetricsCoverageForReport } from '@/lib/metrics-cache';
 
 // POST /api/reports/[id]/process — internal route to process a queued report
 export async function POST(
@@ -54,6 +55,18 @@ export async function POST(
       googleAccount.refreshToken ?? undefined
     );
 
+    await ensureMetricsCoverageForReport({
+      teamId: report.teamId,
+      triggeredByUserId: teamOwner.userId,
+      property,
+      dateRangeStart: String(report.dateRangeStart),
+      dateRangeEnd: String(report.dateRangeEnd),
+      compareRangeStart: String(report.compareRangeStart),
+      compareRangeEnd: String(report.compareRangeEnd),
+      authClient,
+      refreshRecentDays: 7,
+    });
+
     // 1. Crawl the website (if enabled for this team owner)
     const crawlingEnabled = await isEnabled('crawling_enabled', teamOwner.userId);
     let crawlData: Awaited<ReturnType<typeof crawlWebsite>> | null = null;
@@ -75,19 +88,60 @@ export async function POST(
         .where(eq(crawls.id, crawlId));
     }
 
-    // 2. Fetch GSC metrics for both periods
-    const [gscCurrent, gscCompare] = await Promise.all([
-      fetchGscMetrics(authClient, property.url, report.dateRangeStart, report.dateRangeEnd),
-      fetchGscMetrics(authClient, property.url, report.compareRangeStart, report.compareRangeEnd),
-    ]);
+    // 2. Prefer composing metrics from cache; fall back to live fetch if cache is incomplete.
+    const cachedMetrics = await composeReportMetricsFromCache({
+      property,
+      dateRangeStart: String(report.dateRangeStart),
+      dateRangeEnd: String(report.dateRangeEnd),
+      compareRangeStart: String(report.compareRangeStart),
+      compareRangeEnd: String(report.compareRangeEnd),
+      refreshRecentDays: 7,
+    });
 
-    // 3. Fetch GA4 metrics if property is linked
-    const [ga4Current, ga4Compare] = property.ga4PropertyId
-      ? await Promise.all([
-          fetchGa4Metrics(authClient, property.ga4PropertyId, report.dateRangeStart, report.dateRangeEnd),
-          fetchGa4Metrics(authClient, property.ga4PropertyId, report.compareRangeStart, report.compareRangeEnd),
-        ])
-      : [null, null];
+    const [gscCurrent, gscCompare, ga4CurrentBase, ga4CompareBase] = cachedMetrics
+      ? [
+          cachedMetrics.gsc.current,
+          cachedMetrics.gsc.compare,
+          cachedMetrics.ga4.current,
+          cachedMetrics.ga4.compare,
+        ]
+      : await (async () => {
+          const [liveGscCurrent, liveGscCompare] = await Promise.all([
+            fetchGscMetrics(authClient, property.url, report.dateRangeStart, report.dateRangeEnd),
+            fetchGscMetrics(authClient, property.url, report.compareRangeStart, report.compareRangeEnd),
+          ]);
+
+          const [liveGa4Current, liveGa4Compare] = property.ga4PropertyId
+            ? await Promise.all([
+                fetchGa4Metrics(authClient, property.ga4PropertyId, report.dateRangeStart, report.dateRangeEnd),
+                fetchGa4Metrics(authClient, property.ga4PropertyId, report.compareRangeStart, report.compareRangeEnd),
+              ])
+            : [null, null];
+
+          return [liveGscCurrent, liveGscCompare, liveGa4Current, liveGa4Compare] as const;
+        })();
+
+    // 3. Fetch rich GA4 dimensional profile (2 batchRunReports calls)
+    let ga4Current = ga4CurrentBase as any;
+    let ga4Compare = ga4CompareBase as any;
+
+    if (property.ga4PropertyId) {
+      try {
+        const ga4Profile = await fetchGa4ReportProfile(
+          authClient,
+          property.ga4PropertyId,
+          String(report.dateRangeStart),
+          String(report.dateRangeEnd),
+          String(report.compareRangeStart),
+          String(report.compareRangeEnd),
+        );
+        // Merge rich profile into base summary metrics (guard against null base)
+        ga4Current = { ...(ga4CurrentBase ?? {}), ...ga4Profile.current };
+        ga4Compare = { ...(ga4CompareBase ?? {}), ...ga4Profile.compare };
+      } catch {
+        // Profile fetch failure is non-fatal — fall back to summary-only
+      }
+    }
 
     const reportData = {
       gsc: { current: gscCurrent, compare: gscCompare },

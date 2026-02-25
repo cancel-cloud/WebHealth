@@ -52,6 +52,17 @@ export type GscMetrics = {
   topPages: { page: string; clicks: number; impressions: number }[];
 };
 
+export type GscDayMetrics = {
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+  topQueries: { query: string; clicks: number; impressions: number; ctr: number; position: number }[];
+  topPages: { page: string; clicks: number; impressions: number }[];
+  topCountries: { country: string; clicks: number; impressions: number; ctr: number; position: number }[];
+  topDevices: { device: string; clicks: number; impressions: number; ctr: number; position: number }[];
+};
+
 export async function fetchGscMetrics(
   authClient: any,
   siteUrl: string,
@@ -99,9 +110,137 @@ export async function fetchGscMetrics(
   };
 }
 
+/**
+ * Batch-fetches GSC data for a full date range in 5 API calls (vs 3 per day).
+ * Returns a Map keyed by date string (YYYY-MM-DD).
+ */
+export async function fetchGscMetricsBatch(
+  authClient: any,
+  siteUrl: string,
+  dateStart: string,
+  dateEnd: string
+): Promise<Map<string, GscDayMetrics>> {
+  const searchConsole = google.webmasters({ version: "v3", auth: authClient });
+
+  // Run all 5 dimension queries in parallel
+  const [dailyRes, queriesRes, pagesRes, countriesRes, devicesRes] = await Promise.all([
+    // 1. Daily summary
+    searchConsole.searchanalytics.query({
+      siteUrl,
+      requestBody: { startDate: dateStart, endDate: dateEnd, dimensions: ["date"], rowLimit: 25000 },
+    }),
+    // 2. Daily top queries
+    searchConsole.searchanalytics.query({
+      siteUrl,
+      requestBody: { startDate: dateStart, endDate: dateEnd, dimensions: ["date", "query"], rowLimit: 25000 },
+    }),
+    // 3. Daily top pages
+    searchConsole.searchanalytics.query({
+      siteUrl,
+      requestBody: { startDate: dateStart, endDate: dateEnd, dimensions: ["date", "page"], rowLimit: 25000 },
+    }),
+    // 4. Daily country breakdown
+    searchConsole.searchanalytics.query({
+      siteUrl,
+      requestBody: { startDate: dateStart, endDate: dateEnd, dimensions: ["date", "country"], rowLimit: 25000 },
+    }),
+    // 5. Daily device breakdown
+    searchConsole.searchanalytics.query({
+      siteUrl,
+      requestBody: { startDate: dateStart, endDate: dateEnd, dimensions: ["date", "device"], rowLimit: 25000 },
+    }),
+  ]);
+
+  // Build a base map from the daily summary rows
+  const dayMap = new Map<string, GscDayMetrics>();
+
+  for (const row of (dailyRes.data.rows ?? [])) {
+    const date = (row as any).keys[0] as string;
+    dayMap.set(date, {
+      clicks: (row as any).clicks ?? 0,
+      impressions: (row as any).impressions ?? 0,
+      ctr: (row as any).ctr ?? 0,
+      position: (row as any).position ?? 0,
+      topQueries: [],
+      topPages: [],
+      topCountries: [],
+      topDevices: [],
+    });
+  }
+
+  // Attach top queries per day (keep top 25 by clicks)
+  const queriesByDay = new Map<string, { query: string; clicks: number; impressions: number; ctr: number; position: number }[]>();
+  for (const row of (queriesRes.data.rows ?? [])) {
+    const [date, query] = (row as any).keys as string[];
+    if (!queriesByDay.has(date)) queriesByDay.set(date, []);
+    queriesByDay.get(date)!.push({
+      query,
+      clicks: (row as any).clicks ?? 0,
+      impressions: (row as any).impressions ?? 0,
+      ctr: (row as any).ctr ?? 0,
+      position: (row as any).position ?? 0,
+    });
+  }
+
+  // Attach top pages per day (keep top 25 by clicks)
+  const pagesByDay = new Map<string, { page: string; clicks: number; impressions: number }[]>();
+  for (const row of (pagesRes.data.rows ?? [])) {
+    const [date, page] = (row as any).keys as string[];
+    if (!pagesByDay.has(date)) pagesByDay.set(date, []);
+    pagesByDay.get(date)!.push({
+      page,
+      clicks: (row as any).clicks ?? 0,
+      impressions: (row as any).impressions ?? 0,
+    });
+  }
+
+  // Attach countries per day
+  const countriesByDay = new Map<string, { country: string; clicks: number; impressions: number; ctr: number; position: number }[]>();
+  for (const row of (countriesRes.data.rows ?? [])) {
+    const [date, country] = (row as any).keys as string[];
+    if (!countriesByDay.has(date)) countriesByDay.set(date, []);
+    countriesByDay.get(date)!.push({
+      country,
+      clicks: (row as any).clicks ?? 0,
+      impressions: (row as any).impressions ?? 0,
+      ctr: (row as any).ctr ?? 0,
+      position: (row as any).position ?? 0,
+    });
+  }
+
+  // Attach devices per day
+  const devicesByDay = new Map<string, { device: string; clicks: number; impressions: number; ctr: number; position: number }[]>();
+  for (const row of (devicesRes.data.rows ?? [])) {
+    const [date, device] = (row as any).keys as string[];
+    if (!devicesByDay.has(date)) devicesByDay.set(date, []);
+    devicesByDay.get(date)!.push({
+      device,
+      clicks: (row as any).clicks ?? 0,
+      impressions: (row as any).impressions ?? 0,
+      ctr: (row as any).ctr ?? 0,
+      position: (row as any).position ?? 0,
+    });
+  }
+
+  // Merge all dimension data into the day map
+  for (const [date, entry] of dayMap) {
+    const queries = queriesByDay.get(date) ?? [];
+    entry.topQueries = queries.sort((a, b) => b.clicks - a.clicks).slice(0, 25);
+
+    const pages = pagesByDay.get(date) ?? [];
+    entry.topPages = pages.sort((a, b) => b.clicks - a.clicks).slice(0, 25);
+
+    entry.topCountries = countriesByDay.get(date) ?? [];
+    entry.topDevices = devicesByDay.get(date) ?? [];
+  }
+
+  return dayMap;
+}
+
 export type Ga4Metrics = {
   sessions: number;
   users: number;
+  newUsers: number;
 };
 
 export async function fetchGa4Metrics(
@@ -116,7 +255,7 @@ export async function fetchGa4Metrics(
     property: `properties/${propertyId}`,
     requestBody: {
       dateRanges: [{ startDate, endDate }],
-      metrics: [{ name: "sessions" }, { name: "totalUsers" }],
+      metrics: [{ name: "sessions" }, { name: "totalUsers" }, { name: "newUsers" }],
     },
   });
 
@@ -124,6 +263,244 @@ export async function fetchGa4Metrics(
   return {
     sessions: parseInt(row?.[0]?.value ?? "0"),
     users: parseInt(row?.[1]?.value ?? "0"),
+    newUsers: parseInt(row?.[2]?.value ?? "0"),
   };
 }
 
+/**
+ * Fetches GA4 daily summaries for a full date range in 1 API call (vs 1 per day).
+ * Returns a Map keyed by date string (YYYYMMDD from GA4 → normalized to YYYY-MM-DD).
+ */
+export async function fetchGa4DailySummary(
+  authClient: any,
+  propertyId: string,
+  dateStart: string,
+  dateEnd: string
+): Promise<Map<string, { sessions: number; users: number; newUsers: number }>> {
+  const analyticsData = google.analyticsdata({ version: "v1beta", auth: authClient });
+
+  const response = await analyticsData.properties.runReport({
+    property: `properties/${propertyId}`,
+    requestBody: {
+      dateRanges: [{ startDate: dateStart, endDate: dateEnd }],
+      dimensions: [{ name: "date" }],
+      metrics: [
+        { name: "sessions" },
+        { name: "totalUsers" },
+        { name: "newUsers" },
+      ],
+    },
+  });
+
+  const result = new Map<string, { sessions: number; users: number; newUsers: number }>();
+
+  for (const row of (response.data.rows ?? [])) {
+    // GA4 returns date as YYYYMMDD, normalize to YYYY-MM-DD
+    const rawDate = row.dimensionValues?.[0]?.value ?? "";
+    const date = rawDate.length === 8
+      ? `${rawDate.slice(0, 4)}-${rawDate.slice(4, 6)}-${rawDate.slice(6, 8)}`
+      : rawDate;
+    const mv = row.metricValues ?? [];
+    result.set(date, {
+      sessions: parseInt(mv[0]?.value ?? "0"),
+      users: parseInt(mv[1]?.value ?? "0"),
+      newUsers: parseInt(mv[2]?.value ?? "0"),
+    });
+  }
+
+  return result;
+}
+
+export type Ga4ReportProfile = {
+  topPages: { pagePath: string; pageviews: number; sessions: number }[];
+  trafficSources: { medium: string; sessions: number; users: number }[];
+  deviceBreakdown: { device: string; sessions: number; users: number }[];
+  countryBreakdown: { country: string; users: number; sessions: number }[];
+  events: { eventName: string; eventCount: number; totalUsers: number }[];
+  osBreakdown: { os: string; sessions: number }[];
+  landingPages: { landingPage: string; sessions: number; pageviews: number }[];
+  acquisitionChannels: { channel: string; users: number }[];
+};
+
+/**
+ * Fetches a rich GA4 profile using 2 batchRunReports calls (each covering current + compare
+ * periods in a single request via 2 dateRanges). Returns separate current/compare profiles.
+ */
+export async function fetchGa4ReportProfile(
+  authClient: any,
+  propertyId: string,
+  currentStart: string,
+  currentEnd: string,
+  compareStart: string,
+  compareEnd: string
+): Promise<{ current: Ga4ReportProfile; compare: Ga4ReportProfile }> {
+  const analyticsData = google.analyticsdata({ version: "v1beta", auth: authClient });
+  const property = `properties/${propertyId}`;
+
+  const dateRanges = [
+    { startDate: currentStart, endDate: currentEnd },
+    { startDate: compareStart, endDate: compareEnd },
+  ];
+
+  // dateRange must be included as a dimension so GA4 returns separate rows per period.
+  // The returned value is "date_range_0" (current) or "date_range_1" (compare).
+  const dateRangeDim = { name: "dateRange" };
+
+  // Batch call 1: 5 reports
+  const [batch1Res, batch2Res] = await Promise.all([
+    analyticsData.properties.batchRunReports({
+      property,
+      requestBody: {
+        requests: [
+          {
+            dateRanges,
+            dimensions: [{ name: "pagePath" }, dateRangeDim],
+            metrics: [{ name: "screenPageViews" }, { name: "sessions" }],
+            limit: "25",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "sessionMedium" }, dateRangeDim],
+            metrics: [{ name: "sessions" }, { name: "totalUsers" }],
+            limit: "25",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "deviceCategory" }, dateRangeDim],
+            metrics: [{ name: "sessions" }, { name: "totalUsers" }],
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "country" }, dateRangeDim],
+            metrics: [{ name: "totalUsers" }, { name: "sessions" }],
+            limit: "25",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "eventName" }, dateRangeDim],
+            metrics: [{ name: "eventCount" }, { name: "totalUsers" }],
+            limit: "25",
+          },
+        ],
+      },
+    }),
+    // Batch call 2: 3 reports
+    analyticsData.properties.batchRunReports({
+      property,
+      requestBody: {
+        requests: [
+          {
+            dateRanges,
+            dimensions: [{ name: "operatingSystem" }, dateRangeDim],
+            metrics: [{ name: "sessions" }],
+            limit: "10",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "landingPage" }, dateRangeDim],
+            metrics: [{ name: "sessions" }, { name: "screenPageViews" }],
+            limit: "25",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "firstUserMedium" }, dateRangeDim],
+            metrics: [{ name: "totalUsers" }],
+            limit: "25",
+          },
+        ],
+      },
+    }),
+  ]);
+
+  // dateRange is always the last dimension; strip it before passing to mapper.
+  function parseRows<T>(
+    report: any,
+    mapper: (dimValues: string[], metricValues: string[]) => T
+  ): { current: T[]; compare: T[] } {
+    const current: T[] = [];
+    const compare: T[] = [];
+    for (const row of (report?.rows ?? [])) {
+      const allDims: string[] = (row.dimensionValues ?? []).map((d: any) => d.value ?? "");
+      const mets: string[] = (row.metricValues ?? []).map((m: any) => m.value ?? "0");
+      // Last dimension is "date_range_0" or "date_range_1"
+      const dateRangeVal = allDims[allDims.length - 1] ?? "date_range_0";
+      const dims = allDims.slice(0, -1);
+      const item = mapper(dims, mets);
+      if (dateRangeVal === "date_range_0") current.push(item);
+      else compare.push(item);
+    }
+    return { current, compare };
+  }
+
+  const reports1 = batch1Res.data.reports ?? [];
+  const reports2 = batch2Res.data.reports ?? [];
+
+  const topPages = parseRows(reports1[0], (dims, mets) => ({
+    pagePath: dims[0],
+    pageviews: parseInt(mets[0]),
+    sessions: parseInt(mets[1]),
+  }));
+
+  const trafficSources = parseRows(reports1[1], (dims, mets) => ({
+    medium: dims[0],
+    sessions: parseInt(mets[0]),
+    users: parseInt(mets[1]),
+  }));
+
+  const deviceBreakdown = parseRows(reports1[2], (dims, mets) => ({
+    device: dims[0],
+    sessions: parseInt(mets[0]),
+    users: parseInt(mets[1]),
+  }));
+
+  const countryBreakdown = parseRows(reports1[3], (dims, mets) => ({
+    country: dims[0],
+    users: parseInt(mets[0]),
+    sessions: parseInt(mets[1]),
+  }));
+
+  const events = parseRows(reports1[4], (dims, mets) => ({
+    eventName: dims[0],
+    eventCount: parseInt(mets[0]),
+    totalUsers: parseInt(mets[1]),
+  }));
+
+  const osBreakdown = parseRows(reports2[0], (dims, mets) => ({
+    os: dims[0],
+    sessions: parseInt(mets[0]),
+  }));
+
+  const landingPages = parseRows(reports2[1], (dims, mets) => ({
+    landingPage: dims[0],
+    sessions: parseInt(mets[0]),
+    pageviews: parseInt(mets[1]),
+  }));
+
+  const acquisitionChannels = parseRows(reports2[2], (dims, mets) => ({
+    channel: dims[0],
+    users: parseInt(mets[0]),
+  }));
+
+  return {
+    current: {
+      topPages: topPages.current,
+      trafficSources: trafficSources.current,
+      deviceBreakdown: deviceBreakdown.current,
+      countryBreakdown: countryBreakdown.current,
+      events: events.current,
+      osBreakdown: osBreakdown.current,
+      landingPages: landingPages.current,
+      acquisitionChannels: acquisitionChannels.current,
+    },
+    compare: {
+      topPages: topPages.compare,
+      trafficSources: trafficSources.compare,
+      deviceBreakdown: deviceBreakdown.compare,
+      countryBreakdown: countryBreakdown.compare,
+      events: events.compare,
+      osBreakdown: osBreakdown.compare,
+      landingPages: landingPages.compare,
+      acquisitionChannels: acquisitionChannels.compare,
+    },
+  };
+}
