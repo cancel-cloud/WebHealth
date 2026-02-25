@@ -7,6 +7,7 @@ import {
   date,
   integer,
   unique,
+  index,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -111,7 +112,7 @@ export const reports = pgTable("reports", {
   dateRangeEnd: date("date_range_end").notNull(),
   compareRangeStart: date("compare_range_start").notNull(),
   compareRangeEnd: date("compare_range_end").notNull(),
-  status: text("status").default("queued").notNull(), // queued, processing, complete, failed
+  status: text("status").default("queued").notNull(), // queued, waiting_for_metrics, processing, complete, failed, scheduled
   data: jsonb("data"), // Raw GSC / GA4
   quickWins: jsonb("quick_wins"), // AI results
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -156,6 +157,123 @@ export const systemLogs = pgTable("system_logs", {
   details: jsonb("details"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const metricsBackfillJobs = pgTable("metrics_backfill_jobs", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  triggeredByUserId: text("triggered_by_user_id").notNull().references(() => user.id),
+  targetPropertyId: text("target_property_id").references(() => properties.id, { onDelete: "cascade" }),
+  targetUserId: text("target_user_id").references(() => user.id),
+  includeGsc: boolean("include_gsc").default(true).notNull(),
+  includeGa4: boolean("include_ga4").default(true).notNull(),
+  timeframeMode: text("timeframe_mode").default("custom").notNull(), // preset | custom
+  dateStart: date("date_start").notNull(),
+  dateEnd: date("date_end").notNull(),
+  refreshRecentDays: integer("refresh_recent_days").default(7).notNull(),
+  reason: text("reason").notNull(), // admin_sync | report_preflight | manual_backfill
+  status: text("status").default("queued").notNull(), // queued | processing | complete | failed | partial
+  totals: jsonb("totals"),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  startedAt: timestamp("started_at"),
+  finishedAt: timestamp("finished_at"),
+}, (t) => [
+  index("metrics_backfill_jobs_team_status_idx").on(t.teamId, t.status, t.createdAt),
+  index("metrics_backfill_jobs_property_created_idx").on(t.targetPropertyId, t.createdAt),
+]);
+
+export const gscDailyRaw = pgTable("gsc_daily_raw", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  sourceDate: date("source_date").notNull(),
+  siteUrl: text("site_url").notNull(),
+  summaryPayload: jsonb("summary_payload").notNull(),
+  queriesPayload: jsonb("queries_payload"),
+  pagesPayload: jsonb("pages_payload"),
+  countriesPayload: jsonb("countries_payload"),
+  devicesPayload: jsonb("devices_payload"),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+  syncJobId: text("sync_job_id").references(() => metricsBackfillJobs.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.propertyId, t.sourceDate),
+  index("gsc_daily_raw_team_date_idx").on(t.teamId, t.sourceDate),
+  index("gsc_daily_raw_property_fetched_idx").on(t.propertyId, t.fetchedAt),
+]);
+
+export const ga4DailyRaw = pgTable("ga4_daily_raw", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  gscPropertyId: text("gsc_property_id").references(() => properties.id, { onDelete: "set null" }),
+  ga4PropertyId: text("ga4_property_id").notNull(),
+  sourceDate: date("source_date").notNull(),
+  runReportPayload: jsonb("run_report_payload").notNull(),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+  syncJobId: text("sync_job_id").references(() => metricsBackfillJobs.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.ga4PropertyId, t.sourceDate),
+  index("ga4_daily_raw_gsc_date_idx").on(t.gscPropertyId, t.sourceDate),
+  index("ga4_daily_raw_team_date_idx").on(t.teamId, t.sourceDate),
+]);
+
+export const gscDailyFacts = pgTable("gsc_daily_facts", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  sourceDate: date("source_date").notNull(),
+  clicks: integer("clicks").default(0).notNull(),
+  impressions: integer("impressions").default(0).notNull(),
+  ctr: text("ctr").default("0").notNull(),
+  position: text("position").default("0").notNull(),
+  queryCount: integer("query_count").default(0).notNull(),
+  pageCount: integer("page_count").default(0).notNull(),
+  rawVersion: text("raw_version").default("v1").notNull(),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.propertyId, t.sourceDate),
+  index("gsc_daily_facts_team_date_idx").on(t.teamId, t.sourceDate),
+]);
+
+export const ga4DailyFacts = pgTable("ga4_daily_facts", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  gscPropertyId: text("gsc_property_id").references(() => properties.id, { onDelete: "set null" }),
+  ga4PropertyId: text("ga4_property_id").notNull(),
+  sourceDate: date("source_date").notNull(),
+  sessions: integer("sessions").default(0).notNull(),
+  users: integer("users").default(0).notNull(),
+  newUsers: integer("new_users").default(0).notNull(),
+  rawVersion: text("raw_version").default("v1").notNull(),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.ga4PropertyId, t.sourceDate),
+  index("ga4_daily_facts_gsc_date_idx").on(t.gscPropertyId, t.sourceDate),
+  index("ga4_daily_facts_team_date_idx").on(t.teamId, t.sourceDate),
+]);
+
+export const propertyDailyAiSummaries = pgTable("property_daily_ai_summaries", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  sourceDate: date("source_date").notNull(),
+  hasGsc: boolean("has_gsc").default(false).notNull(),
+  hasGa4: boolean("has_ga4").default(false).notNull(),
+  model: text("model"),
+  inputVersion: text("input_version").default("v1").notNull(),
+  summaryJson: jsonb("summary_json"),
+  summaryText: text("summary_text"),
+  status: text("status").default("queued").notNull(), // queued | processing | complete | failed
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.propertyId, t.sourceDate),
+  index("property_daily_ai_summaries_team_property_date_idx").on(t.teamId, t.propertyId, t.sourceDate),
+]);
 
 export const featureFlags = pgTable("feature_flags", {
   id: text("id").primaryKey(),
