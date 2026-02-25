@@ -17,7 +17,7 @@ export default async function AdminSyncingPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Syncing</h1>
         <p className="text-muted-foreground text-sm">
-          Manually trigger property sync and report generation for any user.
+          Manually trigger Google property sync for any user (no report creation).
         </p>
       </div>
       <SyncUsersTable users={users} />
