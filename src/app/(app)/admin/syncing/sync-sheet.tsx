@@ -10,8 +10,15 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { RefreshCw } from "lucide-react";
 
 interface AdminUser {
@@ -29,27 +36,33 @@ interface SyncSheetProps {
 }
 
 export function SyncSheet({ user, onClose }: SyncSheetProps) {
-  const [dateStart, setDateStart] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 28);
-    return d.toISOString().slice(0, 10);
-  });
-  const [dateEnd, setDateEnd] = useState(() => new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(false);
+  const [syncGsc, setSyncGsc] = useState(true);
+  const [syncGa4, setSyncGa4] = useState(true);
+  const [timeframe, setTimeframe] = useState<"14d" | "30d" | "60d">("30d");
 
   const handleSync = async () => {
     if (!user) return;
+    if (!syncGsc && !syncGa4) {
+      toast.error("Select at least one source to sync.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/admin/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id, dateStart, dateEnd }),
+        body: JSON.stringify({
+          userId: user.id,
+          includeGsc: syncGsc,
+          includeGa4: syncGa4,
+          timeframe,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Sync failed");
       toast.success(
-        `Sync complete: ${data.gscCount} GSC, ${data.ga4Count} GA4, ${data.autoLinked} linked, ${data.reportsCreated} reports queued`
+        `Sync complete: ${data.gscCount} GSC, ${data.ga4Count} GA4, ${data.autoLinked} linked · tested ${data.gscValidated} GSC / ${data.ga4Validated} GA4 (${data.timeframeLabel})`
       );
       onClose();
     } catch (err: unknown) {
@@ -61,33 +74,48 @@ export function SyncSheet({ user, onClose }: SyncSheetProps) {
 
   return (
     <Sheet open={!!user} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent>
-        <SheetHeader>
+      <SheetContent className="w-full sm:max-w-lg">
+        <SheetHeader className="px-4 pt-6 pr-12 sm:px-6">
           <SheetTitle>Sync for {user?.name}</SheetTitle>
           <SheetDescription>{user?.email}</SheetDescription>
         </SheetHeader>
-        <div className="mt-6 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="dateStart">Date Start</Label>
-            <Input
-              id="dateStart"
-              type="date"
-              value={dateStart}
-              onChange={(e) => setDateStart(e.target.value)}
-            />
+        <div className="mt-2 space-y-4 px-4 pb-6 sm:px-6">
+          <div className="rounded-lg border p-3 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Sources
+            </p>
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="sync-gsc" className="cursor-pointer">
+                Google Search Console
+              </Label>
+              <Switch id="sync-gsc" checked={syncGsc} onCheckedChange={setSyncGsc} />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="sync-ga4" className="cursor-pointer">
+                Google Analytics 4
+              </Label>
+              <Switch id="sync-ga4" checked={syncGa4} onCheckedChange={setSyncGa4} />
+            </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="dateEnd">Date End</Label>
-            <Input
-              id="dateEnd"
-              type="date"
-              value={dateEnd}
-              onChange={(e) => setDateEnd(e.target.value)}
-            />
+            <Label htmlFor="sync-timeframe">Metrics test timeframe</Label>
+            <Select value={timeframe} onValueChange={(v) => setTimeframe(v as "14d" | "30d" | "60d")}>
+              <SelectTrigger id="sync-timeframe" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="14d">Last 2 weeks</SelectItem>
+                <SelectItem value="30d">Last month</SelectItem>
+                <SelectItem value="60d">Last 2 months</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Validates GSC/GA4 data fetches for the selected window without creating reports.
+            </p>
           </div>
           <Button onClick={handleSync} disabled={loading} className="w-full">
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            {loading ? "Syncing..." : "Sync Properties & Queue Reports"}
+            {loading ? "Syncing..." : "Sync Selected"}
           </Button>
         </div>
       </SheetContent>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { properties, reports, systemLogs } from "@/db/schema";
+import { properties, systemLogs } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import {
   getGoogleAuthClient,
@@ -10,8 +10,18 @@ import {
 } from "@/lib/google/api";
 import { headers } from "next/headers";
 import { nanoid } from "nanoid";
+import {
+  createMetricsBackfillJob,
+  processMetricsBackfillJob,
+} from "@/lib/metrics-cache";
 
 const ADMIN_EMAIL = "lukas@devbrew.dev";
+const TIMEFRAME_DAYS = {
+  "14d": 14,
+  "30d": 30,
+  "60d": 60,
+} as const;
+type TimeframePreset = keyof typeof TIMEFRAME_DAYS;
 
 export async function POST(req: Request) {
   try {
@@ -21,11 +31,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const body = await req.json();
-    const { userId, dateStart, dateEnd } = body;
+    const {
+      userId,
+      includeGsc = true,
+      includeGa4 = true,
+      timeframe = "30d",
+    } = body as {
+      userId?: string;
+      includeGsc?: boolean;
+      includeGa4?: boolean;
+      timeframe?: string;
+    };
 
-    if (!userId || !dateStart || !dateEnd) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json({ error: "userId is required" }, { status: 400 });
     }
+    if (!includeGsc && !includeGa4) {
+      return NextResponse.json({ error: "Select at least one source to sync" }, { status: 400 });
+    }
+    if (!(timeframe in TIMEFRAME_DAYS)) {
+      return NextResponse.json({ error: "Invalid timeframe" }, { status: 400 });
+    }
+    const timeframePreset = timeframe as TimeframePreset;
 
     const logId = `log_${nanoid(12)}`;
     await db.insert(systemLogs).values({
@@ -34,7 +61,7 @@ export async function POST(req: Request) {
       triggeredBy: session.user.id,
       targetUserId: userId,
       status: "started",
-      details: { dateStart, dateEnd },
+      details: { mode: "sync_only", includeGsc, includeGa4, timeframe: timeframePreset },
     });
 
     try {
@@ -73,10 +100,12 @@ export async function POST(req: Request) {
       const targetTeamId = userTeam.teamId;
 
       // Fetch & upsert properties
-      const [gscSites, ga4Props] = await Promise.all([
-        fetchGscProperties(authClient),
-        fetchGa4Properties(authClient),
-      ]);
+      const gscSites: Awaited<ReturnType<typeof fetchGscProperties>> = includeGsc
+        ? await fetchGscProperties(authClient)
+        : [];
+      const ga4Props: Awaited<ReturnType<typeof fetchGa4Properties>> = includeGa4
+        ? await fetchGa4Properties(authClient)
+        : [];
 
       let gscCount = 0;
       for (const site of gscSites) {
@@ -126,70 +155,95 @@ export async function POST(req: Request) {
           and(eq(p.teamId, targetTeamId), eq(p.type, "gsc"), isNull(p.ga4PropertyId)),
       });
 
-      for (const gscProp of unlinkedGsc) {
-        const domain = gscProp.url
-          .replace("sc-domain:", "")
-          .replace("https://", "")
-          .replace("http://", "")
-          .replace(/\/$/, "")
-          .toLowerCase();
+      if (includeGa4) {
+        for (const gscProp of unlinkedGsc) {
+          const domain = gscProp.url
+            .replace("sc-domain:", "")
+            .replace("https://", "")
+            .replace("http://", "")
+            .replace(/\/$/, "")
+            .toLowerCase();
 
-        const match = ga4Props.find(
-          (ga4) =>
-            ga4.displayName.toLowerCase().includes(domain) ||
-            domain.includes(ga4.displayName.toLowerCase().replace(/^www\./, ""))
-        );
+          const match = ga4Props.find(
+            (ga4) =>
+              ga4.displayName.toLowerCase().includes(domain) ||
+              domain.includes(ga4.displayName.toLowerCase().replace(/^www\./, ""))
+          );
 
-        if (match) {
-          await db
-            .update(properties)
-            .set({ ga4PropertyId: match.propertyId })
-            .where(eq(properties.id, gscProp.id));
-          autoLinked++;
+          if (match) {
+            await db
+              .update(properties)
+              .set({ ga4PropertyId: match.propertyId })
+              .where(eq(properties.id, gscProp.id));
+            autoLinked++;
+          }
         }
       }
 
-      // Create reports for each GSC property that has a GA4 link
-      const linkedGscProps = await db.query.properties.findMany({
-        where: (p, { and, eq, isNotNull }) =>
-          and(eq(p.teamId, targetTeamId), eq(p.type, "gsc"), isNotNull(p.ga4PropertyId)),
+      // Metrics sync + validation (no report creation): persist daily raw/fact rows for the test window.
+      const days = TIMEFRAME_DAYS[timeframePreset];
+      const end = new Date();
+      end.setHours(0, 0, 0, 0);
+      const start = new Date(end);
+      start.setDate(start.getDate() - (days - 1));
+      const dateStart = start.toISOString().slice(0, 10);
+      const dateEnd = end.toISOString().slice(0, 10);
+
+      const metricsJob = await createMetricsBackfillJob({
+        teamId: targetTeamId,
+        triggeredByUserId: session.user.id,
+        targetUserId: userId,
+        includeGsc,
+        includeGa4,
+        dateStart,
+        dateEnd,
+        reason: "admin_sync",
+        timeframeMode: "preset",
+        refreshRecentDays: 7,
       });
-
-      const compareEnd = new Date(dateStart);
-      compareEnd.setDate(compareEnd.getDate() - 1);
-      const dateRange = Math.round(
-        (new Date(dateEnd).getTime() - new Date(dateStart).getTime()) / (1000 * 60 * 60 * 24)
-      );
-      const compareStart = new Date(compareEnd);
-      compareStart.setDate(compareStart.getDate() - dateRange);
-
-      const compareStartStr = compareStart.toISOString().slice(0, 10);
-      const compareEndStr = compareEnd.toISOString().slice(0, 10);
-
-      const createdReports: string[] = [];
-      for (const prop of linkedGscProps) {
-        const reportId = `rep_${nanoid(12)}`;
-        await db.insert(reports).values({
-          id: reportId,
-          teamId: targetTeamId,
-          propertyId: prop.id,
-          dateRangeStart: dateStart,
-          dateRangeEnd: dateEnd,
-          compareRangeStart: compareStartStr,
-          compareRangeEnd: compareEndStr,
-          status: "queued",
-        });
-        createdReports.push(reportId);
-
-        const baseUrl = process.env.BETTER_AUTH_URL || "http://localhost:3000";
-        fetch(`${baseUrl}/api/reports/${reportId}/process`, { method: "POST" }).catch(() => {});
-      }
+      const metricsResult = await processMetricsBackfillJob({
+        jobId: metricsJob.id,
+        authClient,
+      });
+      const {
+        gscValidated,
+        gscValidationFailed,
+        ga4Validated,
+        ga4ValidationFailed,
+        gscFetchedDates,
+        gscSkippedDates,
+        gscRefreshedDates,
+        ga4FetchedDates,
+        ga4SkippedDates,
+        ga4RefreshedDates,
+      } = metricsResult.totals;
 
       await db
         .update(systemLogs)
         .set({
           status: "success",
-          details: { gscCount, ga4Count, autoLinked, reportsCreated: createdReports.length },
+          details: {
+            gscCount,
+            ga4Count,
+            autoLinked,
+            mode: "sync_only",
+            includeGsc,
+            includeGa4,
+            timeframe: timeframePreset,
+            dateStart,
+            dateEnd,
+            metricsJobId: metricsJob.id,
+            gscValidated,
+            gscValidationFailed,
+            ga4Validated,
+            ga4ValidationFailed,
+            gscFetchedDates,
+            gscSkippedDates,
+            gscRefreshedDates,
+            ga4FetchedDates,
+            ga4SkippedDates,
+            ga4RefreshedDates,
+          },
         })
         .where(eq(systemLogs.id, logId));
 
@@ -198,7 +252,29 @@ export async function POST(req: Request) {
         gscCount,
         ga4Count,
         autoLinked,
-        reportsCreated: createdReports.length,
+        includeGsc,
+        includeGa4,
+        timeframe: timeframePreset,
+        timeframeLabel:
+          timeframePreset === "14d"
+            ? "last 2 weeks"
+            : timeframePreset === "60d"
+              ? "last 2 months"
+              : "last month",
+        dateStart,
+        dateEnd,
+        metricsJobId: metricsJob.id,
+        gscValidated,
+        gscValidationFailed,
+        ga4Validated,
+        ga4ValidationFailed,
+        gscFetchedDates,
+        gscSkippedDates,
+        gscRefreshedDates,
+        ga4FetchedDates,
+        ga4SkippedDates,
+        ga4RefreshedDates,
+        reportsCreated: 0,
         logId,
       });
     } catch (innerError: unknown) {
