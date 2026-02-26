@@ -21,10 +21,21 @@ const NAV_LINKS = [
   { label: "Dashboard", href: "/dashboard" },
 ];
 
+// On variant pages (/1, /2 … /N), anchor links should be same-page
+function useNavLinks() {
+  const pathname = usePathname();
+  const isVariant = /^\/\d+$/.test(pathname);
+  if (!isVariant) return NAV_LINKS;
+  return NAV_LINKS.map((l) =>
+    l.href.startsWith("/#") ? { ...l, href: l.href.slice(1) } : l
+  );
+}
+
 export function Navbar() {
   const { data: session, isPending } = authClient.useSession();
   const pathname = usePathname();
   const isApp = pathname.startsWith("/dashboard") || pathname.startsWith("/reports");
+  const navLinks = useNavLinks();
 
   const handleSignIn = async () => {
     await authClient.signIn.social({
@@ -42,10 +53,10 @@ export function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/80 backdrop-blur-md">
+    <nav className="sticky top-0 z-50 w-full border-b border-primary/20 bg-primary/10 backdrop-blur-md">
       <div className={`flex items-center justify-between h-16 ${isApp ? 'container mx-auto px-4' : 'px-6 max-w-7xl mx-auto'}`}>
         {/* Logo */}
-        <Link href="/" className="font-extrabold text-xl tracking-tighter flex items-center gap-2 font-outfit">
+        <Link href="/" className="font-extrabold text-xl tracking-tighter flex items-center gap-2 font-display">
           <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center shadow-lg shadow-primary/20">
             <div className="h-2.5 w-2.5 rounded-full bg-white" />
           </div>
@@ -55,7 +66,7 @@ export function Navbar() {
         {/* Marketing nav links (only on public pages) */}
         {!isApp && (
           <div className="hidden md:flex items-center gap-6">
-            {NAV_LINKS.filter((l) => l.href !== "/dashboard").map((l) => (
+            {navLinks.filter((l) => l.href !== "/dashboard").map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
