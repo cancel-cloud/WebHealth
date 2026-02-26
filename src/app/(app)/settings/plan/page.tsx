@@ -63,7 +63,7 @@ export default function PlanPage() {
       </div>
 
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight font-outfit" style={{ textWrap: "balance" }}>
+        <h1 className="text-3xl font-extrabold tracking-tight font-display" style={{ textWrap: "balance" }}>
           Plans & Pricing
         </h1>
         <p className="text-muted-foreground mt-1">Choose the plan that fits your needs.</p>
@@ -86,12 +86,12 @@ export default function PlanPage() {
             )}
 
             <div className="space-y-1">
-              <h2 className="text-xl font-extrabold font-outfit">{plan.name}</h2>
+              <h2 className="text-xl font-extrabold font-display">{plan.name}</h2>
               <p className="text-sm text-muted-foreground">{plan.description}</p>
             </div>
 
             <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-extrabold font-outfit">{plan.price}</span>
+              <span className="text-4xl font-extrabold font-display">{plan.price}</span>
               <span className="text-sm text-muted-foreground">/{plan.period}</span>
             </div>
 

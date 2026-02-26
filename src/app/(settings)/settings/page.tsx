@@ -213,7 +213,7 @@ export default function SettingsPage() {
                 {/* Choose Your Plan */}
                 <section aria-labelledby="plan-heading" className="space-y-5">
                   <div className="flex items-center justify-between">
-                    <h2 id="plan-heading" className="text-2xl font-bold font-outfit tracking-tight">
+                    <h2 id="plan-heading" className="text-2xl font-bold font-display tracking-tight">
                       Choose Your Plan
                     </h2>
                     {/* TODO[billing-portal]: No Stripe portal yet */}
@@ -226,8 +226,8 @@ export default function SettingsPage() {
                     {/* Free */}
                     <div className="rounded-2xl border border-primary/40 bg-primary/5 p-5 flex flex-col gap-4">
                       <div>
-                        <p className="font-semibold font-outfit text-lg">Free</p>
-                        <p className="text-2xl font-bold font-outfit">$0</p>
+                        <p className="font-semibold font-display text-lg">Free</p>
+                        <p className="text-2xl font-bold font-display">$0</p>
                       </div>
                       <ul className="space-y-1.5 flex-1">
                         {["5 properties", "10 reports/mo", "Community support"].map((f) => (
@@ -250,8 +250,8 @@ export default function SettingsPage() {
                         </Badge>
                       </div>
                       <div>
-                        <p className="font-semibold font-outfit text-lg">Pro</p>
-                        <p className="text-2xl font-bold font-outfit">$19<span className="text-base font-medium text-muted-foreground">/mo</span></p>
+                        <p className="font-semibold font-display text-lg">Pro</p>
+                        <p className="text-2xl font-bold font-display">$19<span className="text-base font-medium text-muted-foreground">/mo</span></p>
                       </div>
                       <ul className="space-y-1.5 flex-1">
                         {["25 properties", "Unlimited reports", "Email support", "Advanced analytics"].map((f) => (
@@ -270,8 +270,8 @@ export default function SettingsPage() {
                     {/* Agency */}
                     <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4">
                       <div>
-                        <p className="font-semibold font-outfit text-lg">Agency</p>
-                        <p className="text-2xl font-bold font-outfit">$79<span className="text-base font-medium text-muted-foreground">/mo</span></p>
+                        <p className="font-semibold font-display text-lg">Agency</p>
+                        <p className="text-2xl font-bold font-display">$79<span className="text-base font-medium text-muted-foreground">/mo</span></p>
                       </div>
                       <ul className="space-y-1.5 flex-1">
                         {["Unlimited properties", "Priority support", "Team members", "White-label reports"].map((f) => (
@@ -291,7 +291,7 @@ export default function SettingsPage() {
 
                 {/* Billing Preferences */}
                 <section aria-labelledby="billing-heading" className="space-y-4">
-                  <h2 id="billing-heading" className="text-2xl font-bold font-outfit tracking-tight">
+                  <h2 id="billing-heading" className="text-2xl font-bold font-display tracking-tight">
                     Billing Preferences
                   </h2>
                   {/* TODO[billing-prefs]: Saved to DB — email sending not yet implemented */}
@@ -319,7 +319,7 @@ export default function SettingsPage() {
 
                 {/* Security Options */}
                 <section aria-labelledby="security-heading" className="space-y-4">
-                  <h2 id="security-heading" className="text-2xl font-bold font-outfit tracking-tight">
+                  <h2 id="security-heading" className="text-2xl font-bold font-display tracking-tight">
                     Security Options
                   </h2>
                   <div className="space-y-1">
@@ -336,7 +336,7 @@ export default function SettingsPage() {
 
                 {/* Danger Zone */}
                 <section aria-labelledby="danger-heading" className="space-y-4">
-                  <h2 id="danger-heading" className="text-2xl font-bold font-outfit tracking-tight text-destructive">
+                  <h2 id="danger-heading" className="text-2xl font-bold font-display tracking-tight text-destructive">
                     Danger Zone
                   </h2>
                   <p className="text-sm text-muted-foreground">
@@ -372,7 +372,7 @@ export default function SettingsPage() {
               {/* ── Notifications Tab ── */}
               <TabsContent value="notifications">
                 <div className="rounded-3xl border border-border bg-card p-6 space-y-4">
-                  <h2 className="text-xl font-bold font-outfit tracking-tight">
+                  <h2 className="text-xl font-bold font-display tracking-tight">
                     Email Notifications
                   </h2>
                   {settings === null && (
@@ -425,7 +425,7 @@ export default function SettingsPage() {
               <TabsContent value="contact">
                 <div className="space-y-4">
                   <div>
-                    <h2 className="text-2xl font-bold font-outfit tracking-tight">
+                    <h2 className="text-2xl font-bold font-display tracking-tight">
                       We&apos;re here to help!
                     </h2>
                     <p className="text-sm text-muted-foreground mt-1">

@@ -111,7 +111,7 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight font-outfit" style={{ textWrap: "balance" }}>
+          <h1 className="text-3xl font-extrabold tracking-tight font-display" style={{ textWrap: "balance" }}>
             Reports
           </h1>
           <p className="text-muted-foreground mt-1">View and manage your SEO comparison reports.</p>
@@ -161,7 +161,7 @@ export default function ReportsPage() {
           <div className="h-16 w-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-6">
             <FileText aria-hidden="true" className="h-8 w-8 text-muted-foreground/50" />
           </div>
-          <h3 className="text-xl font-medium text-foreground font-outfit">
+          <h3 className="text-xl font-medium text-foreground font-display">
             {reports.length === 0 ? "No reports yet" : "No reports match your filters"}
           </h3>
           <p className="max-w-sm mt-3 text-muted-foreground leading-relaxed">
