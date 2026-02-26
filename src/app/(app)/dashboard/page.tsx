@@ -35,7 +35,7 @@ export default async function DashboardPage() {
 
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight font-outfit" style={{ textWrap: "balance" }}>
+          <h1 className="text-3xl font-extrabold tracking-tight font-display" style={{ textWrap: "balance" }}>
             Overview
           </h1>
           <p className="text-muted-foreground mt-1">Manage your properties and generate SEO reports.</p>
@@ -52,7 +52,7 @@ export default async function DashboardPage() {
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <h3 className="font-medium text-muted-foreground mb-1">Properties</h3>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold font-outfit text-foreground">{propertyCount}</span>
+            <span className="text-4xl font-bold font-display text-foreground">{propertyCount}</span>
           </div>
         </Link>
 
@@ -65,7 +65,7 @@ export default async function DashboardPage() {
           <h3 className="font-medium text-muted-foreground mb-1">Reports Generated</h3>
           {/* TODO[report-count]: Hardcoded to 0 — not queried from DB */}
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold font-outfit text-foreground">0</span>
+            <span className="text-4xl font-bold font-display text-foreground">0</span>
             <span className="text-sm font-medium text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">New</span>
           </div>
         </Link>

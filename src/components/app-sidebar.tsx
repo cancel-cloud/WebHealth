@@ -100,7 +100,7 @@ export function AppSidebar() {
                   <div aria-hidden="true" className="h-3 w-3 rounded-full bg-white" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-extrabold text-base tracking-tighter font-outfit">WebAudit</span>
+                  <span className="truncate font-extrabold text-base tracking-tighter font-display">WebAudit</span>
                 </div>
               </Link>
             </SidebarMenuButton>

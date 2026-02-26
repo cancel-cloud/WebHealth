@@ -77,7 +77,7 @@ export function ReportsTable({ limit, showViewAll }: { limit?: number; showViewA
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-extrabold tracking-tight font-outfit">Recent Reports</h2>
+        <h2 className="text-2xl font-extrabold tracking-tight font-display">Recent Reports</h2>
         <div className="flex items-center gap-2">
           {showViewAll && reports.length > 0 && (
             <Link href="/reports" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
@@ -101,7 +101,7 @@ export function ReportsTable({ limit, showViewAll }: { limit?: number; showViewA
           <div className="h-16 w-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-6">
             <FileText className="h-8 w-8 text-muted-foreground/50" />
           </div>
-          <h3 className="text-xl font-medium text-foreground font-outfit">No reports generated</h3>
+          <h3 className="text-xl font-medium text-foreground font-display">No reports generated</h3>
           <p className="max-w-sm mt-3 text-muted-foreground leading-relaxed">
             You haven&apos;t generated any SEO reports yet. Sync your properties and click &quot;New Report&quot; to start.
           </p>

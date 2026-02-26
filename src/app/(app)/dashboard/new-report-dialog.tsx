@@ -212,7 +212,7 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[460px]">
         <DialogHeader>
-          <DialogTitle className="font-outfit text-xl">Create Comparison Report</DialogTitle>
+          <DialogTitle className="font-display text-xl">Create Comparison Report</DialogTitle>
           <DialogDescription>
             Select a property and two date ranges to analyze traffic changes and get AI-driven SEO Quick Wins.
           </DialogDescription>

@@ -112,7 +112,7 @@ function LinkGa4Dialog({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle className="font-outfit">Link GA4 Property</DialogTitle>
+            <DialogTitle className="font-display">Link GA4 Property</DialogTitle>
             <DialogDescription>
               Select a GA4 property to link with <strong>{gscProperty.name}</strong>.
             </DialogDescription>
@@ -173,7 +173,7 @@ export default function PropertiesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight font-outfit" style={{ textWrap: "balance" }}>
+          <h1 className="text-3xl font-extrabold tracking-tight font-display" style={{ textWrap: "balance" }}>
             Properties
           </h1>
           <p className="text-muted-foreground mt-1">Google Search Console and Analytics properties synced to your account.</p>
@@ -194,7 +194,7 @@ export default function PropertiesPage() {
           <div className="h-16 w-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-6">
             <Globe aria-hidden="true" className="h-8 w-8 text-muted-foreground/50" />
           </div>
-          <h3 className="text-xl font-medium text-foreground font-outfit">No properties synced</h3>
+          <h3 className="text-xl font-medium text-foreground font-display">No properties synced</h3>
           <p className="max-w-sm mt-3 text-muted-foreground leading-relaxed">
             Click <strong>Sync Properties</strong> to fetch your Google Search Console and Analytics properties.
           </p>

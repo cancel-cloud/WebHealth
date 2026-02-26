@@ -93,7 +93,7 @@ export default async function ReportDetailPage({
           </Link>
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight font-outfit mb-2">
+              <h1 className="text-3xl font-extrabold tracking-tight font-display mb-2">
                 {property?.name ?? report.propertyId}
               </h1>
               <p className="text-muted-foreground">
@@ -111,7 +111,7 @@ export default async function ReportDetailPage({
             <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 mx-auto">
               <BarChart2 className="h-8 w-8 text-primary animate-pulse" />
             </div>
-            <h2 className="text-2xl font-semibold font-outfit mb-3">Report is being generated</h2>
+            <h2 className="text-2xl font-semibold font-display mb-3">Report is being generated</h2>
             <p className="text-muted-foreground max-w-sm mx-auto">
               We're crawling your site and fetching data from Google Search Console and Analytics. This usually takes 1–2 minutes.
             </p>
@@ -126,7 +126,7 @@ export default async function ReportDetailPage({
           <div className="space-y-10">
             {/* GSC Metrics Comparison */}
             <div>
-              <h2 className="text-xl font-bold font-outfit mb-4 flex items-center gap-2">
+              <h2 className="text-xl font-bold font-display mb-4 flex items-center gap-2">
                 <Globe2 className="h-5 w-5 text-primary" /> Search Console Metrics
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -138,7 +138,7 @@ export default async function ReportDetailPage({
                 ].map(({ label, curr, comp, fmt }) => (
                   <div key={label} className="p-6 rounded-3xl bg-card border border-border/50 shadow-sm">
                     <p className="text-sm text-muted-foreground mb-1">{label}</p>
-                    <p className="text-3xl font-bold font-outfit mb-2">
+                    <p className="text-3xl font-bold font-display mb-2">
                       {fmt === "percent" ? `${(curr * 100).toFixed(2)}%` : fmt === "position" ? curr.toFixed(1) : curr.toLocaleString()}
                     </p>
                     <Delta current={curr} compare={comp} format={fmt} />
@@ -150,18 +150,18 @@ export default async function ReportDetailPage({
             {/* GA4 Metrics */}
             {data.ga4?.current && (
               <div>
-                <h2 className="text-xl font-bold font-outfit mb-4 flex items-center gap-2">
+                <h2 className="text-xl font-bold font-display mb-4 flex items-center gap-2">
                   <BarChart2 className="h-5 w-5 text-blue-500" /> Analytics Metrics
                 </h2>
                 <div className="grid grid-cols-2 gap-4 max-w-lg">
                   <div className="p-6 rounded-3xl bg-card border border-border/50 shadow-sm">
                     <p className="text-sm text-muted-foreground mb-1">Sessions</p>
-                    <p className="text-3xl font-bold font-outfit mb-2">{data.ga4.current.sessions.toLocaleString()}</p>
+                    <p className="text-3xl font-bold font-display mb-2">{data.ga4.current.sessions.toLocaleString()}</p>
                     {data.ga4.compare && <Delta current={data.ga4.current.sessions} compare={data.ga4.compare.sessions} />}
                   </div>
                   <div className="p-6 rounded-3xl bg-card border border-border/50 shadow-sm">
                     <p className="text-sm text-muted-foreground mb-1">Users</p>
-                    <p className="text-3xl font-bold font-outfit mb-2">{data.ga4.current.users.toLocaleString()}</p>
+                    <p className="text-3xl font-bold font-display mb-2">{data.ga4.current.users.toLocaleString()}</p>
                     {data.ga4.compare && <Delta current={data.ga4.current.users} compare={data.ga4.compare.users} />}
                   </div>
                 </div>
@@ -171,7 +171,7 @@ export default async function ReportDetailPage({
             {/* Top Queries */}
             {data.gsc.current.topQueries.length > 0 && (
               <div>
-                <h2 className="text-xl font-bold font-outfit mb-4">Top Queries</h2>
+                <h2 className="text-xl font-bold font-display mb-4">Top Queries</h2>
                 <div className="border border-border/50 rounded-3xl overflow-hidden bg-card shadow-sm">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/30">
@@ -200,7 +200,7 @@ export default async function ReportDetailPage({
             {/* Quick Wins */}
             {quickWins && quickWins.length > 0 && (
               <div>
-                <h2 className="text-xl font-bold font-outfit mb-4 flex items-center gap-2">
+                <h2 className="text-xl font-bold font-display mb-4 flex items-center gap-2">
                   <Zap className="h-5 w-5 text-purple-500" /> AI Quick Wins
                 </h2>
                 <div className="space-y-4">
@@ -234,11 +234,11 @@ export default async function ReportDetailPage({
             {/* Crawl Summary */}
             {data.crawl && (
               <div>
-                <h2 className="text-xl font-bold font-outfit mb-4">Crawl Issues</h2>
+                <h2 className="text-xl font-bold font-display mb-4">Crawl Issues</h2>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   {Object.entries(data.crawl.summary).map(([key, val]) => (
                     <div key={key} className={`p-4 rounded-2xl border ${val > 0 ? 'bg-red-50 dark:bg-red-950/20 border-red-200' : 'bg-card border-border/50'} shadow-sm text-center`}>
-                      <p className={`text-2xl font-bold font-outfit ${val > 0 ? 'text-red-600' : 'text-green-600'}`}>{val}</p>
+                      <p className={`text-2xl font-bold font-display ${val > 0 ? 'text-red-600' : 'text-green-600'}`}>{val}</p>
                       <p className="text-xs text-muted-foreground mt-1">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
                     </div>
                   ))}
