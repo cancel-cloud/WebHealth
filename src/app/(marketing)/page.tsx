@@ -2,52 +2,70 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { motion, useScroll, useTransform, type Variants } from "framer-motion";
-import { ArrowRight, BarChart2, Zap, Globe2, Search, TrendingUp, Shield, FileDown, Users, Check } from "lucide-react";
-import { useRef } from "react";
+import { Globe2, BarChart2, Zap, Search, TrendingUp, FileDown, Check, ArrowRight, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
+
+/* ─── Palette ────────────────────────────────────────────────────────── */
+// Primary: indigo #6366f1  Accent: cyan #06b6d4  Success: emerald #10b981
+// Warn: amber #f59e0b  Info: sky #0ea5e9  Danger: rose #f43f5e
+// No purple gradients anywhere.
+
+/* ─── Data ──────────────────────────────────────────────────────────── */
 
 const FEATURES = [
   {
     icon: Globe2,
-    color: "text-primary",
-    bg: "bg-primary/10",
-    title: "Instant Property Sync",
-    description: "Connect once with Google. All your Search Console and Analytics properties are automatically discovered and synced.",
+    color: "#6366f1",
+    tint: "#6366f10c",
+    border: "#6366f11e",
+    title: "Connect once. Never manually check again.",
+    description:
+      "One OAuth grant discovers every GSC and GA4 property automatically — no copy-pasting IDs, no config to maintain.",
   },
   {
     icon: BarChart2,
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
-    title: "Period Comparison Reports",
-    description: "Choose any two date ranges. See deltas for clicks, impressions, CTR, position, sessions, and users side-by-side.",
+    color: "#0ea5e9",
+    tint: "#0ea5e90c",
+    border: "#0ea5e91e",
+    title: "Before vs. after — deltas you can act on.",
+    description:
+      "Pick two date ranges. Clicks, impressions, CTR, position, sessions, and users side-by-side with signed deltas.",
   },
   {
     icon: Zap,
-    color: "text-purple-500",
-    bg: "bg-purple-500/10",
-    title: "AI Quick Wins",
-    description: "GPT-powered analysis of your crawl data and traffic deltas gives you a ranked list of specific, actionable next steps.",
+    color: "#f59e0b",
+    tint: "#f59e0b0c",
+    border: "#f59e0b1e",
+    title: "GPT-ranked fixes with URLs and impact scores.",
+    description:
+      "The AI reads your crawl data and traffic deltas, then returns a prioritised fix list per page — not vague advice.",
   },
   {
     icon: Search,
-    color: "text-amber-500",
-    bg: "bg-amber-500/10",
-    title: "Live Web Crawl",
-    description: "Every report triggers a fresh crawl: missing titles, broken H1s, absent meta descriptions, and 4xx internal links.",
+    color: "#f43f5e",
+    tint: "#f43f5e0c",
+    border: "#f43f5e1e",
+    title: "Fresh crawl per report: broken H1s, 4xx links.",
+    description:
+      "Every report triggers a live crawl. Missing titles, duplicate H1s, absent meta descriptions, 4xx internal links — all flagged.",
   },
   {
     icon: TrendingUp,
-    color: "text-green-500",
-    bg: "bg-green-500/10",
-    title: "Top Queries & Pages",
-    description: "See which queries and pages drive the most traffic, with month-over-month deltas to spot what's trending up or dropping.",
+    color: "#10b981",
+    tint: "#10b9810c",
+    border: "#10b9811e",
+    title: "Which pages are bleeding and which are climbing.",
+    description:
+      "Top queries and pages ranked by traffic delta. Spot what dropped after your last deploy — immediately.",
   },
   {
     icon: FileDown,
-    color: "text-rose-500",
-    bg: "bg-rose-500/10",
-    title: "Export Everything",
-    description: "Download any report as PDF, Excel (.xlsx), or clean Markdown — ready to share with your client or copy into your CMS.",
+    color: "#06b6d4",
+    tint: "#06b6d40c",
+    border: "#06b6d41e",
+    title: "PDF, Excel, Markdown — client-ready or CMS-paste.",
+    description:
+      "Download any report in the format your workflow expects. No formatting gymnastics required.",
   },
 ];
 
@@ -56,247 +74,621 @@ const PRICING = [
     name: "Solo",
     price: "$0",
     period: "forever",
-    description: "For individual developers auditing their own sites.",
+    description: "For developers auditing their own sites.",
     cta: "Start Free",
-    features: ["Up to 3 properties", "5 reports/month", "AI Quick Wins", "Live crawl"],
+    href: "/dashboard",
+    features: ["Up to 3 properties", "5 reports / month", "AI Quick Wins", "Live crawl"],
     highlight: false,
   },
   {
     name: "Pro",
     price: "$19",
     period: "/ month",
-    description: "For freelancers and agencies managing multiple clients.",
+    description: "For freelancers managing multiple clients.",
     cta: "Get Started",
-    features: ["Unlimited properties", "50 reports/month", "PDF + Excel exports", "Priority crawling", "Team workspace"],
+    href: "/dashboard",
+    features: [
+      "Unlimited properties",
+      "50 reports / month",
+      "PDF + Excel exports",
+      "Priority crawling",
+      "Team workspace",
+    ],
     highlight: true,
   },
   {
     name: "Agency",
     price: "$79",
     period: "/ month",
-    description: "For large agencies with high-volume reporting needs.",
+    description: "For high-volume reporting at scale.",
     cta: "Contact Us",
-    features: ["Unlimited everything", "White-label exports", "Custom AI prompts", "API access", "Dedicated support"],
+    href: "/dashboard",
+    features: [
+      "Unlimited everything",
+      "White-label exports",
+      "Custom AI prompts",
+      "API access",
+      "Dedicated support",
+    ],
     highlight: false,
   },
 ];
 
-const container: Variants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
-const item: Variants = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] } } };
+const STEPS = [
+  {
+    n: "01",
+    color: "#6366f1",
+    tint: "#6366f114",
+    title: "Sign in with Google",
+    desc: "One OAuth click. WebAudit immediately discovers all your GSC and GA4 properties.",
+  },
+  {
+    n: "02",
+    color: "#0ea5e9",
+    tint: "#0ea5e914",
+    title: "Create a comparison report",
+    desc: "Pick a property, choose two date periods, hit Generate. We crawl, fetch, and analyse automatically.",
+  },
+  {
+    n: "03",
+    color: "#10b981",
+    tint: "#10b98114",
+    title: "Take action on Quick Wins",
+    desc: "Your AI-ranked fix list tells you exactly what to change — with affected URLs and impact scores.",
+  },
+];
 
-export default function Home() {
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+const STATS = [
+  { value: "2 min", label: "average setup time" },
+  { value: "100%", label: "automated workflow" },
+  { value: "$0", label: "to get started" },
+];
 
+/* ─── Animation variants ────────────────────────────────────────────── */
+const fadeUp = {
+  hidden: { opacity: 0, y: 18 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" as const },
+  },
+};
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08 } },
+};
+
+/* ─── Page ──────────────────────────────────────────────────────────── */
+
+export default function HomePage() {
   return (
-    <div className="flex-1 bg-background">
+    <>
+      {/* Skip link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:px-4 focus:py-2 focus:bg-white focus:rounded-lg focus:font-medium focus:shadow-lg focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:outline-none"
+        style={{ color: "#6366f1" }}
+      >
+        Skip to main content
+      </a>
 
-      {/* ── HERO ────────────────────────────────── */}
-      <section ref={heroRef} className="relative min-h-[90vh] flex flex-col items-center justify-center text-center px-4 overflow-hidden">
-        {/* Parallax background — pointer-events-none so they never block clicks */}
-        <motion.div
-          style={{ y: heroY, opacity: heroOpacity }}
-          className="absolute inset-0 pointer-events-none z-0"
+      <div
+        className="flex-1 flex flex-col"
+        style={{ backgroundColor: "oklch(0.99 0 0)", color: "oklch(0.12 0.01 250)" }}
+      >
+
+        {/* ── HERO ─────────────────────────────────────────────────────── */}
+        {/*
+          The negative top margin pulls this section UP behind the sticky navbar.
+          The navbar has bg-background/80 + backdrop-blur so the gradient shows through it,
+          giving the "header overlaid on top of the hero background" effect.
+          Padding-top compensates so text stays in the readable area below the nav.
+        */}
+        <section
+          id="main-content"
+          className="relative flex flex-col items-center justify-center text-center px-6 pb-36 overflow-hidden"
+          style={{ marginTop: "-64px", paddingTop: "calc(64px + 5rem)", minHeight: "100svh" }}
+          aria-labelledby="hero-heading"
         >
-          <div className="absolute top-0 inset-x-0 h-[600px] bg-gradient-to-b from-primary/15 via-primary/5 to-transparent blur-2xl" />
-          <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-blue-500/8 rounded-full blur-[100px]" />
-          <div className="absolute top-1/2 right-1/4 w-[400px] h-[400px] bg-purple-500/8 rounded-full blur-[100px]" />
-        </motion.div>
+          {/* Subtle grid overlay */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-[0.025]"
+            style={{
+              backgroundImage:
+                "linear-gradient(oklch(0.12 0.01 250) 1px, transparent 1px), linear-gradient(90deg, oklch(0.12 0.01 250) 1px, transparent 1px)",
+              backgroundSize: "40px 40px",
+            }}
+            aria-hidden="true"
+          />
 
-        <div className="relative z-10 max-w-5xl mx-auto space-y-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-            className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary backdrop-blur-sm"
-          >
-            <span className="flex h-2 w-2 rounded-full bg-primary mr-2 animate-pulse" />
-            Now in Beta · Free to get started
-          </motion.div>
+          <div className="relative z-10 max-w-5xl mx-auto text-center">
+            {/* Status pill */}
+            <div
+              className="inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold mb-10 motion-safe:animate-[fade-in_0.4s_ease_both]"
+              style={{
+                borderColor: "#6366f128",
+                color: "#6366f1",
+                backgroundColor: "#6366f108",
+              }}
+            >
+              <span
+                className="size-1.5 rounded-full motion-safe:animate-pulse"
+                style={{ backgroundColor: "#6366f1" }}
+                aria-hidden="true"
+              />
+              Now in beta · Free to start
+            </div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-extrabold tracking-tighter font-outfit leading-tight"
-          >
-            One dashboard for <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-500 to-purple-500">every SEO signal</span>.
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
-          >
-            WebAudit syncs Google Search Console & Analytics, crawls your site, and delivers <span className="text-foreground font-semibold">AI-ranked Quick Wins</span> — all in one comparison report.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center pt-2"
-          >
-            <Link href="/dashboard">
-              <Button size="lg" className="h-14 px-10 text-lg rounded-full font-semibold group shadow-lg shadow-primary/20">
-                Start Auditing Free
-                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-            <Button size="lg" variant="outline" className="h-14 px-10 text-lg rounded-full font-semibold border-border/60 hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all">
-              See a Sample Report
-            </Button>
-          </motion.div>
-
-          <motion.p
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.5 }}
-            className="text-sm text-muted-foreground"
-          >
-            No credit card required · Sign in with Google · 2-minute setup
-          </motion.p>
-        </div>
-      </section>
-
-      {/* ── FEATURES GRID ────────────────────────── */}
-      <section className="py-28 px-4 relative">
-        <div className="container mx-auto max-w-6xl">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight font-outfit mb-4">
-              Everything you need to <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500">outrank the competition</span>
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              WebAudit consolidates all your SEO data into a single, automated workflow — from crawl to report to action.
-            </p>
-          </motion.div>
-
-          <motion.div
-            variants={container} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}
-            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {FEATURES.map((f, i) => (
-              <motion.div key={f.title} variants={item} className={`group p-8 rounded-3xl bg-card border border-border/50 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden ${i === 1 ? 'lg:-translate-y-3' : ''}`}>
-                <div className={`absolute inset-0 bg-gradient-to-br from-transparent to-transparent group-hover:opacity-100 opacity-0 transition-opacity duration-300`} style={{ background: `radial-gradient(ellipse at top left, var(--tw-gradient-from), transparent)` }} />
-                <div className={`h-12 w-12 rounded-2xl ${f.bg} flex items-center justify-center mb-6 ${f.color}`}>
-                  <f.icon className="h-6 w-6" />
-                </div>
-                <h3 className="text-lg font-bold mb-2 font-outfit">{f.title}</h3>
-                <p className="text-muted-foreground leading-relaxed text-sm">{f.description}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ────────────────────────── */}
-      <section className="py-28 px-4 bg-muted/30 border-y border-border/50">
-        <div className="container mx-auto max-w-5xl text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <h2 className="text-4xl font-extrabold tracking-tight font-outfit mb-4">
-              From sign-in to insights in <span className="text-primary">under 3 minutes</span>
-            </h2>
-            <p className="text-xl text-muted-foreground mb-16">Three steps. No complicated setup.</p>
-          </motion.div>
-
-          <motion.div
-            variants={container} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}
-            className="grid md:grid-cols-3 gap-8"
-          >
-            {[
-              { step: "01", title: "Sign in with Google", desc: "One OAuth click. WebAudit immediately discovers all your GSC and GA4 properties." },
-              { step: "02", title: "Create a comparison report", desc: "Pick a property, choose two date periods, hit Generate. We crawl, fetch, and analyze automatically." },
-              { step: "03", title: "Take action on Quick Wins", desc: "Your AI-ranked Quick Wins list tells you exactly what to fix — with affected URLs and impact scores." },
-            ].map((s) => (
-              <motion.div key={s.step} variants={item} className="flex flex-col items-center text-center">
-                <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl font-extrabold text-primary font-outfit mb-6">
-                  {s.step}
-                </div>
-                <h3 className="text-xl font-bold font-outfit mb-3">{s.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{s.desc}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── PRICING ────────────────────────────── */}
-      <section className="py-28 px-4 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/3 to-transparent pointer-events-none" />
-        <div className="container mx-auto max-w-5xl relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl font-extrabold tracking-tight font-outfit mb-4">Simple, transparent pricing</h2>
-            <p className="text-xl text-muted-foreground">Start free. Scale when you're ready.</p>
-          </motion.div>
-
-          <motion.div
-            variants={container} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}
-            className="grid md:grid-cols-3 gap-6"
-          >
-            {PRICING.map((plan) => (
-              <motion.div
-                key={plan.name} variants={item}
-                className={`relative p-8 rounded-3xl border ${plan.highlight ? 'bg-primary text-primary-foreground border-primary shadow-2xl shadow-primary/25 scale-105' : 'bg-card border-border/50 shadow-sm'}`}
+            <h1
+              id="hero-heading"
+              className="font-display text-6xl md:text-8xl font-extrabold tracking-tight leading-[1.05] mb-8 text-center w-full motion-safe:animate-[fade-slide-up_0.55s_0.1s_ease_both] opacity-0 [animation-fill-mode:forwards]"
+            >
+              Site health.
+              <br />
+              <span
+                className="text-primary"
               >
-                {plan.highlight && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-amber-950 text-xs font-bold px-4 py-1 rounded-full">
-                    Most Popular
-                  </div>
-                )}
-                <h3 className={`text-lg font-bold font-outfit mb-1 ${plan.highlight ? 'text-primary-foreground' : ''}`}>{plan.name}</h3>
-                <p className={`text-sm mb-6 ${plan.highlight ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{plan.description}</p>
-                <div className="flex items-baseline gap-1 mb-8">
-                  <span className="text-4xl font-extrabold font-outfit">{plan.price}</span>
-                  <span className={`text-sm ${plan.highlight ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{plan.period}</span>
-                </div>
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-sm">
-                      <Check className={`h-4 w-4 shrink-0 ${plan.highlight ? 'text-primary-foreground' : 'text-primary'}`} />
-                      <span className={plan.highlight ? 'text-primary-foreground/90' : ''}>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/dashboard">
-                  <Button
-                    className={`w-full rounded-2xl ${plan.highlight ? 'bg-white text-primary hover:bg-white/90' : ''}`}
-                    variant={plan.highlight ? "secondary" : "default"}
-                    size="lg"
+                Finally&nbsp;automated.
+              </span>
+            </h1>
+
+            <p
+              className="text-lg md:text-xl max-w-xl mx-auto leading-relaxed mb-12 motion-safe:animate-[fade-slide-up_0.55s_0.2s_ease_both] opacity-0 [animation-fill-mode:forwards]"
+              style={{ color: "oklch(0.45 0.02 250)" }}
+            >
+              WebAudit syncs your GSC and GA4 data, crawls your site on demand, and delivers
+              AI&#8209;ranked fixes — without the dashboard babysitting.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8 motion-safe:animate-[fade-slide-up_0.55s_0.3s_ease_both] opacity-0 [animation-fill-mode:forwards]">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full text-sm font-semibold text-white focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:outline-none touch-manipulation motion-safe:animate-[gradient-pan_6s_ease_infinite] bg-[length:200%_100%]"
+                style={{ backgroundImage: "linear-gradient(90deg, #6366f1, #0ea5e9, #6366f1)" }}
+              >
+                Connect your Google account
+                <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+              </Link>
+              <Button
+                variant="ghost"
+                className="h-12 px-8 rounded-full text-sm font-medium focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 touch-manipulation"
+                style={{ color: "oklch(0.45 0.02 250)" }}
+              >
+                See a sample report
+              </Button>
+            </div>
+
+            <p
+              className="text-xs motion-safe:animate-[fade-in_0.5s_0.5s_ease_both] opacity-0 [animation-fill-mode:forwards]"
+              style={{ color: "oklch(0.62 0.02 250)" }}
+            >
+              No credit card required · 2&#8209;minute setup
+            </p>
+          </div>
+        </section>
+
+        {/* ── FEATURES ─────────────────────────────────────────────────── */}
+        <section id="features" className="py-28 px-6 scroll-mt-16" aria-labelledby="features-heading">
+          <div className="max-w-5xl mx-auto">
+            <div className="mb-20 max-w-xl">
+              <p
+                className="text-xs font-semibold uppercase tracking-widest mb-3"
+                style={{ color: "#6366f1" }}
+              >
+                Features
+              </p>
+              <h2
+                id="features-heading"
+                className="font-display text-4xl md:text-5xl font-bold tracking-tight leading-tight"
+                style={{ textWrap: "balance" } as React.CSSProperties}
+              >
+                Everything an automated workflow needs.
+              </h2>
+            </div>
+
+            <motion.div
+              variants={stagger}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-60px" }}
+              className="grid md:grid-cols-2 lg:grid-cols-3 gap-5"
+            >
+              {FEATURES.map((f) => (
+                <motion.article
+                  key={f.title}
+                  variants={fadeUp}
+                  className="rounded-2xl p-6 flex flex-col gap-4 touch-manipulation"
+                  style={{
+                    backgroundColor: f.tint,
+                    border: `1px solid ${f.border}`,
+                  }}
+                >
+                  <div
+                    className="size-12 rounded-2xl flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: `${f.color}18`,
+                      border: `1px solid ${f.color}28`,
+                    }}
                   >
-                    {plan.cta}
-                  </Button>
-                </Link>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+                    <f.icon className="size-6" aria-hidden="true" style={{ color: f.color }} />
+                  </div>
+                  <div>
+                    <h3
+                      className="font-display text-[15px] font-bold mb-2 leading-snug"
+                      style={{ textWrap: "balance" } as React.CSSProperties}
+                    >
+                      {f.title}
+                    </h3>
+                    <p
+                      className="text-sm leading-relaxed min-w-0"
+                      style={{ color: "oklch(0.45 0.02 250)" }}
+                    >
+                      {f.description}
+                    </p>
+                  </div>
+                </motion.article>
+              ))}
+            </motion.div>
+          </div>
+        </section>
 
-      {/* ── CTA FOOTER ──────────────────────────── */}
-      <section className="py-28 px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          className="container mx-auto max-w-3xl text-center bg-gradient-to-br from-primary/10 via-blue-500/5 to-purple-500/10 border border-primary/20 rounded-[2.5rem] p-16"
+        {/* ── HOW IT WORKS ─────────────────────────────────────────────── */}
+        <section
+          className="py-28 px-6 border-y"
+          style={{
+            borderColor: "oklch(0.91 0.01 250)",
+            backgroundColor: "oklch(0.975 0.003 250)",
+          }}
+          aria-labelledby="how-heading"
         >
-          <h2 className="text-4xl font-extrabold tracking-tight font-outfit mb-4">
-            Ready to win back your rankings?
-          </h2>
-          <p className="text-xl text-muted-foreground mb-8">
-            Sign in with Google and generate your first report in under 3 minutes. No credit card needed.
-          </p>
-          <Link href="/dashboard">
-            <Button size="lg" className="h-14 px-12 text-lg rounded-full font-semibold shadow-lg shadow-primary/20 group">
-              Get Started Free
-              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </Link>
-        </motion.div>
-      </section>
+          <div className="max-w-5xl mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <p
+                className="text-xs font-semibold uppercase tracking-widest mb-3"
+                style={{ color: "#6366f1" }}
+              >
+                How it works
+              </p>
+              <h2
+                id="how-heading"
+                className="font-display text-4xl md:text-5xl font-bold tracking-tight mb-4"
+                style={{ textWrap: "balance" } as React.CSSProperties}
+              >
+                From sign-in to insights in{" "}
+                <span style={{ color: "#6366f1" }}>under&nbsp;3&nbsp;minutes</span>
+              </h2>
+              <p
+                className="text-lg mb-16 max-w-md mx-auto"
+                style={{ color: "oklch(0.50 0.02 250)" }}
+              >
+                Three steps. No complicated setup.
+              </p>
+            </motion.div>
 
-    </div>
+            <motion.ol
+              variants={stagger}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-60px" }}
+              className="grid md:grid-cols-3 gap-8"
+              aria-label="Setup steps"
+            >
+              {STEPS.map((s) => (
+                <motion.li
+                  key={s.n}
+                  variants={fadeUp}
+                  className="flex flex-col items-center text-center"
+                >
+                  <div
+                    className="size-16 rounded-2xl flex items-center justify-center font-display text-2xl font-extrabold mb-6 tabular-nums shrink-0"
+                    style={{
+                      backgroundColor: s.tint,
+                      color: s.color,
+                      border: `1.5px solid ${s.color}28`,
+                    }}
+                    aria-hidden="true"
+                  >
+                    {s.n}
+                  </div>
+                  <h3
+                    className="font-display text-xl font-bold mb-3"
+                    style={{ textWrap: "balance" } as React.CSSProperties}
+                  >
+                    {s.title}
+                  </h3>
+                  <p
+                    className="text-sm leading-relaxed min-w-0"
+                    style={{ color: "oklch(0.50 0.02 250)" }}
+                  >
+                    {s.desc}
+                  </p>
+                </motion.li>
+              ))}
+            </motion.ol>
+          </div>
+        </section>
+
+        {/* ── PRICING ──────────────────────────────────────────────────── */}
+        <section id="pricing" className="py-28 px-6 scroll-mt-16" aria-labelledby="pricing-heading">
+          <div className="max-w-5xl mx-auto">
+            <div className="mb-16 text-center">
+              <p
+                className="text-xs font-semibold uppercase tracking-widest mb-3"
+                style={{ color: "#6366f1" }}
+              >
+                Pricing
+              </p>
+              <h2
+                id="pricing-heading"
+                className="font-display text-4xl md:text-5xl font-bold tracking-tight"
+                style={{ textWrap: "balance" } as React.CSSProperties}
+              >
+                Simple. Transparent. No surprises.
+              </h2>
+            </div>
+
+            <motion.div
+              variants={stagger}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true }}
+              className="grid md:grid-cols-3 gap-5 items-start"
+            >
+              {PRICING.map((plan) => (
+                <motion.div
+                  key={plan.name}
+                  variants={fadeUp}
+                  className={`rounded-2xl p-8 flex flex-col bg-white ${
+                    plan.highlight ? "md:-translate-y-2" : ""
+                  }`}
+                  style={{
+                    border: plan.highlight
+                      ? "1.5px solid #6366f1"
+                      : "1px solid oklch(0.91 0.01 250)",
+                    boxShadow: plan.highlight
+                      ? "0 0 0 4px #6366f115, 0 8px 28px #6366f118"
+                      : "0 1px 4px oklch(0 0 0 / 0.04)",
+                  }}
+                >
+                  {plan.highlight && (
+                    <span
+                      className="self-start text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-4"
+                      style={{
+                        background: "#f59e0b",
+                        color: "#451a03",
+                      }}
+                    >
+                      Most popular
+                    </span>
+                  )}
+                  <h3 className="font-display text-sm font-semibold uppercase tracking-widest mb-1">
+                    {plan.name}
+                  </h3>
+                  <p
+                    className="text-xs mb-6 min-w-0"
+                    style={{ color: "oklch(0.55 0.02 250)" }}
+                  >
+                    {plan.description}
+                  </p>
+                  <div className="flex items-baseline gap-1 mb-8">
+                    <span className="font-display text-4xl font-bold tabular-nums">
+                      {plan.price}
+                    </span>
+                    <span className="text-sm" style={{ color: "oklch(0.6 0.02 250)" }}>
+                      {plan.period}
+                    </span>
+                  </div>
+                  <ul className="space-y-2.5 mb-8 flex-1">
+                    {plan.features.map((feat) => (
+                      <li key={feat} className="flex items-start gap-2 text-sm">
+                        <Check
+                          className="size-4 mt-0.5 shrink-0"
+                          aria-hidden="true"
+                          style={{ color: "#6366f1" }}
+                        />
+                        <span className="min-w-0">{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {plan.highlight ? (
+                    <Link
+                      href={plan.href}
+                      className="flex items-center justify-center h-10 w-full rounded-full text-sm font-semibold text-white focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:outline-none touch-manipulation"
+                      style={{
+                        backgroundImage: "linear-gradient(90deg, #6366f1, #0ea5e9)",
+                      }}
+                    >
+                      {plan.cta}
+                    </Link>
+                  ) : (
+                    <Link href={plan.href}>
+                      <Button
+                        className="w-full rounded-full h-10 text-sm font-medium focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 touch-manipulation"
+                        style={{
+                          backgroundColor: "#6366f10e",
+                          color: "#6366f1",
+                          border: "1px solid #6366f122",
+                        }}
+                      >
+                        {plan.cta}
+                      </Button>
+                    </Link>
+                  )}
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </section>
+
+        {/* ── CTA — Light indigo tint band, horizontal layout ──────────── */}
+        <section
+          className="relative overflow-hidden border-t"
+          style={{
+            backgroundColor: "#6366f108",
+            borderColor: "#6366f11a",
+          }}
+          aria-labelledby="cta-heading"
+        >
+          {/* Soft radial blooms */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse 60% 80% at 10% 50%, #6366f10e 0%, transparent 60%), radial-gradient(ellipse 50% 70% at 90% 50%, #06b6d408 0%, transparent 60%)",
+            }}
+            aria-hidden="true"
+          />
+
+          <div className="relative z-10 max-w-6xl mx-auto px-6 py-24 lg:py-32">
+            <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+
+              {/* Left — claim + stats */}
+              <motion.div
+                initial={{ opacity: 0, x: -24 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+              >
+                <div className="flex items-center gap-2 mb-6">
+                  <Sparkles
+                    className="size-4"
+                    aria-hidden="true"
+                    style={{ color: "#6366f1" }}
+                  />
+                  <span
+                    className="text-xs font-semibold uppercase tracking-widest"
+                    style={{ color: "#6366f1" }}
+                  >
+                    Start today
+                  </span>
+                </div>
+
+                <h2
+                  id="cta-heading"
+                  className="font-display text-4xl md:text-5xl font-extrabold tracking-tight leading-[1.1] mb-8"
+                  style={{ color: "oklch(0.12 0.01 250)", textWrap: "balance" } as React.CSSProperties}
+                >
+                  Your GSC data is sitting there.
+                  <br />
+                  <span className="text-primary">
+                    Put it to work.
+                  </span>
+                </h2>
+
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-4">
+                  {STATS.map((s) => (
+                    <div
+                      key={s.label}
+                      className="rounded-xl px-4 py-4 text-center bg-white"
+                      style={{
+                        border: "1px solid #6366f11a",
+                        boxShadow: "0 1px 4px oklch(0 0 0 / 0.04)",
+                      }}
+                    >
+                      <div
+                        className="font-display text-2xl font-extrabold tabular-nums mb-1"
+                        style={{ color: "#6366f1" }}
+                      >
+                        {s.value}
+                      </div>
+                      <div
+                        className="text-[11px] leading-tight min-w-0"
+                        style={{ color: "oklch(0.55 0.02 250)" }}
+                      >
+                        {s.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Right — CTA */}
+              <motion.div
+                initial={{ opacity: 0, x: 24 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="flex flex-col items-start lg:items-end"
+              >
+                <div
+                  className="w-full max-w-sm rounded-2xl p-8 flex flex-col gap-6 bg-white"
+                  style={{
+                    border: "1px solid #6366f11a",
+                    boxShadow: "0 4px 24px #6366f10e",
+                  }}
+                >
+                  <div>
+                    <p
+                      className="text-base font-semibold mb-2"
+                      style={{ color: "oklch(0.12 0.01 250)" }}
+                    >
+                      Free forever on Solo plan.
+                    </p>
+                    <p className="text-sm" style={{ color: "oklch(0.50 0.02 250)" }}>
+                      Sign in with Google and generate your first audit report in under
+                      3&nbsp;minutes. No credit card, no friction.
+                    </p>
+                  </div>
+
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex items-center justify-center gap-2 h-12 w-full rounded-full text-sm font-semibold text-white focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:outline-none touch-manipulation motion-safe:animate-[gradient-pan_6s_ease_infinite] bg-[length:200%_100%]"
+                    style={{
+                      backgroundImage: "linear-gradient(90deg, #6366f1, #06b6d4, #6366f1)",
+                      boxShadow: "0 4px 18px #6366f132",
+                    }}
+                  >
+                    Connect your Google account
+                    <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+                  </Link>
+
+                  <ul className="space-y-2">
+                    {["No credit card required", "GSC + GA4 in one place", "Cancel any time"].map(
+                      (item) => (
+                        <li
+                          key={item}
+                          className="flex items-center gap-2 text-xs"
+                          style={{ color: "oklch(0.55 0.02 250)" }}
+                        >
+                          <Check
+                            className="size-3.5 shrink-0"
+                            aria-hidden="true"
+                            style={{ color: "#10b981" }}
+                          />
+                          {item}
+                        </li>
+                      )
+                    )}
+                  </ul>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* CSS keyframes — compositor-only (transform + opacity only) */}
+        <style>{`
+          @keyframes fade-in {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+          }
+          @keyframes fade-slide-up {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes gradient-pan {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+        `}</style>
+      </div>
+    </>
   );
 }
