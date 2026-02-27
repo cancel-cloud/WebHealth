@@ -1,36 +1,162 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WebHealth
 
-## Getting Started
+A queue-first SEO reporting platform with a clean production split:
 
-First, run the development server:
+- `apps/web` on Vercel for product UI + short request/response APIs
+- Neon Postgres for state, queueing, leases, and analytics data
+- `apps/worker` for long-running report processing
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Architecture
+
+```mermaid
+flowchart LR
+  U[User] --> W[apps/web\nNext.js on Vercel]
+  W -->|enqueue + read status| DB[(Neon Postgres)]
+  WK[apps/worker\nNode process on VPS] -->|claim/process/update| DB
+  W -->|poll status/results| DB
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Service Boundaries
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Service | Responsibility | Must Not Do |
+|---|---|---|
+| `apps/web` | Render UI, authenticate, enqueue jobs, read report/job state | Run long background report generation in HTTP handlers |
+| `apps/worker` | Claim jobs, process report pipeline, write status/events/artifacts | Serve product UI |
+| Neon Postgres | Queue + source of truth (`report_jobs`, `reports`, events) | App-specific orchestration logic |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Monorepo Layout
 
-## Learn More
+```text
+apps/
+  web/        # @webhealth/web
+  worker/     # @webhealth/worker
+packages/
+  shared/     # @webhealth/shared (db + queue + report core)
+drizzle/      # SQL migrations
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Neon Connection Rules (Strict)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Web and worker enforce these rules at runtime:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `DATABASE_URL` must use **pooled** Neon host (`-pooler`) and include `sslmode=require`
+- `DIRECT_DATABASE_URL` must use **direct** Neon host (no `-pooler`) and include `sslmode=require`
 
-## Deploy on Vercel
+### Required env patterns
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# Runtime (web + worker)
+DATABASE_URL=postgresql://<user>:<pass>@<project>-pooler.<region>.neon.tech/<db>?sslmode=require
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Migrations/tooling only
+DIRECT_DATABASE_URL=postgresql://<user>:<pass>@<project>.<region>.neon.tech/<db>?sslmode=require
+```
+
+Guardrails are implemented in:
+
+- `packages/shared/src/db/url-guards.ts`
+- `packages/shared/src/db/index.ts`
+- `drizzle.config.ts`
+
+## Quick Start
+
+### 1) Install
+
+```bash
+pnpm install
+```
+
+### 2) Configure env
+
+Use placeholders from:
+
+- `.env.example`
+- `apps/web/.env.example`
+- `apps/worker/.env.example`
+
+### 3) Run services
+
+```bash
+# web
+pnpm dev
+
+# worker
+pnpm worker
+
+# single worker tick
+pnpm worker:once
+```
+
+## Database Commands
+
+All run from repository root:
+
+```bash
+pnpm db:migrate
+pnpm db:push
+pnpm db:seed:plan-settings
+```
+
+Migration tooling is pinned to `DIRECT_DATABASE_URL` via `drizzle.config.ts`.
+
+## Deploy `apps/web` on Vercel
+
+1. Import this repository in Vercel.
+2. Set project **Root Directory** to `apps/web`.
+3. Add required env vars in Vercel:
+   - `DATABASE_URL` (pooled, `-pooler`, `sslmode=require`)
+   - `BETTER_AUTH_URL`
+   - `NEXT_PUBLIC_BETTER_AUTH_URL`
+   - `BETTER_AUTH_SECRET`
+   - `GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
+   - `GOOGLE_OAUTH_STATE_SECRET`
+   - `OPENAI_API_KEY`
+4. Pull envs locally when needed:
+
+```bash
+vercel env pull .env.local
+```
+
+## Run Worker on VPS (systemd)
+
+Example unit (`/etc/systemd/system/webhealth-worker.service`):
+
+```ini
+[Unit]
+Description=WebHealth Report Worker
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/webhealth
+EnvironmentFile=/etc/webhealth/worker.env
+ExecStart=/usr/bin/pnpm --filter @webhealth/worker start
+Restart=always
+RestartSec=5
+User=webhealth
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable webhealth-worker
+sudo systemctl start webhealth-worker
+sudo systemctl status webhealth-worker
+```
+
+## Queue-Only Processing Contract
+
+- `POST /api/reports/[id]/process` is intentionally disabled and returns `410`.
+- Report execution is performed only by `apps/worker` from queued jobs.
+- Web routes enqueue/requeue and read state; they do not run long pipelines inline.
+
+## Security Notes
+
+- Do not commit real credentials.
+- Keep only placeholders in `*.env.example`.
+- Rotate auth/API secrets before production rollout.
