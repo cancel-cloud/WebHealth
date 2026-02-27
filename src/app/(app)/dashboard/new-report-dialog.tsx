@@ -34,6 +34,19 @@ type Property = {
   ga4PropertyId: string | null;
 };
 
+type ReportableProperty = {
+  id: string;
+  teamId: string;
+  label: string;
+  gscPropertyId: string;
+  gscName: string;
+  gscUrl: string;
+  ga4PropertyId: string | null;
+  ga4DbId: string | null;
+  ga4Name: string | null;
+  isLinked: boolean;
+};
+
 function normalizeGscSiteKey(property: Property): string {
   const raw = (property.url || property.id.replace(/^gsc_/, "") || property.name || "").trim();
   if (!raw) return property.id;
@@ -91,6 +104,7 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [allProperties, setAllProperties] = useState<Property[]>([]);
+  const [reportableProperties, setReportableProperties] = useState<ReportableProperty[]>([]);
 
   const [propertyId, setPropertyId] = useState("");
   const [dateRangeStart, setDateRangeStart] = useState("");
@@ -102,7 +116,10 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
     if (open) {
       fetch("/api/properties")
         .then((r) => r.json())
-        .then((data) => setAllProperties(data.properties ?? []))
+        .then((data) => {
+          setAllProperties(data.properties ?? []);
+          setReportableProperties(data.reportableProperties ?? []);
+        })
         .catch(() => {});
     }
   }, [open]);
@@ -124,6 +141,15 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
       }, new Map<string, Property>())
       .values(),
   );
+  const propertyOptions = reportableProperties.length
+    ? reportableProperties.map((p) => ({
+        id: p.id,
+        label: p.label,
+      }))
+    : gscProperties.map((p) => ({
+        id: p.id,
+        label: propertyLabel(p),
+      }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -221,7 +247,7 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
           <div className="grid gap-5 py-4">
             <div className="space-y-2">
               <Label htmlFor="property">Property</Label>
-              {gscProperties.length === 0 ? (
+              {propertyOptions.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-2">
                   No GSC properties synced yet. Click <strong>Sync Properties</strong> first.
                 </p>
@@ -231,9 +257,9 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
                     <SelectValue placeholder="Select a property…" />
                   </SelectTrigger>
                   <SelectContent>
-                    {gscProperties.map((p) => (
+                    {propertyOptions.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
-                        {propertyLabel(p)}
+                        {p.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -271,7 +297,7 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={isSubmitting || gscProperties.length === 0} className="rounded-full">
+            <Button type="submit" disabled={isSubmitting || propertyOptions.length === 0} className="rounded-full">
               {isSubmitting ? "Queueing…" : "Generate Report"}
             </Button>
           </DialogFooter>

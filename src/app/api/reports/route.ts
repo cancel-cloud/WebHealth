@@ -8,6 +8,8 @@ import { nanoid } from 'nanoid';
 import { isEnabled } from '@/lib/feature-flags';
 import { getGoogleAuthClient } from '@/lib/google/api';
 import { ensureMetricsCoverageForReport, rangeDaysInclusive } from '@/lib/metrics-cache';
+import { enqueueReportJob } from '@/lib/queue/report-jobs';
+import { resolveTeamReportSources } from '@/lib/properties/reportable-properties-db';
 
 // GET /api/reports — fetch all reports for the current user's team
 export async function GET() {
@@ -61,13 +63,17 @@ export async function POST(req: Request) {
     }
     const teamId = userTeams[0].teamId;
 
-    // Verify the property belongs to the user's team
-    const property = await db.query.properties.findFirst({
-      where: (p, { and, eq }) => and(eq(p.id, propertyId), eq(p.teamId, teamId)),
-    });
-    if (!property) {
-      return NextResponse.json({ error: 'Property not found or unauthorized' }, { status: 404 });
+    let resolvedSources;
+    try {
+      resolvedSources = await resolveTeamReportSources(teamId, propertyId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Property not found or unauthorized';
+      const status = /not linked to a Google Search Console property/i.test(message) ? 400 : 404;
+      return NextResponse.json({ error: message }, { status });
     }
+
+    const property = resolvedSources.canonicalGscProperty;
+    const canonicalPropertyId = resolvedSources.canonicalReportPropertyId;
 
     const ga4Missing = !property.ga4PropertyId;
     const scheduledReportsEnabled = await isEnabled('scheduled_reports_enabled', session.user.id);
@@ -80,7 +86,7 @@ export async function POST(req: Request) {
       .values({
         id: reportId,
         teamId,
-        propertyId,
+        propertyId: canonicalPropertyId,
         dateRangeStart,
         dateRangeEnd,
         compareRangeStart,
@@ -129,9 +135,12 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: message }, { status: 500 });
       }
 
-      // Fire-and-forget: trigger async processing via internal route
-      const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000';
-      fetch(`${baseUrl}/api/reports/${reportId}/process`, { method: 'POST' }).catch(() => {});
+      await enqueueReportJob({
+        reportId,
+        teamId,
+        kind: 'generate_report',
+        payload: { runXlsx: true, source: 'user_create' },
+      });
     }
 
     db.insert(systemLogs).values({
@@ -142,7 +151,8 @@ export async function POST(req: Request) {
       status: 'success',
       details: {
         reportId,
-        propertyId,
+        propertyId: canonicalPropertyId,
+        requestedPropertyId: propertyId,
         teamId,
         scheduled: shouldSchedule,
         metricsPreflight: !shouldSchedule,

@@ -43,6 +43,7 @@ type Settings = {
   reportComplete: boolean;
   syncFailure: boolean;
   emailReceipts: boolean;
+  reportLanguage: string;
 };
 
 export default function SettingsPage() {
@@ -53,7 +54,15 @@ export default function SettingsPage() {
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
-      .then(setSettings);
+      .then((data) =>
+        setSettings({
+          weeklyDigest: Boolean(data?.weeklyDigest),
+          reportComplete: Boolean(data?.reportComplete),
+          syncFailure: Boolean(data?.syncFailure),
+          emailReceipts: Boolean(data?.emailReceipts),
+          reportLanguage: typeof data?.reportLanguage === "string" ? data.reportLanguage : "auto",
+        })
+      );
   }, []);
 
   const SETTING_LABELS: Record<keyof Settings, string> = {
@@ -61,18 +70,25 @@ export default function SettingsPage() {
     reportComplete: "Report complete",
     syncFailure: "Sync failure alerts",
     emailReceipts: "Email receipts",
+    reportLanguage: "Report language",
   };
 
-  const updateSetting = async (key: keyof Settings, value: boolean) => {
+  const updateSetting = async (key: keyof Settings, value: boolean | string) => {
     setSettings((prev) => (prev ? { ...prev, [key]: value } : prev));
     await fetch("/api/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ [key]: value }),
     });
-    toast.success("Preference saved", {
-      description: `${SETTING_LABELS[key]} ${value ? "enabled" : "disabled"}.`,
-    });
+    if (typeof value === "boolean") {
+      toast.success("Preference saved", {
+        description: `${SETTING_LABELS[key as keyof typeof SETTING_LABELS] ?? key} ${value ? "enabled" : "disabled"}.`,
+      });
+    } else {
+      toast.success("Preference saved", {
+        description: "Report language updated.",
+      });
+    }
   };
 
   const handleSignOut = async () => {
@@ -314,6 +330,29 @@ export default function SettingsPage() {
                         className="flex-shrink-0 mt-0.5"
                       />
                     </label>
+                  </div>
+                </section>
+
+                <section aria-labelledby="report-language-heading" className="space-y-4">
+                  <h2 id="report-language-heading" className="text-2xl font-bold font-display tracking-tight">
+                    Report Language
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Controls AI report and XLSX output language. Dashboard language is unchanged.
+                  </p>
+                  <div className="max-w-xs">
+                    <select
+                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      value={settings?.reportLanguage ?? "auto"}
+                      onChange={(e) => updateSetting("reportLanguage", e.target.value)}
+                    >
+                      <option value="auto">Auto (from Google locale)</option>
+                      <option value="de">German</option>
+                      <option value="en">English</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                      <option value="it">Italian</option>
+                    </select>
                   </div>
                 </section>
 

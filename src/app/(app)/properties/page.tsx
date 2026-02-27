@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -27,7 +27,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Globe, Link2 } from "lucide-react";
-import { SyncButton } from "../dashboard/sync-button";
+import {
+  SyncButton,
+  formatPropertiesSyncSuccess,
+  runPropertiesSync,
+} from "../dashboard/sync-button";
 import { toast } from "sonner";
 
 type Property = {
@@ -148,20 +152,51 @@ function LinkGa4Dialog({
 export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAutoSyncing, setIsAutoSyncing] = useState(false);
+  const hasAttemptedAutoSync = useRef(false);
 
-  const loadProperties = useCallback(() => {
-    fetch("/api/properties")
-      .then((r) => r.json())
-      .then((data) => setProperties(data.properties ?? []))
-      .catch(() => setProperties([]))
-      .finally(() => setLoading(false));
+  const loadProperties = useCallback(async () => {
+    try {
+      const res = await fetch("/api/properties");
+      const data = await res.json();
+      setProperties(data.properties ?? []);
+    } catch {
+      setProperties([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    loadProperties();
+    void loadProperties();
   }, [loadProperties]);
 
-  const gscProperties = properties.filter((p) => p.type === "gsc");
+  useEffect(() => {
+    if (loading || properties.length > 0 || isAutoSyncing || hasAttemptedAutoSync.current) {
+      return;
+    }
+
+    hasAttemptedAutoSync.current = true;
+    setIsAutoSyncing(true);
+
+    const syncPromise = (async () => {
+      const data = await runPropertiesSync();
+      await loadProperties();
+      return data;
+    })();
+
+    void toast.promise(syncPromise, {
+      loading: "Properties are syncing. Please wait a few seconds…",
+      success: (data) => formatPropertiesSyncSuccess(data),
+      error: (err) =>
+        `Auto-sync failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+    });
+
+    void syncPromise.finally(() => {
+      setIsAutoSyncing(false);
+    });
+  }, [isAutoSyncing, loading, loadProperties, properties.length]);
+
   const ga4Properties = properties.filter((p) => p.type === "ga4");
 
   // Build a lookup: numeric GA4 ID → display name
@@ -178,7 +213,11 @@ export default function PropertiesPage() {
           </h1>
           <p className="text-muted-foreground mt-1">Google Search Console and Analytics properties synced to your account.</p>
         </div>
-        <SyncButton onSynced={loadProperties} />
+        <SyncButton
+          onSynced={loadProperties}
+          externalIsSyncing={isAutoSyncing}
+          refreshStrategy="callback"
+        />
       </div>
 
       {loading ? (
