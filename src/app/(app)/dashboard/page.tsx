@@ -2,8 +2,8 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { db } from "@/db";
-import { eq } from "drizzle-orm";
-import { properties as propertiesSchema } from "@/db/schema";
+import { count, eq } from "drizzle-orm";
+import { properties as propertiesSchema, reports as reportsSchema } from "@/db/schema";
 import { SyncButton } from "./sync-button";
 import { ReportsTable } from "./reports-table";
 import { AutoSync } from "./auto-sync";
@@ -19,13 +19,21 @@ export default async function DashboardPage() {
   });
 
   let propertyCount = 0;
+  let reportCount = 0;
   let hasProperties = false;
   if (userTeams.length > 0) {
     const targetTeamId = userTeams[0].teamId;
     const userProperties = await db.query.properties.findMany({
       where: eq(propertiesSchema.teamId, targetTeamId),
     });
+
+    const [reportCountRow] = await db
+      .select({ count: count(reportsSchema.id) })
+      .from(reportsSchema)
+      .where(eq(reportsSchema.teamId, targetTeamId));
+
     propertyCount = userProperties.length;
+    reportCount = reportCountRow?.count ?? 0;
     hasProperties = userProperties.length > 0;
   }
 
@@ -63,9 +71,8 @@ export default async function DashboardPage() {
         >
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <h3 className="font-medium text-muted-foreground mb-1">Reports Generated</h3>
-          {/* TODO[report-count]: Hardcoded to 0 — not queried from DB */}
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold font-display text-foreground">0</span>
+            <span className="text-4xl font-bold font-display text-foreground">{reportCount}</span>
             <span className="text-sm font-medium text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">New</span>
           </div>
         </Link>
