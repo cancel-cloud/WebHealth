@@ -96,6 +96,10 @@ export type KpiTrendRow = {
   sessionsCompare?: number;
   usersCurrent?: number;
   usersCompare?: number;
+  engagedSessionsCurrent?: number;
+  engagedSessionsCompare?: number;
+  screenPageViewsCurrent?: number;
+  screenPageViewsCompare?: number;
 };
 
 export type QueryOpportunityRow = {
@@ -175,11 +179,16 @@ export type WorkbookDatasetV2 = {
     medium: string;
     sessions: number;
     users: number;
+    engagedSessions?: number;
+    engagementRate?: number;
   }>;
   gaLandingPages: Array<{
     landingPage: string;
     sessions: number;
     pageviews: number;
+    engagedSessions?: number;
+    engagementRate?: number;
+    avgEngagementTimeSeconds?: number;
   }>;
 };
 
@@ -223,4 +232,34 @@ export type AiUsageSnapshot = {
   cachedInputTokens?: number;
   reasoningTokens?: number;
   raw?: Record<string, unknown>;
+};
+
+export type Ga4RangeV2 = {
+  sessions: number;
+  users: number;
+  newUsers?: number;
+  engagedSessions?: number;
+  engagementRate?: number;
+  bounceRate?: number;
+  bounceRateDerived?: boolean;
+  avgEngagementTimeSeconds?: number;
+  screenPageViews?: number;
+  organicSessions?: number;
+  organicSegmentationConfidence?: "high" | "medium" | "low";
+  trafficSources?: Array<{ medium: string; sessions: number; users: number }>;
+  landingPages?: Array<{
+    landingPage: string;
+    sessions: number;
+    pageviews: number;
+    engagedSessions?: number;
+    engagementRate?: number;
+    avgEngagementTimeSeconds?: number;
+  }>;
+  channels?: Array<{
+    channel: string;
+    sessions: number;
+    users: number;
+    engagedSessions?: number;
+    engagementRate?: number;
+  }>;
 };
