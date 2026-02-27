@@ -3,51 +3,18 @@ config({ path: ".env.local" });
 
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { planSettings } from "./schema";
+import { ensurePlanSettingsSeeded } from "./plan-settings-defaults";
 
 const queryClient = postgres(process.env.DATABASE_URL!);
 const db = drizzle(queryClient);
 
-const tiers = [
-  {
-    id: "plan_free",
-    tier: "free",
-    displayName: "Free",
-    reportsPerMonth: 5,
-    maxProperties: 5,
-  },
-  {
-    id: "plan_pro",
-    tier: "pro",
-    displayName: "Pro",
-    reportsPerMonth: 50,
-    maxProperties: null,
-  },
-  {
-    id: "plan_team",
-    tier: "team",
-    displayName: "Team",
-    reportsPerMonth: null,
-    maxProperties: null,
-  },
-];
-
 async function seed() {
-  console.log("Seeding plan settings...");
-  for (const tier of tiers) {
-    await db
-      .insert(planSettings)
-      .values(tier)
-      .onConflictDoUpdate({
-        target: planSettings.tier,
-        set: {
-          displayName: tier.displayName,
-          reportsPerMonth: tier.reportsPerMonth,
-          maxProperties: tier.maxProperties,
-          updatedAt: new Date(),
-        },
-      });
-    console.log(`  ✓ ${tier.displayName}`);
+  console.log("Ensuring default plan settings...");
+  const result = await ensurePlanSettingsSeeded(db);
+  if (result.inserted) {
+    console.log(`  ✓ Inserted ${result.rowCount} default tiers (Free, Pro, Team)`);
+  } else {
+    console.log(`  ↷ Skipped (plan_settings already has ${result.rowCount} row(s))`);
   }
   console.log("Done.");
   await queryClient.end();

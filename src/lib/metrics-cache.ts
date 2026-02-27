@@ -749,6 +749,10 @@ export async function composeReportMetricsFromCache(params: {
   compareRangeEnd: DateString;
   refreshRecentDays?: number;
 }) {
+  if (params.property.type !== "gsc" && !params.property.id.startsWith("gsc_")) {
+    throw new Error(`composeReportMetricsFromCache requires a GSC property; received ${params.property.id}`);
+  }
+
   const refreshRecentDays = params.refreshRecentDays ?? 7;
   const currentCoverage = await getPropertyMetricsCoverage({
     property: params.property,
@@ -829,6 +833,10 @@ export async function ensureMetricsCoverageForReport(params: {
   authClient: unknown;
   refreshRecentDays?: number;
 }) {
+  if (params.property.type !== "gsc" && !params.property.id.startsWith("gsc_")) {
+    throw new Error(`ensureMetricsCoverageForReport requires a GSC property; received ${params.property.id}`);
+  }
+
   const refreshRecentDays = params.refreshRecentDays ?? 7;
   const allDates = [
     ...eachDateInRange(params.dateRangeStart, params.dateRangeEnd),

@@ -6,6 +6,7 @@ import {
   jsonb,
   date,
   integer,
+  numeric,
   unique,
   index,
 } from "drizzle-orm/pg-core";
@@ -115,7 +116,25 @@ export const reports = pgTable("reports", {
   status: text("status").default("queued").notNull(), // queued, waiting_for_metrics, processing, complete, failed, scheduled
   data: jsonb("data"), // Raw GSC / GA4
   quickWins: jsonb("quick_wins"), // AI results
+  aiStatus: text("ai_status").default("queued"),
+  aiReportJson: jsonb("ai_report_json"),
+  aiReportMarkdown: text("ai_report_markdown"),
+  aiInputSnapshotSanitized: jsonb("ai_input_snapshot_sanitized"),
+  aiModel: text("ai_model"),
+  aiOutputStrategy: text("ai_output_strategy"),
+  aiPromptVersionId: text("ai_prompt_version_id"),
+  aiPromptSnapshot: text("ai_prompt_snapshot"),
+  openaiResponseId: text("openai_response_id"),
+  aiUsage: jsonb("ai_usage"),
+  aiEstimatedCostUsd: numeric("ai_estimated_cost_usd", { precision: 12, scale: 6 }),
+  openaiRequestIds: jsonb("openai_request_ids"),
+  siteChanges: jsonb("site_changes"),
+  xlsxStatus: text("xlsx_status").default("pending"),
+  xlsxArtifactKey: text("xlsx_artifact_key"),
+  xlsxArtifactUrl: text("xlsx_artifact_url"),
+  error: text("error"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const crawls = pgTable("crawls", {
@@ -142,6 +161,8 @@ export const userSettings = pgTable("user_settings", {
   syncFailure:    boolean("sync_failure").default(true).notNull(),
   // Billing preferences
   emailReceipts:  boolean("email_receipts").default(true).notNull(),
+  // Report generation language (auto = infer from Google locale)
+  reportLanguage: text("report_language").default("auto").notNull(),
   createdAt:      timestamp("created_at").defaultNow().notNull(),
   updatedAt:      timestamp("updated_at").defaultNow().notNull(),
 });
@@ -300,3 +321,129 @@ export const planSettings = pgTable("plan_settings", {
   maxProperties: integer("max_properties"), // null = unlimited
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const aiReportPromptVersions = pgTable("ai_report_prompt_versions", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  template: text("template").notNull(),
+  examples: text("examples"),
+  schemaVersion: text("schema_version").default("v1").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdByUserId: text("created_by_user_id").references(() => user.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const aiReportSettings = pgTable("ai_report_settings", {
+  id: text("id").primaryKey(),
+  model: text("model").notNull(),
+  outputStrategy: text("output_strategy").default("json_schema").notNull(),
+  temperature: numeric("temperature", { precision: 4, scale: 2 }).default("0.2").notNull(),
+  maxOutputTokens: integer("max_output_tokens").default(6000).notNull(),
+  inputTokenBudget: integer("input_token_budget").default(90000).notNull(),
+  language: text("language").default("de").notNull(),
+  serviceTier: text("service_tier").default("default").notNull(),
+  useBackgroundMode: boolean("use_background_mode").default(true).notNull(),
+  usePromptCaching: boolean("use_prompt_caching").default(true).notNull(),
+  useStrictSchema: boolean("use_strict_schema").default(true).notNull(),
+  schemaVersion: text("schema_version").default("v1").notNull(),
+  promptVersionId: text("prompt_version_id").references(() => aiReportPromptVersions.id, { onDelete: "set null" }),
+  updatedByUserId: text("updated_by_user_id").references(() => user.id, { onDelete: "set null" }),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const reportJobs = pgTable("report_jobs", {
+  id: text("id").primaryKey(),
+  reportId: text("report_id").notNull().references(() => reports.id, { onDelete: "cascade" }),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(), // generate_report | render_xlsx
+  status: text("status").default("queued").notNull(), // queued | processing | complete | failed
+  phase: text("phase").default("queued").notNull(),
+  priority: integer("priority").default(100).notNull(),
+  availableAt: timestamp("available_at").defaultNow().notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  maxAttempts: integer("max_attempts").default(3).notNull(),
+  claimedBy: text("claimed_by"),
+  claimedAt: timestamp("claimed_at"),
+  claimExpiresAt: timestamp("claim_expires_at"),
+  heartbeatAt: timestamp("heartbeat_at"),
+  startedAt: timestamp("started_at"),
+  finishedAt: timestamp("finished_at"),
+  lastError: text("last_error"),
+  payload: jsonb("payload"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("report_jobs_status_available_idx").on(t.status, t.availableAt, t.priority, t.createdAt),
+  index("report_jobs_team_status_claim_idx").on(t.teamId, t.status, t.claimExpiresAt),
+  index("report_jobs_report_kind_status_idx").on(t.reportId, t.kind, t.status),
+]);
+
+export const reportJobEvents = pgTable("report_job_events", {
+  id: text("id").primaryKey(),
+  jobId: text("job_id").notNull().references(() => reportJobs.id, { onDelete: "cascade" }),
+  reportId: text("report_id").notNull().references(() => reports.id, { onDelete: "cascade" }),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  phase: text("phase").notNull(),
+  level: text("level").default("info").notNull(), // info | warn | error
+  message: text("message").notNull(),
+  meta: jsonb("meta"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("report_job_events_job_created_idx").on(t.jobId, t.createdAt),
+  index("report_job_events_report_created_idx").on(t.reportId, t.createdAt),
+  index("report_job_events_team_created_idx").on(t.teamId, t.createdAt),
+]);
+
+export const crawlPageSnapshots = pgTable("crawl_page_snapshots", {
+  id: text("id").primaryKey(),
+  reportId: text("report_id").notNull().references(() => reports.id, { onDelete: "cascade" }),
+  crawlId: text("crawl_id").references(() => crawls.id, { onDelete: "set null" }),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  canonicalUrl: text("canonical_url").notNull(),
+  title: text("title"),
+  metaDescription: text("meta_description"),
+  h1Texts: jsonb("h1_texts"),
+  extractedTextHash: text("extracted_text_hash"),
+  seoFingerprintHash: text("seo_fingerprint_hash").notNull(),
+  machineDiffSummary: text("machine_diff_summary"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("crawl_page_snapshots_property_url_created_idx").on(t.propertyId, t.canonicalUrl, t.createdAt),
+  index("crawl_page_snapshots_property_fingerprint_idx").on(t.propertyId, t.seoFingerprintHash),
+  index("crawl_page_snapshots_report_idx").on(t.reportId, t.createdAt),
+]);
+
+export const propertyPageRegistry = pgTable("property_page_registry", {
+  id: text("id").primaryKey(),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  canonicalUrl: text("canonical_url").notNull(),
+  currentFingerprintHash: text("current_fingerprint_hash").notNull(),
+  currentSnapshotId: text("current_snapshot_id").references(() => crawlPageSnapshots.id, { onDelete: "set null" }),
+  firstSeenAt: timestamp("first_seen_at").defaultNow().notNull(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+  lastChangedAt: timestamp("last_changed_at"),
+  lastReportId: text("last_report_id").references(() => reports.id, { onDelete: "set null" }),
+  isActive: boolean("is_active").default(true).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.propertyId, t.canonicalUrl),
+  index("property_page_registry_property_active_idx").on(t.propertyId, t.isActive, t.lastSeenAt),
+]);
+
+export const openaiDailyCosts = pgTable("openai_daily_costs", {
+  id: text("id").primaryKey(),
+  sourceDate: date("source_date").notNull(),
+  projectId: text("project_id"),
+  lineItem: text("line_item"),
+  amountUsd: numeric("amount_usd", { precision: 14, scale: 6 }).notNull(),
+  currency: text("currency").default("usd").notNull(),
+  rawBucket: jsonb("raw_bucket").notNull(),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.sourceDate, t.projectId, t.lineItem),
+  index("openai_daily_costs_source_date_idx").on(t.sourceDate),
+  index("openai_daily_costs_project_date_idx").on(t.projectId, t.sourceDate),
+]);

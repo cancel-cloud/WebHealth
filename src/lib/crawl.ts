@@ -2,10 +2,13 @@ import * as cheerio from 'cheerio';
 
 export type PageIssue = {
   url: string;
+  canonicalUrl: string;
   issues: string[];
   title?: string;
   metaDescription?: string;
   h1Count: number;
+  h1Texts?: string[];
+  visibleTextExcerpt?: string;
 };
 
 export type CrawlResult = {
@@ -50,6 +53,10 @@ function normalizeUrl(base: string, href: string): string | null {
   }
 }
 
+function normalizeText(input: string) {
+  return input.replace(/\s+/g, " ").trim();
+}
+
 export async function crawlWebsite(
   startUrl: string,
   maxPages = DEFAULT_MAX_PAGES
@@ -85,13 +92,33 @@ export async function crawlWebsite(
     const metaDescription = $('meta[name="description"]').attr('content')?.trim() ?? '';
     const h1Tags = $('h1');
     const h1Count = h1Tags.length;
+    const h1Texts = h1Tags
+      .map((_, el) => normalizeText($(el).text()))
+      .get()
+      .filter(Boolean)
+      .slice(0, 10);
+
+    const canonicalRaw = $('link[rel="canonical"]').attr('href')?.trim() ?? '';
+    const canonicalUrl = normalizeUrl(url, canonicalRaw) ?? url;
+
+    const bodyText = normalizeText($('body').text());
+    const visibleTextExcerpt = bodyText.slice(0, 4000);
 
     if (!title) issues.push('Missing <title> tag');
     if (!metaDescription) issues.push('Missing meta description');
     if (h1Count === 0) issues.push('Missing <h1> tag');
     if (h1Count > 1) issues.push(`Multiple <h1> tags (${h1Count} found)`);
 
-    pages.push({ url, issues, title, metaDescription, h1Count });
+    pages.push({
+      url,
+      canonicalUrl,
+      issues,
+      title,
+      metaDescription,
+      h1Count,
+      h1Texts,
+      visibleTextExcerpt,
+    });
 
     // Queue internal links
     $('a[href]').each((_, el) => {

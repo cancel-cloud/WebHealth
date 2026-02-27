@@ -5,9 +5,11 @@ import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { crawlWebsite } from '@/lib/crawl';
 import { getGoogleAuthClient, fetchGscMetrics, fetchGa4Metrics, fetchGa4ReportProfile } from '@/lib/google/api';
-import { generateQuickWins } from '@/lib/openai';
+import { generateQuickWinsWithMeta } from '@/lib/openai';
 import { isEnabled } from '@/lib/feature-flags';
 import { composeReportMetricsFromCache, ensureMetricsCoverageForReport } from '@/lib/metrics-cache';
+import { estimateOpenAICostUsd, normalizeOpenAIUsage } from '@/lib/openai/cost-estimator';
+import { resolveReportSourcesForExistingReport } from '@/lib/properties/reportable-properties-db';
 
 // POST /api/reports/[id]/process — internal route to process a queued report
 export async function POST(
@@ -30,11 +32,14 @@ export async function POST(
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
-    // Fetch the associated property
-    const property = await db.query.properties.findFirst({
+    // Fetch the report's stored property row (may be a legacy GA4 row for older admin debug reports)
+    const reportProperty = await db.query.properties.findFirst({
       where: (p, { eq }) => eq(p.id, report.propertyId),
     });
-    if (!property) throw new Error('Property not found');
+    if (!reportProperty) throw new Error('Property not found');
+
+    const resolvedSources = await resolveReportSourcesForExistingReport(report);
+    const property = resolvedSources.canonicalGscProperty;
 
     // Get the team owner's Google account for API access
     const teamOwner = await db.query.teamMembers.findFirst({
@@ -76,7 +81,7 @@ export async function POST(
       await db.insert(crawls).values({
         id: crawlId,
         reportId,
-        propertyId: report.propertyId,
+        propertyId: property.id,
         status: 'running',
       });
 
@@ -151,12 +156,40 @@ export async function POST(
 
     // 4. AI Quick Wins (if enabled for this team owner)
     const aiEnabled = await isEnabled('ai_quick_wins_enabled', teamOwner.userId);
-    const quickWins = aiEnabled ? await generateQuickWins(reportData) : null;
+    const quickWinsResult = aiEnabled
+      ? await generateQuickWinsWithMeta(reportData, {
+          reportId,
+          jobId: `legacy_${reportId}`,
+          phase: 'quick_wins',
+        })
+      : null;
+    const quickWins = quickWinsResult?.quickWins ?? null;
+    const normalizedUsage = quickWinsResult?.usage ? normalizeOpenAIUsage(quickWinsResult.usage) : null;
+    const estimatedCost = estimateOpenAICostUsd(process.env.OPENAI_MODEL ?? null, normalizedUsage);
 
     // 5. Mark as complete
     await db
       .update(reports)
-      .set({ status: 'complete', data: reportData, quickWins })
+      .set({
+        status: 'complete',
+        data: reportData,
+        quickWins,
+        aiUsage: normalizedUsage?.raw ?? null,
+        aiEstimatedCostUsd: estimatedCost != null ? String(estimatedCost) : null,
+        openaiRequestIds:
+          quickWinsResult && (quickWinsResult.xRequestId || quickWinsResult.xClientRequestId)
+            ? [
+                {
+                  phase: 'quick_wins',
+                  xRequestId: quickWinsResult.xRequestId ?? null,
+                  xClientRequestId: quickWinsResult.xClientRequestId ?? null,
+                },
+              ]
+            : null,
+        aiModel: process.env.OPENAI_MODEL ?? null,
+        aiStatus: 'complete',
+        updatedAt: new Date(),
+      })
       .where(eq(reports.id, reportId));
 
     if (logUserId) {

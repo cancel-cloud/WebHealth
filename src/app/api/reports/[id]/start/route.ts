@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { reports } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { headers } from 'next/headers';
+import { enqueueReportJob } from '@/lib/queue/report-jobs';
+import { resolveReportSourcesForExistingReport } from '@/lib/properties/reportable-properties-db';
 
 // POST /api/reports/[id]/start — promote a scheduled report to queued and fire processing
 export async function POST(
@@ -19,13 +21,13 @@ export async function POST(
     const userTeams = await db.query.teamMembers.findMany({
       where: (tm, { eq }) => eq(tm.userId, session.user.id),
     });
-    if (userTeams.length === 0) {
+    const teamIds = userTeams.map((row) => row.teamId);
+    if (teamIds.length === 0) {
       return NextResponse.json({ error: 'No team found' }, { status: 400 });
     }
-    const teamId = userTeams[0].teamId;
 
     const report = await db.query.reports.findFirst({
-      where: (r, { and, eq }) => and(eq(r.id, reportId), eq(r.teamId, teamId)),
+      where: and(eq(reports.id, reportId), inArray(reports.teamId, teamIds)),
     });
     if (!report) {
       return NextResponse.json({ error: 'Report not found or unauthorized' }, { status: 404 });
@@ -34,18 +36,25 @@ export async function POST(
       return NextResponse.json({ error: 'Report is not in scheduled status' }, { status: 400 });
     }
 
-    // Verify the property now has a GA4 link
-    const property = await db.query.properties.findFirst({
-      where: (p, { eq }) => eq(p.id, report.propertyId),
-    });
-    if (!property?.ga4PropertyId) {
+    // Verify the canonical report source now has a GA4 link (handles legacy reports stored on GA4 rows).
+    let resolvedSources;
+    try {
+      resolvedSources = await resolveReportSourcesForExistingReport(report);
+    } catch {
+      return NextResponse.json({ error: 'Report property is invalid or no longer linked' }, { status: 400 });
+    }
+    if (!resolvedSources.canonicalGscProperty.ga4PropertyId) {
       return NextResponse.json({ error: 'Property still has no GA4 link' }, { status: 400 });
     }
 
     await db.update(reports).set({ status: 'queued' }).where(eq(reports.id, reportId));
 
-    const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000';
-    fetch(`${baseUrl}/api/reports/${reportId}/process`, { method: 'POST' }).catch(() => {});
+    await enqueueReportJob({
+      reportId,
+      teamId: report.teamId,
+      kind: 'generate_report',
+      payload: { runXlsx: true, source: 'start_scheduled' },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

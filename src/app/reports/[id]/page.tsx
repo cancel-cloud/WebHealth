@@ -2,15 +2,15 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/db";
-import { eq } from "drizzle-orm";
-import { reports, properties, teamMembers } from "@/db/schema";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, BarChart2, Globe2, TrendingDown, TrendingUp, Zap, AlertTriangle } from "lucide-react";
 import type { QuickWin } from "@/lib/openai";
 import type { GscMetrics, Ga4Metrics } from "@/lib/google/api";
 import type { CrawlResult } from "@/lib/crawl";
+import { ReportActions } from "./report-actions";
+import { ReportLiveStatus } from "./report-live-status";
+import type { AiSeoReport } from "@/lib/reports/types";
 
 type ReportData = {
   gsc: { current: GscMetrics; compare: GscMetrics };
@@ -45,6 +45,34 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge variant="outline" className={cfg.class}>{cfg.label}</Badge>;
 }
 
+function MiniTrendChart({
+  points,
+  color = "#2563eb",
+}: {
+  points: number[];
+  color?: string;
+}) {
+  if (!points.length) return <div className="text-xs text-muted-foreground">No trend data</div>;
+  const width = 220;
+  const height = 60;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const denom = max - min || 1;
+  const path = points
+    .map((value, idx) => {
+      const x = (idx / Math.max(points.length - 1, 1)) * (width - 8) + 4;
+      const y = height - ((value - min) / denom) * (height - 8) - 4;
+      return `${idx === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(" ");
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="block">
+      <path d={path} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default async function ReportDetailPage({
   params,
 }: {
@@ -73,6 +101,12 @@ export default async function ReportDetailPage({
 
   const data = report.data as ReportData | null;
   const quickWins = report.quickWins as QuickWin[] | null;
+  const aiReport = report.aiReportJson as AiSeoReport | null;
+  const recentEvents = await db.query.reportJobEvents.findMany({
+    where: (e, { eq }) => eq(e.reportId, reportId),
+    orderBy: (e, { desc }) => [desc(e.createdAt)],
+    limit: 20,
+  });
 
   const impactColor: Record<string, string> = {
     high: "text-red-500 bg-red-50 border-red-200",
@@ -82,6 +116,7 @@ export default async function ReportDetailPage({
 
   return (
     <div className="flex-1 bg-background min-h-screen">
+      <ReportLiveStatus reportId={reportId} initialStatus={report.status} />
       <div className="absolute top-0 inset-x-0 h-[300px] bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
 
       <div className="container mx-auto py-10 px-4 relative z-10">
@@ -102,7 +137,20 @@ export default async function ReportDetailPage({
                 {new Date(report.compareRangeStart).toLocaleDateString()} – {new Date(report.compareRangeEnd).toLocaleDateString()}
               </p>
             </div>
-            <StatusBadge status={report.status} />
+            <div className="flex flex-col items-end gap-2">
+              <StatusBadge status={report.status} />
+              <div className="text-xs text-muted-foreground text-right space-y-1">
+                <div>AI: {report.aiStatus ?? "n/a"}</div>
+                <div>XLSX: {report.xlsxStatus ?? "n/a"}</div>
+                {report.aiEstimatedCostUsd ? <div>Est. AI Cost: ${String(report.aiEstimatedCostUsd)}</div> : null}
+              </div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <ReportActions
+              reportId={reportId}
+              xlsxReady={report.xlsxStatus === "ready" && !!report.xlsxArtifactUrl}
+            />
           </div>
         </div>
 
@@ -113,7 +161,7 @@ export default async function ReportDetailPage({
             </div>
             <h2 className="text-2xl font-semibold font-display mb-3">Report is being generated</h2>
             <p className="text-muted-foreground max-w-sm mx-auto">
-              We're crawling your site and fetching data from Google Search Console and Analytics. This usually takes 1–2 minutes.
+              We&apos;re crawling your site and fetching data from Google Search Console and Analytics. This usually takes 1–2 minutes.
             </p>
           </div>
         ) : report.status === 'failed' ? (
@@ -124,6 +172,38 @@ export default async function ReportDetailPage({
           </div>
         ) : data ? (
           <div className="space-y-10">
+            {aiReport?.dashboardMarkdown ? (
+              <div className="p-6 rounded-3xl bg-card border border-border/50 shadow-sm">
+                <h2 className="text-xl font-bold font-display mb-3">AI Summary</h2>
+                <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans">
+                  {aiReport.dashboardMarkdown}
+                </pre>
+              </div>
+            ) : null}
+
+            {aiReport?.kpiTrendRows && aiReport.kpiTrendRows.length > 1 ? (
+              <div>
+                <h2 className="text-xl font-bold font-display mb-4">Trend Signals</h2>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-2xl bg-card border border-border/50 shadow-sm">
+                    <p className="text-xs text-muted-foreground mb-2">Clicks trend</p>
+                    <MiniTrendChart points={aiReport.kpiTrendRows.map((r) => r.clicksCurrent)} color="#2563eb" />
+                  </div>
+                  <div className="p-4 rounded-2xl bg-card border border-border/50 shadow-sm">
+                    <p className="text-xs text-muted-foreground mb-2">Impressions trend</p>
+                    <MiniTrendChart points={aiReport.kpiTrendRows.map((r) => r.impressionsCurrent)} color="#16a34a" />
+                  </div>
+                  <div className="p-4 rounded-2xl bg-card border border-border/50 shadow-sm">
+                    <p className="text-xs text-muted-foreground mb-2">Sessions trend</p>
+                    <MiniTrendChart
+                      points={aiReport.kpiTrendRows.map((r) => r.sessionsCurrent ?? 0)}
+                      color="#9333ea"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {/* GSC Metrics Comparison */}
             <div>
               <h2 className="text-xl font-bold font-display mb-4 flex items-center gap-2">
@@ -231,6 +311,107 @@ export default async function ReportDetailPage({
               </div>
             )}
 
+            {aiReport?.queryOpportunityRows && aiReport.queryOpportunityRows.length > 0 ? (
+              <div>
+                <h2 className="text-xl font-bold font-display mb-4">Query Opportunities</h2>
+                <div className="border border-border/50 rounded-3xl overflow-hidden bg-card shadow-sm">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/30">
+                      <tr>
+                        {["Query", "Impr.", "CTR", "Pos", "Lost Clicks", "Score", "Action"].map((h) => (
+                          <th key={h} className="text-left py-3 px-4 font-medium text-muted-foreground">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {aiReport.queryOpportunityRows.slice(0, 12).map((q) => (
+                        <tr key={q.query} className="border-t border-border/30">
+                          <td className="py-3 px-4 font-medium">{q.query}</td>
+                          <td className="py-3 px-4">{q.impressions.toLocaleString()}</td>
+                          <td className="py-3 px-4">{(q.ctr * 100).toFixed(2)}%</td>
+                          <td className="py-3 px-4">{q.position.toFixed(1)}</td>
+                          <td className="py-3 px-4">{q.lostClicksEstimate.toFixed(1)}</td>
+                          <td className="py-3 px-4">{q.opportunityScore.toFixed(1)}</td>
+                          <td className="py-3 px-4 text-muted-foreground">{q.recommendedAction}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : null}
+
+            {aiReport?.pageWinnerLoserRows && aiReport.pageWinnerLoserRows.length > 0 ? (
+              <div>
+                <h2 className="text-xl font-bold font-display mb-4">Page Winners / Losers</h2>
+                <div className="border border-border/50 rounded-3xl overflow-hidden bg-card shadow-sm">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/30">
+                      <tr>
+                        {["Page", "Clicks Δ", "Impr. Δ", "Status"].map((h) => (
+                          <th key={h} className="text-left py-3 px-4 font-medium text-muted-foreground">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {aiReport.pageWinnerLoserRows.slice(0, 12).map((row) => (
+                        <tr key={row.page} className="border-t border-border/30">
+                          <td className="py-3 px-4 truncate max-w-[500px]">{row.page}</td>
+                          <td className={`py-3 px-4 ${row.clicksDelta >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            {row.clicksDelta >= 0 ? "+" : ""}{row.clicksDelta}
+                          </td>
+                          <td className={`py-3 px-4 ${row.impressionsDelta >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            {row.impressionsDelta >= 0 ? "+" : ""}{row.impressionsDelta}
+                          </td>
+                          <td className="py-3 px-4">{row.status}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : null}
+
+            {aiReport?.actionBacklogRows && aiReport.actionBacklogRows.length > 0 ? (
+              <div>
+                <h2 className="text-xl font-bold font-display mb-4">What To Do This Week</h2>
+                <div className="space-y-3">
+                  {aiReport.actionBacklogRows.slice(0, 8).map((row) => (
+                    <div key={row.id} className="p-4 rounded-2xl bg-card border border-border/50 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-semibold">{row.task}</p>
+                        <Badge variant="outline">Impact {row.impactScore.toFixed(1)}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{row.why}</p>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        Owner: {row.ownerHint} · Effort: {row.effort} · Area: {row.area}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {aiReport?.technicalIssueRows && aiReport.technicalIssueRows.length > 0 ? (
+              <div>
+                <h2 className="text-xl font-bold font-display mb-4">Technical Impact Map</h2>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {aiReport.technicalIssueRows.slice(0, 8).map((row) => (
+                    <div key={row.issueType} className="p-4 rounded-2xl bg-card border border-border/50 shadow-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold">{row.issueType}</p>
+                        <Badge variant="outline">{row.severity}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {row.affectedPages} pages · est. affected clicks {row.affectedEstimatedClicks}
+                      </p>
+                      <p className="text-sm mt-2">{row.recommendation}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             {/* Crawl Summary */}
             {data.crawl && (
               <div>
@@ -240,6 +421,38 @@ export default async function ReportDetailPage({
                     <div key={key} className={`p-4 rounded-2xl border ${val > 0 ? 'bg-red-50 dark:bg-red-950/20 border-red-200' : 'bg-card border-border/50'} shadow-sm text-center`}>
                       <p className={`text-2xl font-bold font-display ${val > 0 ? 'text-red-600' : 'text-green-600'}`}>{val}</p>
                       <p className="text-xs text-muted-foreground mt-1">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Job Timeline */}
+            {recentEvents.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold font-display mb-4">Recent Job Events</h2>
+                <div className="space-y-3">
+                  {recentEvents.map((e) => (
+                    <div key={e.id} className="p-4 rounded-2xl bg-card border border-border/50 shadow-sm">
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <Badge
+                          variant="outline"
+                          className={
+                            e.level === "error"
+                              ? "text-red-600 border-red-200"
+                              : e.level === "warn"
+                                ? "text-amber-600 border-amber-200"
+                                : "text-blue-600 border-blue-200"
+                          }
+                        >
+                          {e.level}
+                        </Badge>
+                        <span className="font-medium">{e.phase}</span>
+                        <span className="text-muted-foreground">
+                          {new Date(e.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm">{e.message}</p>
                     </div>
                   ))}
                 </div>
