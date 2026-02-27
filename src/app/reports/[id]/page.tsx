@@ -11,6 +11,9 @@ import type { CrawlResult } from "@/lib/crawl";
 import { ReportActions } from "./report-actions";
 import { ReportLiveStatus } from "./report-live-status";
 import type { AiSeoReport } from "@/lib/reports/types";
+import type { DashboardBlock } from "@/lib/reports/dashboard-blocks";
+import { mapV1ReportToBlocks } from "@/lib/reports/v1-to-v2-compat";
+import { ReportTabs } from "./components/ReportTabs";
 
 type ReportData = {
   gsc: { current: GscMetrics; compare: GscMetrics };
@@ -102,6 +105,14 @@ export default async function ReportDetailPage({
   const data = report.data as ReportData | null;
   const quickWins = report.quickWins as QuickWin[] | null;
   const aiReport = report.aiReportJson as AiSeoReport | null;
+
+  const blocks: DashboardBlock[] | null =
+    report.dashboardBlocksJson != null
+      ? (report.dashboardBlocksJson as DashboardBlock[])
+      : aiReport != null
+        ? mapV1ReportToBlocks(aiReport)
+        : null;
+
   const recentEvents = await db.query.reportJobEvents.findMany({
     where: (e, { eq }) => eq(e.reportId, reportId),
     orderBy: (e, { desc }) => [desc(e.createdAt)],
@@ -311,106 +322,12 @@ export default async function ReportDetailPage({
               </div>
             )}
 
-            {aiReport?.queryOpportunityRows && aiReport.queryOpportunityRows.length > 0 ? (
+            {blocks && (
               <div>
-                <h2 className="text-xl font-bold font-display mb-4">Query Opportunities</h2>
-                <div className="border border-border/50 rounded-3xl overflow-hidden bg-card shadow-sm">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/30">
-                      <tr>
-                        {["Query", "Impr.", "CTR", "Pos", "Lost Clicks", "Score", "Action"].map((h) => (
-                          <th key={h} className="text-left py-3 px-4 font-medium text-muted-foreground">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {aiReport.queryOpportunityRows.slice(0, 12).map((q) => (
-                        <tr key={q.query} className="border-t border-border/30">
-                          <td className="py-3 px-4 font-medium">{q.query}</td>
-                          <td className="py-3 px-4">{q.impressions.toLocaleString()}</td>
-                          <td className="py-3 px-4">{(q.ctr * 100).toFixed(2)}%</td>
-                          <td className="py-3 px-4">{q.position.toFixed(1)}</td>
-                          <td className="py-3 px-4">{q.lostClicksEstimate.toFixed(1)}</td>
-                          <td className="py-3 px-4">{q.opportunityScore.toFixed(1)}</td>
-                          <td className="py-3 px-4 text-muted-foreground">{q.recommendedAction}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <h2 className="text-xl font-bold font-display mb-4">Report Dashboard</h2>
+                <ReportTabs blocks={blocks} reportId={reportId} />
               </div>
-            ) : null}
-
-            {aiReport?.pageWinnerLoserRows && aiReport.pageWinnerLoserRows.length > 0 ? (
-              <div>
-                <h2 className="text-xl font-bold font-display mb-4">Page Winners / Losers</h2>
-                <div className="border border-border/50 rounded-3xl overflow-hidden bg-card shadow-sm">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/30">
-                      <tr>
-                        {["Page", "Clicks Δ", "Impr. Δ", "Status"].map((h) => (
-                          <th key={h} className="text-left py-3 px-4 font-medium text-muted-foreground">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {aiReport.pageWinnerLoserRows.slice(0, 12).map((row) => (
-                        <tr key={row.page} className="border-t border-border/30">
-                          <td className="py-3 px-4 truncate max-w-[500px]">{row.page}</td>
-                          <td className={`py-3 px-4 ${row.clicksDelta >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            {row.clicksDelta >= 0 ? "+" : ""}{row.clicksDelta}
-                          </td>
-                          <td className={`py-3 px-4 ${row.impressionsDelta >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            {row.impressionsDelta >= 0 ? "+" : ""}{row.impressionsDelta}
-                          </td>
-                          <td className="py-3 px-4">{row.status}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : null}
-
-            {aiReport?.actionBacklogRows && aiReport.actionBacklogRows.length > 0 ? (
-              <div>
-                <h2 className="text-xl font-bold font-display mb-4">What To Do This Week</h2>
-                <div className="space-y-3">
-                  {aiReport.actionBacklogRows.slice(0, 8).map((row) => (
-                    <div key={row.id} className="p-4 rounded-2xl bg-card border border-border/50 shadow-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="font-semibold">{row.task}</p>
-                        <Badge variant="outline">Impact {row.impactScore.toFixed(1)}</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">{row.why}</p>
-                      <div className="text-xs text-muted-foreground mt-2">
-                        Owner: {row.ownerHint} · Effort: {row.effort} · Area: {row.area}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {aiReport?.technicalIssueRows && aiReport.technicalIssueRows.length > 0 ? (
-              <div>
-                <h2 className="text-xl font-bold font-display mb-4">Technical Impact Map</h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {aiReport.technicalIssueRows.slice(0, 8).map((row) => (
-                    <div key={row.issueType} className="p-4 rounded-2xl bg-card border border-border/50 shadow-sm">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-semibold">{row.issueType}</p>
-                        <Badge variant="outline">{row.severity}</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {row.affectedPages} pages · est. affected clicks {row.affectedEstimatedClicks}
-                      </p>
-                      <p className="text-sm mt-2">{row.recommendation}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+            )}
 
             {/* Crawl Summary */}
             {data.crawl && (
