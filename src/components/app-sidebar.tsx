@@ -50,6 +50,8 @@ import {
   ScrollText,
   Flag,
   SlidersHorizontal,
+  Bot,
+  Bug,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -65,6 +67,8 @@ const ADMIN_ITEMS = [
   { title: "System Logs", url: "/admin/logs", icon: ScrollText },
   { title: "Feature Flags", url: "/admin/feature-flags", icon: Flag },
   { title: "Global Settings", url: "/admin/global-settings", icon: SlidersHorizontal },
+  { title: "AI Report Settings", url: "/admin/ai-report-settings", icon: Bot },
+  { title: "AI Debug Console", url: "/admin/ai-report-debug", icon: Bug },
 ];
 
 const ADMIN_EMAIL = "lukas@devbrew.dev";

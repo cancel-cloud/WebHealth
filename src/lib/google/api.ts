@@ -63,6 +63,15 @@ export type GscDayMetrics = {
   topDevices: { device: string; clicks: number; impressions: number; ctr: number; position: number }[];
 };
 
+export type GscQueryPagePair = {
+  query: string;
+  page: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+};
+
 export async function fetchGscMetrics(
   authClient: any,
   siteUrl: string,
@@ -108,6 +117,38 @@ export async function fetchGscMetrics(
       impressions: row.impressions,
     })),
   };
+}
+
+export async function fetchGscQueryPagePairs(
+  authClient: any,
+  siteUrl: string,
+  startDate: string,
+  endDate: string,
+  rowLimit = 2500
+): Promise<GscQueryPagePair[]> {
+  const searchConsole = google.webmasters({ version: "v3", auth: authClient });
+  const response = await searchConsole.searchanalytics.query({
+    siteUrl,
+    requestBody: {
+      startDate,
+      endDate,
+      dimensions: ["query", "page"],
+      rowLimit,
+    },
+  });
+
+  return (response.data.rows ?? []).map((row) => {
+    const rowRecord = row as Record<string, unknown>;
+    const keys = Array.isArray(rowRecord.keys) ? (rowRecord.keys as string[]) : [];
+    return {
+      query: keys[0] ?? "",
+      page: keys[1] ?? "",
+      clicks: typeof rowRecord.clicks === "number" ? rowRecord.clicks : 0,
+      impressions: typeof rowRecord.impressions === "number" ? rowRecord.impressions : 0,
+      ctr: typeof rowRecord.ctr === "number" ? rowRecord.ctr : 0,
+      position: typeof rowRecord.position === "number" ? rowRecord.position : 0,
+    };
+  });
 }
 
 /**

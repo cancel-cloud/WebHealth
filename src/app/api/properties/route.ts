@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { teamMembers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
+import { buildCombinedReportableProperties } from '@/lib/properties/reportable-properties';
 
 // GET /api/properties — fetch properties for the current user's team
 export async function GET() {
@@ -21,7 +22,20 @@ export async function GET() {
       where: (p, { eq }) => eq(p.teamId, teamId),
     });
 
-    return NextResponse.json({ properties: teamProperties });
+    const reportableProperties = buildCombinedReportableProperties(teamProperties).map((p) => ({
+      id: p.id,
+      teamId: p.teamId,
+      label: p.label,
+      gscPropertyId: p.gscPropertyId,
+      gscName: p.gscName,
+      gscUrl: p.gscUrl,
+      ga4PropertyId: p.ga4PropertyId,
+      ga4DbId: p.ga4DbId,
+      ga4Name: p.ga4Name,
+      isLinked: p.isLinked,
+    }));
+
+    return NextResponse.json({ properties: teamProperties, reportableProperties });
   } catch (error: any) {
     console.error('Error fetching properties:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
