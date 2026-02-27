@@ -4,7 +4,7 @@ config({ path: ".env.local" });
 config();
 
 async function main() {
-  const { runSingleReportWorkerTick, startReportWorkerLoop } = await import("../src/lib/queue/report-worker");
+  const { runSingleReportWorkerTick, startReportWorkerLoop } = await import("@webhealth/shared/lib/queue/report-worker");
   const once = process.argv.includes("--once");
   if (once) {
     const result = await runSingleReportWorkerTick();
