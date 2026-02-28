@@ -132,6 +132,8 @@ export const reports = pgTable("reports", {
   xlsxStatus: text("xlsx_status").default("pending"),
   xlsxArtifactKey: text("xlsx_artifact_key"),
   xlsxArtifactUrl: text("xlsx_artifact_url"),
+  reportSchemaVersion: text("report_schema_version").default("v1").notNull(),
+  dashboardBlocksJson: jsonb("dashboard_blocks_json"),
   error: text("error"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
