@@ -49,8 +49,15 @@ type Ga4Range = {
   sessions: number;
   users: number;
   newUsers?: number;
+  engagedSessions?: number;
+  engagementRate?: number;
+  bounceRate?: number;
+  bounceRateDerived?: boolean;
+  organicSessions?: number;
+  organicSegmentationConfidence?: "high" | "medium" | "low";
   trafficSources?: Array<{ medium: string; sessions: number; users: number }>;
-  landingPages?: Array<{ landingPage: string; sessions: number; pageviews: number }>;
+  landingPages?: Array<{ landingPage: string; sessions: number; pageviews: number; engagedSessions?: number; engagementRate?: number; avgEngagementTimeSeconds?: number }>;
+  channels?: Array<{ channel: string; sessions: number; users: number; engagedSessions?: number; engagementRate?: number }>;
 };
 
 type TimeSeriesPoint = {
@@ -83,6 +90,15 @@ export type DeterministicInsights = {
     headline: string;
     topActionAreas: string[];
   };
+  missingDataWarnings: string[];
+  dataAvailabilityManifest: {
+    queryPagePairs: { available: boolean; rowCount: number };
+    ga4Engagement: { available: boolean; confidence: "high" | "medium" | "low" };
+    crawlData: { available: boolean; pageCount: number };
+    organicSegmentation: { available: boolean; confidence: "high" | "medium" | "low" };
+  };
+  positionBucketRows?: import("./deterministic/position-buckets").PositionBucketRow[];
+  segmentSummaryRows?: import("./deterministic/position-buckets").SegmentSummaryRow[];
 };
 
 export type BuildDeterministicInsightsInput = {
@@ -176,6 +192,29 @@ function buildKpiComparisonRows(input: BuildDeterministicInsightsInput) {
         assessment: input.ga4Current.users >= input.ga4Compare.users ? "Positive" : "Decline",
       }
     );
+
+    if (input.ga4Current.engagementRate != null && input.ga4Compare.engagementRate != null) {
+      rows.push({
+        metric: "GA4 Engagement Rate",
+        previous: `${(input.ga4Compare.engagementRate * 100).toFixed(1)}%`,
+        current: `${(input.ga4Current.engagementRate * 100).toFixed(1)}%`,
+        delta: `${((input.ga4Current.engagementRate - input.ga4Compare.engagementRate) * 100).toFixed(1)}%`,
+        assessment: input.ga4Current.engagementRate >= input.ga4Compare.engagementRate ? "Positive" : "Decline",
+      });
+    }
+
+    if (input.ga4Current.bounceRate != null && input.ga4Compare.bounceRate != null) {
+      const disclaimer = input.ga4Current.bounceRateDerived
+        ? " (derived as 1−engagement rate)"
+        : "";
+      rows.push({
+        metric: `GA4 Bounce Rate${disclaimer}`,
+        previous: `${(input.ga4Compare.bounceRate * 100).toFixed(1)}%`,
+        current: `${(input.ga4Current.bounceRate * 100).toFixed(1)}%`,
+        delta: `${((input.ga4Current.bounceRate - input.ga4Compare.bounceRate) * 100).toFixed(1)}%`,
+        assessment: input.ga4Current.bounceRate <= input.ga4Compare.bounceRate ? "Positive" : "Decline",
+      });
+    }
   }
 
   return rows;
@@ -454,8 +493,50 @@ export function buildDeterministicInsights(input: BuildDeterministicInsightsInpu
   const workbookDataset: WorkbookDatasetV2 = {
     gscQueries: clampRows((input.gscCurrent.topQueries ?? []).map((q) => ({ ...q })), 500),
     gscPages: clampRows((input.gscCurrent.topPages ?? []).map((p) => ({ ...p })), 500),
-    gaChannels: clampRows((input.ga4Current?.trafficSources ?? []).map((row) => ({ ...row })), 500),
-    gaLandingPages: clampRows((input.ga4Current?.landingPages ?? []).map((row) => ({ ...row })), 500),
+    gaChannels: clampRows((
+      input.ga4Current?.channels?.map((r) => ({
+        medium: r.channel,
+        sessions: r.sessions,
+        users: r.users,
+        engagedSessions: r.engagedSessions,
+        engagementRate: r.engagementRate,
+      })) ??
+      input.ga4Current?.trafficSources?.map((r) => ({ ...r })) ??
+      []
+    ), 500),
+    gaLandingPages: clampRows((input.ga4Current?.landingPages ?? []).map((r) => ({ ...r })), 500),
+  };
+
+  const missingDataWarnings: string[] = [];
+  if (!input.ga4Current) {
+    missingDataWarnings.push("GA4 data unavailable; engagement metrics absent");
+  }
+  if (input.ga4Current?.bounceRateDerived) {
+    missingDataWarnings.push("Bounce rate derived as (1 − engagement rate); may differ from Universal Analytics definition.");
+  }
+  if (input.ga4Current?.organicSegmentationConfidence === "low") {
+    missingDataWarnings.push("Organic search segmentation unreliable; organic session counts may be undercounted");
+  } else if (input.ga4Current?.organicSegmentationConfidence === "medium") {
+    missingDataWarnings.push("Organic search segmentation has low confidence; organic session counts may be undercounted");
+  }
+
+  const dataAvailabilityManifest = {
+    queryPagePairs: {
+      available: (input.queryPagePairsCurrent?.length ?? 0) > 0,
+      rowCount: input.queryPagePairsCurrent?.length ?? 0,
+    },
+    ga4Engagement: {
+      available: input.ga4Current != null && input.ga4Current.engagementRate != null,
+      confidence: (input.ga4Current?.organicSegmentationConfidence ?? "low") as "high" | "medium" | "low",
+    },
+    crawlData: {
+      available: input.crawl != null,
+      pageCount: input.crawl?.pages?.length ?? 0,
+    },
+    organicSegmentation: {
+      available: input.ga4Current?.organicSegmentationConfidence != null,
+      confidence: (input.ga4Current?.organicSegmentationConfidence ?? "low") as "high" | "medium" | "low",
+    },
   };
 
   return {
@@ -469,5 +550,7 @@ export function buildDeterministicInsights(input: BuildDeterministicInsightsInpu
     actionBacklogRows,
     workbookDataset,
     executiveSummary,
+    missingDataWarnings,
+    dataAvailabilityManifest,
   };
 }

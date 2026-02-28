@@ -363,9 +363,325 @@ export type Ga4ReportProfile = {
   acquisitionChannels: { channel: string; users: number }[];
 };
 
+export type Ga4ReportProfileV2 = Ga4ReportProfile & {
+  sessions: number;
+  users: number;
+  newUsers: number;
+  engagedSessions: number;
+  engagementRate: number;
+  bounceRate: number;
+  bounceRateDerived: boolean;
+  avgEngagementTimeSeconds: number;
+  screenPageViews: number;
+  organicSessions: number;
+  organicSegmentationConfidence: "high" | "medium" | "low";
+  landingPages: Array<{
+    landingPage: string;
+    sessions: number;
+    pageviews: number;
+    engagedSessions: number;
+    engagementRate: number;
+    avgEngagementTimeSeconds: number;
+  }>;
+  channels: Array<{
+    channel: string;
+    sessions: number;
+    users: number;
+    engagedSessions: number;
+    engagementRate: number;
+  }>;
+};
+
+async function fetchSinglePeriodProfile(
+  authClient: any,
+  propertyId: string,
+  startDate: string,
+  endDate: string
+): Promise<Ga4ReportProfileV2> {
+  const analyticsData = google.analyticsdata({ version: "v1beta", auth: authClient });
+  const property = `properties/${propertyId}`;
+  const dateRanges = [{ startDate, endDate }];
+
+  const [batch1Res, batch2Res] = await Promise.all([
+    analyticsData.properties.batchRunReports({
+      property,
+      requestBody: {
+        requests: [
+          {
+            dateRanges,
+            dimensions: [{ name: "pagePath" }],
+            metrics: [{ name: "screenPageViews" }, { name: "sessions" }],
+            limit: "25",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "sessionDefaultChannelGrouping" }],
+            metrics: [
+              { name: "sessions" },
+              { name: "totalUsers" },
+              { name: "engagedSessions" },
+              { name: "engagementRate" },
+              { name: "userEngagementDuration" },
+            ],
+            limit: "25",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "deviceCategory" }],
+            metrics: [{ name: "sessions" }, { name: "totalUsers" }],
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "country" }],
+            metrics: [{ name: "totalUsers" }, { name: "sessions" }],
+            limit: "25",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "eventName" }],
+            metrics: [{ name: "eventCount" }, { name: "totalUsers" }],
+            limit: "25",
+          },
+        ],
+      },
+    }),
+    analyticsData.properties.batchRunReports({
+      property,
+      requestBody: {
+        requests: [
+          {
+            dateRanges,
+            dimensions: [{ name: "operatingSystem" }],
+            metrics: [{ name: "sessions" }],
+            limit: "10",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "landingPagePlusQueryString" }],
+            metrics: [
+              { name: "sessions" },
+              { name: "screenPageViews" },
+              { name: "engagedSessions" },
+              { name: "engagementRate" },
+              { name: "userEngagementDuration" },
+            ],
+            limit: "25",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "firstUserMedium" }],
+            metrics: [{ name: "totalUsers" }],
+            limit: "25",
+          },
+        ],
+      },
+    }),
+  ]);
+
+  const summaryRes = await analyticsData.properties.runReport({
+    property,
+    requestBody: {
+      dateRanges,
+      metrics: [
+        { name: "sessions" },
+        { name: "totalUsers" },
+        { name: "newUsers" },
+        { name: "engagedSessions" },
+        { name: "engagementRate" },
+        { name: "userEngagementDuration" },
+        { name: "screenPageViews" },
+      ],
+    },
+  });
+
+  let organicSessions = 0;
+  let organicSegmentationConfidence: "high" | "medium" | "low" = "low";
+
+  try {
+    const organicRes = await analyticsData.properties.runReport({
+      property,
+      requestBody: {
+        dateRanges,
+        metrics: [{ name: "sessions" }],
+        dimensionFilter: {
+          filter: {
+            fieldName: "sessionDefaultChannelGrouping",
+            stringFilter: { matchType: "EXACT", value: "Organic Search" },
+          },
+        },
+      },
+    });
+    const organicRow = organicRes.data.rows?.[0]?.metricValues;
+    organicSessions = parseInt(organicRow?.[0]?.value ?? "0");
+    organicSegmentationConfidence = "high";
+  } catch {
+    try {
+      const organicFallbackRes = await analyticsData.properties.runReport({
+        property,
+        requestBody: {
+          dateRanges,
+          metrics: [{ name: "sessions" }],
+          dimensionFilter: {
+            filter: {
+              fieldName: "sessionMedium",
+              stringFilter: { matchType: "EXACT", value: "organic" },
+            },
+          },
+        },
+      });
+      const fallbackRow = organicFallbackRes.data.rows?.[0]?.metricValues;
+      organicSessions = parseInt(fallbackRow?.[0]?.value ?? "0");
+      organicSegmentationConfidence = "medium";
+    } catch {
+      organicSessions = 0;
+      organicSegmentationConfidence = "low";
+    }
+  }
+
+  const summaryRow = summaryRes.data.rows?.[0]?.metricValues ?? [];
+  const totalSessions = parseInt(summaryRow[0]?.value ?? "0");
+  const totalUsers = parseInt(summaryRow[1]?.value ?? "0");
+  const newUsers = parseInt(summaryRow[2]?.value ?? "0");
+  const engagedSessions = parseInt(summaryRow[3]?.value ?? "0");
+  const engagementRate = parseFloat(summaryRow[4]?.value ?? "0");
+  const avgEngagementTimeSeconds = parseFloat(summaryRow[5]?.value ?? "0");
+  const screenPageViews = parseInt(summaryRow[6]?.value ?? "0");
+  const bounceRate = 1 - engagementRate;
+
+  // Refine organicSegmentationConfidence
+  if (organicSegmentationConfidence === "high") {
+    if (totalSessions > 0 && organicSessions / totalSessions < 0.05) {
+      organicSegmentationConfidence = "medium";
+    }
+  }
+
+  const reports1 = batch1Res.data.reports ?? [];
+  const reports2 = batch2Res.data.reports ?? [];
+
+  function parseSimpleRows<T>(
+    report: any,
+    mapper: (dimValues: string[], metricValues: string[]) => T
+  ): T[] {
+    const result: T[] = [];
+    for (const row of (report?.rows ?? [])) {
+      const dims: string[] = (row.dimensionValues ?? []).map((d: any) => d.value ?? "");
+      const mets: string[] = (row.metricValues ?? []).map((m: any) => m.value ?? "0");
+      result.push(mapper(dims, mets));
+    }
+    return result;
+  }
+
+  const topPages = parseSimpleRows(reports1[0], (dims, mets) => ({
+    pagePath: dims[0],
+    pageviews: parseInt(mets[0]),
+    sessions: parseInt(mets[1]),
+  }));
+
+  const channelRows = parseSimpleRows(reports1[1], (dims, mets) => ({
+    channel: dims[0],
+    sessions: parseInt(mets[0]),
+    users: parseInt(mets[1]),
+    engagedSessions: parseInt(mets[2]),
+    engagementRate: parseFloat(mets[3]),
+    avgEngagementTimeSeconds: parseFloat(mets[4]),
+  }));
+
+  const deviceBreakdown = parseSimpleRows(reports1[2], (dims, mets) => ({
+    device: dims[0],
+    sessions: parseInt(mets[0]),
+    users: parseInt(mets[1]),
+  }));
+
+  const countryBreakdown = parseSimpleRows(reports1[3], (dims, mets) => ({
+    country: dims[0],
+    users: parseInt(mets[0]),
+    sessions: parseInt(mets[1]),
+  }));
+
+  const events = parseSimpleRows(reports1[4], (dims, mets) => ({
+    eventName: dims[0],
+    eventCount: parseInt(mets[0]),
+    totalUsers: parseInt(mets[1]),
+  }));
+
+  const osBreakdown = parseSimpleRows(reports2[0], (dims, mets) => ({
+    os: dims[0],
+    sessions: parseInt(mets[0]),
+  }));
+
+  const landingPageRows = parseSimpleRows(reports2[1], (dims, mets) => ({
+    landingPage: dims[0],
+    sessions: parseInt(mets[0]),
+    pageviews: parseInt(mets[1]),
+    engagedSessions: parseInt(mets[2]),
+    engagementRate: parseFloat(mets[3]),
+    avgEngagementTimeSeconds: Math.round(parseFloat(mets[4]) * 10) / 10,
+  }));
+
+  const acquisitionChannels = parseSimpleRows(reports2[2], (dims, mets) => ({
+    channel: dims[0],
+    users: parseInt(mets[0]),
+  }));
+
+  // Build trafficSources from channel rows for backward compat
+  const trafficSources = channelRows.map((r) => ({
+    medium: r.channel,
+    sessions: r.sessions,
+    users: r.users,
+  }));
+
+  return {
+    // Ga4ReportProfile fields
+    topPages,
+    trafficSources,
+    deviceBreakdown,
+    countryBreakdown,
+    events,
+    osBreakdown,
+    landingPages: landingPageRows,
+    acquisitionChannels: acquisitionChannels.map((r) => ({ channel: r.channel, users: r.users })),
+    // V2 extension fields
+    sessions: totalSessions,
+    users: totalUsers,
+    newUsers,
+    engagedSessions,
+    engagementRate,
+    bounceRate,
+    bounceRateDerived: true,
+    avgEngagementTimeSeconds: Math.round(avgEngagementTimeSeconds * 10) / 10,
+    screenPageViews,
+    organicSessions,
+    organicSegmentationConfidence,
+    channels: channelRows.map((r) => ({
+      channel: r.channel,
+      sessions: r.sessions,
+      users: r.users,
+      engagedSessions: r.engagedSessions,
+      engagementRate: r.engagementRate,
+    })),
+  };
+}
+
+export async function fetchGa4ReportProfileV2(
+  authClient: any,
+  propertyId: string,
+  currentStart: string,
+  currentEnd: string,
+  compareStart: string,
+  compareEnd: string
+): Promise<{ current: Ga4ReportProfileV2; compare: Ga4ReportProfileV2 }> {
+  const [current, compare] = await Promise.all([
+    fetchSinglePeriodProfile(authClient, propertyId, currentStart, currentEnd),
+    fetchSinglePeriodProfile(authClient, propertyId, compareStart, compareEnd),
+  ]);
+  return { current, compare };
+}
+
 /**
  * Fetches a rich GA4 profile using 2 batchRunReports calls (each covering current + compare
  * periods in a single request via 2 dateRanges). Returns separate current/compare profiles.
+ * @deprecated Use fetchGa4ReportProfileV2 instead — this version uses dateRange as a dimension
+ * which causes API errors. Kept as a fallback wrapper only.
  */
 export async function fetchGa4ReportProfile(
   authClient: any,

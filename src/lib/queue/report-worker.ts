@@ -15,6 +15,7 @@ import { isEnabled } from "@/lib/feature-flags";
 import {
   fetchGa4Metrics,
   fetchGa4ReportProfile,
+  fetchGa4ReportProfileV2,
   fetchGscMetrics,
   fetchGscQueryPagePairs,
   getGoogleAuthClient,
@@ -31,6 +32,7 @@ import {
 } from "@/lib/reports/ai-report-schema";
 import { chooseFallbackStrategy } from "@/lib/reports/ai-output-strategy";
 import { buildDeterministicInsights } from "@/lib/reports/deterministic-insights";
+import { buildDashboardBlocks, applyPayloadCapGuard } from "@/lib/reports/block-builder";
 import {
   extractStructuredPayload,
   isSuccessfulResponseStatus,
@@ -552,7 +554,7 @@ async function buildReportInputs(job: ClaimedReportJob) {
 
   if (property.ga4PropertyId) {
     try {
-      const profile = await fetchGa4ReportProfile(
+      const profile = await fetchGa4ReportProfileV2(
         teamAuth.authClient,
         property.ga4PropertyId,
         formatDate(report.dateRangeStart),
@@ -570,7 +572,7 @@ async function buildReportInputs(job: ClaimedReportJob) {
         teamId: report.teamId,
         phase: "preprocess",
         level: "warn",
-        message: "GA4 profile fetch failed; using summary-only GA4 payload",
+        message: "GA4 V2 profile fetch failed; using summary-only GA4 payload",
         meta: {
           ga4PropertyId: property.ga4PropertyId,
           error: error instanceof Error ? error.message : "Unknown GA4 profile error",
@@ -624,6 +626,36 @@ async function buildReportInputs(job: ClaimedReportJob) {
     queryPagePairsCurrent,
   });
 
+  const domainName = property.url.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+
+  const dashboardBlocks = buildDashboardBlocks({
+    insights: deterministic,
+    queryPagePairs: queryPagePairsCurrent,
+    ga4LandingPages: (ga4Current as Record<string, unknown> | null)?.landingPages != null
+      ? ((ga4Current as Record<string, unknown>).landingPages as Array<Record<string, unknown>>).map((lp) => ({
+          join_key: typeof lp.landingPage === "string" ? lp.landingPage : "",
+          sessions: typeof lp.sessions === "number" ? lp.sessions : 0,
+          engagementRate: typeof lp.engagementRate === "number" ? lp.engagementRate : undefined,
+          bounceRate: typeof lp.bounceRate === "number" ? lp.bounceRate : undefined,
+          engagedSessions: typeof lp.engagedSessions === "number" ? lp.engagedSessions : undefined,
+        }))
+      : [],
+    crawlPages: crawlData?.pages,
+    gscCurrentDevices: (gscCurrent as Record<string, unknown>).topDevices as Array<{ device: string; clicks: number; impressions: number; ctr: number; position: number }> ?? [],
+    gscCompareDevices: (gscCompare as Record<string, unknown>).topDevices as Array<{ device: string; clicks: number; impressions: number; ctr: number; position: number }> ?? [],
+    gscCurrentCountries: (gscCurrent as Record<string, unknown>).topCountries as Array<{ country: string; clicks: number; impressions: number; ctr: number; position: number }> ?? [],
+    gscCompareCountries: (gscCompare as Record<string, unknown>).topCountries as Array<{ country: string; clicks: number; impressions: number; ctr: number; position: number }> ?? [],
+    gscCurrentQueries: (gscCurrent as Record<string, unknown>).topQueries as Array<{ query: string; clicks: number; impressions: number; ctr: number; position: number }> ?? [],
+    gscCompareQueries: (gscCompare as Record<string, unknown>).topQueries as Array<{ query: string; clicks: number; impressions: number; ctr: number; position: number }> ?? [],
+    domainName,
+  });
+
+  // Apply 1.5MB payload cap guard
+  const capNote = applyPayloadCapGuard(dashboardBlocks);
+  if (capNote) {
+    console.warn(`[report-worker] dashboard_blocks_json cap applied: ${capNote} (report: ${report.id})`);
+  }
+
   const reportData: ReportDataPayload = {
     gsc: {
       current: gscCurrent as GscMetrics,
@@ -642,6 +674,7 @@ async function buildReportInputs(job: ClaimedReportJob) {
     teamAuth,
     reportData,
     deterministic,
+    dashboardBlocks,
     siteChanges,
   };
 }
@@ -699,7 +732,7 @@ async function processGenerateReportJob(job: ClaimedReportJob) {
     .set({ status: "processing", aiStatus: "preprocessing", error: null, updatedAt: new Date() })
     .where(eq(reports.id, job.reportId));
 
-  const { report, property, teamAuth, reportData, deterministic, siteChanges } = await buildReportInputs(job);
+  const { report, property, teamAuth, reportData, deterministic, dashboardBlocks, siteChanges } = await buildReportInputs(job);
 
   await updateReportJobPhase(job.id, "site_changes");
   await appendReportJobEvent({
@@ -956,6 +989,8 @@ async function processGenerateReportJob(job: ClaimedReportJob) {
           openaiResponseId: null,
           updatedAt: new Date(),
           error: errorMessage,
+          reportSchemaVersion: "v2",
+          dashboardBlocksJson: dashboardBlocks as unknown as Record<string, unknown>[],
         })
         .where(eq(reports.id, report.id));
 
@@ -1228,6 +1263,8 @@ async function processGenerateReportJob(job: ClaimedReportJob) {
       openaiResponseId: startResult.responseId,
       updatedAt: new Date(),
       error: schemaContractFallbackError,
+      reportSchemaVersion: "v2",
+      dashboardBlocksJson: dashboardBlocks as unknown as Record<string, unknown>[],
     })
     .where(eq(reports.id, report.id));
 
