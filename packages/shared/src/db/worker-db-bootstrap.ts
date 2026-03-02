@@ -37,7 +37,23 @@ export function getPostgresErrorCode(error: unknown): string | null {
     typeof (error as { cause?: { code?: unknown } })?.cause?.code === "string"
       ? ((error as { cause: { code: string } }).cause.code)
       : null;
-  return causeCode;
+  if (causeCode) return causeCode;
+
+  const nestedCauseCode =
+    typeof (error as { cause?: { cause?: { code?: unknown } } })?.cause?.cause?.code === "string"
+      ? ((error as { cause: { cause: { code: string } } }).cause.cause.code)
+      : null;
+  if (nestedCauseCode) return nestedCauseCode;
+
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  const causeMessage =
+    typeof (error as { cause?: { message?: unknown } })?.cause?.message === "string"
+      ? ((error as { cause: { message: string } }).cause.message)
+      : "";
+  const combined = `${message}\n${causeMessage}`;
+  if (/42P07/.test(combined)) return "42P07";
+
+  return null;
 }
 
 export function shouldAutoBaselineMigrations(error: unknown) {
@@ -156,17 +172,13 @@ async function runWorkerDatabaseMigrations() {
         migrationsFolder: config.migrationsFolder,
       });
     } catch (error) {
+      const errorCode = getPostgresErrorCode(error);
       if (!shouldAutoBaselineMigrations(error)) {
         throw error;
       }
 
-      const hasTables = await hasUserTables(migrationClient);
-      if (!hasTables) {
-        throw error;
-      }
-
       console.warn(
-        `[report-worker] detected duplicate migration object with existing schema (journal rows: ${journalCount}); baselining migrations and retrying.`,
+        `[report-worker] migration failed with code ${errorCode ?? "unknown"} (journal rows: ${journalCount}); repairing drizzle journal and retrying.`,
       );
       await baselineMigrationJournal(migrationClient, config.migrationsFolder);
       journalCount = await getMigrationJournalCount(migrationClient);
@@ -208,22 +220,14 @@ async function getMigrationJournalCount(client: ReturnType<typeof postgres>) {
   return Number(rows[0]?.count ?? 0);
 }
 
-async function hasUserTables(client: ReturnType<typeof postgres>) {
-  const rows = await client`
-    select exists (
-      select 1
-      from information_schema.tables
-      where table_schema = 'public'
-        and table_type = 'BASE TABLE'
-      limit 1
-    ) as has_tables
-  `;
-  return Boolean(rows[0]?.has_tables);
-}
-
 async function baselineMigrationJournal(client: ReturnType<typeof postgres>, migrationsFolder: string) {
   const migrations = readMigrationFiles({ migrationsFolder });
   for (const migration of migrations) {
+    await client`
+      update drizzle.__drizzle_migrations
+      set created_at = ${migration.folderMillis}
+      where hash = ${migration.hash}
+    `;
     await client`
       insert into drizzle.__drizzle_migrations (hash, created_at)
       select ${migration.hash}, ${migration.folderMillis}

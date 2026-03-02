@@ -53,7 +53,7 @@ Web and worker enforce these rules at runtime:
 # Runtime (web + worker)
 DATABASE_URL=postgresql://<user>:<pass>@<project>-pooler.<region>.neon.tech/<db>?sslmode=require
 
-# Migrations/tooling only
+# Migrations/tooling + worker startup migrations
 DIRECT_DATABASE_URL=postgresql://<user>:<pass>@<project>.<region>.neon.tech/<db>?sslmode=require
 ```
 
@@ -102,7 +102,8 @@ pnpm db:push
 pnpm db:seed:plan-settings
 ```
 
-Migration tooling is pinned to `DIRECT_DATABASE_URL` via `drizzle.config.ts`.
+Worker startup automatically ensures migrations before entering the job loop.
+Migration tooling remains pinned to `DIRECT_DATABASE_URL` via `drizzle.config.ts`.
 
 ## Deploy `apps/web` on Vercel
 
@@ -126,6 +127,12 @@ Migration tooling is pinned to `DIRECT_DATABASE_URL` via `drizzle.config.ts`.
 ```bash
 vercel env pull .env.local
 ```
+
+Troubleshooting:
+
+- If Vercel shows `No Next.js version detected`, the project is building from the wrong directory.
+  - Fix: set **Root Directory** to `apps/web` (this is required in this monorepo).
+- If Vercel logs show an older commit than expected, redeploy from the latest `main` commit and verify Production Branch is `main`.
 
 ## Run Worker on VPS (systemd)
 
