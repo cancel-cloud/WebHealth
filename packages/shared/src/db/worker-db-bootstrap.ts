@@ -11,6 +11,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEFAULT_MIGRATIONS_DIR = path.resolve(__dirname, "../../../../drizzle");
 const DB_MIGRATION_LOCK_NAME = "webhealth_worker_db_migrations";
+const CRITICAL_TABLES = ["verification", "report_jobs"] as const;
+const DRIFT_TOLERATED_ERROR_CODES = new Set(["42P07", "42710", "42P06", "42701"]);
 
 export type WorkerMigrationConfig = {
   migrationDatabaseUrl: string;
@@ -58,6 +60,11 @@ export function getPostgresErrorCode(error: unknown): string | null {
 
 export function shouldAutoBaselineMigrations(error: unknown) {
   return getPostgresErrorCode(error) === "42P07";
+}
+
+export function isDriftToleratedErrorCode(code: string | null) {
+  if (!code) return false;
+  return DRIFT_TOLERATED_ERROR_CODES.has(code);
 }
 
 export function tryBuildDirectDatabaseUrlFromRuntime(runtimeUrl: string): string | null {
@@ -180,6 +187,7 @@ async function runWorkerDatabaseMigrations() {
       console.warn(
         `[report-worker] migration failed with code ${errorCode ?? "unknown"} (journal rows: ${journalCount}); repairing drizzle journal and retrying.`,
       );
+      await reconcileSchemaLeniently(migrationClient, config.migrationsFolder);
       await baselineMigrationJournal(migrationClient, config.migrationsFolder);
       journalCount = await getMigrationJournalCount(migrationClient);
       if (journalCount === 0) {
@@ -189,6 +197,24 @@ async function runWorkerDatabaseMigrations() {
       await migrate(migrationDb, {
         migrationsFolder: config.migrationsFolder,
       });
+    }
+
+    const missingCriticalTables = await getMissingCriticalTables(migrationClient);
+    if (missingCriticalTables.length > 0) {
+      console.warn(
+        `[report-worker] missing critical tables after migration (${missingCriticalTables.join(", ")}); reconciling schema from migration SQL.`,
+      );
+      await reconcileSchemaLeniently(migrationClient, config.migrationsFolder);
+      await baselineMigrationJournal(migrationClient, config.migrationsFolder);
+
+      const stillMissing = await getMissingCriticalTables(migrationClient);
+      if (stillMissing.length > 0) {
+        throw new Error(
+          `DB_SCHEMA_ERROR: Missing required tables after startup migration reconciliation: ${stillMissing.join(
+            ", ",
+          )}`,
+        );
+      }
     }
   } finally {
     try {
@@ -238,4 +264,38 @@ async function baselineMigrationJournal(client: ReturnType<typeof postgres>, mig
       )
     `;
   }
+}
+
+async function reconcileSchemaLeniently(client: ReturnType<typeof postgres>, migrationsFolder: string) {
+  const migrations = readMigrationFiles({ migrationsFolder });
+  for (const migration of migrations) {
+    for (const rawStatement of migration.sql) {
+      const statement = rawStatement.trim();
+      if (!statement) continue;
+
+      try {
+        await client.unsafe(statement);
+      } catch (error) {
+        const code = getPostgresErrorCode(error);
+        if (!isDriftToleratedErrorCode(code)) {
+          throw error;
+        }
+      }
+    }
+  }
+}
+
+async function getMissingCriticalTables(client: ReturnType<typeof postgres>) {
+  const missing: string[] = [];
+
+  for (const tableName of CRITICAL_TABLES) {
+    const rows = await client`
+      select to_regclass(${`public.${tableName}`}) as regclass
+    `;
+    if (!rows[0]?.regclass) {
+      missing.push(tableName);
+    }
+  }
+
+  return missing;
 }

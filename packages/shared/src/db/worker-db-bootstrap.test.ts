@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   getPostgresErrorCode,
+  isDriftToleratedErrorCode,
   resolveWorkerMigrationConfig,
   shouldAutoBaselineMigrations,
   tryBuildDirectDatabaseUrlFromRuntime,
@@ -92,4 +93,15 @@ test("shouldAutoBaselineMigrations returns true for duplicate relation", () => {
 test("shouldAutoBaselineMigrations returns false for non-duplicate migration errors", () => {
   const should = shouldAutoBaselineMigrations({ cause: { code: "42P01" } });
   assert.equal(should, false);
+});
+
+test("isDriftToleratedErrorCode accepts duplicate-object codes", () => {
+  assert.equal(isDriftToleratedErrorCode("42P07"), true);
+  assert.equal(isDriftToleratedErrorCode("42710"), true);
+  assert.equal(isDriftToleratedErrorCode("42P06"), true);
+});
+
+test("isDriftToleratedErrorCode rejects non-duplicate codes", () => {
+  assert.equal(isDriftToleratedErrorCode("42P01"), false);
+  assert.equal(isDriftToleratedErrorCode(null), false);
 });
