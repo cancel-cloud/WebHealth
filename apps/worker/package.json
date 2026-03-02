@@ -1,0 +1,19 @@
+{
+  "name": "@webhealth/worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "tsx --tsconfig ./tsconfig.json src/main.ts",
+    "start:once": "tsx --tsconfig ./tsconfig.json src/main.ts --once",
+    "openai:reconcile-costs": "tsx --tsconfig ./tsconfig.json src/reconcile-openai-costs.ts"
+  },
+  "dependencies": {
+    "@webhealth/shared": "workspace:*",
+    "dotenv": "^17.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.21.0",
+    "typescript": "^5"
+  }
+}

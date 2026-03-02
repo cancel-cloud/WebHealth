@@ -1,0 +1,33 @@
+{
+  "name": "@webhealth/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./db": "./src/db/index.ts",
+    "./db/*": "./src/db/*.ts",
+    "./lib/*": "./src/lib/*.ts",
+    "./queue": "./src/queue/index.ts",
+    "./queue/*": "./src/queue/*.ts",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@better-fetch/fetch": "^1.1.21",
+    "better-auth": "^1.4.19",
+    "cheerio": "^1.2.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "drizzle-orm": "^0.45.1",
+    "exceljs": "^4.4.0",
+    "googleapis": "^171.4.0",
+    "nanoid": "^5.1.6",
+    "openai": "^6.22.0",
+    "postgres": "^3.4.8",
+    "tailwind-merge": "^3.5.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5"
+  }
+}
