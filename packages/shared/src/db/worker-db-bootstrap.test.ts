@@ -73,12 +73,12 @@ test("getPostgresErrorCode extracts code from drizzle wrapped error shape", () =
   assert.equal(getPostgresErrorCode({ cause: { code: "42P07" } }), "42P07");
 });
 
-test("shouldAutoBaselineMigrations returns true for duplicate relation with empty journal", () => {
-  const should = shouldAutoBaselineMigrations({ cause: { code: "42P07" } }, 0);
+test("shouldAutoBaselineMigrations returns true for duplicate relation", () => {
+  const should = shouldAutoBaselineMigrations({ cause: { code: "42P07" } });
   assert.equal(should, true);
 });
 
-test("shouldAutoBaselineMigrations returns false when journal already has rows", () => {
-  const should = shouldAutoBaselineMigrations({ cause: { code: "42P07" } }, 2);
+test("shouldAutoBaselineMigrations returns false for non-duplicate migration errors", () => {
+  const should = shouldAutoBaselineMigrations({ cause: { code: "42P01" } });
   assert.equal(should, false);
 });
