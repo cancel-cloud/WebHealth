@@ -40,8 +40,8 @@ export function getPostgresErrorCode(error: unknown): string | null {
   return causeCode;
 }
 
-export function shouldAutoBaselineMigrations(error: unknown, migrationJournalCount: number) {
-  return getPostgresErrorCode(error) === "42P07" && migrationJournalCount === 0;
+export function shouldAutoBaselineMigrations(error: unknown) {
+  return getPostgresErrorCode(error) === "42P07";
 }
 
 export function tryBuildDirectDatabaseUrlFromRuntime(runtimeUrl: string): string | null {
@@ -156,7 +156,7 @@ async function runWorkerDatabaseMigrations() {
         migrationsFolder: config.migrationsFolder,
       });
     } catch (error) {
-      if (!shouldAutoBaselineMigrations(error, journalCount)) {
+      if (!shouldAutoBaselineMigrations(error)) {
         throw error;
       }
 
@@ -166,7 +166,7 @@ async function runWorkerDatabaseMigrations() {
       }
 
       console.warn(
-        "[report-worker] detected existing schema with empty drizzle journal; baselining migrations and retrying.",
+        `[report-worker] detected duplicate migration object with existing schema (journal rows: ${journalCount}); baselining migrations and retrying.`,
       );
       await baselineMigrationJournal(migrationClient, config.migrationsFolder);
       journalCount = await getMigrationJournalCount(migrationClient);
