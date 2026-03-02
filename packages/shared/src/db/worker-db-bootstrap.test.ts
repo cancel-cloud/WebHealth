@@ -73,6 +73,17 @@ test("getPostgresErrorCode extracts code from drizzle wrapped error shape", () =
   assert.equal(getPostgresErrorCode({ cause: { code: "42P07" } }), "42P07");
 });
 
+test("getPostgresErrorCode extracts code from nested cause shape", () => {
+  assert.equal(getPostgresErrorCode({ cause: { cause: { code: "42P07" } } }), "42P07");
+});
+
+test("getPostgresErrorCode falls back to parsing error message text", () => {
+  assert.equal(
+    getPostgresErrorCode(new Error("Failed query, PostgresError: relation already exists (42P07)")),
+    "42P07",
+  );
+});
+
 test("shouldAutoBaselineMigrations returns true for duplicate relation", () => {
   const should = shouldAutoBaselineMigrations({ cause: { code: "42P07" } });
   assert.equal(should, true);
