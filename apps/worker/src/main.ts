@@ -1,9 +1,15 @@
-import { startReportWorkerLoop, runSingleReportWorkerTick } from "@webhealth/shared/lib/queue/report-worker";
 import { loadWorkerEnv } from "./load-env";
 
 loadWorkerEnv();
 
 async function main() {
+  const { ensureWorkerDatabaseReady } = await import("@webhealth/shared/db/worker-db-bootstrap");
+  const { startReportWorkerLoop, runSingleReportWorkerTick } = await import(
+    "@webhealth/shared/lib/queue/report-worker"
+  );
+
+  await ensureWorkerDatabaseReady();
+
   const once = process.argv.includes("--once");
   if (once) {
     const result = await runSingleReportWorkerTick();

@@ -4,7 +4,13 @@ config({ path: ".env.local" });
 config();
 
 async function main() {
-  const { runSingleReportWorkerTick, startReportWorkerLoop } = await import("@webhealth/shared/lib/queue/report-worker");
+  const { ensureWorkerDatabaseReady } = await import("@webhealth/shared/db/worker-db-bootstrap");
+  const { runSingleReportWorkerTick, startReportWorkerLoop } = await import(
+    "@webhealth/shared/lib/queue/report-worker"
+  );
+
+  await ensureWorkerDatabaseReady();
+
   const once = process.argv.includes("--once");
   if (once) {
     const result = await runSingleReportWorkerTick();
