@@ -11,6 +11,9 @@
     "db:migrate": "drizzle-kit migrate --config ../../drizzle.config.ts && tsx ../../packages/shared/src/db/seed-plan-settings.ts",
     "db:seed:plan-settings": "tsx ../../packages/shared/src/db/seed-plan-settings.ts"
   },
+  "engines": {
+    "node": "20"
+  },
   "dependencies": {
     "@better-fetch/fetch": "^1.1.21",
     "@hookform/resolvers": "^5.2.2",

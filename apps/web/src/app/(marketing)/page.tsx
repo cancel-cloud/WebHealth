@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Globe2, BarChart2, Zap, Search, TrendingUp, FileDown, Check, ArrowRight, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
+import { authClient } from "@webhealth/shared/lib/auth-client";
 
 /* ─── Palette ────────────────────────────────────────────────────────── */
 // Primary: indigo #6366f1  Accent: cyan #06b6d4  Success: emerald #10b981
@@ -161,6 +162,13 @@ const stagger = {
 /* ─── Page ──────────────────────────────────────────────────────────── */
 
 export default function HomePage() {
+  const handleGoogleSignIn = async () => {
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/dashboard",
+    });
+  };
+
   return (
     <>
       {/* Skip link */}
@@ -241,14 +249,15 @@ export default function HomePage() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8 motion-safe:animate-[fade-slide-up_0.55s_0.3s_ease_both] opacity-0 [animation-fill-mode:forwards]">
-              <Link
-                href="/dashboard"
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
                 className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full text-sm font-semibold text-white focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:outline-none touch-manipulation motion-safe:animate-[gradient-pan_6s_ease_infinite] bg-[length:200%_100%]"
                 style={{ backgroundImage: "linear-gradient(90deg, #6366f1, #0ea5e9, #6366f1)" }}
               >
                 Connect your Google account
                 <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
-              </Link>
+              </button>
               <Button
                 variant="ghost"
                 className="h-12 px-8 rounded-full text-sm font-medium focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 touch-manipulation"
@@ -636,8 +645,9 @@ export default function HomePage() {
                     </p>
                   </div>
 
-                  <Link
-                    href="/dashboard"
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
                     className="inline-flex items-center justify-center gap-2 h-12 w-full rounded-full text-sm font-semibold text-white focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:outline-none touch-manipulation motion-safe:animate-[gradient-pan_6s_ease_infinite] bg-[length:200%_100%]"
                     style={{
                       backgroundImage: "linear-gradient(90deg, #6366f1, #06b6d4, #6366f1)",
@@ -646,7 +656,7 @@ export default function HomePage() {
                   >
                     Connect your Google account
                     <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
-                  </Link>
+                  </button>
 
                   <ul className="space-y-2">
                     {["No credit card required", "GSC + GA4 in one place", "Cancel any time"].map(
