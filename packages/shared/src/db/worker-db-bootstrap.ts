@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { readMigrationFiles } from "drizzle-orm/migrator";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
@@ -24,6 +25,24 @@ type ResolveWorkerMigrationConfigInput = {
 };
 
 let ensureDatabaseReadyPromise: Promise<void> | null = null;
+
+export function getPostgresErrorCode(error: unknown): string | null {
+  const directCode =
+    typeof (error as { code?: unknown })?.code === "string"
+      ? ((error as { code: string }).code)
+      : null;
+  if (directCode) return directCode;
+
+  const causeCode =
+    typeof (error as { cause?: { code?: unknown } })?.cause?.code === "string"
+      ? ((error as { cause: { code: string } }).cause.code)
+      : null;
+  return causeCode;
+}
+
+export function shouldAutoBaselineMigrations(error: unknown, migrationJournalCount: number) {
+  return getPostgresErrorCode(error) === "42P07" && migrationJournalCount === 0;
+}
 
 export function tryBuildDirectDatabaseUrlFromRuntime(runtimeUrl: string): string | null {
   let parsed: URL;
@@ -129,10 +148,36 @@ async function runWorkerDatabaseMigrations() {
 
   try {
     await migrationClient`select pg_advisory_lock(hashtext(${DB_MIGRATION_LOCK_NAME}))`;
+    await ensureMigrationJournalObjects(migrationClient);
 
-    await migrate(migrationDb, {
-      migrationsFolder: config.migrationsFolder,
-    });
+    let journalCount = await getMigrationJournalCount(migrationClient);
+    try {
+      await migrate(migrationDb, {
+        migrationsFolder: config.migrationsFolder,
+      });
+    } catch (error) {
+      if (!shouldAutoBaselineMigrations(error, journalCount)) {
+        throw error;
+      }
+
+      const hasTables = await hasUserTables(migrationClient);
+      if (!hasTables) {
+        throw error;
+      }
+
+      console.warn(
+        "[report-worker] detected existing schema with empty drizzle journal; baselining migrations and retrying.",
+      );
+      await baselineMigrationJournal(migrationClient, config.migrationsFolder);
+      journalCount = await getMigrationJournalCount(migrationClient);
+      if (journalCount === 0) {
+        throw error;
+      }
+
+      await migrate(migrationDb, {
+        migrationsFolder: config.migrationsFolder,
+      });
+    }
   } finally {
     try {
       await migrationClient`select pg_advisory_unlock(hashtext(${DB_MIGRATION_LOCK_NAME}))`;
@@ -141,5 +186,52 @@ async function runWorkerDatabaseMigrations() {
     }
 
     await migrationClient.end({ timeout: 10 });
+  }
+}
+
+async function ensureMigrationJournalObjects(client: ReturnType<typeof postgres>) {
+  await client`CREATE SCHEMA IF NOT EXISTS drizzle`;
+  await client`
+    CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
+      id SERIAL PRIMARY KEY,
+      hash text NOT NULL,
+      created_at bigint
+    )
+  `;
+}
+
+async function getMigrationJournalCount(client: ReturnType<typeof postgres>) {
+  const rows = await client`
+    select count(*)::int as count
+    from drizzle.__drizzle_migrations
+  `;
+  return Number(rows[0]?.count ?? 0);
+}
+
+async function hasUserTables(client: ReturnType<typeof postgres>) {
+  const rows = await client`
+    select exists (
+      select 1
+      from information_schema.tables
+      where table_schema = 'public'
+        and table_type = 'BASE TABLE'
+      limit 1
+    ) as has_tables
+  `;
+  return Boolean(rows[0]?.has_tables);
+}
+
+async function baselineMigrationJournal(client: ReturnType<typeof postgres>, migrationsFolder: string) {
+  const migrations = readMigrationFiles({ migrationsFolder });
+  for (const migration of migrations) {
+    await client`
+      insert into drizzle.__drizzle_migrations (hash, created_at)
+      select ${migration.hash}, ${migration.folderMillis}
+      where not exists (
+        select 1
+        from drizzle.__drizzle_migrations
+        where hash = ${migration.hash}
+      )
+    `;
   }
 }
