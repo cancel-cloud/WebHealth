@@ -35,6 +35,11 @@ packages/
 drizzle/      # SQL migrations
 ```
 
+## Runbooks
+
+- Local macOS: `docs/how-to-run-locally-macos.md`
+- Deploy (Vercel + Neon + Worker VPS): `docs/deploy-runbook.md`
+
 ## Neon Connection Rules (Strict)
 
 Web and worker enforce these rules at runtime:
@@ -103,7 +108,11 @@ Migration tooling is pinned to `DIRECT_DATABASE_URL` via `drizzle.config.ts`.
 
 1. Import this repository in Vercel.
 2. Set project **Root Directory** to `apps/web`.
-3. Add required env vars in Vercel:
+3. Ensure Vercel uses `pnpm` (`packageManager` is pinned at repo root).
+4. Recommended commands:
+   - Install: `pnpm install --frozen-lockfile`
+   - Build: `pnpm build`
+5. Add required env vars in Vercel:
    - `DATABASE_URL` (pooled, `-pooler`, `sslmode=require`)
    - `BETTER_AUTH_URL`
    - `NEXT_PUBLIC_BETTER_AUTH_URL`
@@ -112,7 +121,7 @@ Migration tooling is pinned to `DIRECT_DATABASE_URL` via `drizzle.config.ts`.
    - `GOOGLE_CLIENT_SECRET`
    - `GOOGLE_OAUTH_STATE_SECRET`
    - `OPENAI_API_KEY`
-4. Pull envs locally when needed:
+6. Pull envs locally when needed:
 
 ```bash
 vercel env pull .env.local
