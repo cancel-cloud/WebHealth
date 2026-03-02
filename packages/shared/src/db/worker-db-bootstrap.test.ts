@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  getPostgresErrorCode,
   resolveWorkerMigrationConfig,
+  shouldAutoBaselineMigrations,
   tryBuildDirectDatabaseUrlFromRuntime,
 } from "./worker-db-bootstrap";
 
@@ -61,4 +63,22 @@ test("tryBuildDirectDatabaseUrlFromRuntime returns null when runtime host is not
     "postgresql://user:pass@ep-example.eu-central-1.aws.neon.tech/neondb?sslmode=require";
 
   assert.equal(tryBuildDirectDatabaseUrlFromRuntime(noPoolUrl), null);
+});
+
+test("getPostgresErrorCode extracts code from direct postgres error shape", () => {
+  assert.equal(getPostgresErrorCode({ code: "42P07" }), "42P07");
+});
+
+test("getPostgresErrorCode extracts code from drizzle wrapped error shape", () => {
+  assert.equal(getPostgresErrorCode({ cause: { code: "42P07" } }), "42P07");
+});
+
+test("shouldAutoBaselineMigrations returns true for duplicate relation with empty journal", () => {
+  const should = shouldAutoBaselineMigrations({ cause: { code: "42P07" } }, 0);
+  assert.equal(should, true);
+});
+
+test("shouldAutoBaselineMigrations returns false when journal already has rows", () => {
+  const should = shouldAutoBaselineMigrations({ cause: { code: "42P07" } }, 2);
+  assert.equal(should, false);
 });
