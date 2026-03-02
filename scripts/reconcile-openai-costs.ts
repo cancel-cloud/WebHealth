@@ -3,17 +3,13 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 config();
 
-function unixDaysAgo(days: number) {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() - days);
-  d.setUTCHours(0, 0, 0, 0);
-  return Math.floor(d.getTime() / 1000);
-}
-
 async function main() {
-  const { reconcileOpenAIDailyCosts } = await import("../src/lib/openai/cost-reconciler");
-  const days = parseInt(process.argv[2] ?? "7", 10);
-  const startTime = unixDaysAgo(days);
+  const daysArg = Number(process.argv[2] ?? "7");
+  const days = Number.isFinite(daysArg) && daysArg > 0 ? Math.floor(daysArg) : 7;
+  const startTime = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const { reconcileOpenAIDailyCosts } = await import("@webhealth/shared/lib/openai/cost-reconciler");
+
   const rows = await reconcileOpenAIDailyCosts({ startTime });
   console.log(`[openai:reconcile-costs] upserted ${rows.length} rows`);
 }

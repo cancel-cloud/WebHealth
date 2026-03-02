@@ -1,204 +1,143 @@
 # How to Run Locally on macOS
 
-This guide runs the full WebHealth app locally on a Mac, including the new report queue/worker flow.
+This runbook starts the split architecture locally:
+
+- `apps/web` (Next.js UI + short API routes)
+- `apps/worker` (long-running queue worker)
+- Neon/Postgres as shared backend state
+
+`pnpm` is required and used everywhere in this repository.
 
 ## Prerequisites
 
-- Node.js 20+ (recommended)
-- `npm` (works with this repo; `pnpm` is also possible if you prefer)
-- PostgreSQL (local install or Docker)
-- Google OAuth credentials (for Google Search Console / GA4 sync features)
-- OpenAI API key (for AI report features)
+- Node.js 20+
+- Corepack enabled (`corepack enable`)
+- `pnpm` (version pinned by root `packageManager`)
+- Postgres/Neon database access
+- Google OAuth credentials
+- OpenAI API key
 
-Optional but useful:
+Optional:
 
-- `psql` CLI for checking the local DB
-- Docker Desktop (if you do not want a native Postgres install)
+- `psql`
+- Docker Desktop (if you want local Postgres container)
 
-## 1) Clone and install
+## 1) Install dependencies
 
 ```bash
 git clone <your-repo-url>
 cd WebHealth
-npm install
+corepack enable
+pnpm install
 ```
 
-## 2) Environment setup
+## 2) Configure environment files
 
-Copy and edit:
+Create local env files from placeholders:
 
 ```bash
-cp .env.example .env.local
+cp apps/web/.env.example apps/web/.env.local
+cp apps/worker/.env.example apps/worker/.env.local
 ```
 
-Minimum required values (see your existing local file for the full set):
+Required rules:
 
-- `DATABASE_URL`
-- `BETTER_AUTH_URL`
-- `BETTER_AUTH_SECRET`
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_OAUTH_STATE_SECRET`
-- `OPENAI_API_KEY`
-- `OPENAI_MODEL` (for example `gpt-5-mini`)
+- `DATABASE_URL` must be Neon pooled host (`-pooler`) and include `sslmode=require`
+- `DIRECT_DATABASE_URL` must be direct Neon host (no `-pooler`) and include `sslmode=require`
+- Runtime (`web` + `worker`) uses `DATABASE_URL`
+- Migrations use `DIRECT_DATABASE_URL`
 
-Optional for the new worker/artifact/cost features:
+## 3) Run database migrations
 
-- `REPORT_ARTIFACTS_DIR` (default: `./artifacts`)
-- `REPORT_WORKER_MAX_ACTIVE_GLOBAL` (default: `2`)
-- `REPORT_WORKER_MAX_ACTIVE_PER_TEAM` (default: `1`)
-- `REPORT_WORKER_LEASE_SECONDS` (default: `45`)
-- `REPORT_WORKER_HEARTBEAT_SECONDS` (default: `10`)
-- `REPORT_WORKER_POLL_MS` (default: `3000`)
-- `REPORT_AI_COST_CAP_USD` (default: `1`)
-- `REPORT_OPENAI_POLL_INTERVAL_MS` (default: `3000`)
-- `REPORT_OPENAI_POLL_TIMEOUT_MS` (default: `360000`)
-- `OPENAI_ADMIN_KEY` (required only for billed cost reconciliation via `/v1/organization/costs`)
-
-## 3) Start Postgres
-
-Native Postgres or Docker both work.
-
-Example with Docker:
+From repo root:
 
 ```bash
-docker run --name webhealth-postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_DB=webaudit \
-  -p 5432:5432 \
-  -d postgres:16
+pnpm db:migrate
 ```
 
-## 4) Run DB migrations (Drizzle)
-
-If you apply SQL migrations directly:
+Optional if you need schema sync during development:
 
 ```bash
-# Example (adjust host/user/db as needed)
-psql "$DATABASE_URL" -f drizzle/0000_faithful_johnny_blaze.sql
-psql "$DATABASE_URL" -f drizzle/0001_free_wild_child.sql
-psql "$DATABASE_URL" -f drizzle/0002_tiny_metric_cache.sql
-psql "$DATABASE_URL" -f drizzle/0003_worried_maelstrom.sql
-psql "$DATABASE_URL" -f drizzle/0004_batch_metrics.sql
-psql "$DATABASE_URL" -f drizzle/0005_hardened_report_queue.sql
-psql "$DATABASE_URL" -f drizzle/0006_fancy_rawhide_kid.sql
-psql "$DATABASE_URL" -f drizzle/0007_report_language_setting.sql
+pnpm db:push
 ```
 
-If you already use a Drizzle migration runner in your setup, use that instead.
+## 4) Start web and worker
 
-## 5) Start the app (terminal 1)
+Terminal 1 (web):
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
-## 6) Start the report worker loop (terminal 2, optional but recommended)
-
-The new queue-based report flow requires a worker to process queued jobs.
+Terminal 2 (worker):
 
 ```bash
-npm run worker:reports
+pnpm worker
 ```
 
-Run a single tick for debugging:
+Single worker tick for debugging:
 
 ```bash
-npm run worker:reports:once
+pnpm worker:once
 ```
 
-## 7) (Optional) Reconcile billed OpenAI costs
+## 5) Basic local verification
 
-Requires `OPENAI_ADMIN_KEY`.
+From repo root:
 
 ```bash
-npm run openai:reconcile-costs -- 7
+pnpm --filter @webhealth/web build
+pnpm --filter @webhealth/web exec tsc --noEmit
+pnpm --filter @webhealth/worker exec tsc --noEmit
 ```
 
-This fetches daily cost buckets from OpenAI and stores them in `openai_daily_costs`.
+Queue flow smoke test:
 
-## Common Issues
+1. Start web + worker.
+2. Create or retry a report from UI.
+3. Confirm report status transitions: `queued` -> `processing` -> `complete|failed`.
+4. Verify job/event rows in DB (`report_jobs`, `report_job_events`).
 
-## Missing env vars
+Legacy process endpoint guard:
+
+```bash
+curl -i -X POST http://localhost:3000/api/reports/<reportId>/process
+```
+
+Expected status: `410 Gone`.
+
+## Common issues
+
+## Wrong Neon URL type
 
 Symptoms:
 
-- auth routes fail
-- Google sync fails
-- AI calls fail
-- worker crashes on startup
+- Worker/web abort on startup with DB config errors
 
 Fix:
 
-- verify `.env.local` exists
-- confirm `BETTER_AUTH_URL`, `DATABASE_URL`, Google, and OpenAI keys are present
-- restart the dev server after env changes
+- Ensure `DATABASE_URL` has `-pooler` and `sslmode=require`
+- Ensure `DIRECT_DATABASE_URL` has no `-pooler` and has `sslmode=require`
 
-## Database connection errors
+## OAuth redirect mismatch
 
 Symptoms:
 
-- `ECONNREFUSED` / postgres connection errors
+- Google login/connect fails
 
 Fix:
 
-- confirm Postgres is running
-- check `DATABASE_URL`
-- verify DB name/user/password
+- Align `BETTER_AUTH_URL` with your local URL
+- Update Google OAuth redirect URIs accordingly
 
-## Google OAuth redirect mismatch
+## Worker starts but no jobs get processed
 
 Symptoms:
 
-- Google login fails with redirect URI error
+- Reports stay `queued`
 
 Fix:
 
-- ensure `BETTER_AUTH_URL` matches your local dev hostname exactly
-- add that exact auth callback URL in the Google Cloud OAuth config
-
-## Local auth base URL mismatch
-
-Symptoms:
-
-- sessions behave inconsistently or callback URLs look wrong
-
-Fix:
-
-- align `BETTER_AUTH_URL` with the URL you actually use in the browser
-
-## Artifact directory permission issues
-
-Symptoms:
-
-- XLSX rendering succeeds but download fails / file missing
-
-Fix:
-
-- set `REPORT_ARTIFACTS_DIR` to a writable directory
-- verify the folder exists and your user can write to it
-
-## Minimal Mode (What works without all external services)
-
-Works with only Next.js + Postgres:
-
-- auth/UI shell (depending on your local auth setup)
-- admin pages
-- queue tables / debug console shell
-- job enqueue / retry endpoints
-- local artifact storage plumbing
-
-Requires Google credentials:
-
-- GSC/GA4 sync
-- full report metric collection
-
-Requires OpenAI API key:
-
-- AI report generation
-- AI cost estimates / request tracing
-
-Requires OpenAI admin key (`OPENAI_ADMIN_KEY`):
-
-- authoritative billed spend reconciliation via the Costs API
+- Confirm worker process is running
+- Confirm worker has DB + Google + OpenAI envs
+- Check `report_job_events` and worker logs for claim/lease errors
