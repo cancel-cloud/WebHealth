@@ -364,8 +364,140 @@ export type Ga4ReportProfile = {
 };
 
 /**
- * Fetches a rich GA4 profile using 2 batchRunReports calls (each covering current + compare
- * periods in a single request via 2 dateRanges). Returns separate current/compare profiles.
+ * Fetches a rich GA4 profile for a single date period using 2 batchRunReports calls.
+ * Avoids the `dateRange` meta-dimension which some GA4 property types reject.
+ */
+async function fetchGa4ProfileForPeriod(
+  analyticsData: ReturnType<typeof google.analyticsdata>,
+  property: string,
+  startDate: string,
+  endDate: string
+): Promise<Ga4ReportProfile> {
+  const dateRanges = [{ startDate, endDate }];
+
+  function parseRows<T>(
+    report: any,
+    mapper: (dimValues: string[], metricValues: string[]) => T
+  ): T[] {
+    return (report?.rows ?? []).map((row: any) => {
+      const dims: string[] = (row.dimensionValues ?? []).map((d: any) => d.value ?? "");
+      const mets: string[] = (row.metricValues ?? []).map((m: any) => m.value ?? "0");
+      return mapper(dims, mets);
+    });
+  }
+
+  const [batch1Res, batch2Res] = await Promise.all([
+    analyticsData.properties.batchRunReports({
+      property,
+      requestBody: {
+        requests: [
+          {
+            dateRanges,
+            dimensions: [{ name: "pagePath" }],
+            metrics: [{ name: "screenPageViews" }, { name: "sessions" }],
+            limit: "25",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "sessionMedium" }],
+            metrics: [{ name: "sessions" }, { name: "totalUsers" }],
+            limit: "25",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "deviceCategory" }],
+            metrics: [{ name: "sessions" }, { name: "totalUsers" }],
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "country" }],
+            metrics: [{ name: "totalUsers" }, { name: "sessions" }],
+            limit: "25",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "eventName" }],
+            metrics: [{ name: "eventCount" }, { name: "totalUsers" }],
+            limit: "25",
+          },
+        ],
+      },
+    }),
+    analyticsData.properties.batchRunReports({
+      property,
+      requestBody: {
+        requests: [
+          {
+            dateRanges,
+            dimensions: [{ name: "operatingSystem" }],
+            metrics: [{ name: "sessions" }],
+            limit: "10",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "landingPage" }],
+            metrics: [{ name: "sessions" }, { name: "screenPageViews" }],
+            limit: "25",
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "firstUserMedium" }],
+            metrics: [{ name: "totalUsers" }],
+            limit: "25",
+          },
+        ],
+      },
+    }),
+  ]);
+
+  const reports1 = batch1Res.data.reports ?? [];
+  const reports2 = batch2Res.data.reports ?? [];
+
+  return {
+    topPages: parseRows(reports1[0], (dims, mets) => ({
+      pagePath: dims[0],
+      pageviews: parseInt(mets[0]),
+      sessions: parseInt(mets[1]),
+    })),
+    trafficSources: parseRows(reports1[1], (dims, mets) => ({
+      medium: dims[0],
+      sessions: parseInt(mets[0]),
+      users: parseInt(mets[1]),
+    })),
+    deviceBreakdown: parseRows(reports1[2], (dims, mets) => ({
+      device: dims[0],
+      sessions: parseInt(mets[0]),
+      users: parseInt(mets[1]),
+    })),
+    countryBreakdown: parseRows(reports1[3], (dims, mets) => ({
+      country: dims[0],
+      users: parseInt(mets[0]),
+      sessions: parseInt(mets[1]),
+    })),
+    events: parseRows(reports1[4], (dims, mets) => ({
+      eventName: dims[0],
+      eventCount: parseInt(mets[0]),
+      totalUsers: parseInt(mets[1]),
+    })),
+    osBreakdown: parseRows(reports2[0], (dims, mets) => ({
+      os: dims[0],
+      sessions: parseInt(mets[0]),
+    })),
+    landingPages: parseRows(reports2[1], (dims, mets) => ({
+      landingPage: dims[0],
+      sessions: parseInt(mets[0]),
+      pageviews: parseInt(mets[1]),
+    })),
+    acquisitionChannels: parseRows(reports2[2], (dims, mets) => ({
+      channel: dims[0],
+      users: parseInt(mets[0]),
+    })),
+  };
+}
+
+/**
+ * Fetches a rich GA4 profile for both the current and compare periods.
+ * Runs all 4 batch calls in parallel (2 per period) for minimal latency.
  */
 export async function fetchGa4ReportProfile(
   authClient: any,
@@ -378,170 +510,10 @@ export async function fetchGa4ReportProfile(
   const analyticsData = google.analyticsdata({ version: "v1beta", auth: authClient });
   const property = `properties/${propertyId}`;
 
-  const dateRanges = [
-    { startDate: currentStart, endDate: currentEnd },
-    { startDate: compareStart, endDate: compareEnd },
-  ];
-
-  // dateRange must be included as a dimension so GA4 returns separate rows per period.
-  // The returned value is "date_range_0" (current) or "date_range_1" (compare).
-  const dateRangeDim = { name: "dateRange" };
-
-  // Batch call 1: 5 reports
-  const [batch1Res, batch2Res] = await Promise.all([
-    analyticsData.properties.batchRunReports({
-      property,
-      requestBody: {
-        requests: [
-          {
-            dateRanges,
-            dimensions: [{ name: "pagePath" }, dateRangeDim],
-            metrics: [{ name: "screenPageViews" }, { name: "sessions" }],
-            limit: "25",
-          },
-          {
-            dateRanges,
-            dimensions: [{ name: "sessionMedium" }, dateRangeDim],
-            metrics: [{ name: "sessions" }, { name: "totalUsers" }],
-            limit: "25",
-          },
-          {
-            dateRanges,
-            dimensions: [{ name: "deviceCategory" }, dateRangeDim],
-            metrics: [{ name: "sessions" }, { name: "totalUsers" }],
-          },
-          {
-            dateRanges,
-            dimensions: [{ name: "country" }, dateRangeDim],
-            metrics: [{ name: "totalUsers" }, { name: "sessions" }],
-            limit: "25",
-          },
-          {
-            dateRanges,
-            dimensions: [{ name: "eventName" }, dateRangeDim],
-            metrics: [{ name: "eventCount" }, { name: "totalUsers" }],
-            limit: "25",
-          },
-        ],
-      },
-    }),
-    // Batch call 2: 3 reports
-    analyticsData.properties.batchRunReports({
-      property,
-      requestBody: {
-        requests: [
-          {
-            dateRanges,
-            dimensions: [{ name: "operatingSystem" }, dateRangeDim],
-            metrics: [{ name: "sessions" }],
-            limit: "10",
-          },
-          {
-            dateRanges,
-            dimensions: [{ name: "landingPage" }, dateRangeDim],
-            metrics: [{ name: "sessions" }, { name: "screenPageViews" }],
-            limit: "25",
-          },
-          {
-            dateRanges,
-            dimensions: [{ name: "firstUserMedium" }, dateRangeDim],
-            metrics: [{ name: "totalUsers" }],
-            limit: "25",
-          },
-        ],
-      },
-    }),
+  const [current, compare] = await Promise.all([
+    fetchGa4ProfileForPeriod(analyticsData, property, currentStart, currentEnd),
+    fetchGa4ProfileForPeriod(analyticsData, property, compareStart, compareEnd),
   ]);
 
-  // dateRange is always the last dimension; strip it before passing to mapper.
-  function parseRows<T>(
-    report: any,
-    mapper: (dimValues: string[], metricValues: string[]) => T
-  ): { current: T[]; compare: T[] } {
-    const current: T[] = [];
-    const compare: T[] = [];
-    for (const row of (report?.rows ?? [])) {
-      const allDims: string[] = (row.dimensionValues ?? []).map((d: any) => d.value ?? "");
-      const mets: string[] = (row.metricValues ?? []).map((m: any) => m.value ?? "0");
-      // Last dimension is "date_range_0" or "date_range_1"
-      const dateRangeVal = allDims[allDims.length - 1] ?? "date_range_0";
-      const dims = allDims.slice(0, -1);
-      const item = mapper(dims, mets);
-      if (dateRangeVal === "date_range_0") current.push(item);
-      else compare.push(item);
-    }
-    return { current, compare };
-  }
-
-  const reports1 = batch1Res.data.reports ?? [];
-  const reports2 = batch2Res.data.reports ?? [];
-
-  const topPages = parseRows(reports1[0], (dims, mets) => ({
-    pagePath: dims[0],
-    pageviews: parseInt(mets[0]),
-    sessions: parseInt(mets[1]),
-  }));
-
-  const trafficSources = parseRows(reports1[1], (dims, mets) => ({
-    medium: dims[0],
-    sessions: parseInt(mets[0]),
-    users: parseInt(mets[1]),
-  }));
-
-  const deviceBreakdown = parseRows(reports1[2], (dims, mets) => ({
-    device: dims[0],
-    sessions: parseInt(mets[0]),
-    users: parseInt(mets[1]),
-  }));
-
-  const countryBreakdown = parseRows(reports1[3], (dims, mets) => ({
-    country: dims[0],
-    users: parseInt(mets[0]),
-    sessions: parseInt(mets[1]),
-  }));
-
-  const events = parseRows(reports1[4], (dims, mets) => ({
-    eventName: dims[0],
-    eventCount: parseInt(mets[0]),
-    totalUsers: parseInt(mets[1]),
-  }));
-
-  const osBreakdown = parseRows(reports2[0], (dims, mets) => ({
-    os: dims[0],
-    sessions: parseInt(mets[0]),
-  }));
-
-  const landingPages = parseRows(reports2[1], (dims, mets) => ({
-    landingPage: dims[0],
-    sessions: parseInt(mets[0]),
-    pageviews: parseInt(mets[1]),
-  }));
-
-  const acquisitionChannels = parseRows(reports2[2], (dims, mets) => ({
-    channel: dims[0],
-    users: parseInt(mets[0]),
-  }));
-
-  return {
-    current: {
-      topPages: topPages.current,
-      trafficSources: trafficSources.current,
-      deviceBreakdown: deviceBreakdown.current,
-      countryBreakdown: countryBreakdown.current,
-      events: events.current,
-      osBreakdown: osBreakdown.current,
-      landingPages: landingPages.current,
-      acquisitionChannels: acquisitionChannels.current,
-    },
-    compare: {
-      topPages: topPages.compare,
-      trafficSources: trafficSources.compare,
-      deviceBreakdown: deviceBreakdown.compare,
-      countryBreakdown: countryBreakdown.compare,
-      events: events.compare,
-      osBreakdown: osBreakdown.compare,
-      landingPages: landingPages.compare,
-      acquisitionChannels: acquisitionChannels.compare,
-    },
-  };
+  return { current, compare };
 }
