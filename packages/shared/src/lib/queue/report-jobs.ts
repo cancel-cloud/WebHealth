@@ -310,6 +310,38 @@ export async function completeReportJob(jobId: string, phase: ReportJobPhase = "
   return job ?? null;
 }
 
+export async function requeueJobForRetry(jobId: string, errorMessage: string, delaySeconds = 30) {
+  const [job] = await db
+    .update(reportJobs)
+    .set({
+      status: "queued",
+      phase: "queued",
+      claimedBy: null,
+      claimedAt: null,
+      claimExpiresAt: null,
+      heartbeatAt: null,
+      finishedAt: null,
+      lastError: errorMessage,
+      availableAt: sql`now() + (${delaySeconds} || ' seconds')::interval`,
+      updatedAt: new Date(),
+    })
+    .where(eq(reportJobs.id, jobId))
+    .returning();
+
+  if (job) {
+    await appendReportJobEvent({
+      jobId: job.id,
+      reportId: job.reportId,
+      teamId: job.teamId,
+      phase: "queued",
+      level: "warn",
+      message: `Job re-queued for retry (attempt ${job.attempts} of ${job.maxAttempts}): ${errorMessage}`,
+    });
+  }
+
+  return job ?? null;
+}
+
 export async function failReportJob(jobId: string, errorMessage: string, phase?: string) {
   const [job] = await db
     .update(reportJobs)
