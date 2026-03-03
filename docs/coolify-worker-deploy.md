@@ -46,7 +46,7 @@ In the Nixpacks build section, set explicit commands so only worker runtime beha
 - Install command:
 
 ```bash
-pnpm install --frozen-lockfile
+npm i -g pnpm@9.15.5 && export PATH="$(npm bin -g):$PATH" && pnpm -v && pnpm install
 ```
 
 - Build command (optional but recommended as guard):
@@ -70,6 +70,7 @@ Set these in the Coolify **Environment Variables** tab.
 Required for worker:
 
 - `DATABASE_URL` (Neon pooled URL with `-pooler` and `sslmode=require`)
+- `DIRECT_DATABASE_URL` (recommended direct Neon URL; worker uses this for startup migrations)
 - `BETTER_AUTH_URL`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
@@ -93,14 +94,16 @@ Common optional vars:
 - `REPORT_AI_COST_CAP_USD`
 - `REPORT_OPENAI_POLL_INTERVAL_MS`
 - `REPORT_OPENAI_POLL_TIMEOUT_MS`
+- `WORKER_API_SECRET` (required if the web app fetches XLSX artifacts from the worker)
+- `WORKER_HTTP_PORT` (default `9100`)
 
 ## 6) Networking and Health Checks
 
-This worker is a background process, not an HTTP service.
+The worker runs a lightweight artifact HTTP server on port `9100` (configurable via `WORKER_HTTP_PORT`) that the web app uses to fetch XLSX report files. This server only starts when `WORKER_API_SECRET` is set.
 
-- Do not assign a public domain to this resource.
-- Prefer disabling application health checks for this worker unless you intentionally add a process-specific container health check.
-- If health checks are enabled via UI checks, Coolify expects a network check path and container support for `curl` or `wget`.
+- **Port exposure**: Expose port `9100` publicly (or via a tunnel) so Vercel can reach it. The bearer token (`WORKER_API_SECRET`) protects the endpoint.
+- **Health check**: Use path `/health` on port `9100` — returns `{"ok":true}`.
+- **Web app config**: Set `WORKER_ARTIFACT_URL` (e.g. `http://<worker-ip>:9100`) and `WORKER_API_SECRET` on the Vercel web app so it can fetch artifacts from the worker.
 
 ## 7) Optional Persistent Storage for Artifacts
 
@@ -120,6 +123,12 @@ After first deploy:
 
 ```text
 [report-worker] starting loop...
+```
+
+You should also see a migration bootstrap line before loop startup:
+
+```text
+[report-worker] ensuring DB schema via migrations in ...
 ```
 
 2. Create a report job from the web app.

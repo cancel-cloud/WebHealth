@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { readFile } from "fs/promises";
 import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
-import { getArtifactStore } from "@webhealth/shared/lib/reports/artifacts/store";
 import { and, eq, inArray } from "drizzle-orm";
 import { reports } from "@webhealth/shared/db/schema";
 
@@ -30,17 +28,38 @@ export async function GET(
       return NextResponse.json({ error: "No XLSX artifact available" }, { status: 404 });
     }
 
-    const ref = await getArtifactStore().getDownloadRef(report.xlsxArtifactKey);
-    if (!ref.path) {
-      return NextResponse.json({ error: "Artifact is not available on local storage" }, { status: 500 });
+    const workerBaseUrl = process.env.WORKER_ARTIFACT_URL;
+    const workerSecret = process.env.WORKER_API_SECRET;
+
+    if (!workerBaseUrl || !workerSecret) {
+      return NextResponse.json(
+        { error: "Artifact download service not configured" },
+        { status: 503 }
+      );
     }
 
-    const data = await readFile(ref.path);
+    const artifactUrl = new URL("/artifacts", workerBaseUrl);
+    artifactUrl.searchParams.set("key", report.xlsxArtifactKey);
+
+    const workerResponse = await fetch(artifactUrl.toString(), {
+      headers: { Authorization: `Bearer ${workerSecret}` },
+    });
+
+    if (!workerResponse.ok) {
+      const status = workerResponse.status === 404 ? 404 : 502;
+      return NextResponse.json(
+        { error: status === 404 ? "Artifact not found" : "Failed to fetch artifact from worker" },
+        { status }
+      );
+    }
+
+    const data = await workerResponse.arrayBuffer();
     return new NextResponse(data, {
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "Content-Disposition": `attachment; filename="seo-report-${reportId}.xlsx"`,
+        "Content-Length": String(data.byteLength),
       },
     });
   } catch (error) {
