@@ -17,7 +17,8 @@ export function AutoSync({ hasProperties }: { hasProperties: boolean }) {
           const res = await fetch("/api/properties/sync", { method: "POST" });
           const data = await res.json();
           if (res.ok) {
-            toast.success(`Properties synced! Found ${data.count} new properties.`, { id: "auto-sync" });
+            const total = (data.gscCount ?? 0) + (data.ga4Count ?? 0);
+            toast.success(`Auto synced ${total} properties (${data.gscCount ?? 0} GSC, ${data.ga4Count ?? 0} GA4).`, { id: "auto-sync" });
             router.refresh();
           } else {
             toast.error(`Auto-sync failed: ${data.error}`, { id: "auto-sync" });

@@ -361,7 +361,7 @@ export const reportJobs = pgTable("report_jobs", {
   priority: integer("priority").default(100).notNull(),
   availableAt: timestamp("available_at").defaultNow().notNull(),
   attempts: integer("attempts").default(0).notNull(),
-  maxAttempts: integer("max_attempts").default(3).notNull(),
+  maxAttempts: integer("max_attempts").default(2).notNull(),
   claimedBy: text("claimed_by"),
   claimedAt: timestamp("claimed_at"),
   claimExpiresAt: timestamp("claim_expires_at"),
