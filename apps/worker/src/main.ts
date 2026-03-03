@@ -15,21 +15,25 @@ async function main() {
     const { startArtifactServer } = await import("./artifact-server");
     await startArtifactServer();
   } else {
-    console.warn("[report-worker] WORKER_API_SECRET not set; artifact HTTP server disabled");
+    console.warn("[report-worker][WARN][BOOT] WORKER_API_SECRET not set; artifact HTTP server disabled");
   }
 
   const once = process.argv.includes("--once");
   if (once) {
     const result = await runSingleReportWorkerTick();
-    console.log("[report-worker] tick result:", result);
+    if (result.processed) {
+      console.log(`[report-worker][INFO][WORKING] single tick processed job jobId=${result.jobId}`);
+    } else {
+      console.log("[report-worker][INFO][IDLE] single tick found no claimable jobs");
+    }
     return;
   }
 
-  console.log("[report-worker] starting loop...");
+  console.log("[report-worker][INFO][BOOT] starting worker process");
   startReportWorkerLoop();
 }
 
 main().catch((error) => {
-  console.error("[report-worker] fatal error", error);
+  console.error("[report-worker][FATAL][FATAL] worker process crashed", error);
   process.exit(1);
 });

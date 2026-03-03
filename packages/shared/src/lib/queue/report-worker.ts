@@ -54,8 +54,10 @@ import {
   completeReportJob,
   failReportJob,
   heartbeatReportJob,
+  requeueJobForRetry,
   updateReportJobPhase,
   type ClaimedReportJob,
+  type ReportJobPhase,
 } from "@webhealth/shared/lib/queue/report-jobs";
 
 export type WorkerLoopControls = {
@@ -113,6 +115,121 @@ function isOpenAiOrganizationHeaderMismatch(error: unknown) {
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+type WorkerLogLevel = "INFO" | "WARN" | "ERROR" | "FATAL";
+type WorkerLogStatus = "BOOT" | "IDLE" | "WORKING" | "XLSX" | "ERROR" | "FATAL";
+
+function formatWorkerLogValue(value: unknown) {
+  if (value === null) return "null";
+  if (value === undefined) return "undefined";
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string") {
+    return /[\s=]/.test(value) ? JSON.stringify(value) : value;
+  }
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+    return String(value);
+  }
+  if (value instanceof Error) {
+    return value.stack ?? value.message;
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function formatWorkerLogContext(context?: Record<string, unknown>) {
+  if (!context) return "";
+  const keys = Object.keys(context).sort();
+  const entries: string[] = [];
+  for (const key of keys) {
+    const value = context[key];
+    if (value === undefined) continue;
+    entries.push(`${key}=${formatWorkerLogValue(value)}`);
+  }
+  return entries.join(" ");
+}
+
+function logWorker(
+  level: WorkerLogLevel,
+  status: WorkerLogStatus,
+  message: string,
+  context?: Record<string, unknown>,
+  error?: unknown
+) {
+  const contextText = formatWorkerLogContext(context);
+  const line = `[report-worker][${level}][${status}] ${message}${contextText ? ` ${contextText}` : ""}`;
+
+  if (level === "INFO") {
+    console.log(line);
+    return;
+  }
+  if (level === "WARN") {
+    console.warn(line);
+    return;
+  }
+  if (error) {
+    console.error(line, error);
+    return;
+  }
+  console.error(line);
+}
+
+function logInfo(status: WorkerLogStatus, message: string, context?: Record<string, unknown>) {
+  logWorker("INFO", status, message, context);
+}
+
+function logWarn(status: WorkerLogStatus, message: string, context?: Record<string, unknown>) {
+  logWorker("WARN", status, message, context);
+}
+
+function logError(
+  status: WorkerLogStatus,
+  message: string,
+  context?: Record<string, unknown>,
+  error?: unknown
+) {
+  logWorker("ERROR", status, message, context, error);
+}
+
+function logFatal(
+  status: WorkerLogStatus,
+  message: string,
+  context?: Record<string, unknown>,
+  error?: unknown
+) {
+  logWorker("FATAL", status, message, context, error);
+}
+
+function getIdlePulseMs() {
+  const parsed = parseInt(process.env.REPORT_WORKER_IDLE_LOG_EVERY_MS ?? "30000", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 30_000;
+}
+
+function buildJobLogContext(job: ClaimedReportJob, workerId: string) {
+  return {
+    workerId,
+    jobId: job.id,
+    reportId: job.reportId,
+    kind: job.kind,
+    attempt: job.attempts,
+    maxAttempts: job.maxAttempts,
+  };
+}
+
+async function setJobPhaseWithLog(
+  job: ClaimedReportJob,
+  workerId: string,
+  phase: ReportJobPhase,
+  meta?: Record<string, unknown>
+) {
+  logInfo("WORKING", "phase transition", {
+    ...buildJobLogContext(job, workerId),
+    phase,
+  });
+  await updateReportJobPhase(job.id, phase, meta);
 }
 
 function formatDate(input: unknown) {
@@ -675,7 +792,7 @@ async function pollUntilFinished(params: {
   throw new Error("OpenAI background response polling timed out");
 }
 
-async function processGenerateReportJob(job: ClaimedReportJob) {
+async function processGenerateReportJob(job: ClaimedReportJob, workerId: string) {
   const reportBefore = await db.query.reports.findFirst({
     where: (r, { eq }) => eq(r.id, job.reportId),
   });
@@ -690,10 +807,13 @@ async function processGenerateReportJob(job: ClaimedReportJob) {
       level: "info",
       message: "AI report already exists; skipping generation",
     });
+    logInfo("WORKING", "skipping generation because AI report already exists", {
+      ...buildJobLogContext(job, workerId),
+    });
     return;
   }
 
-  await updateReportJobPhase(job.id, "preprocess");
+  await setJobPhaseWithLog(job, workerId, "preprocess");
   await db
     .update(reports)
     .set({ status: "processing", aiStatus: "preprocessing", error: null, updatedAt: new Date() })
@@ -701,7 +821,7 @@ async function processGenerateReportJob(job: ClaimedReportJob) {
 
   const { report, property, teamAuth, reportData, deterministic, siteChanges } = await buildReportInputs(job);
 
-  await updateReportJobPhase(job.id, "site_changes");
+  await setJobPhaseWithLog(job, workerId, "site_changes");
   await appendReportJobEvent({
     jobId: job.id,
     reportId: report.id,
@@ -716,7 +836,7 @@ async function processGenerateReportJob(job: ClaimedReportJob) {
     },
   });
 
-  await updateReportJobPhase(job.id, "deterministic_scoring");
+  await setJobPhaseWithLog(job, workerId, "deterministic_scoring");
   await db
     .update(reports)
     .set({
@@ -856,7 +976,7 @@ async function processGenerateReportJob(job: ClaimedReportJob) {
     }
   };
 
-  await updateReportJobPhase(job.id, "openai_start");
+  await setJobPhaseWithLog(job, workerId, "openai_start");
   let startResult;
   let requestTraces = Array.isArray(report.openaiRequestIds)
     ? (report.openaiRequestIds as Array<Record<string, unknown>>)
@@ -940,7 +1060,7 @@ async function processGenerateReportJob(job: ClaimedReportJob) {
         },
       });
 
-      await updateReportJobPhase(job.id, "store_report");
+      await setJobPhaseWithLog(job, workerId, "store_report");
       await db
         .update(reports)
         .set({
@@ -1012,7 +1132,7 @@ async function processGenerateReportJob(job: ClaimedReportJob) {
     })
     .where(eq(reports.id, report.id));
 
-  await updateReportJobPhase(job.id, "openai_poll");
+  await setJobPhaseWithLog(job, workerId, "openai_poll");
 
   let finalStatus = startResult.status;
   let finalUsage = startResult.usage;
@@ -1070,7 +1190,7 @@ async function processGenerateReportJob(job: ClaimedReportJob) {
     throw new Error(`OpenAI response did not complete successfully (status: ${finalStatus ?? "unknown"})`);
   }
 
-  await updateReportJobPhase(job.id, "parse");
+  await setJobPhaseWithLog(job, workerId, "parse");
 
   let parsed = safeParseAiSeoReport(finalPayload);
   let schemaContractFallbackError: string | null = null;
@@ -1212,7 +1332,7 @@ async function processGenerateReportJob(job: ClaimedReportJob) {
 
   const estimatedCost = estimateOpenAICostUsd(startResult.guardrail.model, finalUsage);
 
-  await updateReportJobPhase(job.id, "store_report");
+  await setJobPhaseWithLog(job, workerId, "store_report");
   await db
     .update(reports)
     .set({
@@ -1256,8 +1376,9 @@ async function processGenerateReportJob(job: ClaimedReportJob) {
   }
 }
 
-async function processXlsxRenderJob(job: ClaimedReportJob) {
-  await updateReportJobPhase(job.id, "xlsx");
+async function processXlsxRenderJob(job: ClaimedReportJob, workerId: string) {
+  await setJobPhaseWithLog(job, workerId, "xlsx");
+  logInfo("XLSX", "starting xlsx generation", buildJobLogContext(job, workerId));
   const report = await db.query.reports.findFirst({
     where: (r, { eq }) => eq(r.id, job.reportId),
   });
@@ -1294,38 +1415,79 @@ async function processXlsxRenderJob(job: ClaimedReportJob) {
       updatedAt: new Date(),
     })
     .where(eq(reports.id, job.reportId));
+
+  logInfo("XLSX", "xlsx artifact stored", {
+    ...buildJobLogContext(job, workerId),
+    artifactKey: artifact.key,
+  });
 }
 
 async function processClaimedJob(job: ClaimedReportJob, workerId: string) {
   let heartbeatTimer: NodeJS.Timeout | null = null;
+  const startedAtMs = Date.now();
   try {
+    logInfo("WORKING", "starting claimed job", buildJobLogContext(job, workerId));
     heartbeatTimer = setInterval(() => {
       void heartbeatReportJob(job.id, workerId);
     }, 10_000);
 
     if (job.kind === "generate_report") {
-      await processGenerateReportJob(job);
+      await processGenerateReportJob(job, workerId);
     } else if (job.kind === "render_xlsx") {
-      await processXlsxRenderJob(job);
+      await processXlsxRenderJob(job, workerId);
     } else {
       throw new Error(`Unsupported job kind: ${job.kind}`);
     }
 
     await completeReportJob(job.id, "done");
+    logInfo("WORKING", "job completed", {
+      ...buildJobLogContext(job, workerId),
+      durationMs: Date.now() - startedAtMs,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown worker error";
-    if (job.kind === "render_xlsx") {
-      await db
-        .update(reports)
-        .set({ xlsxStatus: "failed", aiStatus: "partial", error: message, updatedAt: new Date() })
-        .where(eq(reports.id, job.reportId));
+    const canRetry = job.attempts < job.maxAttempts;
+    if (canRetry) {
+      const backoffSeconds = 30 * job.attempts;
+      logError(
+        "ERROR",
+        "job failed and will be retried",
+        {
+          ...buildJobLogContext(job, workerId),
+          backoffSeconds,
+          error: message,
+        },
+        error
+      );
+      await requeueJobForRetry(job.id, message, backoffSeconds);
+      logWarn("WORKING", "job requeued for retry", {
+        ...buildJobLogContext(job, workerId),
+        backoffSeconds,
+        nextAttempt: job.attempts + 1,
+      });
     } else {
-      await db
-        .update(reports)
-        .set({ status: "failed", aiStatus: "failed", error: message, updatedAt: new Date() })
-        .where(eq(reports.id, job.reportId));
+      logFatal(
+        "FATAL",
+        "job failed permanently after max attempts",
+        {
+          ...buildJobLogContext(job, workerId),
+          error: message,
+        },
+        error
+      );
+      if (job.kind === "render_xlsx") {
+        await db
+          .update(reports)
+          .set({ xlsxStatus: "failed", aiStatus: "partial", error: message, updatedAt: new Date() })
+          .where(eq(reports.id, job.reportId));
+      } else {
+        await db
+          .update(reports)
+          .set({ status: "failed", aiStatus: "failed", error: message, updatedAt: new Date() })
+          .where(eq(reports.id, job.reportId));
+      }
+      await failReportJob(job.id, message, job.phase);
     }
-    await failReportJob(job.id, message, job.phase);
   } finally {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
   }
@@ -1334,6 +1496,7 @@ async function processClaimedJob(job: ClaimedReportJob, workerId: string) {
 export async function runSingleReportWorkerTick(workerId = `worker_${nanoid(8)}`) {
   const job = await claimNextReportJob(workerId);
   if (!job) return { processed: false as const };
+  logInfo("WORKING", "claimed job", buildJobLogContext(job, workerId));
   await processClaimedJob(job, workerId);
   return { processed: true as const, jobId: job.id };
 }
@@ -1342,13 +1505,40 @@ export function startReportWorkerLoop() {
   let stopped = false;
   const workerId = `worker_${nanoid(8)}`;
   const intervalMs = parseInt(process.env.REPORT_WORKER_POLL_MS ?? "3000", 10);
+  const idlePulseMs = getIdlePulseMs();
+  let isIdle = false;
+  let idleSinceMs = 0;
+  let lastIdlePulseMs = 0;
+
+  logInfo("BOOT", "worker loop starting", { workerId, pollMs: intervalMs, idlePulseMs });
 
   const loop = async () => {
     if (stopped) return;
     try {
-      await runSingleReportWorkerTick(workerId);
+      const result = await runSingleReportWorkerTick(workerId);
+      const now = Date.now();
+      if (!result.processed) {
+        if (!isIdle) {
+          isIdle = true;
+          idleSinceMs = now;
+          lastIdlePulseMs = now;
+          logInfo("IDLE", "queue is idle", { workerId });
+        } else if (now - lastIdlePulseMs >= idlePulseMs) {
+          lastIdlePulseMs = now;
+          logInfo("IDLE", "queue still idle", { workerId, idleForMs: now - idleSinceMs });
+        }
+      } else if (isIdle) {
+        logInfo("WORKING", "leaving idle state after claiming work", {
+          workerId,
+          jobId: result.jobId,
+          idleForMs: now - idleSinceMs,
+        });
+        isIdle = false;
+        idleSinceMs = 0;
+        lastIdlePulseMs = 0;
+      }
     } catch (error) {
-      console.error("[report-worker] loop error", error);
+      logFatal("FATAL", "worker loop error", { workerId }, error);
     } finally {
       if (!stopped) setTimeout(loop, intervalMs);
     }
