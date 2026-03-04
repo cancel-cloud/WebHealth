@@ -30,6 +30,9 @@ const contentAuditRowSchema = z.object({
   keywordPotential: z.string(),
   effort: z.string(),
   priority,
+  estimatedImpact: z.number().nullable().default(null),
+  actionDetail: z.string().nullable().default(null),
+  refreshStrategy: z.string().nullable().default(null),
 });
 
 const keywordLandingpageRowSchema = z.object({
@@ -107,6 +110,8 @@ const queryOpportunitySchema = z.object({
   lostClicksEstimate: z.number(),
   opportunityScore: z.number(),
   recommendedAction: z.string(),
+  confidence: z.number().nullable().default(null),
+  actionDetail: z.string().nullable().default(null),
 });
 
 const pageWinnerLoserSchema = z.object({
@@ -118,6 +123,9 @@ const pageWinnerLoserSchema = z.object({
   impressionsCompare: z.number(),
   impressionsDelta: z.number(),
   status: z.enum(["winner", "loser", "flat"]),
+  isStatisticallySignificant: z.boolean().nullable().default(null),
+  zScore: z.number().nullable().default(null),
+  actionDetail: z.string().nullable().default(null),
 });
 
 const nearWinKeywordSchema = z.object({
@@ -128,6 +136,8 @@ const nearWinKeywordSchema = z.object({
   ctr: z.number(),
   targetLandingPage: z.string().nullable().default(null),
   action: z.string(),
+  estimatedImpact: z.number().nullable().default(null),
+  actionDetail: z.string().nullable().default(null),
 });
 
 const cannibalizationSchema = z.object({
@@ -155,6 +165,42 @@ const actionBacklogSchema = z.object({
   impactScore: z.number(),
   why: z.string(),
   done: z.boolean(),
+});
+
+const contentDecayRowSchema = z.object({
+  page: z.string(),
+  peakClicks: z.number(),
+  recentClicks: z.number(),
+  decayRatio: z.number(),
+  peakDate: z.string(),
+  estimatedLostClicks: z.number(),
+  severity: priority,
+  actionDetail: z.string().nullable().default(null),
+});
+
+const lostClickEstimateRowSchema = z.object({
+  query: z.string(),
+  impressions: z.number(),
+  actualCtr: z.number(),
+  benchmarkCtr: z.number(),
+  positionBucket: z.number(),
+  estimatedLostClicks: z.number(),
+  confidence: z.number().nullable().default(null),
+  actionDetail: z.string().nullable().default(null),
+});
+
+const alertsAndFlagsSchema = z.object({
+  contentDecayDetected: z.boolean(),
+  significantLosers: z.array(z.string()).default([]),
+  cannibalizationCount: z.number(),
+  criticalTechnicalIssues: z.number(),
+});
+
+const scoringMethodologySchema = z.object({
+  ctrBenchmarkSource: z.enum(["site-specific", "global-fallback"]),
+  significanceTestUsed: z.boolean(),
+  decayWindowDays: z.number(),
+  insightSchemaVersion: z.string(),
 });
 
 const workbookGscQueryRowSchema = z.object({
@@ -218,6 +264,10 @@ export const aiSeoReportSchema = z.object({
   cannibalizationRows: z.array(cannibalizationSchema).default([]),
   technicalIssueRows: z.array(technicalIssueSchema).default([]),
   actionBacklogRows: z.array(actionBacklogSchema).default([]),
+  contentDecayRows: z.array(contentDecayRowSchema).nullable().default(null),
+  lostClickEstimateRows: z.array(lostClickEstimateRowSchema).nullable().default(null),
+  alertsAndFlags: alertsAndFlagsSchema.nullable().default(null),
+  scoringMethodology: scoringMethodologySchema.nullable().default(null),
   workbookDataset: workbookSchema.default({
     gscQueries: [],
     gscPages: [],

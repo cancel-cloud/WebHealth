@@ -8,9 +8,11 @@
     "start": "pnpm --filter @webhealth/web start",
     "worker": "pnpm --filter @webhealth/worker start",
     "worker:once": "pnpm --filter @webhealth/worker start:once",
-    "db:push": "pnpm --filter @webhealth/web db:push",
-    "db:migrate": "pnpm --filter @webhealth/web db:migrate",
-    "db:seed:plan-settings": "pnpm --filter @webhealth/web db:seed:plan-settings",
+    "db:push": "pnpm --filter @webhealth/shared db:push",
+    "db:seed:plan-settings": "pnpm --filter @webhealth/shared db:seed:plan-settings",
     "openai:reconcile-costs": "pnpm --filter @webhealth/worker openai:reconcile-costs"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.9"
   }
 }

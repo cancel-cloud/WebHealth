@@ -25,6 +25,9 @@ export type ContentAuditRow = {
   keywordPotential: string;
   effort: string;
   priority: ReportSectionPriority;
+  estimatedImpact?: number | null;
+  actionDetail?: string | null;
+  refreshStrategy?: string | null;
 };
 
 export type KeywordLandingpageRow = {
@@ -108,6 +111,8 @@ export type QueryOpportunityRow = {
   lostClicksEstimate: number;
   opportunityScore: number;
   recommendedAction: string;
+  confidence?: number | null;
+  actionDetail?: string | null;
 };
 
 export type PageWinnerLoserRow = {
@@ -119,6 +124,9 @@ export type PageWinnerLoserRow = {
   impressionsCompare: number;
   impressionsDelta: number;
   status: "winner" | "loser" | "flat";
+  isStatisticallySignificant?: boolean | null;
+  zScore?: number | null;
+  actionDetail?: string | null;
 };
 
 export type NearWinKeywordRow = {
@@ -129,6 +137,8 @@ export type NearWinKeywordRow = {
   ctr: number;
   targetLandingPage?: string;
   action: string;
+  estimatedImpact?: number | null;
+  actionDetail?: string | null;
 };
 
 export type CannibalizationRow = {
@@ -156,6 +166,50 @@ export type ActionBacklogRow = {
   impactScore: number;
   why: string;
   done: boolean;
+};
+
+export type ContentDecayRow = {
+  page: string;
+  peakClicks: number;
+  recentClicks: number;
+  decayRatio: number;
+  peakDate: string;
+  estimatedLostClicks: number;
+  severity: ReportSectionPriority;
+  actionDetail: string | null;
+};
+
+export type LostClickEstimateRow = {
+  query: string;
+  impressions: number;
+  actualCtr: number;
+  benchmarkCtr: number;
+  positionBucket: number;
+  estimatedLostClicks: number;
+  confidence: number | null;
+  actionDetail: string | null;
+};
+
+export type CtrBenchmarkSummary = {
+  siteAvgCtrByPosition: Record<string, number>;
+  positionBuckets: number[];
+  dataPoints: number;
+  computedAt: string;
+  ctrBenchmarkSource: "site-specific" | "global-fallback";
+};
+
+export type AlertsAndFlags = {
+  contentDecayDetected: boolean;
+  significantLosers: string[];
+  cannibalizationCount: number;
+  criticalTechnicalIssues: number;
+};
+
+export type ScoringMethodology = {
+  ctrBenchmarkSource: "site-specific" | "global-fallback";
+  significanceTestUsed: boolean;
+  decayWindowDays: number;
+  insightSchemaVersion: string;
 };
 
 export type WorkbookDatasetV2 = {
@@ -206,6 +260,10 @@ export type AiSeoReport = {
   technicalIssueRows?: TechnicalIssueRow[];
   actionBacklogRows?: ActionBacklogRow[];
   workbookDataset?: WorkbookDatasetV2;
+  contentDecayRows?: ContentDecayRow[] | null;
+  lostClickEstimateRows?: LostClickEstimateRow[] | null;
+  alertsAndFlags?: AlertsAndFlags | null;
+  scoringMethodology?: ScoringMethodology | null;
 };
 
 export type AiOutputStrategyName = "json_schema" | "tool_strict";
