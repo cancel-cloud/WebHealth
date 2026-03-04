@@ -13,6 +13,10 @@ const MAX_OUTPUT_TOKENS = parseInt(process.env.OPENAI_MAX_TOKENS ?? '1200', 10);
 // Rough token budget for input data — 1 token ≈ 4 chars.
 const MAX_INPUT_CHARS = parseInt(process.env.OPENAI_MAX_INPUT_TOKENS ?? '8000', 10) * 4;
 
+/**
+ * @deprecated Use ActionBacklogRow from @webhealth/shared/lib/reports/types instead.
+ * The legacy quickWins field on reports is superseded by aiReport.actionBacklogRows.
+ */
 export type QuickWin = {
   rank: number;
   category: 'seo' | 'content' | 'technical' | 'performance';

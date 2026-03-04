@@ -335,6 +335,8 @@ function trimPromptPayloadToBudget(input: {
       { path: ["deterministic", "cannibalizationRows"], limit: 20 },
       { path: ["deterministic", "technicalIssueRows"], limit: 25 },
       { path: ["deterministic", "actionBacklogRows"], limit: 15 },
+      { path: ["deterministic", "contentDecayRows"], limit: 15 },
+      { path: ["deterministic", "lostClickEstimateRows"], limit: 20 },
       { path: ["deterministic", "workbookDataset", "gscQueries"], limit: 250 },
       { path: ["deterministic", "workbookDataset", "gscPages"], limit: 250 },
       { path: ["deterministic", "workbookDataset", "gaChannels"], limit: 250 },
@@ -355,6 +357,8 @@ function trimPromptPayloadToBudget(input: {
       { path: ["deterministic", "cannibalizationRows"], limit: 12 },
       { path: ["deterministic", "technicalIssueRows"], limit: 15 },
       { path: ["deterministic", "actionBacklogRows"], limit: 10 },
+      { path: ["deterministic", "contentDecayRows"], limit: 10 },
+      { path: ["deterministic", "lostClickEstimateRows"], limit: 12 },
       { path: ["deterministic", "workbookDataset", "gscQueries"], limit: 120 },
       { path: ["deterministic", "workbookDataset", "gscPages"], limit: 120 },
       { path: ["deterministic", "workbookDataset", "gaChannels"], limit: 120 },
@@ -375,6 +379,8 @@ function trimPromptPayloadToBudget(input: {
       { path: ["deterministic", "cannibalizationRows"], limit: 8 },
       { path: ["deterministic", "technicalIssueRows"], limit: 10 },
       { path: ["deterministic", "actionBacklogRows"], limit: 8 },
+      { path: ["deterministic", "contentDecayRows"], limit: 8 },
+      { path: ["deterministic", "lostClickEstimateRows"], limit: 8 },
       { path: ["deterministic", "workbookDataset", "gscQueries"], limit: 60 },
       { path: ["deterministic", "workbookDataset", "gscPages"], limit: 60 },
       { path: ["deterministic", "workbookDataset", "gaChannels"], limit: 60 },
@@ -739,6 +745,7 @@ async function buildReportInputs(job: ClaimedReportJob) {
     currentSeries,
     compareSeries,
     queryPagePairsCurrent,
+    compareRangeEnd: formatDate(report.compareRangeEnd),
   });
 
   const reportData: ReportDataPayload = {
@@ -910,6 +917,11 @@ async function processGenerateReportJob(job: ClaimedReportJob, workerId: string)
     payload: payloadForPrompt,
     promptVersionId: promptVersion?.id ?? null,
     model: settings.model,
+    precomputedContext: {
+      ctrBenchmarkSource: deterministic.ctrBenchmarkSummary.ctrBenchmarkSource,
+      contentDecayCount: deterministic.contentDecayRows.length,
+      significantLosersCount: deterministic.alertsAndFlags.significantLosers.length,
+    },
   });
 
   const sanitizedSnapshot = buildSanitizedReportInputSnapshot(payloadForPrompt);

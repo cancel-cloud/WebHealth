@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "db:push": "cd ../.. && drizzle-kit push",
+    "db:seed:plan-settings": "cd ../.. && tsx packages/shared/src/db/seed-plan-settings.ts"
+  },
   "exports": {
     "./db": "./src/db/index.ts",
     "./db/*": "./src/db/*.ts",
