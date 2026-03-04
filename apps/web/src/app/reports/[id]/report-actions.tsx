@@ -18,13 +18,22 @@ export function ReportActions({
   async function post(path: string, mode: "retry" | "xlsx") {
     setBusy(mode);
     try {
-      const res = await fetch(path, { method: "POST" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Request failed");
-      toast.success(mode === "retry" ? "Report re-queued" : "XLSX render re-queued");
+      await toast.promise(
+        (async () => {
+          const res = await fetch(path, { method: "POST" });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error ?? "Request failed");
+        })(),
+        {
+          loading: mode === "retry" ? "Re-queuing report…" : "Re-queuing XLSX…",
+          success: mode === "retry" ? "Report re-queued" : "XLSX render re-queued",
+          error: (error) =>
+            error instanceof Error ? error.message : "Request failed",
+        }
+      );
       router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Request failed");
+    } catch {
+      // Toast is handled by toast.promise
     } finally {
       setBusy(null);
     }
