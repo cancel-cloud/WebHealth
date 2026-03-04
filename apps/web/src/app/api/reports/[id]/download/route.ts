@@ -4,6 +4,7 @@ import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { and, eq, inArray } from "drizzle-orm";
 import { reports } from "@webhealth/shared/db/schema";
+import { resolveReportArtifactBinary } from "@/lib/reports/resolve-report-artifact";
 
 export async function GET(
   req: Request,
@@ -28,32 +29,17 @@ export async function GET(
       return NextResponse.json({ error: "No XLSX artifact available" }, { status: 404 });
     }
 
-    const workerBaseUrl = process.env.WORKER_ARTIFACT_URL;
-    const workerSecret = process.env.WORKER_API_SECRET;
-
-    if (!workerBaseUrl || !workerSecret) {
-      return NextResponse.json(
-        { error: "Artifact download service not configured" },
-        { status: 503 }
-      );
-    }
-
-    const artifactUrl = new URL("/artifacts", workerBaseUrl);
-    artifactUrl.searchParams.set("key", report.xlsxArtifactKey);
-
-    const workerResponse = await fetch(artifactUrl.toString(), {
-      headers: { Authorization: `Bearer ${workerSecret}` },
+    const artifactResult = await resolveReportArtifactBinary({
+      artifactKey: report.xlsxArtifactKey,
+      workerBaseUrl: process.env.WORKER_ARTIFACT_URL,
+      workerSecret: process.env.WORKER_API_SECRET,
     });
 
-    if (!workerResponse.ok) {
-      const status = workerResponse.status === 404 ? 404 : 502;
-      return NextResponse.json(
-        { error: status === 404 ? "Artifact not found" : "Failed to fetch artifact from worker" },
-        { status }
-      );
+    if (!artifactResult.ok) {
+      return NextResponse.json({ error: artifactResult.error }, { status: artifactResult.status });
     }
 
-    const data = await workerResponse.arrayBuffer();
+    const data = artifactResult.data;
     return new NextResponse(data, {
       headers: {
         "Content-Type":
