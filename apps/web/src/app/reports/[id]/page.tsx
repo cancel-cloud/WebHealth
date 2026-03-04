@@ -116,7 +116,11 @@ export default async function ReportDetailPage({
 
   return (
     <div className="flex-1 bg-background min-h-screen">
-      <ReportLiveStatus reportId={reportId} initialStatus={report.status} />
+      <ReportLiveStatus
+        reportId={reportId}
+        initialStatus={report.status}
+        initialXlsxStatus={report.xlsxStatus}
+      />
       <div className="absolute top-0 inset-x-0 h-[300px] bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
 
       <div className="container mx-auto py-10 px-4 relative z-10">
