@@ -147,6 +147,7 @@ export type CannibalizationRow = {
   totalClicks: number;
   totalImpressions: number;
   recommendation: string;
+  actionDetail?: string | null;
 };
 
 export type TechnicalIssueRow = {

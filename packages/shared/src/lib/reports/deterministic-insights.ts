@@ -330,6 +330,7 @@ function buildCannibalization(rows: QueryPagePair[] | undefined) {
       totalImpressions,
       recommendation:
         "Consolidate intent: choose primary landing page, strengthen internal linking, and de-optimize secondary pages for this exact term.",
+      actionDetail: null,
     });
   }
 

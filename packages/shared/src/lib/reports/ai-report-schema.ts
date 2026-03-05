@@ -146,6 +146,7 @@ const cannibalizationSchema = z.object({
   totalClicks: z.number(),
   totalImpressions: z.number(),
   recommendation: z.string(),
+  actionDetail: z.string().nullable().default(null),
 });
 
 const technicalIssueSchema = z.object({
