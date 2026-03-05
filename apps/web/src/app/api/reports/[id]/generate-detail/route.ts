@@ -16,6 +16,10 @@ const openai = new OpenAI({
 
 const MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
+function supportsTemperature(model: string) {
+  return !model.toLowerCase().startsWith("gpt-5");
+}
+
 type RowType =
   | "actionBacklog"
   | "ctrGap"
@@ -153,6 +157,7 @@ Rules:
     const response = await openai.chat.completions.create({
       model: MODEL,
       messages: [{ role: "user", content: systemPrompt }],
+      temperature: supportsTemperature(MODEL) ? 0.2 : undefined,
       response_format: {
         type: "json_schema",
         json_schema: {
