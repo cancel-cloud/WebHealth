@@ -31,11 +31,17 @@ export async function POST(_req: Request) {
       teamId: userTeams[0].teamId,
       accessToken: googleAccount.accessToken,
       refreshToken: googleAccount.refreshToken ?? undefined,
+      accessTokenExpiresAt: googleAccount.accessTokenExpiresAt ?? null,
     });
 
     return NextResponse.json({ success: true, ...result });
   } catch (error: unknown) {
     console.error('Error syncing properties:', error);
+    const code = (error as any)?.code;
+    if (code === "GOOGLE_AUTH_RELOGIN_REQUIRED") {
+      const message = error instanceof Error ? error.message : "Google authorization expired.";
+      return NextResponse.json({ error: message, code }, { status: 401 });
+    }
     const message = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json({ error: message }, { status: 500 });
   }
