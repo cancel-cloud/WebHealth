@@ -22,6 +22,49 @@ type GetDetailsButtonProps = {
 
 const detailCache = new Map<string, string>();
 const inFlightByKey = new Map<string, Promise<string>>();
+const PENDING_STORAGE_KEY = "webhealth:detail-pending:v1";
+const POLL_INTERVAL_MS = 2500;
+const PENDING_MAX_AGE_MS = 1000 * 60 * 5;
+
+function readPendingMap(): Record<string, number> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(PENDING_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, number>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writePendingMap(map: Record<string, number>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(PENDING_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // Ignore storage write failures (private mode, quota, etc.)
+  }
+}
+
+function setPendingPersisted(detailKey: string, startedAt = Date.now()) {
+  const map = readPendingMap();
+  map[detailKey] = startedAt;
+  writePendingMap(map);
+}
+
+function clearPendingPersisted(detailKey: string) {
+  const map = readPendingMap();
+  if (!(detailKey in map)) return;
+  delete map[detailKey];
+  writePendingMap(map);
+}
+
+function getPendingStartedAt(detailKey: string): number | null {
+  const map = readPendingMap();
+  const value = map[detailKey];
+  return typeof value === "number" ? value : null;
+}
 
 export function GetDetailsButton({
   reportId,
@@ -35,13 +78,109 @@ export function GetDetailsButton({
   const [detail, setDetail] = useState<string | null>(() => {
     return detailCache.get(detailKey) ?? initialDetail ?? null;
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => inFlightByKey.has(detailKey));
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     if (initialDetail) detailCache.set(detailKey, initialDetail);
-    setDetail(detailCache.get(detailKey) ?? initialDetail ?? null);
-  }, [detailKey, initialDetail]);
+    const knownDetail = detailCache.get(detailKey) ?? initialDetail ?? null;
+    setDetail(knownDetail);
+
+    if (knownDetail) {
+      clearPendingPersisted(detailKey);
+      setLoading(false);
+      return;
+    }
+
+    const pending = inFlightByKey.get(detailKey);
+    const persistedStartedAt = getPendingStartedAt(detailKey);
+    const shouldPollPersisted =
+      persistedStartedAt != null &&
+      Date.now() - persistedStartedAt <= PENDING_MAX_AGE_MS;
+
+    let cancelled = false;
+    let intervalId: number | null = null;
+
+    const attachToPending = (request: Promise<string>) => {
+      setLoading(true);
+      void request
+        .then((nextDetail) => {
+          if (cancelled) return;
+          if (nextDetail) detailCache.set(detailKey, nextDetail);
+          setDetail(nextDetail || null);
+          clearPendingPersisted(detailKey);
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          console.error(error);
+          clearPendingPersisted(detailKey);
+        })
+        .finally(() => {
+          if (cancelled) return;
+          if (inFlightByKey.get(detailKey) === request) {
+            inFlightByKey.delete(detailKey);
+          }
+          setLoading(false);
+        });
+    };
+
+    if (pending) {
+      attachToPending(pending);
+    } else if (shouldPollPersisted) {
+      const pollOnce = async (): Promise<boolean> => {
+        try {
+          const res = await fetch(
+            `/api/reports/${reportId}/generate-detail?rowType=${encodeURIComponent(rowType)}&rowId=${encodeURIComponent(rowId)}`,
+            { cache: "no-store" }
+          );
+          const data = await res.json() as {
+            ready?: boolean;
+            actionDetail?: string | null;
+            error?: string;
+          };
+          if (!res.ok) throw new Error(data.error ?? "Polling failed");
+          if (!data.ready || !data.actionDetail) return false;
+
+          if (cancelled) return true;
+          detailCache.set(detailKey, data.actionDetail);
+          setDetail(data.actionDetail);
+          clearPendingPersisted(detailKey);
+          setLoading(false);
+          return true;
+        } catch (error) {
+          if (!cancelled) console.error(error);
+          return false;
+        }
+      };
+
+      setLoading(true);
+      void pollOnce();
+      intervalId = window.setInterval(() => {
+        const startedAt = getPendingStartedAt(detailKey);
+        if (!startedAt || Date.now() - startedAt > PENDING_MAX_AGE_MS) {
+          clearPendingPersisted(detailKey);
+          if (!cancelled) setLoading(false);
+          if (intervalId != null) window.clearInterval(intervalId);
+          intervalId = null;
+          return;
+        }
+        void pollOnce().then((ready) => {
+          if (ready && intervalId != null) {
+            window.clearInterval(intervalId);
+            intervalId = null;
+          }
+        });
+      }, POLL_INTERVAL_MS);
+    } else {
+      if (persistedStartedAt != null) clearPendingPersisted(detailKey);
+      setLoading(false);
+    }
+
+    return () => {
+      cancelled = true;
+      if (intervalId != null) window.clearInterval(intervalId);
+    };
+  }, [detailKey, initialDetail, reportId, rowId, rowType]);
 
   async function generateDetail() {
     const res = await fetch(`/api/reports/${reportId}/generate-detail`, {
@@ -61,6 +200,7 @@ export function GetDetailsButton({
     }
 
     setLoading(true);
+    setPendingPersisted(detailKey);
     const toastId = toast.loading(`Generating details for "${rowTitle}"…`);
     try {
       let request = inFlightByKey.get(detailKey);
@@ -72,11 +212,13 @@ export function GetDetailsButton({
       const nextDetail = await request;
       if (nextDetail) detailCache.set(detailKey, nextDetail);
       setDetail(nextDetail || null);
+      clearPendingPersisted(detailKey);
       toast.success("Details ready", {
         id: toastId,
         action: { label: "Open", onClick: () => setModalOpen(true) },
       });
     } catch (err) {
+      clearPendingPersisted(detailKey);
       toast.error("Failed to generate details", { id: toastId });
       console.error(err);
     } finally {

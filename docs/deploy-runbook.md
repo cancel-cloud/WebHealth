@@ -20,11 +20,13 @@ pnpm --filter @webhealth/worker exec tsc --noEmit
 pnpm worker:once
 ```
 
-Apply migrations:
+Optional: apply migrations manually before deploy:
 
 ```bash
 pnpm db:migrate
 ```
+
+`apps/worker` now runs startup migrations automatically before entering its loop.
 
 ## 1) Neon configuration
 
@@ -46,7 +48,7 @@ Vercel project settings:
 
 1. Root Directory: `apps/web`
 2. Node.js version: `20.x` (or newer compatible version)
-3. Install Command: `pnpm install`
+3. Install Command: `pnpm install --frozen-lockfile`
 4. Build Command: `pnpm build`
 5. Start Command: `pnpm start` (used for non-serverless environments / previews as needed)
 
@@ -71,6 +73,27 @@ Local sync from Vercel:
 vercel env pull apps/web/.env.local
 ```
 
+Vercel troubleshooting:
+
+- Symptom: `No Next.js version detected`.
+  - Cause: Vercel is not building from `apps/web`.
+  - Fix: set Project Root Directory to `apps/web` and redeploy.
+- Symptom: Deploy logs show an older commit hash than expected.
+  - Cause: deployment not triggered from latest branch head.
+  - Fix: verify Production Branch is `main`, then redeploy latest commit.
+- Symptom: `ERR_PNPM_OUTDATED_LOCKFILE` during install.
+  - Cause: `pnpm-lock.yaml` does not match committed `package.json`.
+  - Fix: update lockfile in git (`pnpm install` locally, commit lockfile), keep Vercel install command on `pnpm install --frozen-lockfile`.
+- Symptom: download API returns `{"error":"Failed to reach artifact download worker"}`.
+  - Cause: Vercel could not connect to `WORKER_ARTIFACT_URL`.
+  - Fix: verify the URL is publicly reachable from the internet, prefer HTTPS ingress/domain, and verify `/health`.
+- Symptom: download API returns `{"error":"Failed to fetch artifact from worker"}`.
+  - Cause: worker returned non-200 for `/artifacts` (for example 400/401/500).
+  - Fix: verify `WORKER_API_SECRET` matches web + worker and inspect worker artifact-server logs.
+- Symptom: worker logs show `ENOENT ... stat 'artifacts/reports/...xlsx'` for `/artifacts`.
+  - Cause: worker is looking in a relative path while artifacts are mounted elsewhere.
+  - Fix: set `REPORT_ARTIFACTS_DIR` to the mounted absolute path (for example `/app/artifacts`), redeploy worker, and regenerate missing XLSX artifacts.
+
 ## 3) Deploy worker to VPS
 
 Server bootstrap:
@@ -86,12 +109,20 @@ pnpm install --frozen-lockfile
 Create env file (example path `/etc/webhealth/worker.env`) with at least:
 
 - `DATABASE_URL`
+- `DIRECT_DATABASE_URL` (recommended for explicit direct-host migrations)
 - `BETTER_AUTH_URL`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL`
+- `REPORT_ARTIFACTS_DIR` (absolute container path for artifacts, for example `/app/artifacts`)
 - optional worker tuning vars from `apps/worker/.env.example`
+
+Artifact storage path requirements:
+
+- Do not use a relative path like `./artifacts` in production containers.
+- Use an absolute path that matches your mounted volume destination.
+- Coolify example: if the persistent volume destination is `/app/artifacts`, set `REPORT_ARTIFACTS_DIR=/app/artifacts`.
 
 systemd unit example (`/etc/systemd/system/webhealth-worker.service`):
 
