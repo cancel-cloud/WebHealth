@@ -129,6 +129,7 @@ export const reports = pgTable("reports", {
   aiUsage: jsonb("ai_usage"),
   aiEstimatedCostUsd: numeric("ai_estimated_cost_usd", { precision: 12, scale: 6 }),
   detailsCostUsd: numeric("details_cost_usd", { precision: 12, scale: 6 }),
+  detailsRequestCount: integer("details_request_count").default(0).notNull(),
   openaiRequestIds: jsonb("openai_request_ids"),
   siteChanges: jsonb("site_changes"),
   xlsxStatus: text("xlsx_status").default("pending"),
@@ -394,6 +395,29 @@ export const reportJobEvents = pgTable("report_job_events", {
   index("report_job_events_job_created_idx").on(t.jobId, t.createdAt),
   index("report_job_events_report_created_idx").on(t.reportId, t.createdAt),
   index("report_job_events_team_created_idx").on(t.teamId, t.createdAt),
+]);
+
+export const reportDetailAiExpansions = pgTable("report_detail_ai_expansions", {
+  id: text("id").primaryKey(),
+  reportId: text("report_id").notNull().references(() => reports.id, { onDelete: "cascade" }),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  requestedByUserId: text("requested_by_user_id").references(() => user.id, { onDelete: "set null" }),
+  requestNumber: integer("request_number").notNull(),
+  kind: text("kind").notNull(),
+  rowId: text("row_id").notNull(),
+  model: text("model"),
+  usage: jsonb("usage"),
+  estimatedCostUsd: numeric("estimated_cost_usd", { precision: 12, scale: 6 }),
+  xRequestId: text("x_request_id"),
+  xClientRequestId: text("x_client_request_id"),
+  status: text("status").notNull(), // success | failed
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.reportId, t.requestNumber),
+  index("report_detail_ai_expansions_report_created_idx").on(t.reportId, t.createdAt),
+  index("report_detail_ai_expansions_team_created_idx").on(t.teamId, t.createdAt),
+  index("report_detail_ai_expansions_user_created_idx").on(t.requestedByUserId, t.createdAt),
 ]);
 
 export const crawlPageSnapshots = pgTable("crawl_page_snapshots", {

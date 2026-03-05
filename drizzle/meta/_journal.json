@@ -64,6 +64,13 @@
       "when": 1772198400000,
       "tag": "0008_ai_report_settings_strict_toggle",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1772712000000,
+      "tag": "0009_report_detail_ai_expansions",
+      "breakpoints": true
     }
   ]
 }

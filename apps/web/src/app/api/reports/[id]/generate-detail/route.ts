@@ -1,18 +1,21 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import OpenAI from "openai";
+import { nanoid } from "nanoid";
 import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
-import { reports } from "@webhealth/shared/db/schema";
+import { reportDetailAiExpansions, reports } from "@webhealth/shared/db/schema";
 import type { AiSeoReport } from "@webhealth/shared/lib/reports/types";
 import { estimateOpenAICostUsd } from "@webhealth/shared/lib/openai/cost-estimator";
-import type { AiUsageSnapshot } from "@webhealth/shared/lib/reports/types";
+import { extractOpenAIRequestId } from "@webhealth/shared/lib/openai/request-tracing";
 import {
-  computeNextDetailsCostUsd,
   findRow,
   isRowType,
+  makeDetailClientRequestId,
+  normalizeDetailUsage,
   patchRowActionDetail,
+  shouldGenerateDetail,
 } from "./route.logic";
 
 const openai = new OpenAI({
@@ -29,6 +32,50 @@ function supportsTemperature(model: string) {
   return !model.toLowerCase().startsWith("gpt-5");
 }
 
+class DetailSaveConflictError extends Error {}
+
+function extractChatCompletionRequestId(response: unknown): string | null {
+  const raw = response as {
+    _request_id?: string;
+    response?: { headers?: Headers | Record<string, string | string[] | undefined> };
+  };
+  if (raw._request_id) return raw._request_id;
+  if (!raw.response?.headers) return null;
+  return extractOpenAIRequestId(raw.response.headers);
+}
+
+async function appendDetailExpansionAttempt(input: {
+  reportId: string;
+  teamId: string;
+  requestedByUserId: string;
+  requestNumber: number;
+  kind: string;
+  rowId: string;
+  model: string;
+  usage: unknown;
+  estimatedCostUsd: number | null;
+  xRequestId: string | null;
+  xClientRequestId: string;
+  status: "success" | "failed";
+  error: string | null;
+}) {
+  await db.insert(reportDetailAiExpansions).values({
+    id: `rdae_${nanoid(12)}`,
+    reportId: input.reportId,
+    teamId: input.teamId,
+    requestedByUserId: input.requestedByUserId,
+    requestNumber: input.requestNumber,
+    kind: input.kind,
+    rowId: input.rowId,
+    model: input.model,
+    usage: input.usage as Record<string, unknown> | null,
+    estimatedCostUsd: input.estimatedCostUsd != null ? String(input.estimatedCostUsd) : null,
+    xRequestId: input.xRequestId,
+    xClientRequestId: input.xClientRequestId,
+    status: input.status,
+    error: input.error,
+  });
+}
 
 const detailSchema = {
   type: "object",
@@ -84,7 +131,7 @@ export async function POST(
     if (!rowData) return NextResponse.json({ error: "Row not found" }, { status: 404 });
 
     // Cache check
-    if (rowData.actionDetail && typeof rowData.actionDetail === "string") {
+    if (!shouldGenerateDetail(rowData)) {
       return NextResponse.json({ actionDetail: rowData.actionDetail });
     }
 
@@ -107,86 +154,161 @@ Rules:
 - fixSteps: 3–5 numbered steps, imperative voice, ≤30 words each
 - whyItMatters: 1–2 sentences referencing the actual metric values in the issue data`;
 
-    const response = await openai.chat.completions.create({
-      model: MODEL,
-      messages: [{ role: "user", content: systemPrompt }],
-      temperature: supportsTemperature(MODEL) ? 0.2 : undefined,
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "action_detail",
-          schema: detailSchema,
-          strict: true,
-        },
-      },
+    const [counter] = await db
+      .update(reports)
+      .set({
+        detailsRequestCount: sql`coalesce(${reports.detailsRequestCount}, 0) + 1`,
+      })
+      .where(eq(reports.id, reportId))
+      .returning({ requestNumber: reports.detailsRequestCount });
+    if (!counter) return NextResponse.json({ error: "Report not found" }, { status: 404 });
+
+    const requestNumber = counter.requestNumber;
+    const xClientRequestId = makeDetailClientRequestId({
+      reportId,
+      requestNumber,
+      kind: rowType,
     });
 
-    const content = response.choices[0]?.message?.content;
-    if (!content) return NextResponse.json({ error: "No response from AI" }, { status: 500 });
-
-    const rawUsage = response.usage;
-    const usageSnapshot: AiUsageSnapshot = {
-      inputTokens: rawUsage?.prompt_tokens,
-      outputTokens: rawUsage?.completion_tokens,
-      totalTokens: rawUsage?.total_tokens,
-      cachedInputTokens: rawUsage?.prompt_tokens_details?.cached_tokens,
-    };
-    const callCost = estimateOpenAICostUsd(MODEL, usageSnapshot);
-    const detail = JSON.parse(content) as {
-      affectedUrls: string[];
-      fixSteps: string[];
-      whyItMatters: string;
-    };
-    const serializedDetail = JSON.stringify(detail);
-
-    let saved = false;
-    for (let attempt = 0; attempt < MAX_WRITE_RETRIES; attempt += 1) {
-      const latestReport = attempt === 0
-        ? report
-        : await db.query.reports.findFirst({
-            where: and(eq(reports.id, reportId), inArray(reports.teamId, teamIds)),
-          });
-      if (!latestReport) {
-        return NextResponse.json({ error: "Report not found" }, { status: 404 });
-      }
-
-      const latestAiReport = latestReport.aiReportJson as AiSeoReport | null;
-      if (!latestAiReport) {
-        return NextResponse.json({ error: "No AI report data" }, { status: 404 });
-      }
-
-      const latestRowData = findRow(latestAiReport, rowType, rowId);
-      if (!latestRowData) {
-        return NextResponse.json({ error: "Row not found" }, { status: 404 });
-      }
-
-      const patched = patchRowActionDetail(latestAiReport, rowType, rowId, serializedDetail);
-      const newDetailsCostUsd = computeNextDetailsCostUsd(latestReport.detailsCostUsd, callCost);
-
-      const updated = await db
-        .update(reports)
-        .set({
-          aiReportJson: patched,
-          updatedAt: new Date(),
-          ...(newDetailsCostUsd != null && { detailsCostUsd: newDetailsCostUsd }),
-        })
-        .where(and(eq(reports.id, reportId), eq(reports.updatedAt, latestReport.updatedAt)))
-        .returning({ id: reports.id });
-
-      if (updated.length > 0) {
-        saved = true;
-        break;
-      }
-    }
-
-    if (!saved) {
-      return NextResponse.json(
-        { error: "Could not save detail due to concurrent updates. Please retry." },
-        { status: 409 }
+    let usageSnapshot: ReturnType<typeof normalizeDetailUsage> = null;
+    let callCost: number | null = null;
+    let xRequestId: string | null = null;
+    try {
+      const response = await openai.chat.completions.create(
+        {
+          model: MODEL,
+          messages: [{ role: "user", content: systemPrompt }],
+          temperature: supportsTemperature(MODEL) ? 0.2 : undefined,
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "action_detail",
+              schema: detailSchema,
+              strict: true,
+            },
+          },
+        },
+        {
+          headers: { "X-Client-Request-Id": xClientRequestId },
+        }
       );
-    }
 
-    return NextResponse.json({ actionDetail: serializedDetail });
+      xRequestId = extractChatCompletionRequestId(response);
+      usageSnapshot = normalizeDetailUsage(response.usage ?? null);
+      callCost = estimateOpenAICostUsd(MODEL, usageSnapshot);
+
+      if (callCost != null) {
+        await db
+          .update(reports)
+          .set({
+            detailsCostUsd: sql`(coalesce(${reports.detailsCostUsd}, 0::numeric) + ${callCost})::numeric(12, 6)`,
+          })
+          .where(eq(reports.id, reportId));
+      }
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) throw new Error("No response from AI");
+
+      const detail = JSON.parse(content) as {
+        affectedUrls: string[];
+        fixSteps: string[];
+        whyItMatters: string;
+      };
+      const serializedDetail = JSON.stringify(detail);
+
+      let saved = false;
+      for (let attempt = 0; attempt < MAX_WRITE_RETRIES; attempt += 1) {
+        const latestReport =
+          attempt === 0
+            ? report
+            : await db.query.reports.findFirst({
+                where: and(eq(reports.id, reportId), inArray(reports.teamId, teamIds)),
+              });
+        if (!latestReport) {
+          throw new Error("Report not found");
+        }
+
+        const latestAiReport = latestReport.aiReportJson as AiSeoReport | null;
+        if (!latestAiReport) {
+          throw new Error("No AI report data");
+        }
+
+        const latestRowData = findRow(latestAiReport, rowType, rowId);
+        if (!latestRowData) {
+          throw new Error("Row not found");
+        }
+
+        const patched = patchRowActionDetail(latestAiReport, rowType, rowId, serializedDetail);
+        const updated = await db
+          .update(reports)
+          .set({
+            aiReportJson: patched,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(reports.id, reportId), eq(reports.updatedAt, latestReport.updatedAt)))
+          .returning({ id: reports.id });
+
+        if (updated.length > 0) {
+          saved = true;
+          break;
+        }
+      }
+
+      if (!saved) {
+        throw new DetailSaveConflictError(
+          "Could not save detail due to concurrent updates. Please retry."
+        );
+      }
+
+      await appendDetailExpansionAttempt({
+        reportId,
+        teamId: report.teamId,
+        requestedByUserId: session.user.id,
+        requestNumber,
+        kind: rowType,
+        rowId,
+        model: MODEL,
+        usage: usageSnapshot?.raw ?? usageSnapshot,
+        estimatedCostUsd: callCost,
+        xRequestId,
+        xClientRequestId,
+        status: "success",
+        error: null,
+      });
+
+      return NextResponse.json({
+        actionDetail: serializedDetail,
+        requestNumber,
+        kind: rowType,
+        estimatedCostUsd: callCost != null ? callCost.toFixed(6) : null,
+        xRequestId,
+        xClientRequestId,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Internal server error";
+      try {
+        await appendDetailExpansionAttempt({
+          reportId,
+          teamId: report.teamId,
+          requestedByUserId: session.user.id,
+          requestNumber,
+          kind: rowType,
+          rowId,
+          model: MODEL,
+          usage: usageSnapshot?.raw ?? usageSnapshot,
+          estimatedCostUsd: callCost,
+          xRequestId,
+          xClientRequestId,
+          status: "failed",
+          error: message,
+        });
+      } catch (insertError) {
+        console.error("[generate-detail] failed to persist detail expansion audit row", insertError);
+      }
+
+      const status = error instanceof DetailSaveConflictError ? 409 : 500;
+      return NextResponse.json({ error: message }, { status });
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Internal server error";
     console.error("[generate-detail] 500:", message, error);
