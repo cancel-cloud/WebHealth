@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,20 +11,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
+import { cn } from "@webhealth/shared/lib/utils";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 const TOAST_ID = "report-create";
+const PROPERTY_LIST_VISIBLE_ITEMS = 5;
+const PROPERTY_ITEM_HEIGHT_REM = 2.5;
 
 type Property = {
   id: string;
@@ -85,6 +81,118 @@ function propertyLabel(property: Property): string {
   }
 }
 
+type PresetKey = "week" | "month" | "quarter" | "year";
+
+interface PresetDates {
+  dateRangeStart: string;
+  dateRangeEnd: string;
+  compareRangeStart: string;
+  compareRangeEnd: string;
+}
+
+const PRESETS: { value: PresetKey; label: string }[] = [
+  { value: "week", label: "Last Week" },
+  { value: "month", label: "Last Month" },
+  { value: "quarter", label: "Last Quarter" },
+  { value: "year", label: "Last Year" },
+];
+
+function toDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${mo}-${day}`;
+}
+
+function computePresetDates(preset: PresetKey, opts?: { weekStartYesterday?: boolean }): PresetDates {
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = today.getMonth(); // 0-based
+
+  if (preset === "week") {
+    if (opts?.weekStartYesterday) {
+      // Rolling 7-day window ending yesterday vs the 7 days before that
+      const curEnd = new Date(y, m, today.getDate() - 1);
+      const curStart = new Date(y, m, today.getDate() - 7);
+      const cmpEnd = new Date(y, m, today.getDate() - 8);
+      const cmpStart = new Date(y, m, today.getDate() - 14);
+      return {
+        dateRangeStart: toDateStr(curStart),
+        dateRangeEnd: toDateStr(curEnd),
+        compareRangeStart: toDateStr(cmpStart),
+        compareRangeEnd: toDateStr(cmpEnd),
+      };
+    } else {
+      // Last complete Mon–Sun week vs the Mon–Sun week before it
+      const daysToLastSunday = today.getDay() === 0 ? 7 : today.getDay();
+      const curEnd = new Date(y, m, today.getDate() - daysToLastSunday);
+      const curStart = new Date(curEnd.getFullYear(), curEnd.getMonth(), curEnd.getDate() - 6);
+      const cmpEnd = new Date(curStart.getFullYear(), curStart.getMonth(), curStart.getDate() - 1);
+      const cmpStart = new Date(cmpEnd.getFullYear(), cmpEnd.getMonth(), cmpEnd.getDate() - 6);
+      return {
+        dateRangeStart: toDateStr(curStart),
+        dateRangeEnd: toDateStr(curEnd),
+        compareRangeStart: toDateStr(cmpStart),
+        compareRangeEnd: toDateStr(cmpEnd),
+      };
+    }
+  }
+
+  if (preset === "month") {
+    // Last complete calendar month
+    const curEnd = new Date(y, m, 0); // last day of previous month
+    const curStart = new Date(curEnd.getFullYear(), curEnd.getMonth(), 1);
+    const cmpEnd = new Date(curStart.getFullYear(), curStart.getMonth(), 0);
+    const cmpStart = new Date(cmpEnd.getFullYear(), cmpEnd.getMonth(), 1);
+    return {
+      dateRangeStart: toDateStr(curStart),
+      dateRangeEnd: toDateStr(curEnd),
+      compareRangeStart: toDateStr(cmpStart),
+      compareRangeEnd: toDateStr(cmpEnd),
+    };
+  }
+
+  if (preset === "quarter") {
+    // Last complete calendar quarter
+    const currentQ = Math.floor(m / 3); // 0-based quarter index for current quarter
+    const lastQ = currentQ === 0 ? 3 : currentQ - 1;
+    const lastQYear = currentQ === 0 ? y - 1 : y;
+    const curStart = new Date(lastQYear, lastQ * 3, 1);
+    const curEnd = new Date(lastQYear, lastQ * 3 + 3, 0);
+    const prevQ = lastQ === 0 ? 3 : lastQ - 1;
+    const prevQYear = lastQ === 0 ? lastQYear - 1 : lastQYear;
+    const cmpStart = new Date(prevQYear, prevQ * 3, 1);
+    const cmpEnd = new Date(prevQYear, prevQ * 3 + 3, 0);
+    return {
+      dateRangeStart: toDateStr(curStart),
+      dateRangeEnd: toDateStr(curEnd),
+      compareRangeStart: toDateStr(cmpStart),
+      compareRangeEnd: toDateStr(cmpEnd),
+    };
+  }
+
+  // year
+  const curYear = y - 1;
+  return {
+    dateRangeStart: `${curYear}-01-01`,
+    dateRangeEnd: `${curYear}-12-31`,
+    compareRangeStart: `${curYear - 1}-01-01`,
+    compareRangeEnd: `${curYear - 1}-12-31`,
+  };
+}
+
+function isPresetAvailable(preset: PresetKey, dataRange: { earliest: string | null; latest: string | null } | null): boolean {
+  if (!dataRange?.earliest) return false;
+  if (preset === "week") return true; // ~2 weeks of data is always available
+  const { compareRangeStart } = computePresetDates(preset);
+  return dataRange.earliest <= compareRangeStart;
+}
+
+function formatDisplayDate(dateStr: string): string {
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  return new Date(y, mo - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 async function pollUntilComplete(reportId: string): Promise<void> {
   const MAX_POLLS = 60; // 5 minutes max
   for (let i = 0; i < MAX_POLLS; i++) {
@@ -107,10 +215,13 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
   const [reportableProperties, setReportableProperties] = useState<ReportableProperty[]>([]);
 
   const [propertyId, setPropertyId] = useState("");
-  const [dateRangeStart, setDateRangeStart] = useState("");
-  const [dateRangeEnd, setDateRangeEnd] = useState("");
-  const [compareRangeStart, setCompareRangeStart] = useState("");
-  const [compareRangeEnd, setCompareRangeEnd] = useState("");
+  const [propertyQuery, setPropertyQuery] = useState("");
+  const [isPropertyListOpen, setIsPropertyListOpen] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<PresetKey | null>(null);
+  const [weekStartYesterday, setWeekStartYesterday] = useState(false);
+  const [dataRange, setDataRange] = useState<{ earliest: string | null; latest: string | null } | null>(null);
+  const [dataRangeLoading, setDataRangeLoading] = useState(false);
+  const propertyPickerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -150,6 +261,52 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
         id: p.id,
         label: propertyLabel(p),
       }));
+  const selectedProperty = propertyOptions.find((p) => p.id === propertyId) ?? null;
+  const filteredPropertyOptions = useMemo(() => {
+    const query = propertyQuery.trim().toLowerCase();
+    if (!query) return propertyOptions;
+    return propertyOptions.filter((p) => p.label.toLowerCase().includes(query));
+  }, [propertyOptions, propertyQuery]);
+  const propertyInputValue = isPropertyListOpen ? propertyQuery : (selectedProperty?.label ?? "");
+
+  useEffect(() => {
+    if (!open) {
+      setIsPropertyListOpen(false);
+      setPropertyQuery("");
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!isPropertyListOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!propertyPickerRef.current?.contains(event.target as Node)) {
+        setIsPropertyListOpen(false);
+        setPropertyQuery("");
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isPropertyListOpen]);
+
+  useEffect(() => {
+    if (!propertyId) { setDataRange(null); return; }
+    setDataRangeLoading(true);
+    fetch(`/api/properties/${propertyId}/data-range`)
+      .then((r) => r.json())
+      .then((data) => setDataRange(data))
+      .catch(() => setDataRange(null))
+      .finally(() => setDataRangeLoading(false));
+  }, [propertyId]);
+
+  const handlePropertySelect = (selectedId: string) => {
+    setPropertyId(selectedId);
+    setIsPropertyListOpen(false);
+    setPropertyQuery("");
+    setSelectedPreset(null);
+    setDataRange(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,6 +314,14 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
       toast.error("Please select a property.");
       return;
     }
+    if (!selectedPreset) {
+      toast.error("Please select a report period.");
+      return;
+    }
+    const { dateRangeStart, dateRangeEnd, compareRangeStart, compareRangeEnd } = computePresetDates(
+      selectedPreset,
+      { weekStartYesterday }
+    );
     setIsSubmitting(true);
     setOpen(false);
     onCreated?.();
@@ -252,52 +417,127 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
                   No GSC properties synced yet. Click <strong>Sync Properties</strong> first.
                 </p>
               ) : (
-                <Select value={propertyId} onValueChange={setPropertyId} required>
-                  <SelectTrigger id="property" className="w-half">
-                    <SelectValue placeholder="Select a property…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {propertyOptions.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div ref={propertyPickerRef} className="relative">
+                  <Input
+                    id="property"
+                    autoComplete="off"
+                    placeholder="Search properties..."
+                    value={propertyInputValue}
+                    onClick={() => {
+                      setIsPropertyListOpen(true);
+                    }}
+                    onFocus={() => {
+                      setIsPropertyListOpen(true);
+                      setPropertyQuery("");
+                    }}
+                    onChange={(event) => {
+                      setPropertyQuery(event.target.value);
+                      setPropertyId("");
+                      setIsPropertyListOpen(true);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") {
+                        setIsPropertyListOpen(false);
+                        setPropertyQuery("");
+                      }
+                    }}
+                    aria-expanded={isPropertyListOpen}
+                    aria-autocomplete="list"
+                    role="combobox"
+                  />
+                  {isPropertyListOpen && (
+                    <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+                      {filteredPropertyOptions.length === 0 ? (
+                        <p className="px-3 py-2 text-sm text-muted-foreground">No properties found.</p>
+                      ) : (
+                        <ul
+                          className="overflow-y-auto py-1"
+                          style={{ maxHeight: `${PROPERTY_LIST_VISIBLE_ITEMS * PROPERTY_ITEM_HEIGHT_REM}rem` }}
+                          role="listbox"
+                          aria-label="Property options"
+                        >
+                          {filteredPropertyOptions.map((p) => (
+                            <li key={p.id}>
+                              <button
+                                type="button"
+                                className="flex h-10 w-full items-center px-3 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                                onMouseDown={(event) => {
+                                  event.preventDefault();
+                                }}
+                                onClick={() => handlePropertySelect(p.id)}
+                              >
+                                <span className="truncate">{p.label}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-muted-foreground text-xs uppercase tracking-wide">Current Period</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="dateRangeStart" className="text-xs">Start</Label>
-                  <Input id="dateRangeStart" type="date" required value={dateRangeStart} onChange={(e) => setDateRangeStart(e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="dateRangeEnd" className="text-xs">End</Label>
-                  <Input id="dateRangeEnd" type="date" required value={dateRangeEnd} onChange={(e) => setDateRangeEnd(e.target.value)} />
-                </div>
+            <div className="space-y-2">
+              <Label>Report Period</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {PRESETS.map((preset) => {
+                  const available = isPresetAvailable(preset.value, dataRange);
+                  const isSelected = selectedPreset === preset.value;
+                  return (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      disabled={!propertyId || dataRangeLoading || !available}
+                      onClick={() => setSelectedPreset(preset.value)}
+                      className={cn(
+                        "rounded-md border px-3 py-2 text-sm font-medium transition-colors",
+                        "disabled:cursor-not-allowed disabled:opacity-40",
+                        isSelected
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
               </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-muted-foreground text-xs uppercase tracking-wide">Compare Period</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="compareRangeStart" className="text-xs">Start</Label>
-                  <Input id="compareRangeStart" type="date" required value={compareRangeStart} onChange={(e) => setCompareRangeStart(e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="compareRangeEnd" className="text-xs">End</Label>
-                  <Input id="compareRangeEnd" type="date" required value={compareRangeEnd} onChange={(e) => setCompareRangeEnd(e.target.value)} />
-                </div>
-              </div>
+              {selectedPreset === "week" && (
+                <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={weekStartYesterday}
+                    onChange={(e) => setWeekStartYesterday(e.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  Start yesterday
+                </label>
+              )}
+              {selectedPreset && (() => {
+                const d = computePresetDates(selectedPreset, { weekStartYesterday });
+                return (
+                  <p className="text-xs text-muted-foreground">
+                    {formatDisplayDate(d.dateRangeStart)}–{formatDisplayDate(d.dateRangeEnd)}{" "}
+                    vs {formatDisplayDate(d.compareRangeStart)}–{formatDisplayDate(d.compareRangeEnd)}
+                  </p>
+                );
+              })()}
+              {dataRange?.earliest && (
+                <p className="text-xs text-muted-foreground">
+                  Data available from {formatDisplayDate(dataRange.earliest)}
+                </p>
+              )}
+              {propertyId && !dataRangeLoading && dataRange && !dataRange.earliest && (
+                <p className="text-xs text-muted-foreground">
+                  No data synced yet for this property.
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={isSubmitting || propertyOptions.length === 0} className="rounded-full">
+            <Button type="submit" disabled={isSubmitting || propertyOptions.length === 0 || !selectedPreset} className="rounded-full">
               {isSubmitting ? "Queueing…" : "Generate Report"}
             </Button>
           </DialogFooter>
