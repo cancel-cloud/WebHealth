@@ -1,6 +1,6 @@
 import { db } from "@webhealth/shared/db";
-import { properties, systemLogs } from "@webhealth/shared/db/schema";
-import { eq, isNull } from "drizzle-orm";
+import { properties, systemLogs, account } from "@webhealth/shared/db/schema";
+import { eq, isNull, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import {
   getGoogleAuthClient,
@@ -14,18 +14,50 @@ export async function syncPropertiesForUser({
   teamId,
   accessToken,
   refreshToken,
+  accessTokenExpiresAt,
 }: {
   userId: string;
   teamId: string;
   accessToken: string;
   refreshToken?: string;
+  accessTokenExpiresAt?: Date | null;
 }): Promise<{ gscCount: number; ga4Count: number; autoLinked: number }> {
-  const authClient = getGoogleAuthClient(accessToken, refreshToken);
+  const authClient = getGoogleAuthClient(accessToken, refreshToken, accessTokenExpiresAt);
 
-  const [gscSites, ga4Props] = await Promise.all([
-    fetchGscProperties(authClient),
-    fetchGa4Properties(authClient),
-  ]);
+  authClient.on("tokens", (tokens) => {
+    if (tokens.access_token) {
+      db.update(account)
+        .set({
+          accessToken: tokens.access_token,
+          ...(tokens.expiry_date
+            ? { accessTokenExpiresAt: new Date(tokens.expiry_date) }
+            : {}),
+        })
+        .where(and(eq(account.userId, userId), eq(account.providerId, "google")))
+        .catch(() => {});
+    }
+  });
+
+  let gscSites: Awaited<ReturnType<typeof fetchGscProperties>>;
+  let ga4Props: Awaited<ReturnType<typeof fetchGa4Properties>>;
+  try {
+    [gscSites, ga4Props] = await Promise.all([
+      fetchGscProperties(authClient),
+      fetchGa4Properties(authClient),
+    ]);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "";
+    if (
+      msg.includes("invalid_grant") ||
+      msg.includes("Invalid Credentials") ||
+      msg.includes("invalid_credentials")
+    ) {
+      const authErr = new Error("Google authorization expired. Please sign in again.");
+      (authErr as any).code = "GOOGLE_AUTH_RELOGIN_REQUIRED";
+      throw authErr;
+    }
+    throw error;
+  }
 
   // --- Store GSC properties ---
   let gscCount = 0;
