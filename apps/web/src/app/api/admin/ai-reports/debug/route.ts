@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
-import { openaiDailyCosts, reports } from "@webhealth/shared/db/schema";
+import { openaiDailyCosts, reportDetailAiExpansions, reports, teams, user as users } from "@webhealth/shared/db/schema";
 import { getReportQueueStats, listRecentReportJobs } from "@webhealth/shared/lib/queue/report-jobs";
-import { desc, inArray, sql } from "drizzle-orm";
+import { desc, eq, inArray, sql } from "drizzle-orm";
+import { mapDetailRequestRows } from "./route.logic";
 
 const ADMIN_EMAIL = "lukas@devbrew.dev";
 
@@ -38,17 +39,48 @@ export async function GET() {
       report: reportMap.get(job.reportId) ?? null,
     }));
 
-    const dailyCosts = await db
-      .select({
-        sourceDate: openaiDailyCosts.sourceDate,
-        totalUsd: sql<string>`sum(${openaiDailyCosts.amountUsd})::text`,
-      })
-      .from(openaiDailyCosts)
-      .groupBy(openaiDailyCosts.sourceDate)
-      .orderBy(desc(openaiDailyCosts.sourceDate))
-      .limit(14);
+    const [dailyCosts, detailRequests] = await Promise.all([
+      db
+        .select({
+          sourceDate: openaiDailyCosts.sourceDate,
+          totalUsd: sql<string>`sum(${openaiDailyCosts.amountUsd})::text`,
+        })
+        .from(openaiDailyCosts)
+        .groupBy(openaiDailyCosts.sourceDate)
+        .orderBy(desc(openaiDailyCosts.sourceDate))
+        .limit(14),
+      db
+        .select({
+          id: reportDetailAiExpansions.id,
+          reportId: reportDetailAiExpansions.reportId,
+          teamId: reportDetailAiExpansions.teamId,
+          teamName: teams.name,
+          requestedByUserId: reportDetailAiExpansions.requestedByUserId,
+          requestedByUserEmail: users.email,
+          requestNumber: reportDetailAiExpansions.requestNumber,
+          kind: reportDetailAiExpansions.kind,
+          rowId: reportDetailAiExpansions.rowId,
+          status: reportDetailAiExpansions.status,
+          usage: reportDetailAiExpansions.usage,
+          estimatedCostUsd: reportDetailAiExpansions.estimatedCostUsd,
+          xRequestId: reportDetailAiExpansions.xRequestId,
+          xClientRequestId: reportDetailAiExpansions.xClientRequestId,
+          error: reportDetailAiExpansions.error,
+          createdAt: reportDetailAiExpansions.createdAt,
+        })
+        .from(reportDetailAiExpansions)
+        .leftJoin(teams, eq(reportDetailAiExpansions.teamId, teams.id))
+        .leftJoin(users, eq(reportDetailAiExpansions.requestedByUserId, users.id))
+        .orderBy(desc(reportDetailAiExpansions.createdAt))
+        .limit(200),
+    ]);
 
-    return NextResponse.json({ stats, jobs: jobsWithReports, dailyCosts });
+    return NextResponse.json({
+      stats,
+      jobs: jobsWithReports,
+      dailyCosts,
+      detailRequests: mapDetailRequestRows(detailRequests),
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json({ error: message }, { status: 500 });
