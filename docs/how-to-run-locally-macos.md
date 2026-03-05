@@ -45,9 +45,9 @@ Required rules:
 - `DATABASE_URL` must be Neon pooled host (`-pooler`) and include `sslmode=require`
 - `DIRECT_DATABASE_URL` must be direct Neon host (no `-pooler`) and include `sslmode=require`
 - Runtime (`web` + `worker`) uses `DATABASE_URL`
-- Migrations use `DIRECT_DATABASE_URL`
+- Migrations use `DIRECT_DATABASE_URL` (worker startup can derive direct host from pooled `DATABASE_URL` if not set)
 
-## 3) Run database migrations
+## 3) (Optional) Run database migrations manually
 
 From repo root:
 
@@ -55,7 +55,10 @@ From repo root:
 pnpm db:migrate
 ```
 
-Optional if you need schema sync during development:
+Worker startup already runs migrations before processing jobs, so this step is optional.
+Use it when you want to apply schema changes without starting the worker.
+
+Optional for schema sync during development:
 
 ```bash
 pnpm db:push

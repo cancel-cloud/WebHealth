@@ -193,3 +193,57 @@ Rules:
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id: reportId } = await params;
+    const { searchParams } = new URL(req.url);
+    const rowTypeValue = searchParams.get("rowType");
+    const rowId = searchParams.get("rowId");
+
+    if (!rowTypeValue || !rowId) {
+      return NextResponse.json({ error: "rowType and rowId are required" }, { status: 400 });
+    }
+    if (!isRowType(rowTypeValue)) {
+      return NextResponse.json({ error: "Invalid rowType" }, { status: 400 });
+    }
+    const rowType = rowTypeValue;
+
+    const userTeams = await db.query.teamMembers.findMany({
+      where: (tm, { eq }) => eq(tm.userId, session.user.id),
+    });
+    const teamIds = userTeams.map((row) => row.teamId);
+    if (!teamIds.length) return NextResponse.json({ error: "No team found" }, { status: 400 });
+
+    const report = await db.query.reports.findFirst({
+      where: and(eq(reports.id, reportId), inArray(reports.teamId, teamIds)),
+    });
+    if (!report) return NextResponse.json({ error: "Report not found" }, { status: 404 });
+
+    const aiReport = report.aiReportJson as AiSeoReport | null;
+    if (!aiReport) return NextResponse.json({ error: "No AI report data" }, { status: 404 });
+
+    const rowData = findRow(aiReport, rowType, rowId);
+    if (!rowData) return NextResponse.json({ error: "Row not found" }, { status: 404 });
+
+    const actionDetail =
+      typeof rowData.actionDetail === "string" && rowData.actionDetail.length > 0
+        ? rowData.actionDetail
+        : null;
+
+    return NextResponse.json(
+      { actionDetail, ready: actionDetail != null },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    console.error("[generate-detail][GET] 500:", message, error);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
