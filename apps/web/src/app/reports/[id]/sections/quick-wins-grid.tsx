@@ -8,10 +8,12 @@ import type {
   NearWinKeywordRow,
   LostClickEstimateRow,
 } from "@webhealth/shared/lib/reports/types";
+import { GetDetailsButton } from "./get-details-button";
 
 type Tab = "ctrGaps" | "nearWin" | "contentDecay" | "cannibalization";
 
 type QuickWinsGridProps = {
+  reportId: string;
   ctrGaps?: LostClickEstimateRow[] | null;
   nearWinKeywords?: NearWinKeywordRow[] | null;
   contentDecay?: ContentDecayRow[] | null;
@@ -25,7 +27,7 @@ const severityColor: Record<string, string> = {
   NIEDRIG: "text-blue-600 border-blue-200 bg-blue-50",
 };
 
-export function QuickWinsGrid({ ctrGaps, nearWinKeywords, contentDecay, cannibalization }: QuickWinsGridProps) {
+export function QuickWinsGrid({ reportId, ctrGaps, nearWinKeywords, contentDecay, cannibalization }: QuickWinsGridProps) {
   const tabs: Array<{ id: Tab; label: string; count: number }> = [
     { id: "ctrGaps", label: "CTR Gaps", count: ctrGaps?.length ?? 0 },
     { id: "nearWin", label: "Near-Win Keywords", count: nearWinKeywords?.length ?? 0 },
@@ -59,23 +61,23 @@ export function QuickWinsGrid({ ctrGaps, nearWinKeywords, contentDecay, cannibal
 
       <div className="p-4">
         {active === "ctrGaps" && (
-          <CtrGapsTab rows={ctrGaps ?? []} />
+          <CtrGapsTab reportId={reportId} rows={ctrGaps ?? []} />
         )}
         {active === "nearWin" && (
-          <NearWinTab rows={nearWinKeywords ?? []} />
+          <NearWinTab reportId={reportId} rows={nearWinKeywords ?? []} />
         )}
         {active === "contentDecay" && (
-          <ContentDecayTab rows={contentDecay ?? []} />
+          <ContentDecayTab reportId={reportId} rows={contentDecay ?? []} />
         )}
         {active === "cannibalization" && (
-          <CannibalizationTab rows={cannibalization ?? []} />
+          <CannibalizationTab reportId={reportId} rows={cannibalization ?? []} />
         )}
       </div>
     </div>
   );
 }
 
-function CtrGapsTab({ rows }: { rows: LostClickEstimateRow[] }) {
+function CtrGapsTab({ reportId, rows }: { reportId: string; rows: LostClickEstimateRow[] }) {
   if (!rows.length) return <EmptyState message="No CTR gap data available." />;
   return (
     <div className="overflow-x-auto">
@@ -87,6 +89,7 @@ function CtrGapsTab({ rows }: { rows: LostClickEstimateRow[] }) {
             <th className="py-2 pr-4 font-medium">Actual CTR</th>
             <th className="py-2 pr-4 font-medium">Benchmark CTR</th>
             <th className="py-2 pr-4 font-medium">Est. Lost Clicks</th>
+            <th className="py-2 font-medium"></th>
           </tr>
         </thead>
         <tbody>
@@ -97,6 +100,15 @@ function CtrGapsTab({ rows }: { rows: LostClickEstimateRow[] }) {
               <td className="py-2 pr-4">{(row.actualCtr * 100).toFixed(2)}%</td>
               <td className="py-2 pr-4">{(row.benchmarkCtr * 100).toFixed(2)}%</td>
               <td className="py-2 pr-4 text-red-600 font-medium">{row.estimatedLostClicks.toFixed(0)}</td>
+              <td className="py-2">
+                <GetDetailsButton
+                  reportId={reportId}
+                  rowType="ctrGap"
+                  rowId={row.query}
+                  rowTitle={row.query}
+                  initialDetail={row.actionDetail}
+                />
+              </td>
             </tr>
           ))}
         </tbody>
@@ -105,7 +117,7 @@ function CtrGapsTab({ rows }: { rows: LostClickEstimateRow[] }) {
   );
 }
 
-function NearWinTab({ rows }: { rows: NearWinKeywordRow[] }) {
+function NearWinTab({ reportId, rows }: { reportId: string; rows: NearWinKeywordRow[] }) {
   if (!rows.length) return <EmptyState message="No near-win keywords found." />;
   return (
     <div className="overflow-x-auto">
@@ -117,6 +129,7 @@ function NearWinTab({ rows }: { rows: NearWinKeywordRow[] }) {
             <th className="py-2 pr-4 font-medium">Impressions</th>
             <th className="py-2 pr-4 font-medium">Clicks</th>
             <th className="py-2 pr-4 font-medium">CTR</th>
+            <th className="py-2 font-medium"></th>
           </tr>
         </thead>
         <tbody>
@@ -127,6 +140,15 @@ function NearWinTab({ rows }: { rows: NearWinKeywordRow[] }) {
               <td className="py-2 pr-4">{row.impressions.toLocaleString()}</td>
               <td className="py-2 pr-4">{row.clicks.toLocaleString()}</td>
               <td className="py-2 pr-4">{(row.ctr * 100).toFixed(2)}%</td>
+              <td className="py-2">
+                <GetDetailsButton
+                  reportId={reportId}
+                  rowType="nearWin"
+                  rowId={row.keyword}
+                  rowTitle={row.keyword}
+                  initialDetail={row.actionDetail}
+                />
+              </td>
             </tr>
           ))}
         </tbody>
@@ -135,7 +157,7 @@ function NearWinTab({ rows }: { rows: NearWinKeywordRow[] }) {
   );
 }
 
-function ContentDecayTab({ rows }: { rows: ContentDecayRow[] }) {
+function ContentDecayTab({ reportId, rows }: { reportId: string; rows: ContentDecayRow[] }) {
   if (!rows.length) return <EmptyState message="No content decay detected — your pages are holding up well." />;
   return (
     <div className="space-y-3">
@@ -143,9 +165,18 @@ function ContentDecayTab({ rows }: { rows: ContentDecayRow[] }) {
         <div key={row.page} className="p-3 rounded-2xl bg-muted/30 border border-border/30">
           <div className="flex items-start justify-between gap-2 mb-1">
             <p className="text-sm font-medium truncate max-w-[400px]">{row.page}</p>
-            <Badge variant="outline" className={severityColor[row.severity] ?? ""}>
-              {row.severity}
-            </Badge>
+            <div className="flex items-center gap-2 shrink-0">
+              <Badge variant="outline" className={severityColor[row.severity] ?? ""}>
+                {row.severity}
+              </Badge>
+              <GetDetailsButton
+                reportId={reportId}
+                rowType="contentDecay"
+                rowId={row.page}
+                rowTitle={row.page}
+                initialDetail={row.actionDetail}
+              />
+            </div>
           </div>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>Peak: {row.peakClicks.toLocaleString()} clicks</span>
@@ -154,22 +185,28 @@ function ContentDecayTab({ rows }: { rows: ContentDecayRow[] }) {
               −{row.estimatedLostClicks.toLocaleString()} ({((1 - row.decayRatio) * 100).toFixed(0)}% drop)
             </span>
           </div>
-          {row.actionDetail && (
-            <p className="text-xs mt-2 text-foreground/80">{row.actionDetail}</p>
-          )}
         </div>
       ))}
     </div>
   );
 }
 
-function CannibalizationTab({ rows }: { rows: CannibalizationRow[] }) {
+function CannibalizationTab({ reportId, rows }: { reportId: string; rows: CannibalizationRow[] }) {
   if (!rows.length) return <EmptyState message="No keyword cannibalization detected." />;
   return (
     <div className="space-y-3">
       {rows.slice(0, 10).map((row) => (
         <div key={row.query} className="p-3 rounded-2xl bg-muted/30 border border-border/30">
-          <p className="text-sm font-medium mb-1">&ldquo;{row.query}&rdquo;</p>
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <p className="text-sm font-medium">&ldquo;{row.query}&rdquo;</p>
+            <GetDetailsButton
+              reportId={reportId}
+              rowType="cannibalization"
+              rowId={row.query}
+              rowTitle={row.query}
+              initialDetail={row.actionDetail}
+            />
+          </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
             <span>{row.totalClicks.toLocaleString()} total clicks</span>
             <span>{row.totalImpressions.toLocaleString()} impressions</span>

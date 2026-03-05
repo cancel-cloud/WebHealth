@@ -175,6 +175,7 @@ export default async function ReportDetailPage({
             <section>
               <h2 className="text-xl font-bold font-display mb-4">Quick Wins</h2>
               <QuickWinsGrid
+                reportId={reportId}
                 ctrGaps={aiReport?.lostClickEstimateRows}
                 nearWinKeywords={aiReport?.nearWinKeywordRows}
                 contentDecay={aiReport?.contentDecayRows}
@@ -191,7 +192,7 @@ export default async function ReportDetailPage({
             />
 
             {/* 6. Action Backlog */}
-            <ActionBacklog rows={aiReport?.actionBacklogRows} />
+            <ActionBacklog reportId={reportId} rows={aiReport?.actionBacklogRows} />
 
             {/* 7. Site Changes */}
             <SiteChangesSection siteChanges={aiReport?.siteChanges} />
