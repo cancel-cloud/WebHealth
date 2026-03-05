@@ -66,6 +66,16 @@ function getPendingStartedAt(detailKey: string): number | null {
   return typeof value === "number" ? value : null;
 }
 
+function hasFreshPendingPersisted(detailKey: string): boolean {
+  const startedAt = getPendingStartedAt(detailKey);
+  if (!startedAt) return false;
+  if (Date.now() - startedAt > PENDING_MAX_AGE_MS) {
+    clearPendingPersisted(detailKey);
+    return false;
+  }
+  return true;
+}
+
 export function GetDetailsButton({
   reportId,
   rowType,
@@ -78,7 +88,7 @@ export function GetDetailsButton({
   const [detail, setDetail] = useState<string | null>(() => {
     return detailCache.get(detailKey) ?? initialDetail ?? null;
   });
-  const [loading, setLoading] = useState(() => inFlightByKey.has(detailKey));
+  const [loading, setLoading] = useState(() => inFlightByKey.has(detailKey) || hasFreshPendingPersisted(detailKey));
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
@@ -218,6 +228,20 @@ export function GetDetailsButton({
         action: { label: "Open", onClick: () => setModalOpen(true) },
       });
     } catch (err) {
+      const abortLike =
+        typeof err === "object" &&
+        err !== null &&
+        "name" in err &&
+        (err as { name?: string }).name === "AbortError";
+      const pageIsHidden =
+        typeof document !== "undefined" && document.visibilityState === "hidden";
+
+      // On reload/navigation the fetch can abort even though the server keeps processing.
+      // Keep the persisted pending marker so the next page load can resume polling.
+      if (abortLike || pageIsHidden) {
+        return;
+      }
+
       clearPendingPersisted(detailKey);
       toast.error("Failed to generate details", { id: toastId });
       console.error(err);
