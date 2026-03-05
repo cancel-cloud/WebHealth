@@ -153,7 +153,6 @@ Rules:
     const response = await openai.chat.completions.create({
       model: MODEL,
       messages: [{ role: "user", content: systemPrompt }],
-      temperature: 0.2,
       response_format: {
         type: "json_schema",
         json_schema: {
