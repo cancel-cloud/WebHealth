@@ -6,6 +6,8 @@ import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { reports } from "@webhealth/shared/db/schema";
 import type { AiSeoReport } from "@webhealth/shared/lib/reports/types";
+import { estimateOpenAICostUsd } from "@webhealth/shared/lib/openai/cost-estimator";
+import type { AiUsageSnapshot } from "@webhealth/shared/lib/reports/types";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -171,12 +173,25 @@ Rules:
     const content = response.choices[0]?.message?.content;
     if (!content) return NextResponse.json({ error: "No response from AI" }, { status: 500 });
 
+    const rawUsage = response.usage;
+    const usageSnapshot: AiUsageSnapshot = {
+      inputTokens: rawUsage?.prompt_tokens,
+      outputTokens: rawUsage?.completion_tokens,
+      totalTokens: rawUsage?.total_tokens,
+      cachedInputTokens: rawUsage?.prompt_tokens_details?.cached_tokens,
+    };
+    const callCost = estimateOpenAICostUsd(MODEL, usageSnapshot);
+    const prevCost = Number(report.detailsCostUsd ?? 0);
+    const newDetailsCostUsd = callCost != null
+      ? (prevCost + callCost).toFixed(6)
+      : prevCost > 0 ? String(prevCost) : null;
+
     const detail = JSON.parse(content) as ActionDetail;
     const serializedDetail = JSON.stringify(detail);
 
     const patched = patchRowActionDetail(aiReport, rowType as RowType, rowId, serializedDetail);
     await db.update(reports)
-      .set({ aiReportJson: patched, updatedAt: new Date() })
+      .set({ aiReportJson: patched, updatedAt: new Date(), ...(newDetailsCostUsd != null && { detailsCostUsd: newDetailsCostUsd }) })
       .where(eq(reports.id, reportId));
 
     return NextResponse.json({ actionDetail: serializedDetail });

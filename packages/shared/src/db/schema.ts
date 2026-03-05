@@ -128,6 +128,7 @@ export const reports = pgTable("reports", {
   openaiResponseId: text("openai_response_id"),
   aiUsage: jsonb("ai_usage"),
   aiEstimatedCostUsd: numeric("ai_estimated_cost_usd", { precision: 12, scale: 6 }),
+  detailsCostUsd: numeric("details_cost_usd", { precision: 12, scale: 6 }),
   openaiRequestIds: jsonb("openai_request_ids"),
   siteChanges: jsonb("site_changes"),
   xlsxStatus: text("xlsx_status").default("pending"),

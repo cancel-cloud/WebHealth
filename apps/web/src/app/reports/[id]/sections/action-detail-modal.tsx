@@ -72,11 +72,11 @@ export function ActionDetailModal({ open, onClose, title, detail }: ActionDetail
             {parsed.fixSteps.length > 0 && (
               <div>
                 <p className="font-semibold mb-1">How to fix</p>
-                <ol className="list-decimal list-inside space-y-1 text-foreground/80">
+                <div className="space-y-1 text-foreground/80">
                   {parsed.fixSteps.map((step, i) => (
-                    <li key={i}>{step}</li>
+                    <p key={i}>{step}</p>
                   ))}
-                </ol>
+                </div>
               </div>
             )}
 
