@@ -1,4 +1,6 @@
 import type { AiSeoReport } from "@webhealth/shared/lib/reports/types";
+import { normalizeOpenAIUsage } from "@webhealth/shared/lib/openai/cost-estimator";
+import type { AiUsageSnapshot } from "@webhealth/shared/lib/reports/types";
 
 export type RowType =
   | "actionBacklog"
@@ -69,4 +71,42 @@ export function computeNextDetailsCostUsd(
   }
 
   return (previousCost + callCostUsd).toFixed(6);
+}
+
+export function shouldGenerateDetail(rowData: Record<string, unknown>) {
+  return !(typeof rowData.actionDetail === "string" && rowData.actionDetail.length > 0);
+}
+
+export function makeDetailClientRequestId(input: {
+  reportId: string;
+  requestNumber: number;
+  kind: RowType;
+}) {
+  const sanitizedKind = input.kind.replace(/[^a-zA-Z0-9_-]/g, "_");
+  return `report_${input.reportId}_detail_${input.requestNumber}_${sanitizedKind}`;
+}
+
+export function normalizeDetailUsage(rawUsage: unknown): AiUsageSnapshot | null {
+  const normalized = normalizeOpenAIUsage(rawUsage);
+  if (!rawUsage || typeof rawUsage !== "object") return normalized;
+  const usage = rawUsage as Record<string, unknown>;
+  const promptTokens = typeof usage.prompt_tokens === "number" ? usage.prompt_tokens : undefined;
+  const completionTokens =
+    typeof usage.completion_tokens === "number" ? usage.completion_tokens : undefined;
+  const totalTokens = typeof usage.total_tokens === "number" ? usage.total_tokens : undefined;
+  const cachedInputTokens =
+    usage.prompt_tokens_details &&
+    typeof usage.prompt_tokens_details === "object" &&
+    typeof (usage.prompt_tokens_details as Record<string, unknown>).cached_tokens === "number"
+      ? ((usage.prompt_tokens_details as Record<string, unknown>).cached_tokens as number)
+      : undefined;
+
+  return {
+    inputTokens: normalized?.inputTokens ?? promptTokens,
+    outputTokens: normalized?.outputTokens ?? completionTokens,
+    totalTokens: normalized?.totalTokens ?? totalTokens,
+    cachedInputTokens: normalized?.cachedInputTokens ?? cachedInputTokens,
+    reasoningTokens: normalized?.reasoningTokens,
+    raw: normalized?.raw ?? usage,
+  };
 }

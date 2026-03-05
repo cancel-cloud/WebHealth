@@ -3,7 +3,10 @@ import test from "node:test";
 
 import {
   computeNextDetailsCostUsd,
+  makeDetailClientRequestId,
+  normalizeDetailUsage,
   patchRowActionDetail,
+  shouldGenerateDetail,
   type RowType,
 } from "./route.logic";
 import type { AiSeoReport } from "@webhealth/shared/lib/reports/types";
@@ -91,4 +94,30 @@ test("computeNextDetailsCostUsd accumulates and formats to 6 decimals", () => {
   assert.equal(computeNextDetailsCostUsd(null, 0.02), "0.020000");
   assert.equal(computeNextDetailsCostUsd("0", null), null);
   assert.equal(computeNextDetailsCostUsd("0.330000", null), "0.33");
+});
+
+test("shouldGenerateDetail skips OpenAI generation when actionDetail is already cached", () => {
+  assert.equal(shouldGenerateDetail({ actionDetail: "{\"x\":1}" }), false);
+  assert.equal(shouldGenerateDetail({ actionDetail: "" }), true);
+  assert.equal(shouldGenerateDetail({}), true);
+});
+
+test("makeDetailClientRequestId formats deterministic trace ids", () => {
+  assert.equal(
+    makeDetailClientRequestId({ reportId: "rep_123", requestNumber: 4, kind: "nearWin" }),
+    "report_rep_123_detail_4_nearWin"
+  );
+});
+
+test("normalizeDetailUsage maps chat-completions usage fields", () => {
+  const usage = normalizeDetailUsage({
+    prompt_tokens: 111,
+    completion_tokens: 22,
+    total_tokens: 133,
+    input_tokens_details: { cached_tokens: 11 },
+  });
+  assert.equal(usage?.inputTokens, 111);
+  assert.equal(usage?.outputTokens, 22);
+  assert.equal(usage?.totalTokens, 133);
+  assert.equal(usage?.cachedInputTokens, 11);
 });
