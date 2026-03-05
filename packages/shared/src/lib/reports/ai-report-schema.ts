@@ -166,6 +166,7 @@ const actionBacklogSchema = z.object({
   impactScore: z.number(),
   why: z.string(),
   done: z.boolean(),
+  actionDetail: z.string().nullable().default(null),
 });
 
 const contentDecayRowSchema = z.object({

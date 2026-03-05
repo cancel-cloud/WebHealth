@@ -167,6 +167,7 @@ export type ActionBacklogRow = {
   impactScore: number;
   why: string;
   done: boolean;
+  actionDetail?: string | null;
 };
 
 export type ContentDecayRow = {

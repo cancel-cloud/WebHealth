@@ -1,11 +1,15 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
 import type { ActionBacklogRow } from "@webhealth/shared/lib/reports/types";
+import { GetDetailsButton } from "./get-details-button";
 
 type ActionBacklogProps = {
+  reportId: string;
   rows?: ActionBacklogRow[] | null;
 };
 
-export function ActionBacklog({ rows }: ActionBacklogProps) {
+export function ActionBacklog({ reportId, rows }: ActionBacklogProps) {
   const data = rows ?? [];
   if (!data.length) return null;
 
@@ -17,7 +21,16 @@ export function ActionBacklog({ rows }: ActionBacklogProps) {
           <div key={row.id} className="p-4 rounded-2xl bg-card border border-border/50 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <p className="font-semibold">{row.task}</p>
-              <Badge variant="outline">Impact {row.impactScore.toFixed(1)}</Badge>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant="outline">Impact {row.impactScore.toFixed(1)}</Badge>
+                <GetDetailsButton
+                  reportId={reportId}
+                  rowType="actionBacklog"
+                  rowId={row.id}
+                  rowTitle={row.task}
+                  initialDetail={row.actionDetail}
+                />
+              </div>
             </div>
             <p className="text-sm text-muted-foreground mt-1">{row.why}</p>
             <div className="text-xs text-muted-foreground mt-2">
