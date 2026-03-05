@@ -1,5 +1,3 @@
-"use client";
-
 import ReactMarkdown from "react-markdown";
 
 export function DashboardMarkdown({ content }: { content: string }) {
