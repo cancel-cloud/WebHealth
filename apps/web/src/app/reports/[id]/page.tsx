@@ -18,6 +18,7 @@ import { DeepDiveTechnical } from "./sections/deep-dive-technical";
 import { ActionBacklog } from "./sections/action-backlog";
 import { SiteChangesSection } from "./sections/site-changes-section";
 import { JobTimeline } from "./sections/job-timeline";
+import { DashboardMarkdown } from "./sections/dashboard-markdown";
 
 import type { GscMetrics, Ga4Metrics } from "@webhealth/shared/lib/google/api";
 import type { CrawlResult } from "@webhealth/shared/lib/crawl";
@@ -147,10 +148,8 @@ export default async function ReportDetailPage({
             {/* 1. AI Summary */}
             {aiReport?.dashboardMarkdown ? (
               <div className="p-6 rounded-3xl bg-card border border-border/50 shadow-sm">
-                <h2 className="text-xl font-bold font-display mb-3">AI Summary</h2>
-                <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans">
-                  {aiReport.dashboardMarkdown}
-                </pre>
+                <h2 className="text-xl font-bold font-display mb-4">AI Summary</h2>
+                <DashboardMarkdown content={aiReport.dashboardMarkdown} />
               </div>
             ) : null}
 
