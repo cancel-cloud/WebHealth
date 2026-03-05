@@ -95,6 +95,7 @@ export const properties = pgTable("properties", {
   name: text("name").notNull(),
   url: text("url").notNull(),
   ga4PropertyId: text("ga4_property_id"), // To link GSC to GA4
+  gscDataStartDate: date("gsc_data_start_date"),
   syncStatus: text("sync_status").default("pending").notNull(), // pending, syncing, complete, failed
   lastSyncedAt: timestamp("last_synced_at"),
   active: boolean("active").default(true).notNull(),

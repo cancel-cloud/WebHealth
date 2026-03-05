@@ -43,6 +43,29 @@ export async function fetchGa4Properties(authClient: any): Promise<Ga4PropertyIn
   return flat;
 }
 
+export async function fetchGscDataStartDate(
+  authClient: any,
+  siteUrl: string
+): Promise<string | null> {
+  const searchConsole = google.webmasters({ version: "v3", auth: authClient });
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 3);
+  const endDate = yesterday.toISOString().slice(0, 10);
+
+  const response = await searchConsole.searchanalytics.query({
+    siteUrl,
+    requestBody: {
+      startDate: "2019-01-01",
+      endDate,
+      dimensions: ["date"],
+      rowLimit: 1,
+    },
+  });
+
+  const firstRow = response.data.rows?.[0];
+  return (firstRow as any)?.keys?.[0] ?? null;
+}
+
 export type GscMetrics = {
   clicks: number;
   impressions: number;
