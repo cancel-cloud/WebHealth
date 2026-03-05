@@ -26,7 +26,9 @@ export async function runPropertiesSync(): Promise<PropertiesSyncResult> {
   const data = await res.json();
 
   if (!res.ok) {
-    throw new Error(data.error ?? "Failed to sync properties");
+    const err = new Error(data.error ?? "Failed to sync properties");
+    (err as any).code = data.code ?? null;
+    throw err;
   }
 
   return data as PropertiesSyncResult;
@@ -66,10 +68,21 @@ export function SyncButton({
         router.refresh();
       }
     } catch (error) {
-      toast.error(
-        `An error occurred: ${error instanceof Error ? error.message : "Unknown error"}`,
-        { id: "sync-toast" }
-      );
+      if ((error as any).code === "GOOGLE_AUTH_RELOGIN_REQUIRED") {
+        toast.error("Google authorization expired. Please sign in again.", {
+          id: "sync-toast",
+          duration: 10000,
+          action: {
+            label: "Sign in again",
+            onClick: () => router.push("/"),
+          },
+        });
+      } else {
+        toast.error(
+          `An error occurred: ${error instanceof Error ? error.message : "Unknown error"}`,
+          { id: "sync-toast" }
+        );
+      }
     } finally {
       setIsSyncing(false);
     }
