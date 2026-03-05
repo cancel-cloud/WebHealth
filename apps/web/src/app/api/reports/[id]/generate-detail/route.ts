@@ -8,6 +8,12 @@ import { reports } from "@webhealth/shared/db/schema";
 import type { AiSeoReport } from "@webhealth/shared/lib/reports/types";
 import { estimateOpenAICostUsd } from "@webhealth/shared/lib/openai/cost-estimator";
 import type { AiUsageSnapshot } from "@webhealth/shared/lib/reports/types";
+import {
+  computeNextDetailsCostUsd,
+  findRow,
+  isRowType,
+  patchRowActionDetail,
+} from "./route.logic";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -17,69 +23,12 @@ const openai = new OpenAI({
 });
 
 const MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+const MAX_WRITE_RETRIES = 5;
 
 function supportsTemperature(model: string) {
   return !model.toLowerCase().startsWith("gpt-5");
 }
 
-type RowType =
-  | "actionBacklog"
-  | "ctrGap"
-  | "nearWin"
-  | "cannibalization"
-  | "contentDecay";
-
-type ActionDetail = {
-  affectedUrls: string[];
-  fixSteps: string[];
-  whyItMatters: string;
-};
-
-const rowTypeToArrayKey: Record<RowType, keyof AiSeoReport> = {
-  actionBacklog: "actionBacklogRows",
-  ctrGap: "lostClickEstimateRows",
-  nearWin: "nearWinKeywordRows",
-  cannibalization: "cannibalizationRows",
-  contentDecay: "contentDecayRows",
-};
-
-const rowTypeToIdField: Record<RowType, string> = {
-  actionBacklog: "id",
-  ctrGap: "query",
-  nearWin: "keyword",
-  cannibalization: "query",
-  contentDecay: "page",
-};
-
-function findRow(
-  aiReport: AiSeoReport,
-  rowType: RowType,
-  rowId: string
-): Record<string, unknown> | null {
-  const arrayKey = rowTypeToArrayKey[rowType];
-  const idField = rowTypeToIdField[rowType];
-  const rows = aiReport[arrayKey] as Record<string, unknown>[] | null | undefined;
-  if (!rows) return null;
-  return rows.find((r) => r[idField] === rowId) ?? null;
-}
-
-function patchRowActionDetail(
-  aiReport: AiSeoReport,
-  rowType: RowType,
-  rowId: string,
-  actionDetail: string
-): AiSeoReport {
-  const arrayKey = rowTypeToArrayKey[rowType];
-  const idField = rowTypeToIdField[rowType];
-  const rows = aiReport[arrayKey] as Record<string, unknown>[] | null | undefined;
-  if (!rows) return aiReport;
-
-  const patched = rows.map((r) =>
-    r[idField] === rowId ? { ...r, actionDetail } : r
-  );
-
-  return { ...aiReport, [arrayKey]: patched };
-}
 
 const detailSchema = {
   type: "object",
@@ -102,14 +51,16 @@ export async function POST(
 
     const { id: reportId } = await params;
     const body = await req.json() as { rowType?: string; rowId?: string };
-    const { rowType, rowId } = body;
+    const rowTypeValue = body.rowType;
+    const rowId = body.rowId;
 
-    if (!rowType || !rowId) {
+    if (!rowTypeValue || !rowId) {
       return NextResponse.json({ error: "rowType and rowId are required" }, { status: 400 });
     }
-    if (!Object.keys(rowTypeToArrayKey).includes(rowType)) {
+    if (!isRowType(rowTypeValue)) {
       return NextResponse.json({ error: "Invalid rowType" }, { status: 400 });
     }
+    const rowType = rowTypeValue;
 
     const userTeams = await db.query.teamMembers.findMany({
       where: (tm, { eq }) => eq(tm.userId, session.user.id),
@@ -129,7 +80,7 @@ export async function POST(
     const aiReport = report.aiReportJson as AiSeoReport | null;
     if (!aiReport) return NextResponse.json({ error: "No AI report data" }, { status: 404 });
 
-    const rowData = findRow(aiReport, rowType as RowType, rowId);
+    const rowData = findRow(aiReport, rowType, rowId);
     if (!rowData) return NextResponse.json({ error: "Row not found" }, { status: 404 });
 
     // Cache check
@@ -181,18 +132,59 @@ Rules:
       cachedInputTokens: rawUsage?.prompt_tokens_details?.cached_tokens,
     };
     const callCost = estimateOpenAICostUsd(MODEL, usageSnapshot);
-    const prevCost = Number(report.detailsCostUsd ?? 0);
-    const newDetailsCostUsd = callCost != null
-      ? (prevCost + callCost).toFixed(6)
-      : prevCost > 0 ? String(prevCost) : null;
-
-    const detail = JSON.parse(content) as ActionDetail;
+    const detail = JSON.parse(content) as {
+      affectedUrls: string[];
+      fixSteps: string[];
+      whyItMatters: string;
+    };
     const serializedDetail = JSON.stringify(detail);
 
-    const patched = patchRowActionDetail(aiReport, rowType as RowType, rowId, serializedDetail);
-    await db.update(reports)
-      .set({ aiReportJson: patched, updatedAt: new Date(), ...(newDetailsCostUsd != null && { detailsCostUsd: newDetailsCostUsd }) })
-      .where(eq(reports.id, reportId));
+    let saved = false;
+    for (let attempt = 0; attempt < MAX_WRITE_RETRIES; attempt += 1) {
+      const latestReport = attempt === 0
+        ? report
+        : await db.query.reports.findFirst({
+            where: and(eq(reports.id, reportId), inArray(reports.teamId, teamIds)),
+          });
+      if (!latestReport) {
+        return NextResponse.json({ error: "Report not found" }, { status: 404 });
+      }
+
+      const latestAiReport = latestReport.aiReportJson as AiSeoReport | null;
+      if (!latestAiReport) {
+        return NextResponse.json({ error: "No AI report data" }, { status: 404 });
+      }
+
+      const latestRowData = findRow(latestAiReport, rowType, rowId);
+      if (!latestRowData) {
+        return NextResponse.json({ error: "Row not found" }, { status: 404 });
+      }
+
+      const patched = patchRowActionDetail(latestAiReport, rowType, rowId, serializedDetail);
+      const newDetailsCostUsd = computeNextDetailsCostUsd(latestReport.detailsCostUsd, callCost);
+
+      const updated = await db
+        .update(reports)
+        .set({
+          aiReportJson: patched,
+          updatedAt: new Date(),
+          ...(newDetailsCostUsd != null && { detailsCostUsd: newDetailsCostUsd }),
+        })
+        .where(and(eq(reports.id, reportId), eq(reports.updatedAt, latestReport.updatedAt)))
+        .returning({ id: reports.id });
+
+      if (updated.length > 0) {
+        saved = true;
+        break;
+      }
+    }
+
+    if (!saved) {
+      return NextResponse.json(
+        { error: "Could not save detail due to concurrent updates. Please retry." },
+        { status: 409 }
+      );
+    }
 
     return NextResponse.json({ actionDetail: serializedDetail });
   } catch (error) {
