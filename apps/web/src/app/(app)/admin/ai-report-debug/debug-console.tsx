@@ -61,6 +61,24 @@ type DebugStatsResponse = {
     } | null;
   }>;
   dailyCosts?: Array<{ sourceDate: string; totalUsd: string }>;
+  detailRequests?: Array<{
+    id: string;
+    reportId: string;
+    teamId: string;
+    teamName: string | null;
+    requestedByUserId: string | null;
+    requestedByUserEmail: string | null;
+    requestNumber: number;
+    kind: string;
+    rowId: string;
+    status: string;
+    usage: unknown;
+    estimatedCostUsd: string | null;
+    xRequestId: string | null;
+    xClientRequestId: string | null;
+    error: string | null;
+    createdAt: string;
+  }>;
 };
 
 type EventRow = {
@@ -311,6 +329,75 @@ export function DebugConsole({
                   <td className="py-2">{j.claimExpiresAt ? new Date(j.claimExpiresAt).toLocaleString() : "-"}</td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border p-4 space-y-4 bg-card">
+        <h2 className="font-semibold text-lg">Details Requests</h2>
+        <div className="overflow-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left py-2">#</th>
+                <th className="text-left py-2">Report</th>
+                <th className="text-left py-2">Team</th>
+                <th className="text-left py-2">User</th>
+                <th className="text-left py-2">Kind</th>
+                <th className="text-left py-2">Status</th>
+                <th className="text-left py-2">Usage</th>
+                <th className="text-left py-2">Est. Cost</th>
+                <th className="text-left py-2">Request IDs</th>
+                <th className="text-left py-2">When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(debug?.detailRequests ?? []).map((req) => {
+                const usage = asUsageLike(req.usage);
+                const inputTokens = pickNumber(usage?.input_tokens, usage?.inputTokens);
+                const outputTokens = pickNumber(usage?.output_tokens, usage?.outputTokens);
+                const totalTokens = pickNumber(usage?.total_tokens, usage?.totalTokens);
+                const cachedTokens = pickNumber(
+                  usage?.input_tokens_details?.cached_tokens,
+                  usage?.cachedInputTokens
+                );
+                return (
+                  <tr key={req.id} className="border-b align-top">
+                    <td className="py-2">{req.requestNumber}</td>
+                    <td className="py-2">
+                      <button className="underline" onClick={() => router.push(`/reports/${req.reportId}`)}>
+                        {req.reportId}
+                      </button>
+                    </td>
+                    <td className="py-2">{req.teamName ?? req.teamId}</td>
+                    <td className="py-2">{req.requestedByUserEmail ?? req.requestedByUserId ?? "-"}</td>
+                    <td className="py-2">
+                      {req.kind}
+                      <div className="text-xs text-muted-foreground">{req.rowId}</div>
+                    </td>
+                    <td className="py-2">
+                      <Badge variant="outline">{req.status}</Badge>
+                      {req.error ? <div className="text-xs text-red-600 mt-1">{req.error}</div> : null}
+                    </td>
+                    <td className="py-2 text-xs">
+                      in:{inputTokens ?? "-"} out:{outputTokens ?? "-"} total:{totalTokens ?? "-"} cached:{cachedTokens ?? "-"}
+                    </td>
+                    <td className="py-2">{req.estimatedCostUsd ?? "-"}</td>
+                    <td className="py-2 text-xs whitespace-pre-wrap">
+                      {`${req.xRequestId ?? "-"}\n${req.xClientRequestId ?? "-"}`}
+                    </td>
+                    <td className="py-2">{new Date(req.createdAt).toLocaleString()}</td>
+                  </tr>
+                );
+              })}
+              {(debug?.detailRequests?.length ?? 0) === 0 ? (
+                <tr>
+                  <td className="py-3 text-muted-foreground" colSpan={10}>
+                    No detail requests recorded yet.
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
