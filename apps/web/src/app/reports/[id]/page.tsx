@@ -65,6 +65,11 @@ export default async function ReportDetailPage({
     where: (p, { eq }) => eq(p.id, report.propertyId),
   });
 
+  const team = await db.query.teams.findFirst({
+    where: (t, { eq }) => eq(t.id, report.teamId),
+  });
+  const isOwner = team?.ownerId === session.user.id;
+
   const data = report.data as ReportData | null;
   const aiReport = report.aiReportJson as AiSeoReport | null;
   const recentEvents = await db.query.reportJobEvents.findMany({
@@ -110,8 +115,11 @@ export default async function ReportDetailPage({
               <div className="text-xs text-muted-foreground text-right space-y-1">
                 <div>AI: {report.aiStatus ?? "n/a"}</div>
                 <div>XLSX: {report.xlsxStatus ?? "n/a"}</div>
-                {report.aiEstimatedCostUsd ? (
-                  <div>Est. AI Cost: ${String(report.aiEstimatedCostUsd)}</div>
+                {isOwner && report.aiEstimatedCostUsd ? (
+                  <div>AI Cost: ${String(report.aiEstimatedCostUsd)}</div>
+                ) : null}
+                {isOwner && report.detailsCostUsd ? (
+                  <div>Details cost: ${String(report.detailsCostUsd)}</div>
                 ) : null}
               </div>
             </div>
