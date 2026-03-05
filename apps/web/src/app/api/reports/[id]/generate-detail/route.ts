@@ -178,6 +178,7 @@ Rules:
     return NextResponse.json({ actionDetail: serializedDetail });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Internal server error";
+    console.error("[generate-detail] 500:", message, error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
