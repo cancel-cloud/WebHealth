@@ -59,7 +59,7 @@ export function getPostgresErrorCode(error: unknown): string | null {
 }
 
 export function shouldAutoBaselineMigrations(error: unknown) {
-  return getPostgresErrorCode(error) === "42P07";
+  return isDriftToleratedErrorCode(getPostgresErrorCode(error));
 }
 
 export function isDriftToleratedErrorCode(code: string | null) {

@@ -13,6 +13,11 @@ test("polls while xlsx render is pending or generating even when report is compl
   assert.equal(shouldPollReportLiveStatus("complete", "generating"), true);
 });
 
+test("does not poll when report is scheduled even if xlsx looks active", () => {
+  assert.equal(shouldPollReportLiveStatus("scheduled", "pending"), false);
+  assert.equal(shouldPollReportLiveStatus("scheduled", "generating"), false);
+});
+
 test("does not poll when both report and xlsx are in terminal states", () => {
   assert.equal(shouldPollReportLiveStatus("complete", "ready"), false);
   assert.equal(shouldPollReportLiveStatus("complete", "failed"), false);

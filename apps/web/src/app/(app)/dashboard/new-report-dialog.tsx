@@ -376,7 +376,7 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
         }
 
         // Could not auto-link
-        toast.warning("GA4 couldn't be auto-linked. Go to Properties to link manually.", {
+        toast.info("Report created. You can link GA4 in Properties or continue with GSC-only data from the report page.", {
           id: TOAST_ID,
           duration: 8000,
           action: {

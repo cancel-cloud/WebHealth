@@ -13,5 +13,6 @@ export function shouldPollReportLiveStatus(
   reportStatus: ReportStatus,
   xlsxStatus: XlsxStatus
 ): boolean {
+  if (reportStatus === "scheduled") return false;
   return isActiveReportStatus(reportStatus) || isActiveXlsxStatus(xlsxStatus);
 }
