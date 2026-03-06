@@ -6,6 +6,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { enqueueReportJob } from "@webhealth/shared/lib/queue/report-jobs";
 import { resolveReportSourcesForExistingReport } from "@webhealth/shared/lib/properties/reportable-properties-db";
+import { shouldAllowScheduledStart } from "./route.logic";
 
 // POST /api/reports/[id]/start — promote a scheduled report to queued and fire processing
 export async function POST(
@@ -15,6 +16,8 @@ export async function POST(
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const body = await req.json().catch(() => ({}));
+    const forceWithoutGa4 = body?.forceWithoutGa4 === true;
 
     const { id: reportId } = await params;
 
@@ -43,7 +46,10 @@ export async function POST(
     } catch {
       return NextResponse.json({ error: 'Report property is invalid or no longer linked' }, { status: 400 });
     }
-    if (!resolvedSources.canonicalGscProperty.ga4PropertyId) {
+    if (!shouldAllowScheduledStart({
+      hasLinkedGa4: !!resolvedSources.canonicalGscProperty.ga4PropertyId,
+      forceWithoutGa4,
+    })) {
       return NextResponse.json({ error: 'Property still has no GA4 link' }, { status: 400 });
     }
 

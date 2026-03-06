@@ -19,15 +19,16 @@ type ReportType = {
   propertyId: string;
   dateRangeStart: string;
   dateRangeEnd: string;
-  status: "queued" | "processing" | "complete" | "failed";
+  status: "queued" | "scheduled" | "processing" | "complete" | "failed";
   createdAt: string;
 };
 
-type StatusFilter = "all" | "queued" | "processing" | "complete" | "failed";
+type StatusFilter = "all" | "queued" | "scheduled" | "processing" | "complete" | "failed";
 
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "queued", label: "Queued" },
+  { value: "scheduled", label: "Waiting For Data" },
   { value: "processing", label: "Processing" },
   { value: "complete", label: "Complete" },
   { value: "failed", label: "Failed" },
@@ -41,6 +42,8 @@ function getStatusBadge(status: string) {
       return <Badge className="bg-blue-500/10 text-blue-600 border border-blue-200 animate-pulse">Processing</Badge>;
     case "queued":
       return <Badge variant="outline" className="text-zinc-500">Queued</Badge>;
+    case "scheduled":
+      return <Badge className="bg-amber-500/10 text-amber-700 border border-amber-200 hover:bg-amber-500/20">Waiting For Data</Badge>;
     case "failed":
       return <Badge variant="destructive">Failed</Badge>;
     default:

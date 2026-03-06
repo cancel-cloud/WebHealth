@@ -3,11 +3,19 @@ import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@webhealth/shared/db";
 import Link from "next/link";
-import { ArrowLeft, BarChart2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, BarChart2, AlertTriangle, Link2 } from "lucide-react";
+import { resolveReportSourcesForExistingReport } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { ReportActions } from "./report-actions";
 import { ReportLiveStatus } from "./report-live-status";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { AiSeoReport } from "@webhealth/shared/lib/reports/types";
+import {
+  getReportActionAvailability,
+  getScheduledNoticeState,
+  shouldShowTopReportActions,
+} from "./report-page.logic";
+import { ScheduledReportActions } from "./scheduled-report-actions";
 
 import { ExecutiveSummary } from "./sections/executive-summary";
 import { KpiCards } from "./sections/kpi-cards";
@@ -32,6 +40,7 @@ type ReportData = {
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; class: string }> = {
     queued: { label: "Queued", class: "text-zinc-500 bg-zinc-100 border-zinc-200" },
+    scheduled: { label: "Waiting For Data", class: "text-amber-700 bg-amber-50 border-amber-200" },
     processing: { label: "Processing", class: "text-blue-600 bg-blue-50 border-blue-200 animate-pulse" },
     complete: { label: "Complete", class: "text-green-600 bg-green-50 border-green-200" },
     failed: { label: "Failed", class: "text-red-600 bg-red-50 border-red-200" },
@@ -65,17 +74,42 @@ export default async function ReportDetailPage({
     where: (p, { eq }) => eq(p.id, report.propertyId),
   });
 
-  const team = await db.query.teams.findFirst({
-    where: (t, { eq }) => eq(t.id, report.teamId),
-  });
+  const [team, recentEvents, teamGa4Property] = await Promise.all([
+    db.query.teams.findFirst({
+      where: (t, { eq }) => eq(t.id, report.teamId),
+    }),
+    db.query.reportJobEvents.findMany({
+      where: (e, { eq }) => eq(e.reportId, reportId),
+      orderBy: (e, { desc }) => [desc(e.createdAt)],
+      limit: 20,
+    }),
+    db.query.properties.findFirst({
+      where: (p, { and, eq }) => and(eq(p.teamId, report.teamId), eq(p.type, "ga4")),
+    }),
+  ]);
   const isOwner = team?.ownerId === session.user.id;
 
   const data = report.data as ReportData | null;
   const aiReport = report.aiReportJson as AiSeoReport | null;
-  const recentEvents = await db.query.reportJobEvents.findMany({
-    where: (e, { eq }) => eq(e.reportId, reportId),
-    orderBy: (e, { desc }) => [desc(e.createdAt)],
-    limit: 20,
+  const teamHasAnyGa4Properties = !!teamGa4Property;
+  const actionAvailability = getReportActionAvailability({
+    hasAiReportJson: !!aiReport,
+    reportStatus: report.status,
+  });
+  let sourceValid = false;
+  let hasLinkedGa4Now = false;
+  try {
+    const resolvedSources = await resolveReportSourcesForExistingReport(report);
+    sourceValid = true;
+    hasLinkedGa4Now = !!resolvedSources.canonicalGscProperty.ga4PropertyId;
+  } catch {
+    sourceValid = false;
+    hasLinkedGa4Now = false;
+  }
+  const scheduledNoticeState = getScheduledNoticeState({
+    teamHasAnyGa4Properties,
+    sourceValid,
+    hasLinkedGa4Now,
   });
 
   return (
@@ -124,15 +158,46 @@ export default async function ReportDetailPage({
               </div>
             </div>
           </div>
-          <div className="mt-4">
-            <ReportActions
-              reportId={reportId}
-              xlsxReady={report.xlsxStatus === "ready" && !!report.xlsxArtifactUrl}
-            />
-          </div>
+          {shouldShowTopReportActions(report.status) ? (
+            <div className="mt-4">
+              <ReportActions
+                reportId={reportId}
+                xlsxReady={report.xlsxStatus === "ready" && !!report.xlsxArtifactUrl}
+                canRetryReport={actionAvailability.canRetryReport}
+                retryReportReason={actionAvailability.retryReportReason}
+                canRetryXlsx={actionAvailability.canRetryXlsx}
+                retryXlsxReason={actionAvailability.retryXlsxReason}
+              />
+            </div>
+          ) : null}
         </div>
 
-        {report.status === "queued" || report.status === "processing" ? (
+        {report.status === "scheduled" ? (
+          <div className="border border-amber-200 rounded-3xl p-10 bg-amber-50/70 shadow-sm">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="max-w-2xl space-y-3">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+                  <Link2 className="h-6 w-6" />
+                </div>
+                <h2 className="text-2xl font-semibold font-display text-amber-950">{scheduledNoticeState.title}</h2>
+                <p className="text-amber-950/80">{scheduledNoticeState.description}</p>
+                <p className="text-sm text-amber-900/80">{scheduledNoticeState.helper}</p>
+                <ScheduledReportActions
+                  reportId={reportId}
+                  canContinueAnyway={scheduledNoticeState.canContinueAnyway}
+                  continueAnywayReason={scheduledNoticeState.continueAnywayReason}
+                  canProceedWithGa4={scheduledNoticeState.canProceedWithGa4}
+                  proceedWithGa4Reason={scheduledNoticeState.proceedWithGa4Reason}
+                />
+              </div>
+              <div className="flex shrink-0">
+                <Button asChild className="rounded-full">
+                  <Link href="/properties">Open Properties</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : report.status === "queued" || report.status === "processing" ? (
           <div className="border border-border/50 rounded-3xl p-16 text-center bg-card shadow-sm">
             <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 mx-auto">
               <BarChart2 className="h-8 w-8 text-primary animate-pulse" />

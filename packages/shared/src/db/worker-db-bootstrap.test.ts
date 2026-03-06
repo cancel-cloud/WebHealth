@@ -90,6 +90,11 @@ test("shouldAutoBaselineMigrations returns true for duplicate relation", () => {
   assert.equal(should, true);
 });
 
+test("shouldAutoBaselineMigrations returns true for duplicate-object drift", () => {
+  const should = shouldAutoBaselineMigrations({ cause: { code: "42710" } });
+  assert.equal(should, true);
+});
+
 test("shouldAutoBaselineMigrations returns false for non-duplicate migration errors", () => {
   const should = shouldAutoBaselineMigrations({ cause: { code: "42P01" } });
   assert.equal(should, false);

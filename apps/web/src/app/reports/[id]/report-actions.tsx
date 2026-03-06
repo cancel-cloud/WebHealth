@@ -3,14 +3,23 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 
 export function ReportActions({
   reportId,
   xlsxReady,
+  canRetryReport,
+  retryReportReason,
+  canRetryXlsx,
+  retryXlsxReason,
 }: {
   reportId: string;
   xlsxReady: boolean;
+  canRetryReport: boolean;
+  retryReportReason: string | null;
+  canRetryXlsx: boolean;
+  retryXlsxReason: string | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<null | "retry" | "xlsx">(null);
@@ -39,14 +48,58 @@ export function ReportActions({
     }
   }
 
+  function ActionButton(props: {
+    label: string;
+    busyLabel: string;
+    mode: "retry" | "xlsx";
+    path: string;
+    canRun: boolean;
+    disabledReason: string | null;
+  }) {
+    const isDisabled = busy !== null || !props.canRun;
+    const button = (
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => post(props.path, props.mode)}
+        disabled={isDisabled}
+      >
+        {busy === props.mode ? props.busyLabel : props.label}
+      </Button>
+    );
+
+    if (!props.disabledReason) return button;
+
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span tabIndex={isDisabled ? 0 : undefined} className="inline-flex">
+            {button}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent sideOffset={8}>{props.disabledReason}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
   return (
     <div className="flex flex-wrap gap-2">
-      <Button size="sm" variant="outline" onClick={() => post(`/api/reports/${reportId}/retry`, "retry")} disabled={busy !== null}>
-        {busy === "retry" ? "Re-queuing..." : "Retry Report"}
-      </Button>
-      <Button size="sm" variant="outline" onClick={() => post(`/api/reports/${reportId}/retry-xlsx`, "xlsx")} disabled={busy !== null}>
-        {busy === "xlsx" ? "Re-queuing..." : "Retry XLSX Only"}
-      </Button>
+      <ActionButton
+        label="Retry Report"
+        busyLabel="Re-queuing..."
+        mode="retry"
+        path={`/api/reports/${reportId}/retry`}
+        canRun={canRetryReport}
+        disabledReason={retryReportReason}
+      />
+      <ActionButton
+        label="Retry XLSX Only"
+        busyLabel="Re-queuing..."
+        mode="xlsx"
+        path={`/api/reports/${reportId}/retry-xlsx`}
+        canRun={canRetryXlsx}
+        disabledReason={retryXlsxReason}
+      />
       {xlsxReady ? (
         <Button size="sm" asChild>
           <a href={`/api/reports/${reportId}/download`}>Download XLSX</a>
