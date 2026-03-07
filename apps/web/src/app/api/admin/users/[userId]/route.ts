@@ -1,22 +1,17 @@
 import { NextResponse } from "next/server";
-import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { user, teams, systemLogs } from "@webhealth/shared/db/schema";
 import { eq, or } from "drizzle-orm";
-import { headers } from "next/headers";
 import { nanoid } from "nanoid";
-
-const ADMIN_EMAIL = "lukas@devbrew.dev";
+import { requireAdminSession } from "@/lib/server/authz";
+import { handleRouteError } from "@/lib/server/route-security";
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ userId: string }> },
 ) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (session.user.email !== ADMIN_EMAIL)
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const session = await requireAdminSession();
 
     const { userId } = await params;
     const body = await req.json() as Record<string, unknown>;
@@ -39,9 +34,7 @@ export async function PATCH(
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    console.error("Error updating user:", error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error updating user", error);
   }
 }
 
@@ -50,10 +43,7 @@ export async function DELETE(
   { params }: { params: Promise<{ userId: string }> },
 ) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (session.user.email !== ADMIN_EMAIL)
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const session = await requireAdminSession();
 
     const { userId } = await params;
 
@@ -84,8 +74,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    console.error("Error deleting user:", error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error deleting user", error);
   }
 }

@@ -1,13 +1,23 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { nanoid } from "nanoid";
-import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { reports } from "@webhealth/shared/db/schema";
 import { enqueueReportJob } from "@webhealth/shared/lib/queue/report-jobs";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
+import { badRequest } from "@webhealth/shared/lib/http-errors";
+import { requireAdminSession } from "@/lib/server/authz";
+import { handleRouteError } from "@/lib/server/route-security";
 
-const ADMIN_EMAIL = "lukas@devbrew.dev";
+function throwSafePropertyResolutionError(error: unknown): never {
+  const message = error instanceof Error ? error.message : "Property not found for team";
+  if (/not linked to a Google Search Console property/i.test(message)) {
+    throw badRequest(
+      "INVALID_PROPERTY",
+      "The selected property is not linked to a Google Search Console property"
+    );
+  }
+  throw badRequest("PROPERTY_NOT_FOUND", "Property not found for team");
+}
 
 function fmt(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -21,9 +31,7 @@ function subDays(date: Date, days: number) {
 
 export async function POST(req: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (session.user.email !== ADMIN_EMAIL) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    await requireAdminSession();
 
     const body = (await req.json()) as {
       teamId?: string;
@@ -31,16 +39,14 @@ export async function POST(req: Request) {
       options?: { modelOverride?: string; runXlsx?: boolean; sitemapUrlOverride?: string };
     };
     if (!body.teamId || !body.propertyId) {
-      return NextResponse.json({ error: "teamId and propertyId are required" }, { status: 400 });
+      throw badRequest("TEAM_AND_PROPERTY_REQUIRED", "teamId and propertyId are required");
     }
 
     let resolvedSources;
     try {
       resolvedSources = await resolveTeamReportSources(body.teamId, body.propertyId);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Property not found for team";
-      const status = /not linked to a Google Search Console property/i.test(message) ? 400 : 404;
-      return NextResponse.json({ error: message }, { status });
+      throwSafePropertyResolutionError(error);
     }
 
     const end = subDays(new Date(), 1);
@@ -84,7 +90,6 @@ export async function POST(req: Request) {
       canonicalPropertyId: resolvedSources.canonicalReportPropertyId,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error queueing admin test report", error);
   }
 }

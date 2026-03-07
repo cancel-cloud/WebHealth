@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { gscDailyFacts } from "@webhealth/shared/db/schema";
 import { eq, and, min, max } from 'drizzle-orm';
-import { headers } from 'next/headers';
+import { badRequest, notFound } from "@webhealth/shared/lib/http-errors";
+import { requireAnyTeamMembership, requireUnrestrictedSession } from "@/lib/server/authz";
+import { handleRouteError } from "@/lib/server/route-security";
 
 // GET /api/properties/[id]/data-range
 export async function GET(
@@ -11,17 +12,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await requireUnrestrictedSession();
 
     const { id: propertyId } = await params;
 
-    // Verify property belongs to the user's team
-    const userTeams = await db.query.teamMembers.findMany({
-      where: (tm, { eq }) => eq(tm.userId, session.user.id),
-    });
+    const userTeams = await requireAnyTeamMembership(session);
     if (userTeams.length === 0) {
-      return NextResponse.json({ error: 'No team found' }, { status: 400 });
+      throw badRequest("TEAM_NOT_FOUND", "No team found");
     }
     const teamId = userTeams[0].teamId;
 
@@ -29,7 +26,7 @@ export async function GET(
       where: (p, { and, eq }) => and(eq(p.id, propertyId), eq(p.teamId, teamId)),
     });
     if (!prop) {
-      return NextResponse.json({ error: 'Property not found or unauthorized' }, { status: 404 });
+      throw notFound("Property not found or unauthorized", "PROPERTY_NOT_FOUND");
     }
 
     const [result] = await db
@@ -45,8 +42,6 @@ export async function GET(
       latest: result?.latest ?? null,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    console.error('Error fetching data range:', error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error fetching data range", error);
   }
 }

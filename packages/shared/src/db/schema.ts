@@ -182,6 +182,13 @@ export const systemLogs = pgTable("system_logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const adminEmails = pgTable("admin_emails", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  createdByUserId: text("created_by_user_id").references(() => user.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const metricsBackfillJobs = pgTable("metrics_backfill_jobs", {
   id: text("id").primaryKey(),
   teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),

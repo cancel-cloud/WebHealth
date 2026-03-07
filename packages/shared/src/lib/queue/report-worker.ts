@@ -1,12 +1,12 @@
 import OpenAI from "openai";
 import { nanoid } from "nanoid";
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "@webhealth/shared/db";
 import {
-  account,
   aiReportSettings,
   ga4DailyFacts,
   gscDailyFacts,
+  reportDetailAiExpansions,
   reports,
   teamMembers,
 } from "@webhealth/shared/db/schema";
@@ -22,7 +22,20 @@ import {
 } from "@webhealth/shared/lib/google/api";
 import { composeReportMetricsFromCache, ensureMetricsCoverageForReport } from "@webhealth/shared/lib/metrics-cache";
 import { estimateOpenAICostUsd } from "@webhealth/shared/lib/openai/cost-estimator";
+import { extractOpenAIRequestId } from "@webhealth/shared/lib/openai/request-tracing";
 import { getArtifactStore } from "@webhealth/shared/lib/reports/artifacts/store";
+import {
+  buildActionDetailPrompt,
+  detailSchema,
+  findRow,
+  isRowType,
+  makeDetailClientRequestId,
+  normalizeDetailUsage,
+  patchRowActionDetail,
+  serializeActionDetail,
+  shouldGenerateDetail,
+  type RowType,
+} from "@webhealth/shared/lib/report-detail";
 import {
   aiSeoReportJsonSchema,
   aiSeoReportJsonSchemaForOpenAI,
@@ -48,6 +61,7 @@ import type { AiSeoReport, OpenAIRequestTrace } from "@webhealth/shared/lib/repo
 import { buildWorkbookBufferFromAiReport } from "@webhealth/shared/lib/reports/xlsx-builder";
 import { resolveReportSourcesForExistingReport } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { enqueueReportJob } from "@webhealth/shared/lib/queue/report-jobs";
+import { getGoogleAccountTokensForUser } from "@webhealth/shared/lib/provider-tokens";
 import {
   appendReportJobEvent,
   claimNextReportJob,
@@ -84,6 +98,8 @@ type ReportDataPayload = {
 };
 
 const configuredOpenAiOrg = process.env.OPENAI_ORG?.trim() || null;
+const DETAIL_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+const MAX_DETAIL_WRITE_RETRIES = 5;
 
 function buildOpenAiClient(opts?: { omitOrganization?: boolean }) {
   return new OpenAI({
@@ -111,6 +127,22 @@ function isOpenAiOrganizationHeaderMismatch(error: unknown) {
 
   if (status !== 401) return false;
   return /openai-organization header should match organization/i.test(message);
+}
+
+function supportsTemperature(model: string) {
+  return !model.toLowerCase().startsWith("gpt-5");
+}
+
+class DetailSaveConflictError extends Error {}
+
+function extractChatCompletionRequestId(response: unknown): string | null {
+  const raw = response as {
+    _request_id?: string;
+    response?: { headers?: Headers | Record<string, string | string[] | undefined> };
+  };
+  if (raw._request_id) return raw._request_id;
+  if (!raw.response?.headers) return null;
+  return extractOpenAIRequestId(raw.response.headers);
 }
 
 function sleep(ms: number) {
@@ -447,9 +479,7 @@ async function getTeamOwnerGoogleAuth(teamId: string) {
   });
   if (!owner) throw new Error("No team owner found");
 
-  const googleAccount = await db.query.account.findFirst({
-    where: and(eq(account.userId, owner.userId), eq(account.providerId, "google")),
-  });
+  const googleAccount = await getGoogleAccountTokensForUser(owner.userId);
   if (!googleAccount?.accessToken) throw new Error("Google account not linked");
 
   const authClient = getGoogleAuthClient(
@@ -458,6 +488,256 @@ async function getTeamOwnerGoogleAuth(teamId: string) {
   );
 
   return { owner, googleAccount, authClient };
+}
+
+async function appendDetailExpansionAttempt(input: {
+  reportId: string;
+  teamId: string;
+  requestedByUserId: string;
+  requestNumber: number;
+  kind: string;
+  rowId: string;
+  model: string;
+  usage: unknown;
+  estimatedCostUsd: number | null;
+  xRequestId: string | null;
+  xClientRequestId: string;
+  status: "success" | "failed";
+  error: string | null;
+}) {
+  await db.insert(reportDetailAiExpansions).values({
+    id: `rdae_${nanoid(12)}`,
+    reportId: input.reportId,
+    teamId: input.teamId,
+    requestedByUserId: input.requestedByUserId,
+    requestNumber: input.requestNumber,
+    kind: input.kind,
+    rowId: input.rowId,
+    model: input.model,
+    usage: input.usage as Record<string, unknown> | null,
+    estimatedCostUsd: input.estimatedCostUsd != null ? String(input.estimatedCostUsd) : null,
+    xRequestId: input.xRequestId,
+    xClientRequestId: input.xClientRequestId,
+    status: input.status,
+    error: input.error,
+  });
+}
+
+async function processGenerateDetailJob(job: ClaimedReportJob, workerId: string) {
+  const payload =
+    job.payload && typeof job.payload === "object"
+      ? (job.payload as Record<string, unknown>)
+      : {};
+  const rowTypeValue = typeof payload.rowType === "string" ? payload.rowType : null;
+  const rowId = typeof payload.rowId === "string" ? payload.rowId : null;
+  const requestedByUserId =
+    typeof payload.requestedByUserId === "string" ? payload.requestedByUserId : null;
+
+  if (!rowTypeValue || !rowId || !requestedByUserId || !isRowType(rowTypeValue)) {
+    throw new Error("Invalid generate_detail payload");
+  }
+  const rowType = rowTypeValue as RowType;
+
+  await setJobPhaseWithLog(job, workerId, "detail", { rowType, rowId });
+
+  const report = await db.query.reports.findFirst({
+    where: and(eq(reports.id, job.reportId), eq(reports.teamId, job.teamId)),
+  });
+  if (!report) throw new Error("Report not found");
+
+  const property = await db.query.properties.findFirst({
+    where: (table, { eq }) => eq(table.id, report.propertyId),
+  });
+
+  const aiReport = report.aiReportJson as AiSeoReport | null;
+  if (!aiReport) throw new Error("No AI report data");
+
+  const rowData = findRow(aiReport, rowType, rowId);
+  if (!rowData) throw new Error("Row not found");
+
+  if (!shouldGenerateDetail(rowData)) {
+    await appendReportJobEvent({
+      jobId: job.id,
+      reportId: job.reportId,
+      teamId: job.teamId,
+      phase: "detail",
+      level: "info",
+      message: "Skipped detail generation because cached detail already exists",
+      meta: { rowType, rowId },
+    });
+    return;
+  }
+
+  const [counter] = await db
+    .update(reports)
+    .set({
+      detailsRequestCount: sql`coalesce(${reports.detailsRequestCount}, 0) + 1`,
+    })
+    .where(eq(reports.id, job.reportId))
+    .returning({ requestNumber: reports.detailsRequestCount });
+  if (!counter) throw new Error("Report not found");
+
+  const requestNumber = counter.requestNumber;
+  const xClientRequestId = makeDetailClientRequestId({
+    reportId: job.reportId,
+    requestNumber,
+    kind: rowType,
+  });
+
+  let usageSnapshot: ReturnType<typeof normalizeDetailUsage> = null;
+  let callCost: number | null = null;
+  let xRequestId: string | null = null;
+
+  try {
+    const response = await openaiClient.chat.completions.create(
+      {
+        model: DETAIL_MODEL,
+        messages: [
+          {
+            role: "user",
+            content: buildActionDetailPrompt({
+              siteUrl: property?.url ?? report.propertyId,
+              dateRangeStart: String(report.dateRangeStart),
+              dateRangeEnd: String(report.dateRangeEnd),
+              rowType,
+              rowData,
+            }),
+          },
+        ],
+        temperature: supportsTemperature(DETAIL_MODEL) ? 0.2 : undefined,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "action_detail",
+            schema: detailSchema,
+            strict: true,
+          },
+        },
+      },
+      {
+        headers: { "X-Client-Request-Id": xClientRequestId },
+      }
+    );
+
+    xRequestId = extractChatCompletionRequestId(response);
+    usageSnapshot = normalizeDetailUsage(response.usage ?? null);
+    callCost = estimateOpenAICostUsd(DETAIL_MODEL, usageSnapshot);
+
+    if (callCost != null) {
+      await db
+        .update(reports)
+        .set({
+          detailsCostUsd: sql`(coalesce(${reports.detailsCostUsd}, 0::numeric) + ${callCost})::numeric(12, 6)`,
+        })
+        .where(eq(reports.id, job.reportId));
+    }
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) throw new Error("No response from AI");
+
+    let finalSerializedDetail = serializeActionDetail(content);
+    let saved = false;
+
+    for (let attempt = 0; attempt < MAX_DETAIL_WRITE_RETRIES; attempt += 1) {
+      const latestReport =
+        attempt === 0
+          ? report
+          : await db.query.reports.findFirst({
+              where: and(eq(reports.id, job.reportId), eq(reports.teamId, job.teamId)),
+            });
+      if (!latestReport) {
+        throw new Error("Report not found");
+      }
+
+      const latestAiReport = latestReport.aiReportJson as AiSeoReport | null;
+      if (!latestAiReport) {
+        throw new Error("No AI report data");
+      }
+
+      const latestRowData = findRow(latestAiReport, rowType, rowId);
+      if (!latestRowData) {
+        throw new Error("Row not found");
+      }
+
+      if (!shouldGenerateDetail(latestRowData)) {
+        finalSerializedDetail = String(latestRowData.actionDetail ?? finalSerializedDetail);
+        saved = true;
+        break;
+      }
+
+      const patched = patchRowActionDetail(latestAiReport, rowType, rowId, finalSerializedDetail);
+      const updated = await db
+        .update(reports)
+        .set({
+          aiReportJson: patched,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(reports.id, job.reportId), eq(reports.updatedAt, latestReport.updatedAt)))
+        .returning({ id: reports.id });
+
+      if (updated.length > 0) {
+        saved = true;
+        break;
+      }
+    }
+
+    if (!saved) {
+      throw new DetailSaveConflictError("Could not save detail due to concurrent updates. Please retry.");
+    }
+
+    await appendDetailExpansionAttempt({
+      reportId: job.reportId,
+      teamId: job.teamId,
+      requestedByUserId,
+      requestNumber,
+      kind: rowType,
+      rowId,
+      model: DETAIL_MODEL,
+      usage: usageSnapshot?.raw ?? usageSnapshot,
+      estimatedCostUsd: callCost,
+      xRequestId,
+      xClientRequestId,
+      status: "success",
+      error: null,
+    });
+
+    await appendReportJobEvent({
+      jobId: job.id,
+      reportId: job.reportId,
+      teamId: job.teamId,
+      phase: "detail",
+      level: "info",
+      message: "Generated action detail",
+      meta: { rowType, rowId, requestNumber },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    try {
+      await appendDetailExpansionAttempt({
+        reportId: job.reportId,
+        teamId: job.teamId,
+        requestedByUserId,
+        requestNumber,
+        kind: rowType,
+        rowId,
+        model: DETAIL_MODEL,
+        usage: usageSnapshot?.raw ?? usageSnapshot,
+        estimatedCostUsd: callCost,
+        xRequestId,
+        xClientRequestId,
+        status: "failed",
+        error: message,
+      });
+    } catch (insertError) {
+      logWarn("ERROR", "failed to persist detail expansion audit row", {
+        ...buildJobLogContext(job, workerId),
+        rowType,
+        rowId,
+        insertError: insertError instanceof Error ? insertError.message : "unknown",
+      });
+    }
+    throw error;
+  }
 }
 
 async function loadDailyTrends(params: {
@@ -1445,6 +1725,8 @@ async function processClaimedJob(job: ClaimedReportJob, workerId: string) {
 
     if (job.kind === "generate_report") {
       await processGenerateReportJob(job, workerId);
+    } else if (job.kind === "generate_detail") {
+      await processGenerateDetailJob(job, workerId);
     } else if (job.kind === "render_xlsx") {
       await processXlsxRenderJob(job, workerId);
     } else {
@@ -1492,6 +1774,16 @@ async function processClaimedJob(job: ClaimedReportJob, workerId: string) {
           .update(reports)
           .set({ xlsxStatus: "failed", aiStatus: "partial", error: message, updatedAt: new Date() })
           .where(eq(reports.id, job.reportId));
+      } else if (job.kind === "generate_detail") {
+        await appendReportJobEvent({
+          jobId: job.id,
+          reportId: job.reportId,
+          teamId: job.teamId,
+          phase: "detail",
+          level: "error",
+          message: "Detail generation failed",
+          meta: { error: message },
+        });
       } else {
         await db
           .update(reports)

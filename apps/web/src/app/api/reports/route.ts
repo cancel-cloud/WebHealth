@@ -1,25 +1,35 @@
 import { NextResponse } from 'next/server';
-import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { reports, systemLogs } from "@webhealth/shared/db/schema";
 import { eq } from 'drizzle-orm';
-import { headers } from 'next/headers';
 import { nanoid } from 'nanoid';
 import { isEnabled } from "@webhealth/shared/lib/feature-flags";
 import { getGoogleAuthClient } from "@webhealth/shared/lib/google/api";
 import { ensureMetricsCoverageForReport, rangeDaysInclusive } from "@webhealth/shared/lib/metrics-cache";
 import { enqueueReportJob } from "@webhealth/shared/lib/queue/report-jobs";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
+import { getGoogleAccountTokensForUser } from "@webhealth/shared/lib/provider-tokens";
+import { badRequest, notFound } from "@webhealth/shared/lib/http-errors";
+import { requireAnyTeamMembership, requireTeamOwner, requireUnrestrictedSession } from "@/lib/server/authz";
+import { handleRouteError } from "@/lib/server/route-security";
+
+function throwSafePropertyResolutionError(error: unknown): never {
+  const message = error instanceof Error ? error.message : "Property not found or unauthorized";
+  if (/not linked to a Google Search Console property/i.test(message)) {
+    throw badRequest(
+      "INVALID_PROPERTY",
+      "The selected property is not linked to a Google Search Console property"
+    );
+  }
+  throw notFound("Property not found", "PROPERTY_NOT_FOUND");
+}
 
 // GET /api/reports — fetch all reports for the current user's team
 export async function GET() {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await requireUnrestrictedSession();
 
-    const userTeams = await db.query.teamMembers.findMany({
-      where: (tm, { eq }) => eq(tm.userId, session.user.id),
-    });
+    const userTeams = await requireAnyTeamMembership(session);
     if (userTeams.length === 0) return NextResponse.json({ reports: [] });
 
     const teamId = userTeams[0].teamId;
@@ -30,46 +40,37 @@ export async function GET() {
 
     return NextResponse.json({ reports: teamReports });
   } catch (error: unknown) {
-    console.error('Error fetching reports:', error);
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error fetching reports", error);
   }
 }
 
 // POST /api/reports — create a new report and queue it
 export async function POST(req: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await requireUnrestrictedSession();
+    const ownerMembership = await requireTeamOwner(session);
 
     const body = await req.json();
     const { propertyId, dateRangeStart, dateRangeEnd, compareRangeStart, compareRangeEnd } = body;
 
     if (!propertyId || !dateRangeStart || !dateRangeEnd || !compareRangeStart || !compareRangeEnd) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      throw badRequest("MISSING_REQUIRED_FIELDS", "Missing required fields");
     }
     if (rangeDaysInclusive(dateRangeStart, dateRangeEnd) < 7) {
-      return NextResponse.json({ error: 'Report range must be at least 7 days' }, { status: 400 });
+      throw badRequest("REPORT_RANGE_TOO_SHORT", "Report range must be at least 7 days");
     }
     if (rangeDaysInclusive(compareRangeStart, compareRangeEnd) < 7) {
-      return NextResponse.json({ error: 'Compare range must be at least 7 days' }, { status: 400 });
+      throw badRequest("COMPARE_RANGE_TOO_SHORT", "Compare range must be at least 7 days");
     }
-
-    const userTeams = await db.query.teamMembers.findMany({
-      where: (tm, { eq }) => eq(tm.userId, session.user.id),
-    });
-    if (userTeams.length === 0) {
-      return NextResponse.json({ error: 'No team found' }, { status: 400 });
-    }
-    const teamId = userTeams[0].teamId;
+    // TODO(team-authz): Current product behavior assumes one effective team per user.
+    // When real multi-team support is added, authorize against the selected property's team.
+    const teamId = ownerMembership.teamId;
 
     let resolvedSources;
     try {
       resolvedSources = await resolveTeamReportSources(teamId, propertyId);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Property not found or unauthorized';
-      const status = /not linked to a Google Search Console property/i.test(message) ? 400 : 404;
-      return NextResponse.json({ error: message }, { status });
+      throwSafePropertyResolutionError(error);
     }
 
     const property = resolvedSources.canonicalGscProperty;
@@ -104,10 +105,7 @@ export async function POST(req: Request) {
         });
 
         const googleAccount = teamOwner
-          ? await db.query.account.findFirst({
-              where: (a, { and, eq }) =>
-                and(eq(a.userId, teamOwner.userId), eq(a.providerId, 'google')),
-            })
+          ? await getGoogleAccountTokensForUser(teamOwner.userId)
           : null;
 
         if (googleAccount?.accessToken) {
@@ -132,7 +130,7 @@ export async function POST(req: Request) {
       } catch (preflightError) {
         const message = preflightError instanceof Error ? preflightError.message : 'Metrics preflight failed';
         await db.update(reports).set({ status: 'failed' }).where(eq(reports.id, reportId));
-        return NextResponse.json({ error: message }, { status: 500 });
+        throw new Error(message);
       }
 
       await enqueueReportJob({
@@ -161,8 +159,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ report: newReport, ga4Missing: shouldSchedule }, { status: 201 });
   } catch (error: unknown) {
-    console.error('Error creating report:', error);
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error creating report", error);
   }
 }

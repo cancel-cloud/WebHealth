@@ -1,34 +1,25 @@
 import { NextResponse } from 'next/server';
-import { auth } from "@webhealth/shared/lib/auth";
-import { db } from "@webhealth/shared/db";
 import { syncPropertiesForUser } from "@webhealth/shared/lib/sync-properties";
-import { headers } from 'next/headers';
+import { getGoogleAccountTokensForUser } from "@webhealth/shared/lib/provider-tokens";
+import { badRequest, unauthorized } from "@webhealth/shared/lib/http-errors";
+import { handleRouteError } from "@/lib/server/route-security";
+import { requireTeamOwner, requireUnrestrictedSession } from "@/lib/server/authz";
 
 export async function POST(_req: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const session = await requireUnrestrictedSession();
+    const ownerMembership = await requireTeamOwner(session);
 
-    const accounts = await db.query.account.findMany({
-      where: (account, { eq }) => eq(account.userId, session.user.id),
-    });
-    const googleAccount = accounts.find((a) => a.providerId === 'google');
+    const googleAccount = await getGoogleAccountTokensForUser(session.user.id);
     if (!googleAccount?.accessToken) {
-      return NextResponse.json({ error: 'Google account not linked' }, { status: 400 });
+      throw badRequest("GOOGLE_ACCOUNT_NOT_LINKED", "Google account not linked");
     }
 
-    const userTeams = await db.query.teamMembers.findMany({
-      where: (tm, { eq }) => eq(tm.userId, session.user.id),
-    });
-    if (userTeams.length === 0) {
-      return NextResponse.json({ error: 'No team found for user' }, { status: 400 });
-    }
-
+    // TODO(team-authz): Current product behavior assumes one effective team per user.
+    // When real multi-team support is added, sync authorization must resolve the target team explicitly.
     const result = await syncPropertiesForUser({
       userId: session.user.id,
-      teamId: userTeams[0].teamId,
+      teamId: ownerMembership.teamId,
       accessToken: googleAccount.accessToken,
       refreshToken: googleAccount.refreshToken ?? undefined,
       accessTokenExpiresAt: googleAccount.accessTokenExpiresAt ?? null,
@@ -36,13 +27,13 @@ export async function POST(_req: Request) {
 
     return NextResponse.json({ success: true, ...result });
   } catch (error: unknown) {
-    console.error('Error syncing properties:', error);
     const code = (error as any)?.code;
     if (code === "GOOGLE_AUTH_RELOGIN_REQUIRED") {
-      const message = error instanceof Error ? error.message : "Google authorization expired.";
-      return NextResponse.json({ error: message, code }, { status: 401 });
+      return NextResponse.json(
+        { error: "Google authorization expired. Please sign in again.", code },
+        { status: 401 }
+      );
     }
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error syncing properties", error);
   }
 }

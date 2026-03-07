@@ -1,5 +1,6 @@
 "use client";
 
+import { sanitizeActionDetailPayload } from "@webhealth/shared/lib/action-detail";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,7 @@ export function ActionDetailModal({ open, onClose, title, detail }: ActionDetail
 
   if (detail) {
     try {
-      parsed = JSON.parse(detail) as ActionDetail;
+      parsed = sanitizeActionDetailPayload(JSON.parse(detail));
     } catch {
       parseError = true;
     }

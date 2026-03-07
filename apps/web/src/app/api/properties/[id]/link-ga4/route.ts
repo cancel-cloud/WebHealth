@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { properties, reports, systemLogs } from "@webhealth/shared/db/schema";
-import { eq, and } from 'drizzle-orm';
-import { headers } from 'next/headers';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { enqueueReportJob } from "@webhealth/shared/queue";
+import { badRequest, notFound } from "@webhealth/shared/lib/http-errors";
+import { handleRouteError } from "@/lib/server/route-security";
+import { requireTeamOwner, requireUnrestrictedSession } from "@/lib/server/authz";
 
 // PATCH /api/properties/[id]/link-ga4
 // Body: { ga4PropertyId: string } — numeric ID like "123456789"
@@ -14,25 +15,19 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await requireUnrestrictedSession();
+    const ownerMembership = await requireTeamOwner(session);
 
     const { id: gscPropertyId } = await params;
     const body = await req.json();
     const { ga4PropertyId } = body;
 
     if (!ga4PropertyId) {
-      return NextResponse.json({ error: 'ga4PropertyId is required' }, { status: 400 });
+      throw badRequest("GA4_PROPERTY_REQUIRED", "ga4PropertyId is required");
     }
-
-    // Get user's team
-    const userTeams = await db.query.teamMembers.findMany({
-      where: (tm, { eq }) => eq(tm.userId, session.user.id),
-    });
-    if (userTeams.length === 0) {
-      return NextResponse.json({ error: 'No team found' }, { status: 400 });
-    }
-    const teamId = userTeams[0].teamId;
+    // TODO(team-authz): Current product behavior assumes one effective team per user.
+    // When real multi-team support is added, authorize against the target property team.
+    const teamId = ownerMembership.teamId;
 
     // Verify the GSC property belongs to this team and is type 'gsc'
     const gscProp = await db.query.properties.findFirst({
@@ -40,7 +35,7 @@ export async function PATCH(
         and(eq(p.id, gscPropertyId), eq(p.teamId, teamId), eq(p.type, 'gsc')),
     });
     if (!gscProp) {
-      return NextResponse.json({ error: 'GSC property not found or unauthorized' }, { status: 404 });
+      throw notFound("GSC property not found or unauthorized", "GSC_PROPERTY_NOT_FOUND");
     }
 
     // Verify the GA4 property exists on the same team
@@ -50,7 +45,7 @@ export async function PATCH(
         and(eq(p.id, ga4DbId), eq(p.teamId, teamId), eq(p.type, 'ga4')),
     });
     if (!ga4Prop) {
-      return NextResponse.json({ error: 'GA4 property not found or unauthorized' }, { status: 404 });
+      throw notFound("GA4 property not found or unauthorized", "GA4_PROPERTY_NOT_FOUND");
     }
 
     // Link GSC → GA4
@@ -97,8 +92,6 @@ export async function PATCH(
       jobsEnqueued,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    console.error('Error linking GA4:', error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error linking GA4", error);
   }
 }

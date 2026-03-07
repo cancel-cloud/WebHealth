@@ -1,18 +1,13 @@
 import { NextResponse } from "next/server";
-import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { user, teamMembers, teams, properties, reports, session, planSettings } from "@webhealth/shared/db/schema";
 import { eq, count, max, gte } from "drizzle-orm";
-import { headers } from "next/headers";
-
-const ADMIN_EMAIL = "lukas@devbrew.dev";
+import { requireAdminSession } from "@/lib/server/authz";
+import { handleRouteError } from "@/lib/server/route-security";
 
 export async function GET() {
   try {
-    const adminSession = await auth.api.getSession({ headers: await headers() });
-    if (!adminSession) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (adminSession.user.email !== ADMIN_EMAIL)
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    await requireAdminSession();
 
     const users = await db
       .select({
@@ -84,8 +79,6 @@ export async function GET() {
 
     return NextResponse.json({ users: result });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    console.error("Error fetching admin users:", error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error fetching admin users", error);
   }
 }

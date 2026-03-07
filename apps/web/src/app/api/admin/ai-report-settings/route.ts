@@ -1,27 +1,15 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { asc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { aiReportPromptVersions, aiReportSettings } from "@webhealth/shared/db/schema";
 import { ensureDefaultAiReportSettings } from "@webhealth/shared/lib/queue/report-worker";
-
-const ADMIN_EMAIL = "lukas@devbrew.dev";
-
-async function requireAdmin() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  if (session.user.email !== ADMIN_EMAIL) {
-    return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-  return { session };
-}
+import { requireAdminSession } from "@/lib/server/authz";
+import { handleRouteError } from "@/lib/server/route-security";
 
 export async function GET() {
   try {
-    const admin = await requireAdmin();
-    if (admin.error) return admin.error;
+    await requireAdminSession();
 
     const settings = await ensureDefaultAiReportSettings();
     const prompts = await db
@@ -31,16 +19,13 @@ export async function GET() {
 
     return NextResponse.json({ settings, prompts });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error fetching AI report settings", error);
   }
 }
 
 export async function PATCH(req: Request) {
   try {
-    const admin = await requireAdmin();
-    if (admin.error) return admin.error;
-    const session = admin.session!;
+    const session = await requireAdminSession();
 
     const body = (await req.json()) as {
       model?: string;
@@ -106,7 +91,6 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ settings: updated });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error updating AI report settings", error);
   }
 }
