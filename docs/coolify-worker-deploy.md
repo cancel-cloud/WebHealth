@@ -94,16 +94,17 @@ Common optional vars:
 - `REPORT_AI_COST_CAP_USD`
 - `REPORT_OPENAI_POLL_INTERVAL_MS`
 - `REPORT_OPENAI_POLL_TIMEOUT_MS`
-- `WORKER_API_SECRET` (required if the web app fetches XLSX artifacts from the worker)
+- `ARTIFACT_TOKEN_SECRET` (required if the web app fetches XLSX artifacts from the worker)
+- `OAUTH_TOKEN_ENCRYPTION_KEY`
 - `WORKER_HTTP_PORT` (default `9100`)
 
 ## 6) Networking and Health Checks
 
-The worker runs a lightweight artifact HTTP server on port `9100` (configurable via `WORKER_HTTP_PORT`) that the web app uses to fetch XLSX report files. This server only starts when `WORKER_API_SECRET` is set.
+The worker runs a lightweight artifact HTTP server on port `9100` (configurable via `WORKER_HTTP_PORT`) that the web app uses to fetch XLSX report files. This server only starts when `ARTIFACT_TOKEN_SECRET` is set.
 
-- **Port exposure**: Expose port `9100` publicly (or via a tunnel) so Vercel can reach it. The bearer token (`WORKER_API_SECRET`) protects the endpoint.
+- **Port exposure**: Expose port `9100` publicly (or via a tunnel) so Vercel can reach it. Short-lived signed artifact tokens protect the endpoint.
 - **Health check**: Use path `/health` on port `9100` — returns `{"ok":true}`.
-- **Web app config**: Set `WORKER_ARTIFACT_URL` (e.g. `http://<worker-ip>:9100`) and `WORKER_API_SECRET` on the Vercel web app so it can fetch artifacts from the worker.
+- **Web app config**: Set `WORKER_ARTIFACT_URL` (e.g. `http://<worker-ip>:9100`) and `ARTIFACT_TOKEN_SECRET` on the web app so it can mint signed artifact tokens.
 
 ## 7) Optional Persistent Storage for Artifacts
 

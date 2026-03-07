@@ -6,6 +6,7 @@ import {
   makeDetailClientRequestId,
   normalizeDetailUsage,
   patchRowActionDetail,
+  serializeActionDetail,
   shouldGenerateDetail,
   type RowType,
 } from "./route.logic";
@@ -120,4 +121,25 @@ test("normalizeDetailUsage maps chat-completions usage fields", () => {
   assert.equal(usage?.outputTokens, 22);
   assert.equal(usage?.totalTokens, 133);
   assert.equal(usage?.cachedInputTokens, 11);
+});
+
+test("serializeActionDetail parses JSON string content before sanitizing", () => {
+  assert.equal(
+    serializeActionDetail(
+      JSON.stringify({
+        affectedUrls: ["https://example.com/page", "javascript:alert(1)"],
+        fixSteps: [" Step 1 ", "Step 2"],
+        whyItMatters: " Important. ",
+      })
+    ),
+    JSON.stringify({
+      affectedUrls: ["https://example.com/page"],
+      fixSteps: ["Step 1", "Step 2"],
+      whyItMatters: "Important.",
+    })
+  );
+});
+
+test("serializeActionDetail rejects invalid JSON string content", () => {
+  assert.throws(() => serializeActionDetail("{not-json"), /Invalid action detail JSON/);
 });

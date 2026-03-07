@@ -21,7 +21,7 @@ type GetDetailsButtonProps = {
 };
 
 const detailCache = new Map<string, string>();
-const inFlightByKey = new Map<string, Promise<string>>();
+const inFlightByKey = new Map<string, Promise<string | null>>();
 const PENDING_STORAGE_KEY = "webhealth:detail-pending:v1";
 const POLL_INTERVAL_MS = 2500;
 const PENDING_MAX_AGE_MS = 1000 * 60 * 5;
@@ -90,6 +90,7 @@ export function GetDetailsButton({
   });
   const [loading, setLoading] = useState(() => inFlightByKey.has(detailKey) || hasFreshPendingPersisted(detailKey));
   const [modalOpen, setModalOpen] = useState(false);
+  const [pollSeed, setPollSeed] = useState(0);
 
   useEffect(() => {
     if (initialDetail) detailCache.set(detailKey, initialDetail);
@@ -111,7 +112,7 @@ export function GetDetailsButton({
     let cancelled = false;
     let intervalId: number | null = null;
 
-    const attachToPending = (request: Promise<string>) => {
+    const attachToPending = (request: Promise<string | null>) => {
       setLoading(true);
       void request
         .then((nextDetail) => {
@@ -156,6 +157,9 @@ export function GetDetailsButton({
           setDetail(data.actionDetail);
           clearPendingPersisted(detailKey);
           setLoading(false);
+          toast.success("Details ready", {
+            action: { label: "Open", onClick: () => setModalOpen(true) },
+          });
           return true;
         } catch (error) {
           if (!cancelled) console.error(error);
@@ -190,7 +194,7 @@ export function GetDetailsButton({
       cancelled = true;
       if (intervalId != null) window.clearInterval(intervalId);
     };
-  }, [detailKey, initialDetail, reportId, rowId, rowType]);
+  }, [detailKey, initialDetail, pollSeed, reportId, rowId, rowType]);
 
   async function generateDetail() {
     const res = await fetch(`/api/reports/${reportId}/generate-detail`, {
@@ -198,9 +202,9 @@ export function GetDetailsButton({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rowType, rowId }),
     });
-    const data = await res.json() as { actionDetail?: string; error?: string };
+    const data = await res.json() as { actionDetail?: string; error?: string; queued?: boolean };
     if (!res.ok) throw new Error(data.error ?? "Request failed");
-    return data.actionDetail ?? "";
+    return data.actionDetail ?? null;
   }
 
   async function handleGetDetails() {
@@ -212,6 +216,7 @@ export function GetDetailsButton({
     setLoading(true);
     setPendingPersisted(detailKey);
     const toastId = toast.loading(`Generating details for "${rowTitle}"…`);
+    let queuedForPolling = false;
     try {
       let request = inFlightByKey.get(detailKey);
       if (!request) {
@@ -220,13 +225,19 @@ export function GetDetailsButton({
       }
 
       const nextDetail = await request;
-      if (nextDetail) detailCache.set(detailKey, nextDetail);
-      setDetail(nextDetail || null);
-      clearPendingPersisted(detailKey);
-      toast.success("Details ready", {
-        id: toastId,
-        action: { label: "Open", onClick: () => setModalOpen(true) },
-      });
+      if (nextDetail) {
+        detailCache.set(detailKey, nextDetail);
+        setDetail(nextDetail);
+        clearPendingPersisted(detailKey);
+        toast.success("Details ready", {
+          id: toastId,
+          action: { label: "Open", onClick: () => setModalOpen(true) },
+        });
+      } else {
+        queuedForPolling = true;
+        toast.dismiss(toastId);
+        setPollSeed((value) => value + 1);
+      }
     } catch (err) {
       const abortLike =
         typeof err === "object" &&
@@ -247,7 +258,9 @@ export function GetDetailsButton({
       console.error(err);
     } finally {
       inFlightByKey.delete(detailKey);
-      setLoading(false);
+      if (!queuedForPolling) {
+        setLoading(false);
+      }
     }
   }
 

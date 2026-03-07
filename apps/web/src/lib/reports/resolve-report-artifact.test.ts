@@ -10,7 +10,7 @@ test("returns local artifact bytes when local storage has the file", async () =>
   const result = await resolveReportArtifactBinary({
     artifactKey: "reports/rep_123/123-seo-report.xlsx",
     workerBaseUrl: undefined,
-    workerSecret: undefined,
+    artifactToken: undefined,
     readLocalArtifact: async () => localBytes.buffer,
     fetchImpl: async () => {
       fetchCalled = true;
@@ -32,11 +32,10 @@ test("fetches from worker when local artifact is missing", async () => {
   const result = await resolveReportArtifactBinary({
     artifactKey: "reports/rep_456/456-seo-report.xlsx",
     workerBaseUrl: "http://worker.internal:9100",
-    workerSecret: "top-secret",
+    artifactToken: "signed-token",
     readLocalArtifact: async () => null,
     fetchImpl: async (input, init) => {
       observedUrl = String(input);
-      observedAuth = String(init?.headers ? (init.headers as Record<string, string>).Authorization : "");
       return new Response(workerBytes.buffer, { status: 200 });
     },
   });
@@ -46,16 +45,15 @@ test("fetches from worker when local artifact is missing", async () => {
   assert.equal(Buffer.from(result.data).toString("utf8"), "worker-artifact");
   assert.equal(
     observedUrl,
-    "http://worker.internal:9100/artifacts?key=reports%2Frep_456%2F456-seo-report.xlsx"
+    "http://worker.internal:9100/artifacts?token=signed-token"
   );
-  assert.equal(observedAuth, "Bearer top-secret");
 });
 
 test("returns 502 when worker download fails at network level", async () => {
   const result = await resolveReportArtifactBinary({
     artifactKey: "reports/rep_789/789-seo-report.xlsx",
     workerBaseUrl: "http://worker.internal:9100",
-    workerSecret: "top-secret",
+    artifactToken: "signed-token",
     readLocalArtifact: async () => null,
     fetchImpl: async () => {
       throw new Error("connect ECONNREFUSED");
@@ -65,13 +63,14 @@ test("returns 502 when worker download fails at network level", async () => {
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.equal(result.status, 502);
+  assert.equal(result.code, "ARTIFACT_WORKER_UNREACHABLE");
 });
 
 test("returns 503 when neither local nor worker artifact source is available", async () => {
   const result = await resolveReportArtifactBinary({
     artifactKey: "reports/rep_abc/111-seo-report.xlsx",
     workerBaseUrl: undefined,
-    workerSecret: undefined,
+    artifactToken: undefined,
     readLocalArtifact: async () => null,
     fetchImpl: async () => new Response(null, { status: 500 }),
   });
@@ -79,4 +78,5 @@ test("returns 503 when neither local nor worker artifact source is available", a
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.equal(result.status, 503);
+  assert.equal(result.code, "ARTIFACT_SERVICE_UNAVAILABLE");
 });

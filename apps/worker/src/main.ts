@@ -11,11 +11,11 @@ async function main() {
   await ensureWorkerDatabaseReady();
 
   // Start artifact HTTP server for cross-service file downloads
-  if (process.env.WORKER_API_SECRET) {
+  if (process.env.ARTIFACT_TOKEN_SECRET) {
     const { startArtifactServer } = await import("./artifact-server");
     await startArtifactServer();
   } else {
-    console.warn("[report-worker][WARN][BOOT] WORKER_API_SECRET not set; artifact HTTP server disabled");
+    console.warn("[report-worker][WARN][BOOT] ARTIFACT_TOKEN_SECRET not set; artifact HTTP server disabled");
   }
 
   const once = process.argv.includes("--once");

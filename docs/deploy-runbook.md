@@ -89,7 +89,7 @@ Vercel troubleshooting:
   - Fix: verify the URL is publicly reachable from the internet, prefer HTTPS ingress/domain, and verify `/health`.
 - Symptom: download API returns `{"error":"Failed to fetch artifact from worker"}`.
   - Cause: worker returned non-200 for `/artifacts` (for example 400/401/500).
-  - Fix: verify `WORKER_API_SECRET` matches web + worker and inspect worker artifact-server logs.
+  - Fix: verify `ARTIFACT_TOKEN_SECRET` matches web + worker and inspect worker artifact-server logs.
 - Symptom: worker logs show `ENOENT ... stat 'artifacts/reports/...xlsx'` for `/artifacts`.
   - Cause: worker is looking in a relative path while artifacts are mounted elsewhere.
   - Fix: set `REPORT_ARTIFACTS_DIR` to the mounted absolute path (for example `/app/artifacts`), redeploy worker, and regenerate missing XLSX artifacts.
@@ -116,6 +116,8 @@ Create env file (example path `/etc/webhealth/worker.env`) with at least:
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL`
 - `REPORT_ARTIFACTS_DIR` (absolute container path for artifacts, for example `/app/artifacts`)
+- `ARTIFACT_TOKEN_SECRET`
+- `OAUTH_TOKEN_ENCRYPTION_KEY`
 - optional worker tuning vars from `apps/worker/.env.example`
 
 Artifact storage path requirements:

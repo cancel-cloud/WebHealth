@@ -9,7 +9,7 @@ type WorkerFetchImpl = (
 type ResolveOptions = {
   artifactKey: string;
   workerBaseUrl?: string;
-  workerSecret?: string;
+  artifactToken?: string;
   readLocalArtifact?: (artifactKey: string) => Promise<ArrayBuffer | null>;
   fetchImpl?: WorkerFetchImpl;
 };
@@ -22,6 +22,7 @@ type ResolveSuccess = {
 type ResolveFailure = {
   ok: false;
   status: number;
+  code: string;
   error: string;
 };
 
@@ -49,27 +50,27 @@ export async function resolveReportArtifactBinary(
     return { ok: true, data: localData };
   }
 
-  if (!options.workerBaseUrl || !options.workerSecret) {
+  if (!options.workerBaseUrl || !options.artifactToken) {
     return {
       ok: false,
       status: 503,
+      code: "ARTIFACT_SERVICE_UNAVAILABLE",
       error: "Artifact download service not configured",
     };
   }
 
   const artifactUrl = new URL("/artifacts", options.workerBaseUrl);
-  artifactUrl.searchParams.set("key", options.artifactKey);
+  artifactUrl.searchParams.set("token", options.artifactToken);
 
   try {
-    const response = await fetchImpl(artifactUrl.toString(), {
-      headers: { Authorization: `Bearer ${options.workerSecret}` },
-    });
+    const response = await fetchImpl(artifactUrl.toString());
 
     if (!response.ok) {
       const status = response.status === 404 ? 404 : 502;
       return {
         ok: false,
         status,
+        code: status === 404 ? "ARTIFACT_NOT_FOUND" : "ARTIFACT_FETCH_FAILED",
         error:
           status === 404 ? "Artifact not found" : "Failed to fetch artifact from worker",
       };
@@ -80,6 +81,7 @@ export async function resolveReportArtifactBinary(
     return {
       ok: false,
       status: 502,
+      code: "ARTIFACT_WORKER_UNREACHABLE",
       error: "Failed to reach artifact download worker",
     };
   }

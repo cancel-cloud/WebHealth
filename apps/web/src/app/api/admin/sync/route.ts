@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { properties, systemLogs } from "@webhealth/shared/db/schema";
 import { eq } from "drizzle-orm";
@@ -14,8 +13,10 @@ import {
   createMetricsBackfillJob,
   processMetricsBackfillJob,
 } from "@webhealth/shared/lib/metrics-cache";
-
-const ADMIN_EMAIL = "lukas@devbrew.dev";
+import { getGoogleAccountTokensForUser } from "@webhealth/shared/lib/provider-tokens";
+import { badRequest } from "@webhealth/shared/lib/http-errors";
+import { requireAdminSession } from "@/lib/server/authz";
+import { handleRouteError } from "@/lib/server/route-security";
 const TIMEFRAME_DAYS = {
   "14d": 14,
   "30d": 30,
@@ -25,10 +26,7 @@ type TimeframePreset = keyof typeof TIMEFRAME_DAYS;
 
 export async function POST(req: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (session.user.email !== ADMIN_EMAIL)
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const session = await requireAdminSession();
 
     const body = await req.json();
     const {
@@ -44,13 +42,13 @@ export async function POST(req: Request) {
     };
 
     if (!userId) {
-      return NextResponse.json({ error: "userId is required" }, { status: 400 });
+      throw badRequest("USER_ID_REQUIRED", "userId is required");
     }
     if (!includeGsc && !includeGa4) {
-      return NextResponse.json({ error: "Select at least one source to sync" }, { status: 400 });
+      throw badRequest("SOURCE_REQUIRED", "Select at least one source to sync");
     }
     if (!(timeframe in TIMEFRAME_DAYS)) {
-      return NextResponse.json({ error: "Invalid timeframe" }, { status: 400 });
+      throw badRequest("INVALID_TIMEFRAME", "Invalid timeframe");
     }
     const timeframePreset = timeframe as TimeframePreset;
 
@@ -66,17 +64,14 @@ export async function POST(req: Request) {
 
     try {
       // Get target user's Google account
-      const googleAccount = await db.query.account.findFirst({
-        where: (a, { and, eq }) =>
-          and(eq(a.userId, userId), eq(a.providerId, "google")),
-      });
+      const googleAccount = await getGoogleAccountTokensForUser(userId);
 
       if (!googleAccount?.accessToken) {
         await db
           .update(systemLogs)
           .set({ status: "failed", details: { error: "Google account not linked" } })
           .where(eq(systemLogs.id, logId));
-        return NextResponse.json({ error: "Target user has no Google account linked" }, { status: 400 });
+        throw badRequest("GOOGLE_ACCOUNT_NOT_LINKED", "Target user has no Google account linked");
       }
 
       const authClient = getGoogleAuthClient(
@@ -94,7 +89,7 @@ export async function POST(req: Request) {
           .update(systemLogs)
           .set({ status: "failed", details: { error: "No team found for user" } })
           .where(eq(systemLogs.id, logId));
-        return NextResponse.json({ error: "No team found for target user" }, { status: 400 });
+        throw badRequest("TEAM_NOT_FOUND", "No team found for target user");
       }
 
       const targetTeamId = userTeam.teamId;
@@ -286,8 +281,6 @@ export async function POST(req: Request) {
       throw innerError;
     }
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    console.error("Error in admin sync:", error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error in admin sync", error);
   }
 }
