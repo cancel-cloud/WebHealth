@@ -53,11 +53,15 @@ export async function requireAnyTeamMembership(session: Session) {
 
 export async function requirePrimaryTeamMembership(session: Session) {
   const memberships = await requireAnyTeamMembership(session);
+  // TODO(team-authz): Current product behavior assumes one effective team per user.
+  // When real multi-team support is added, replace this with target-resource team resolution.
   return memberships[0];
 }
 
 export async function requireTeamOwner(session: Session) {
   const membership = await requirePrimaryTeamMembership(session);
+  // TODO(team-authz): Current product behavior assumes one effective team per user.
+  // When real multi-team support is added, owner checks must resolve against the target resource team.
   if (membership.role !== "owner") {
     throw forbidden("Only team owners can perform this action", "OWNER_REQUIRED");
   }

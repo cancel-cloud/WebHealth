@@ -151,6 +151,32 @@ function ipv6HasPrefix(address: string, prefix: string, prefixLength: number): b
   return true;
 }
 
+function extractMappedIpv4FromIpv6(address: string): string | null {
+  const parts = expandIpv6(address);
+  if (!parts) return null;
+
+  const isMapped =
+    parts[0] === "0000" &&
+    parts[1] === "0000" &&
+    parts[2] === "0000" &&
+    parts[3] === "0000" &&
+    parts[4] === "0000" &&
+    parts[5] === "ffff";
+
+  if (!isMapped) return null;
+
+  const high = Number.parseInt(parts[6]!, 16);
+  const low = Number.parseInt(parts[7]!, 16);
+  if (!Number.isInteger(high) || !Number.isInteger(low)) return null;
+
+  return [
+    (high >>> 8) & 0xff,
+    high & 0xff,
+    (low >>> 8) & 0xff,
+    low & 0xff,
+  ].join(".");
+}
+
 export function isBlockedCrawlIpAddress(address: string): boolean {
   const normalized = address.trim().toLowerCase();
   const family = isIP(normalized);
@@ -176,6 +202,11 @@ export function isBlockedCrawlIpAddress(address: string): boolean {
   }
 
   if (family === 6) {
+    const mappedIpv4 = extractMappedIpv4FromIpv6(normalized);
+    if (mappedIpv4) {
+      return isBlockedCrawlIpAddress(mappedIpv4);
+    }
+
     return (
       normalized === "::" ||
       normalized === "::1" ||

@@ -62,6 +62,8 @@ export async function POST(req: Request) {
     if (rangeDaysInclusive(compareRangeStart, compareRangeEnd) < 7) {
       throw badRequest("COMPARE_RANGE_TOO_SHORT", "Compare range must be at least 7 days");
     }
+    // TODO(team-authz): Current product behavior assumes one effective team per user.
+    // When real multi-team support is added, authorize against the selected property's team.
     const teamId = ownerMembership.teamId;
 
     let resolvedSources;
