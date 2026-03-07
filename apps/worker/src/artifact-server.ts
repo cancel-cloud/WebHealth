@@ -1,18 +1,10 @@
 import { createServer } from "node:http";
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
-import { timingSafeEqual } from "node:crypto";
 import { getArtifactStore } from "@webhealth/shared/lib/reports/artifacts/store";
+import { verifyArtifactDownloadToken } from "@webhealth/shared/lib/artifact-token";
 
-const EXPECTED_SECRET = process.env.WORKER_API_SECRET ?? "";
 const PORT = parseInt(process.env.WORKER_HTTP_PORT ?? "9100", 10);
-
-function isAuthorized(authHeader: string | undefined): boolean {
-  if (!EXPECTED_SECRET || !authHeader) return false;
-  const provided = authHeader.replace(/^Bearer\s+/, "");
-  if (provided.length !== EXPECTED_SECRET.length) return false;
-  return timingSafeEqual(Buffer.from(provided), Buffer.from(EXPECTED_SECRET));
-}
 
 function isValidArtifactKey(key: string): boolean {
   if (!key || key.includes("..") || key.startsWith("/") || key.includes("\\")) {
@@ -41,14 +33,16 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  if (!isAuthorized(req.headers.authorization)) {
+  const token = url.searchParams.get("token");
+  const verified = token ? verifyArtifactDownloadToken(token) : null;
+  if (!verified) {
     console.warn("[artifact-server][WARN][AUTH] unauthorized artifact request");
     res.writeHead(401);
     res.end("Unauthorized");
     return;
   }
 
-  const key = url.searchParams.get("key");
+  const key = verified.artifactKey;
   if (!key || !isValidArtifactKey(key)) {
     console.warn(`[artifact-server][WARN][REQUEST] invalid artifact key key=${key ?? "missing"}`);
     res.writeHead(400);
@@ -57,6 +51,11 @@ const server = createServer(async (req, res) => {
   }
 
   const reportId = extractReportIdFromArtifactKey(key) ?? "unknown";
+  if (reportId !== verified.reportId) {
+    res.writeHead(403);
+    res.end("Forbidden");
+    return;
+  }
   console.log(`[artifact-server][INFO][REQUEST] download requested reportId=${reportId} key=${key}`);
 
   try {

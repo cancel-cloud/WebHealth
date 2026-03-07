@@ -5,6 +5,7 @@ import * as schema from "@webhealth/shared/db/schema";
 import { teams, teamMembers, systemLogs } from "@webhealth/shared/db/schema";
 import { nanoid } from "nanoid";
 import { syncPropertiesForUser } from "@webhealth/shared/lib/sync-properties";
+import { updateGoogleAccountTokens } from "@webhealth/shared/lib/provider-tokens";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -58,6 +59,11 @@ export const auth = betterAuth({
         after: async (account) => {
           // Auto-sync properties on first Google login (account.create only fires once per provider)
           if (account.providerId !== "google" || !account.accessToken) return;
+          await updateGoogleAccountTokens(account.userId, {
+            accessToken: account.accessToken,
+            refreshToken: account.refreshToken ?? null,
+            idToken: account.idToken ?? null,
+          });
           const userTeams = await db.query.teamMembers.findMany({
             where: (tm, { eq }) => eq(tm.userId, account.userId),
           });
@@ -90,4 +96,3 @@ export const auth = betterAuth({
     },
   },
 });
-

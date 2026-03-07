@@ -1,5 +1,5 @@
 import { db } from "@webhealth/shared/db";
-import { properties, systemLogs, account } from "@webhealth/shared/db/schema";
+import { properties, systemLogs } from "@webhealth/shared/db/schema";
 import { eq, isNull, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import {
@@ -8,6 +8,7 @@ import {
   fetchGa4Properties,
   fetchGscDataStartDate,
 } from "@webhealth/shared/lib/google/api";
+import { updateGoogleAccountTokens } from "@webhealth/shared/lib/provider-tokens";
 
 export async function syncPropertiesForUser({
   userId,
@@ -26,15 +27,12 @@ export async function syncPropertiesForUser({
 
   authClient.on("tokens", (tokens) => {
     if (tokens.access_token) {
-      db.update(account)
-        .set({
-          accessToken: tokens.access_token,
-          ...(tokens.expiry_date
-            ? { accessTokenExpiresAt: new Date(tokens.expiry_date) }
-            : {}),
-        })
-        .where(and(eq(account.userId, userId), eq(account.providerId, "google")))
-        .catch(() => {});
+      updateGoogleAccountTokens(userId, {
+        accessToken: tokens.access_token,
+        ...(tokens.expiry_date
+          ? { accessTokenExpiresAt: new Date(tokens.expiry_date) }
+          : {}),
+      }).catch(() => {});
     }
   });
 

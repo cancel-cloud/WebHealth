@@ -4,10 +4,11 @@ import { db } from "@webhealth/shared/db";
 import { reportJobEvents, reportJobs, reports } from "@webhealth/shared/db/schema";
 import { normalizeClaimedReportJobRow } from "@webhealth/shared/lib/queue/report-job-row-shape";
 
-export type ReportJobKind = "generate_report" | "render_xlsx";
+export type ReportJobKind = "generate_report" | "generate_detail" | "render_xlsx";
 export type ReportJobStatus = "queued" | "processing" | "complete" | "failed";
 export type ReportJobPhase =
   | "queued"
+  | "detail"
   | "preprocess"
   | "site_changes"
   | "deterministic_scoring"
@@ -23,6 +24,8 @@ export type QueueLeaseConfig = {
   heartbeatSeconds: number;
   maxActiveGlobal: number;
   maxActivePerTeam: number;
+  maxActiveDetailGlobal: number;
+  maxActiveDetailPerTeam: number;
 };
 
 export function getQueueLeaseConfig(): QueueLeaseConfig {
@@ -31,6 +34,8 @@ export function getQueueLeaseConfig(): QueueLeaseConfig {
     heartbeatSeconds: parseInt(process.env.REPORT_WORKER_HEARTBEAT_SECONDS ?? "10", 10),
     maxActiveGlobal: parseInt(process.env.REPORT_WORKER_MAX_ACTIVE_GLOBAL ?? "2", 10),
     maxActivePerTeam: parseInt(process.env.REPORT_WORKER_MAX_ACTIVE_PER_TEAM ?? "1", 10),
+    maxActiveDetailGlobal: parseInt(process.env.REPORT_WORKER_MAX_ACTIVE_DETAILS_GLOBAL ?? "6", 10),
+    maxActiveDetailPerTeam: parseInt(process.env.REPORT_WORKER_MAX_ACTIVE_DETAILS_PER_TEAM ?? "3", 10),
   };
 }
 
@@ -202,16 +207,36 @@ export async function claimNextReportJob(workerId: string): Promise<ClaimedRepor
           (j.status = 'queued' and j.available_at <= now())
           or (j.status = 'processing' and j.claim_expires_at < now())
         )
-        and (
-          select count(*) from report_jobs g
-          where g.status = 'processing' and g.claim_expires_at > now()
-        ) < ${cfg.maxActiveGlobal}
-        and (
-          select count(*) from report_jobs t
-          where t.status = 'processing'
-            and t.claim_expires_at > now()
-            and t.team_id = j.team_id
-        ) < ${cfg.maxActivePerTeam}
+        and case
+          when j.kind = 'generate_detail' then (
+            select count(*) from report_jobs g
+            where g.status = 'processing'
+              and g.claim_expires_at > now()
+              and g.kind = 'generate_detail'
+          ) < ${cfg.maxActiveDetailGlobal}
+          else (
+            select count(*) from report_jobs g
+            where g.status = 'processing'
+              and g.claim_expires_at > now()
+              and g.kind <> 'generate_detail'
+          ) < ${cfg.maxActiveGlobal}
+        end
+        and case
+          when j.kind = 'generate_detail' then (
+            select count(*) from report_jobs t
+            where t.status = 'processing'
+              and t.claim_expires_at > now()
+              and t.team_id = j.team_id
+              and t.kind = 'generate_detail'
+          ) < ${cfg.maxActiveDetailPerTeam}
+          else (
+            select count(*) from report_jobs t
+            where t.status = 'processing'
+              and t.claim_expires_at > now()
+              and t.team_id = j.team_id
+              and t.kind <> 'generate_detail'
+          ) < ${cfg.maxActivePerTeam}
+        end
         order by j.priority asc, j.created_at asc
         for update skip locked
         limit 1

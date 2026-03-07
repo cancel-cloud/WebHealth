@@ -44,6 +44,9 @@ type Settings = {
   syncFailure: boolean;
   emailReceipts: boolean;
   reportLanguage: string;
+  isRestricted?: boolean;
+  restrictionMessage?: string | null;
+  adminContacts?: string[];
 };
 
 export default function SettingsPage() {
@@ -61,11 +64,17 @@ export default function SettingsPage() {
           syncFailure: Boolean(data?.syncFailure),
           emailReceipts: Boolean(data?.emailReceipts),
           reportLanguage: typeof data?.reportLanguage === "string" ? data.reportLanguage : "auto",
+          isRestricted: Boolean(data?.isRestricted),
+          restrictionMessage:
+            typeof data?.restrictionMessage === "string" ? data.restrictionMessage : null,
+          adminContacts: Array.isArray(data?.adminContacts)
+            ? data.adminContacts.filter((value: unknown): value is string => typeof value === "string")
+            : [],
         })
       );
   }, []);
 
-  const SETTING_LABELS: Record<keyof Settings, string> = {
+  const SETTING_LABELS: Record<keyof Omit<Settings, "isRestricted" | "restrictionMessage" | "adminContacts">, string> = {
     weeklyDigest: "Weekly digest",
     reportComplete: "Report complete",
     syncFailure: "Sync failure alerts",
@@ -144,6 +153,14 @@ export default function SettingsPage() {
           </Button>
         </div>
       </header>
+
+      {settings?.isRestricted && (
+        <div className="border-b border-amber-300/40 bg-amber-100/60 px-6 py-3 text-sm text-amber-950">
+          {settings.restrictionMessage?.trim()
+            ? settings.restrictionMessage
+            : "Your account is currently restricted. Contact an administrator from the Contact Us tab for help."}
+        </div>
+      )}
 
       {/* ── Two-column body ── */}
       <div className="flex flex-1 overflow-hidden">
@@ -488,8 +505,10 @@ export default function SettingsPage() {
                       {
                         icon: CircleAlert,
                         title: "Having account or billing issues?",
-                        description: "Email us for priority support — contact@devbrew.dev",
-                        href: "mailto:contact@devbrew.dev",
+                        description: settings?.adminContacts?.length
+                          ? `Email an admin for priority support — ${settings.adminContacts[0]}`
+                          : "Email us for priority support — contact@devbrew.dev",
+                        href: `mailto:${settings?.adminContacts?.[0] ?? "contact@devbrew.dev"}`,
                       },
                       // {
                       //   icon: MessageSquare,

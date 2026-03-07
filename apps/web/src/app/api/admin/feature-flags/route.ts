@@ -1,18 +1,13 @@
 import { NextResponse } from "next/server";
-import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { featureFlags, userFeatureFlags } from "@webhealth/shared/db/schema";
 import { eq, count } from "drizzle-orm";
-import { headers } from "next/headers";
-
-const ADMIN_EMAIL = "lukas@devbrew.dev";
+import { requireAdminSession } from "@/lib/server/authz";
+import { handleRouteError } from "@/lib/server/route-security";
 
 export async function GET() {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (session.user.email !== ADMIN_EMAIL)
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    await requireAdminSession();
 
     const flags = await db
       .select({
@@ -31,8 +26,6 @@ export async function GET() {
 
     return NextResponse.json({ flags });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    console.error("Error fetching feature flags:", error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error fetching feature flags", error);
   }
 }

@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
-import { headers } from 'next/headers';
 import { getActiveJobSummaryForReport } from "@webhealth/shared/lib/queue/report-jobs";
 import { and, eq, inArray } from 'drizzle-orm';
 import { reports } from "@webhealth/shared/db/schema";
+import { badRequest, notFound } from "@webhealth/shared/lib/http-errors";
+import { requireAnyTeamMembership, requireUnrestrictedSession } from "@/lib/server/authz";
+import { handleRouteError } from "@/lib/server/route-security";
 
 // GET /api/reports/[id] — fetch a single report for status polling
 export async function GET(
@@ -12,24 +13,21 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await requireUnrestrictedSession();
 
     const { id: reportId } = await params;
 
-    const userTeams = await db.query.teamMembers.findMany({
-      where: (tm, { eq }) => eq(tm.userId, session.user.id),
-    });
+    const userTeams = await requireAnyTeamMembership(session);
     const teamIds = userTeams.map((row) => row.teamId);
     if (teamIds.length === 0) {
-      return NextResponse.json({ error: 'No team found' }, { status: 400 });
+      throw badRequest("TEAM_NOT_FOUND", "No team found");
     }
 
     const report = await db.query.reports.findFirst({
       where: and(eq(reports.id, reportId), inArray(reports.teamId, teamIds)),
     });
     if (!report) {
-      return NextResponse.json({ error: 'Report not found or unauthorized' }, { status: 404 });
+      throw notFound("Report not found or unauthorized", "REPORT_NOT_FOUND");
     }
 
     const jobs = await getActiveJobSummaryForReport(reportId);
@@ -47,8 +45,6 @@ export async function GET(
     };
     return NextResponse.json({ report, jobs, summary });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    console.error('Error fetching report:', error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error fetching report", error);
   }
 }
