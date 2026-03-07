@@ -86,6 +86,10 @@ export function GetDetailsButton({
 }: GetDetailsButtonProps) {
   const detailKey = useMemo(() => `${reportId}:${rowType}:${rowId}`, [reportId, rowType, rowId]);
   const detailToastId = useMemo(() => getDetailToastId(detailKey), [detailKey]);
+  const detailToastArgs = useMemo(
+    () => ({ detailKey, rowTitle }),
+    [detailKey, rowTitle]
+  );
 
   const [detail, setDetail] = useState<string | null>(() => {
     return detailCache.get(detailKey) ?? initialDetail ?? null;
@@ -141,8 +145,8 @@ export function GetDetailsButton({
     if (pending) {
       attachToPending(pending);
     } else if (shouldPollPersisted) {
-      const queuedToast = getDetailToastState("queued", rowTitle);
-      toast.loading(queuedToast.message, { id: detailToastId, duration: Infinity });
+      const queuedToast = getDetailToastState("queued", detailToastArgs);
+      toast.loading(queuedToast.message, { id: queuedToast.id, duration: queuedToast.duration });
 
       const pollOnce = async (): Promise<boolean> => {
         try {
@@ -163,9 +167,10 @@ export function GetDetailsButton({
           setDetail(data.actionDetail);
           clearPendingPersisted(detailKey);
           setLoading(false);
-          const readyToast = getDetailToastState("ready", rowTitle);
+          toast.dismiss(detailToastId);
+          const readyToast = getDetailToastState("ready", detailToastArgs);
           toast.success(readyToast.message, {
-            id: detailToastId,
+            duration: readyToast.duration,
             action: { label: "Open", onClick: () => setModalOpen(true) },
           });
           return true;
@@ -204,7 +209,7 @@ export function GetDetailsButton({
       cancelled = true;
       if (intervalId != null) window.clearInterval(intervalId);
     };
-  }, [detailKey, detailToastId, initialDetail, pollSeed, reportId, rowId, rowTitle, rowType]);
+  }, [detailKey, detailToastArgs, detailToastId, initialDetail, pollSeed, reportId, rowId, rowType]);
 
   async function generateDetail() {
     const res = await fetch(`/api/reports/${reportId}/generate-detail`, {
@@ -225,8 +230,8 @@ export function GetDetailsButton({
 
     setLoading(true);
     setPendingPersisted(detailKey);
-    const startToast = getDetailToastState("start", rowTitle);
-    toast.loading(startToast.message, { id: detailToastId, duration: Infinity });
+    const startToast = getDetailToastState("start", detailToastArgs);
+    toast.loading(startToast.message, { id: startToast.id, duration: startToast.duration });
     let queuedForPolling = false;
     try {
       let request = inFlightByKey.get(detailKey);
@@ -240,15 +245,16 @@ export function GetDetailsButton({
         detailCache.set(detailKey, nextDetail);
         setDetail(nextDetail);
         clearPendingPersisted(detailKey);
-        const readyToast = getDetailToastState("ready", rowTitle);
+        toast.dismiss(detailToastId);
+        const readyToast = getDetailToastState("ready", detailToastArgs);
         toast.success(readyToast.message, {
-          id: detailToastId,
+          duration: readyToast.duration,
           action: { label: "Open", onClick: () => setModalOpen(true) },
         });
       } else {
         queuedForPolling = true;
-        const queuedToast = getDetailToastState("queued", rowTitle);
-        toast.loading(queuedToast.message, { id: detailToastId, duration: Infinity });
+        const queuedToast = getDetailToastState("queued", detailToastArgs);
+        toast.loading(queuedToast.message, { id: queuedToast.id, duration: queuedToast.duration });
         setPollSeed((value) => value + 1);
       }
     } catch (err) {
@@ -267,8 +273,8 @@ export function GetDetailsButton({
       }
 
       clearPendingPersisted(detailKey);
-      const errorToast = getDetailToastState("error", rowTitle);
-      toast.error(errorToast.message, { id: detailToastId });
+      const errorToast = getDetailToastState("error", detailToastArgs);
+      toast.error(errorToast.message, { id: errorToast.id });
       console.error(err);
     } finally {
       inFlightByKey.delete(detailKey);

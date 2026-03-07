@@ -1,16 +1,11 @@
-export type DetailToastState =
-  | {
-      kind: "loading";
-      message: string;
-    }
-  | {
-      kind: "success";
-      message: string;
-    }
-  | {
-      kind: "error";
-      message: string;
-    };
+export const DETAIL_READY_TOAST_DURATION_MS = 15_000;
+
+export type DetailToastState = {
+  kind: "loading" | "success" | "error";
+  message: string;
+  id?: string;
+  duration?: number;
+};
 
 export function getDetailToastId(detailKey: string): string {
   return `detail:${detailKey}`;
@@ -18,15 +13,30 @@ export function getDetailToastId(detailKey: string): string {
 
 export function getDetailToastState(
   phase: "start" | "queued" | "ready" | "error",
-  rowTitle: string
+  args: { detailKey: string; rowTitle: string }
 ): DetailToastState {
+  const { detailKey, rowTitle } = args;
+
   if (phase === "start" || phase === "queued") {
-    return { kind: "loading", message: `Generating details for "${rowTitle}"…` };
+    return {
+      kind: "loading",
+      id: getDetailToastId(detailKey),
+      message: `Generating details for "${rowTitle}"…`,
+      duration: Infinity,
+    };
   }
 
   if (phase === "ready") {
-    return { kind: "success", message: "Details ready" };
+    return {
+      kind: "success",
+      message: "Details ready",
+      duration: DETAIL_READY_TOAST_DURATION_MS,
+    };
   }
 
-  return { kind: "error", message: "Failed to generate details" };
+  return {
+    kind: "error",
+    id: getDetailToastId(detailKey),
+    message: "Failed to generate details",
+  };
 }
