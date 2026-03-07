@@ -25,6 +25,8 @@ export async function PATCH(
     if (!ga4PropertyId) {
       throw badRequest("GA4_PROPERTY_REQUIRED", "ga4PropertyId is required");
     }
+    // TODO(team-authz): Current product behavior assumes one effective team per user.
+    // When real multi-team support is added, authorize against the target property team.
     const teamId = ownerMembership.teamId;
 
     // Verify the GSC property belongs to this team and is type 'gsc'

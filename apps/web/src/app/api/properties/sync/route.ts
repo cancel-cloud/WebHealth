@@ -15,6 +15,8 @@ export async function POST(_req: Request) {
       throw badRequest("GOOGLE_ACCOUNT_NOT_LINKED", "Google account not linked");
     }
 
+    // TODO(team-authz): Current product behavior assumes one effective team per user.
+    // When real multi-team support is added, sync authorization must resolve the target team explicitly.
     const result = await syncPropertiesForUser({
       userId: session.user.id,
       teamId: ownerMembership.teamId,

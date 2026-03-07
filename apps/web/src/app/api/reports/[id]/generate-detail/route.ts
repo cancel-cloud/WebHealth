@@ -36,6 +36,8 @@ export async function POST(
       throw badRequest("INVALID_ROW_TYPE", "Invalid rowType");
     }
 
+    // TODO(team-authz): Current product behavior assumes one effective team per user.
+    // When real multi-team support is added, authorize against report.teamId instead of ownerMembership.teamId.
     const report = await db.query.reports.findFirst({
       where: and(eq(reports.id, reportId), eq(reports.teamId, ownerMembership.teamId)),
     });

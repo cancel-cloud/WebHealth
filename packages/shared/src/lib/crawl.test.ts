@@ -17,6 +17,14 @@ test("blocks local and reserved IP ranges for crawl targets", () => {
   assert.equal(isBlockedCrawlIpAddress("93.184.216.34"), false);
 });
 
+test("blocks IPv4-mapped IPv6 addresses that resolve to blocked IPv4 ranges", () => {
+  assert.equal(isBlockedCrawlIpAddress("::ffff:127.0.0.1"), true);
+  assert.equal(isBlockedCrawlIpAddress("::ffff:169.254.169.254"), true);
+  assert.equal(isBlockedCrawlIpAddress("::ffff:192.168.1.10"), true);
+  assert.equal(isBlockedCrawlIpAddress("::ffff:93.184.216.34"), false);
+  assert.equal(isBlockedCrawlIpAddress("0000:0000:0000:0000:0000:ffff:7f00:0001"), true);
+});
+
 test("rejects http crawl targets by default and only allows explicit local dev http", () => {
   const hostScope = createCrawlScope("https://example.com");
 
