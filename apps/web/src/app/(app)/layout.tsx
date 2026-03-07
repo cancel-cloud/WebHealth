@@ -6,7 +6,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { db } from "@webhealth/shared/db";
 import { eq } from "drizzle-orm";
-import { RestrictionNotice } from "@/components/restriction-notice";
+import { isAdminEmail } from "@webhealth/shared/lib/admin-access";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -16,19 +16,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     where: (u) => eq(u.id, session.user.id),
     columns: { isRestricted: true, restrictionMessage: true },
   });
+  if (userRecord?.isRestricted) redirect("/settings");
+
+  const isAdmin = await isAdminEmail(session.user.email ?? null);
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar isAdmin={isAdmin} />
       <SidebarInset>
         <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/50 px-4">
           <SidebarTrigger aria-label="Toggle sidebar" className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
         </header>
         <main className="flex-1 p-6">{children}</main>
-        {userRecord?.isRestricted && (
-          <RestrictionNotice message={userRecord.restrictionMessage ?? ""} />
-        )}
       </SidebarInset>
     </SidebarProvider>
   );

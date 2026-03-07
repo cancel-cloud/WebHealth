@@ -1,20 +1,28 @@
 import { NextResponse } from 'next/server';
-import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { userSettings } from "@webhealth/shared/db/schema";
 import { eq } from 'drizzle-orm';
-import { headers } from 'next/headers';
 import { nanoid } from 'nanoid';
+import { listAdminEmails } from "@webhealth/shared/lib/admin-access";
+import { badRequest } from "@webhealth/shared/lib/http-errors";
+import { requireSession } from "@/lib/server/authz";
+import { handleRouteError } from "@/lib/server/route-security";
 
 const ALLOWED_FIELDS = ['weeklyDigest', 'reportComplete', 'syncFailure', 'emailReceipts', 'reportLanguage'] as const;
 
 // GET /api/settings — fetch (or upsert defaults for) the current user's settings
 export async function GET() {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await requireSession();
 
     const userId = session.user.id;
+    const [adminContacts, userRecord] = await Promise.all([
+      listAdminEmails(),
+      db.query.user.findFirst({
+        where: (table, { eq }) => eq(table.id, userId),
+        columns: { isRestricted: true, restrictionMessage: true },
+      }),
+    ]);
 
     const existing = await db.query.userSettings.findFirst({
       where: eq(userSettings.userId, userId),
@@ -22,7 +30,16 @@ export async function GET() {
 
     if (existing) {
       const { weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage } = existing;
-      return NextResponse.json({ weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage });
+      return NextResponse.json({
+        weeklyDigest,
+        reportComplete,
+        syncFailure,
+        emailReceipts,
+        reportLanguage,
+        isRestricted: Boolean(userRecord?.isRestricted),
+        restrictionMessage: userRecord?.restrictionMessage ?? null,
+        adminContacts: adminContacts.map((row) => row.email),
+      });
     }
 
     // No row yet — upsert defaults and return them
@@ -36,19 +53,25 @@ export async function GET() {
       .returning();
 
     const { weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage } = created;
-    return NextResponse.json({ weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage });
+    return NextResponse.json({
+      weeklyDigest,
+      reportComplete,
+      syncFailure,
+      emailReceipts,
+      reportLanguage,
+      isRestricted: Boolean(userRecord?.isRestricted),
+      restrictionMessage: userRecord?.restrictionMessage ?? null,
+      adminContacts: adminContacts.map((row) => row.email),
+    });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('GET /api/settings error:', error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("GET /api/settings error", error);
   }
 }
 
 // PATCH /api/settings — upsert partial settings update for the current user
 export async function PATCH(req: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await requireSession();
 
     const userId = session.user.id;
     const body = await req.json();
@@ -66,7 +89,7 @@ export async function PATCH(req: Request) {
     }
 
     if (Object.keys(patch).length === 0) {
-      return NextResponse.json({ error: 'No valid fields provided' }, { status: 400 });
+      throw badRequest("NO_VALID_SETTINGS_FIELDS", "No valid fields provided");
     }
 
     const [updated] = await db
@@ -81,8 +104,6 @@ export async function PATCH(req: Request) {
     const { weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage } = updated;
     return NextResponse.json({ weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('PATCH /api/settings error:', error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("PATCH /api/settings error", error);
   }
 }

@@ -71,9 +71,7 @@ const ADMIN_ITEMS = [
   { title: "AI Debug Console", url: "/admin/ai-report-debug", icon: Bug },
 ];
 
-const ADMIN_EMAIL = "lukas@devbrew.dev";
-
-export function AppSidebar() {
+export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const { data: session } = authClient.useSession();
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
@@ -90,8 +88,6 @@ export function AppSidebar() {
   };
 
   const ThemeIcon = !mounted ? Monitor : resolvedTheme === "dark" ? Moon : Sun;
-  const isAdmin = session?.user?.email === ADMIN_EMAIL;
-
   return (
     <Sidebar collapsible="icon">
       {/* ── Header: logo ── */}
@@ -136,7 +132,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* ── Admin section (only for lukas@devbrew.dev) ── */}
+        {/* ── Admin section ── */}
         {isAdmin && (
           <SidebarGroup>
             <Collapsible defaultOpen={false} className="group/admin">

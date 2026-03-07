@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@webhealth/shared/lib/auth";
 import { listReportJobEvents } from "@webhealth/shared/lib/queue/report-jobs";
-
-const ADMIN_EMAIL = "lukas@devbrew.dev";
+import { requireAdminSession } from "@/lib/server/authz";
+import { handleRouteError } from "@/lib/server/route-security";
 
 export async function GET(req: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (session.user.email !== ADMIN_EMAIL) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    await requireAdminSession();
 
     const { searchParams } = new URL(req.url);
     const reportId = searchParams.get("reportId") ?? undefined;
@@ -20,7 +16,6 @@ export async function GET(req: Request) {
     const events = await listReportJobEvents({ reportId, jobId, teamId, limit });
     return NextResponse.json({ events });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleRouteError("Error fetching AI report events", error);
   }
 }

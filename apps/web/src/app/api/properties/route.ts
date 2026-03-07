@@ -1,20 +1,15 @@
 import { NextResponse } from 'next/server';
-import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
-import { teamMembers } from "@webhealth/shared/db/schema";
-import { eq } from 'drizzle-orm';
-import { headers } from 'next/headers';
 import { buildCombinedReportableProperties } from "@webhealth/shared/lib/properties/reportable-properties";
+import { requireAnyTeamMembership, requireUnrestrictedSession } from "@/lib/server/authz";
+import { handleRouteError } from "@/lib/server/route-security";
 
 // GET /api/properties — fetch properties for the current user's team
 export async function GET() {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await requireUnrestrictedSession();
 
-    const userTeams = await db.query.teamMembers.findMany({
-      where: (tm, { eq }) => eq(tm.userId, session.user.id),
-    });
+    const userTeams = await requireAnyTeamMembership(session);
     if (userTeams.length === 0) return NextResponse.json({ properties: [] });
 
     const teamId = userTeams[0].teamId;
@@ -36,8 +31,7 @@ export async function GET() {
     }));
 
     return NextResponse.json({ properties: teamProperties, reportableProperties });
-  } catch (error: any) {
-    console.error('Error fetching properties:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return handleRouteError("Error fetching properties", error);
   }
 }
