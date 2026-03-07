@@ -145,6 +145,16 @@ Rules:
 - whyItMatters: 1–2 sentences referencing the actual metric values in the issue data`;
 }
 
+function normalizeActionDetailInput(raw: unknown) {
+  if (typeof raw !== "string") return raw;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error("Invalid action detail JSON");
+  }
+}
+
 export function serializeActionDetail(raw: unknown) {
-  return JSON.stringify(sanitizeActionDetailPayload(raw));
+  return JSON.stringify(sanitizeActionDetailPayload(normalizeActionDetailInput(raw)));
 }
