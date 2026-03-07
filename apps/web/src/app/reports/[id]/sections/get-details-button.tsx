@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ActionDetailModal } from "./action-detail-modal";
+import { getDetailToastId, getDetailToastState } from "./get-details-button.logic";
 
 type RowType =
   | "actionBacklog"
@@ -84,6 +85,7 @@ export function GetDetailsButton({
   initialDetail,
 }: GetDetailsButtonProps) {
   const detailKey = useMemo(() => `${reportId}:${rowType}:${rowId}`, [reportId, rowType, rowId]);
+  const detailToastId = useMemo(() => getDetailToastId(detailKey), [detailKey]);
 
   const [detail, setDetail] = useState<string | null>(() => {
     return detailCache.get(detailKey) ?? initialDetail ?? null;
@@ -99,6 +101,7 @@ export function GetDetailsButton({
 
     if (knownDetail) {
       clearPendingPersisted(detailKey);
+      toast.dismiss(detailToastId);
       setLoading(false);
       return;
     }
@@ -138,6 +141,9 @@ export function GetDetailsButton({
     if (pending) {
       attachToPending(pending);
     } else if (shouldPollPersisted) {
+      const queuedToast = getDetailToastState("queued", rowTitle);
+      toast.loading(queuedToast.message, { id: detailToastId, duration: Infinity });
+
       const pollOnce = async (): Promise<boolean> => {
         try {
           const res = await fetch(
@@ -157,7 +163,9 @@ export function GetDetailsButton({
           setDetail(data.actionDetail);
           clearPendingPersisted(detailKey);
           setLoading(false);
-          toast.success("Details ready", {
+          const readyToast = getDetailToastState("ready", rowTitle);
+          toast.success(readyToast.message, {
+            id: detailToastId,
             action: { label: "Open", onClick: () => setModalOpen(true) },
           });
           return true;
@@ -174,6 +182,7 @@ export function GetDetailsButton({
         if (!startedAt || Date.now() - startedAt > PENDING_MAX_AGE_MS) {
           clearPendingPersisted(detailKey);
           if (!cancelled) setLoading(false);
+          toast.dismiss(detailToastId);
           if (intervalId != null) window.clearInterval(intervalId);
           intervalId = null;
           return;
@@ -187,6 +196,7 @@ export function GetDetailsButton({
       }, POLL_INTERVAL_MS);
     } else {
       if (persistedStartedAt != null) clearPendingPersisted(detailKey);
+      toast.dismiss(detailToastId);
       setLoading(false);
     }
 
@@ -194,7 +204,7 @@ export function GetDetailsButton({
       cancelled = true;
       if (intervalId != null) window.clearInterval(intervalId);
     };
-  }, [detailKey, initialDetail, pollSeed, reportId, rowId, rowType]);
+  }, [detailKey, detailToastId, initialDetail, pollSeed, reportId, rowId, rowTitle, rowType]);
 
   async function generateDetail() {
     const res = await fetch(`/api/reports/${reportId}/generate-detail`, {
@@ -215,7 +225,8 @@ export function GetDetailsButton({
 
     setLoading(true);
     setPendingPersisted(detailKey);
-    const toastId = toast.loading(`Generating details for "${rowTitle}"…`);
+    const startToast = getDetailToastState("start", rowTitle);
+    toast.loading(startToast.message, { id: detailToastId, duration: Infinity });
     let queuedForPolling = false;
     try {
       let request = inFlightByKey.get(detailKey);
@@ -229,13 +240,15 @@ export function GetDetailsButton({
         detailCache.set(detailKey, nextDetail);
         setDetail(nextDetail);
         clearPendingPersisted(detailKey);
-        toast.success("Details ready", {
-          id: toastId,
+        const readyToast = getDetailToastState("ready", rowTitle);
+        toast.success(readyToast.message, {
+          id: detailToastId,
           action: { label: "Open", onClick: () => setModalOpen(true) },
         });
       } else {
         queuedForPolling = true;
-        toast.dismiss(toastId);
+        const queuedToast = getDetailToastState("queued", rowTitle);
+        toast.loading(queuedToast.message, { id: detailToastId, duration: Infinity });
         setPollSeed((value) => value + 1);
       }
     } catch (err) {
@@ -254,7 +267,8 @@ export function GetDetailsButton({
       }
 
       clearPendingPersisted(detailKey);
-      toast.error("Failed to generate details", { id: toastId });
+      const errorToast = getDetailToastState("error", rowTitle);
+      toast.error(errorToast.message, { id: detailToastId });
       console.error(err);
     } finally {
       inFlightByKey.delete(detailKey);
