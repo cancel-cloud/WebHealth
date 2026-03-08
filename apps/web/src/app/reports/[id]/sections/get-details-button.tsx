@@ -217,7 +217,12 @@ export function GetDetailsButton({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rowType, rowId }),
     });
-    const data = await res.json() as { actionDetail?: string; error?: string; queued?: boolean };
+    const data = await res.json() as { actionDetail?: string; error?: string; queued?: boolean; message?: string };
+    if (res.status === 429 && data.error === "DETAIL_LIMIT_EXCEEDED") {
+      const err = new Error(data.message ?? "Monthly AI detail limit reached");
+      (err as Error & { code: string }).code = "DETAIL_LIMIT_EXCEEDED";
+      throw err;
+    }
     if (!res.ok) throw new Error(data.error ?? "Request failed");
     return data.actionDetail ?? null;
   }
@@ -273,6 +278,21 @@ export function GetDetailsButton({
       }
 
       clearPendingPersisted(detailKey);
+
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        (err as { code?: string }).code === "DETAIL_LIMIT_EXCEEDED"
+      ) {
+        toast.info("Monthly AI expansion limit reached", {
+          description: "Upgrade your plan to keep expanding action details.",
+          action: { label: "Upgrade", onClick: () => { window.location.href = "/settings"; } },
+          duration: 8000,
+        });
+        return;
+      }
+
       const errorToast = getDetailToastState("error", detailToastArgs);
       toast.error(errorToast.message, { id: errorToast.id });
       console.error(err);

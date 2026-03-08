@@ -334,6 +334,14 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
       });
 
       const data = await res.json();
+      if (res.status === 402 && data.error === "PLAN_LIMIT_EXCEEDED") {
+        toast.info("Monthly report limit reached", {
+          description: "Upgrade your plan to create more reports.",
+          action: { label: "Upgrade", onClick: () => { window.location.href = "/settings"; } },
+          duration: 8000,
+        });
+        return;
+      }
       if (!res.ok) throw new Error(data.error ?? "Failed to create report");
 
       const reportId = data.report.id;
