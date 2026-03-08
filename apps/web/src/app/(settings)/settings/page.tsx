@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { authClient } from "@webhealth/shared/lib/auth-client";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,6 +29,7 @@ import {
   // MessageSquare,
   Shield,
   FileText,
+  Info,
 } from "lucide-react";
 
 const SHORTCUTS = [
@@ -49,14 +51,21 @@ type Settings = {
   adminContacts?: string[];
   teamTier?: string;
   hasStripeCustomer?: boolean;
+  subscriptionCancelAt?: string | null;
+  reportsThisMonth?: number;
+  reportsLimit?: number | null;
+  detailsThisMonth?: number;
+  detailsLimit?: number | null;
 };
 
 export default function SettingsPage() {
   const { data: session } = authClient.useSession();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [settings, setSettings] = useState<Settings | null>(null);
 
-  useEffect(() => {
+  const fetchSettings = useCallback(() => {
     fetch("/api/settings")
       .then((r) => r.json())
       .then((data) =>
@@ -74,11 +83,30 @@ export default function SettingsPage() {
             : [],
           teamTier: typeof data?.teamTier === "string" ? data.teamTier : "free",
           hasStripeCustomer: Boolean(data?.hasStripeCustomer),
+          subscriptionCancelAt: typeof data?.subscriptionCancelAt === "string" ? data.subscriptionCancelAt : null,
+          reportsThisMonth: typeof data?.reportsThisMonth === "number" ? data.reportsThisMonth : 0,
+          reportsLimit: typeof data?.reportsLimit === "number" ? data.reportsLimit : null,
+          detailsThisMonth: typeof data?.detailsThisMonth === "number" ? data.detailsThisMonth : 0,
+          detailsLimit: typeof data?.detailsLimit === "number" ? data.detailsLimit : null,
         })
       );
   }, []);
 
-  const SETTING_LABELS: Record<keyof Omit<Settings, "isRestricted" | "restrictionMessage" | "adminContacts" | "teamTier" | "hasStripeCustomer">, string> = {
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    if (searchParams.get("stripe") === "success") {
+      // Stripe just redirected back — sync plan from Stripe API then refetch
+      fetch("/api/stripe/sync-plan", { method: "POST" })
+        .then(() => fetchSettings())
+        .catch(() => fetchSettings())
+        .finally(() => router.replace("/settings"));
+    }
+  }, [searchParams, fetchSettings, router]);
+
+  const SETTING_LABELS: Record<keyof Omit<Settings, "isRestricted" | "restrictionMessage" | "adminContacts" | "teamTier" | "hasStripeCustomer" | "subscriptionCancelAt" | "reportsThisMonth" | "reportsLimit" | "detailsThisMonth" | "detailsLimit">, string> = {
     weeklyDigest: "Weekly digest",
     reportComplete: "Report complete",
     syncFailure: "Sync failure alerts",
@@ -140,12 +168,25 @@ export default function SettingsPage() {
     }
   };
 
-  // TODO[delete-account]: Account deletion — not yet implemented
-  const handleDeleteAccount = () => {
-    console.warn("Account deletion requested — not yet implemented.");
-    toast("Account deletion is not yet implemented.", {
-      description: "Contact support to delete your account.",
-    });
+  const handleSyncPlan = async () => {
+    try {
+      const res = await fetch("/api/stripe/sync-plan", { method: "POST" });
+      const data = await res.json() as { synced?: boolean; tier?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Sync failed");
+      await fetchSettings();
+      toast.success("Plan refreshed", { description: `Active plan: ${data.tier ?? "free"}.` });
+    } catch (err) {
+      toast.error("Sync failed", { description: err instanceof Error ? err.message : "Please try again." });
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const res = await fetch("/api/account", { method: "DELETE" });
+    if (res.ok) {
+      window.location.href = "/";
+    } else {
+      toast.error("Deletion failed", { description: "Please contact support." });
+    }
   };
 
   // TODO[devices]: View Devices — no API yet
@@ -212,25 +253,71 @@ export default function SettingsPage() {
               <p className="text-xl font-bold">{name}</p>
               <p className="text-sm text-muted-foreground">{email}</p>
             </div>
-            <Badge variant="outline" className="text-xs font-medium capitalize">
-              {settings?.teamTier ?? "free"} Plan
-            </Badge>
+            {settings !== null && (
+              <Badge variant="outline" className="text-xs font-medium capitalize">
+                {settings.teamTier ?? "free"} Plan
+              </Badge>
+            )}
           </div>
 
           <Separator />
 
           {/* Usage card */}
-          {/* TODO[usage]: Hardcoded 100% remaining and fake reset timer */}
-          <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Usage Limit</span>
-              <span className="text-xs text-muted-foreground">100% remaining</span>
-            </div>
-            <div className="h-2 rounded-full bg-muted overflow-hidden">
-              <div className="w-full h-2 rounded-full bg-primary" />
-            </div>
-            <p className="text-xs text-muted-foreground">Resets in 23h 53m</p>
-          </div>
+          {settings !== null && (() => {
+            const now = new Date();
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            const msLeft = endOfMonth.getTime() - now.getTime();
+            const daysLeft = Math.ceil(msLeft / 86400000);
+            const resetLabel = daysLeft < 1
+              ? `Resets in ${Math.ceil(msLeft / 3600000)}h`
+              : `Resets in ${daysLeft}d`;
+
+            const rUsed = settings.reportsThisMonth ?? 0;
+            const rLimit = settings.reportsLimit ?? null;
+            const rPct = rLimit != null ? Math.min((rUsed / rLimit) * 100, 100) : 0;
+
+            const dUsed = settings.detailsThisMonth ?? 0;
+            const dLimit = settings.detailsLimit ?? null;
+            const dPct = dLimit != null ? Math.min((dUsed / dLimit) * 100, 100) : 0;
+
+            return (
+              <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium">Reports</span>
+                    <span className="text-xs text-muted-foreground">
+                      {rLimit != null ? `${rUsed} / ${rLimit}` : "Unlimited"}
+                    </span>
+                  </div>
+                  {rLimit != null && (
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-1.5 rounded-full bg-primary transition-all"
+                        style={{ width: `${rPct}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium">AI Expansions</span>
+                    <span className="text-xs text-muted-foreground">
+                      {dLimit != null ? `${dUsed} / ${dLimit}` : "Unlimited"}
+                    </span>
+                  </div>
+                  {dLimit != null && (
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-1.5 rounded-full bg-primary transition-all"
+                        style={{ width: `${dPct}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">{resetLabel}</p>
+              </div>
+            );
+          })()}
 
           {/* Keyboard shortcuts card */}
           {/* TODO[kbd-shortcuts]: Hardcoded — not wired to real keybindings */}
@@ -278,19 +365,45 @@ export default function SettingsPage() {
                     <h2 id="plan-heading" className="text-2xl font-bold font-display tracking-tight">
                       Choose Your Plan
                     </h2>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!settings?.hasStripeCustomer}
-                      onClick={handleBillingPortal}
-                    >
-                      Manage Billing &amp; Invoices
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!settings?.hasStripeCustomer}
+                        onClick={handleSyncPlan}
+                        title="Sync your plan status from Stripe"
+                      >
+                        Refresh Plan
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!settings?.hasStripeCustomer}
+                        onClick={handleBillingPortal}
+                      >
+                        Manage Billing &amp; Invoices
+                      </Button>
+                    </div>
                   </div>
 
+                  {settings === null && (
+                    <div className="h-48 rounded-2xl border border-border bg-muted/30 animate-pulse" />
+                  )}
+
+                  {settings !== null && settings.subscriptionCancelAt && (
+                    <div className="rounded-xl border border-amber-300/50 bg-amber-50/60 dark:bg-amber-950/20 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+                      Your <span className="font-semibold capitalize">{settings.teamTier}</span> plan is active until{" "}
+                      <span className="font-semibold">
+                        {new Date(settings.subscriptionCancelAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
+                      </span>
+                      , then it reverts to Free.
+                    </div>
+                  )}
+
+                  {settings !== null && (
                   <div className="grid grid-cols-3 gap-4">
                     {/* Free */}
-                    <div className={`rounded-2xl border p-5 flex flex-col gap-4 ${settings?.teamTier === "free" || !settings?.teamTier ? "border-primary/40 bg-primary/5" : "border-border bg-card"}`}>
+                    <div className={`rounded-2xl border p-5 flex flex-col gap-4 ${settings.teamTier === "free" ? "border-primary/40 bg-primary/5" : "border-border bg-card"}`}>
                       <div>
                         <p className="font-semibold font-display text-lg">Free</p>
                         <p className="text-2xl font-bold font-display">$0</p>
@@ -303,13 +416,19 @@ export default function SettingsPage() {
                           </li>
                         ))}
                       </ul>
-                      <Button size="sm" variant="outline" className="w-full" disabled>
-                        {settings?.teamTier === "free" || !settings?.teamTier ? "Current Plan" : "Downgrade"}
-                      </Button>
+                      {settings.teamTier === "free" ? (
+                        <Button size="sm" variant="outline" className="w-full" disabled>
+                          Current Plan
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" className="w-full" onClick={handleBillingPortal}>
+                          {settings.subscriptionCancelAt ? "Manage Cancellation" : "Downgrade"}
+                        </Button>
+                      )}
                     </div>
 
                     {/* Pro — Most Popular */}
-                    <div className={`rounded-2xl border p-5 flex flex-col gap-4 relative pt-8 ${settings?.teamTier === "pro" ? "border-primary/40 bg-primary/5" : "border-border bg-card"}`}>
+                    <div className={`rounded-2xl border p-5 flex flex-col gap-4 relative pt-8 ${settings.teamTier === "pro" ? "border-primary/40 bg-primary/5" : "border-border bg-card"}`}>
                       <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                         <Badge className="bg-primary text-primary-foreground text-xs px-3 py-0.5 rounded-full">
                           Most Popular
@@ -327,9 +446,9 @@ export default function SettingsPage() {
                           </li>
                         ))}
                       </ul>
-                      {settings?.teamTier === "pro" ? (
+                      {settings.teamTier === "pro" ? (
                         <Button size="sm" variant="outline" className="w-full" disabled>
-                          Current Plan
+                          {settings.subscriptionCancelAt ? "Canceling" : "Current Plan"}
                         </Button>
                       ) : (
                         <Button size="sm" className="w-full" onClick={() => handleUpgrade("pro")}>
@@ -339,7 +458,7 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Agency */}
-                    <div className={`rounded-2xl border p-5 flex flex-col gap-4 ${settings?.teamTier === "agency" ? "border-primary/40 bg-primary/5" : "border-border bg-card"}`}>
+                    <div className={`rounded-2xl border p-5 flex flex-col gap-4 ${settings.teamTier === "agency" ? "border-primary/40 bg-primary/5" : "border-border bg-card"}`}>
                       <div>
                         <p className="font-semibold font-display text-lg">Agency</p>
                         <p className="text-2xl font-bold font-display">$79<span className="text-base font-medium text-muted-foreground">/mo</span></p>
@@ -352,9 +471,9 @@ export default function SettingsPage() {
                           </li>
                         ))}
                       </ul>
-                      {settings?.teamTier === "agency" ? (
+                      {settings.teamTier === "agency" ? (
                         <Button size="sm" variant="outline" className="w-full" disabled>
-                          Current Plan
+                          {settings.subscriptionCancelAt ? "Canceling" : "Current Plan"}
                         </Button>
                       ) : (
                         <Button size="sm" variant="outline" className="w-full" onClick={() => handleUpgrade("agency")}>
@@ -363,6 +482,7 @@ export default function SettingsPage() {
                       )}
                     </div>
                   </div>
+                  )}
                 </section>
 
                 {/* Billing Preferences */}
@@ -370,26 +490,14 @@ export default function SettingsPage() {
                   <h2 id="billing-heading" className="text-2xl font-bold font-display tracking-tight">
                     Billing Preferences
                   </h2>
-                  {/* TODO[billing-prefs]: Saved to DB — email sending not yet implemented */}
-                  <div>
-                    <label
-                      htmlFor="email-receipts"
-                      className="flex items-start justify-between gap-4 cursor-pointer"
-                    >
-                      <div>
-                        <p className="text-sm font-medium">Email me receipts</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Send receipts to your account email when a payment succeeds.
-                        </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">Receipts</p>
+                    <div className="group relative">
+                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        Stripe sends receipts automatically to your account email. If you didn&apos;t receive one, click <span className="font-medium">Manage Billing &amp; Invoices</span> above to view them in the billing portal.
                       </div>
-                      <Switch
-                        id="email-receipts"
-                        checked={settings?.emailReceipts ?? false}
-                        onCheckedChange={(value) => updateSetting("emailReceipts", value)}
-                        disabled={settings === null}
-                        className="flex-shrink-0 mt-0.5"
-                      />
-                    </label>
+                    </div>
                   </div>
                 </section>
 
