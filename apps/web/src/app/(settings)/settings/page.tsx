@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { authClient } from "@webhealth/shared/lib/auth-client";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UsageCard } from "@/components/usage-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -263,61 +264,14 @@ export default function SettingsPage() {
           <Separator />
 
           {/* Usage card */}
-          {settings !== null && (() => {
-            const now = new Date();
-            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-            const msLeft = endOfMonth.getTime() - now.getTime();
-            const daysLeft = Math.ceil(msLeft / 86400000);
-            const resetLabel = daysLeft < 1
-              ? `Resets in ${Math.ceil(msLeft / 3600000)}h`
-              : `Resets in ${daysLeft}d`;
-
-            const rUsed = settings.reportsThisMonth ?? 0;
-            const rLimit = settings.reportsLimit ?? null;
-            const rPct = rLimit != null ? Math.min((rUsed / rLimit) * 100, 100) : 0;
-
-            const dUsed = settings.detailsThisMonth ?? 0;
-            const dLimit = settings.detailsLimit ?? null;
-            const dPct = dLimit != null ? Math.min((dUsed / dLimit) * 100, 100) : 0;
-
-            return (
-              <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium">Reports</span>
-                    <span className="text-xs text-muted-foreground">
-                      {rLimit != null ? `${rUsed} / ${rLimit}` : "Unlimited"}
-                    </span>
-                  </div>
-                  {rLimit != null && (
-                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-1.5 rounded-full bg-primary transition-all"
-                        style={{ width: `${rPct}%` }}
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium">AI Expansions</span>
-                    <span className="text-xs text-muted-foreground">
-                      {dLimit != null ? `${dUsed} / ${dLimit}` : "Unlimited"}
-                    </span>
-                  </div>
-                  {dLimit != null && (
-                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-1.5 rounded-full bg-primary transition-all"
-                        style={{ width: `${dPct}%` }}
-                      />
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">{resetLabel}</p>
-              </div>
-            );
-          })()}
+          {settings !== null && (
+            <UsageCard
+              reportsThisMonth={settings.reportsThisMonth ?? 0}
+              reportsLimit={settings.reportsLimit ?? null}
+              detailsThisMonth={settings.detailsThisMonth ?? 0}
+              detailsLimit={settings.detailsLimit ?? null}
+            />
+          )}
 
           {/* Keyboard shortcuts card */}
           {/* TODO[kbd-shortcuts]: Hardcoded — not wired to real keybindings */}
@@ -349,7 +303,7 @@ export default function SettingsPage() {
         {/* Right panel */}
         <main className="flex-1 overflow-y-auto">
           <div className="p-8 max-w-[70%] mx-auto">
-            <Tabs defaultValue="account">
+            <Tabs defaultValue={searchParams.get("tab") ?? "account"}>
               <TabsList className="mb-8">
                 <TabsTrigger value="account">Account</TabsTrigger>
                 <TabsTrigger value="notifications">Notifications</TabsTrigger>
@@ -579,14 +533,17 @@ export default function SettingsPage() {
               {/* ── Notifications Tab ── */}
               <TabsContent value="notifications">
                 <div className="rounded-3xl border border-border bg-card p-6 space-y-4">
-                  <h2 className="text-xl font-bold font-display tracking-tight">
-                    Email Notifications
-                  </h2>
-                  {settings === null && (
-                    <p className="text-xs text-muted-foreground">Loading…</p>
-                  )}
-                  {/* TODO[email-service]: Email delivery service not yet configured (Resend / Postmark) */}
-                  {/* TODO[notification-scheduler]: Weekly digest requires a cron scheduler — not yet implemented */}
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-bold font-display tracking-tight">
+                      Email Notifications
+                    </h2>
+                    <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full font-medium">
+                      Coming soon
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Email notifications are not yet available. These preferences will be applied once the feature launches.
+                  </p>
                   {[
                     {
                       key: "weeklyDigest" as const,
@@ -606,11 +563,10 @@ export default function SettingsPage() {
                       label: "Sync failure alerts",
                       description: "Alert me when a property sync fails.",
                     },
-                  ].map(({ key, id, label, description }) => (
-                    <label
+                  ].map(({ id, label, description }) => (
+                    <div
                       key={id}
-                      htmlFor={id}
-                      className="flex items-center justify-between gap-4 cursor-pointer rounded-xl p-3 hover:bg-muted/30 transition-colors"
+                      className="flex items-center justify-between gap-4 rounded-xl p-3 opacity-50"
                     >
                       <div>
                         <p className="text-sm font-medium">{label}</p>
@@ -618,12 +574,11 @@ export default function SettingsPage() {
                       </div>
                       <Switch
                         id={id}
-                        checked={settings?.[key] ?? false}
-                        onCheckedChange={(value) => updateSetting(key, value)}
-                        disabled={settings === null}
+                        checked={false}
+                        disabled
                         className="flex-shrink-0"
                       />
-                    </label>
+                    </div>
                   ))}
                 </div>
               </TabsContent>
