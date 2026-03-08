@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { listAdminEmails } from "@webhealth/shared/lib/admin-access";
 import { badRequest } from "@webhealth/shared/lib/http-errors";
-import { requireSession } from "@/lib/server/authz";
+import { requireSession, getUserTeamMemberships } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";
 
 const ALLOWED_FIELDS = ['weeklyDigest', 'reportComplete', 'syncFailure', 'emailReceipts', 'reportLanguage'] as const;
@@ -16,30 +16,41 @@ export async function GET() {
     const session = await requireSession();
 
     const userId = session.user.id;
-    const [adminContacts, userRecord] = await Promise.all([
+    const [adminContacts, userRecord, memberships] = await Promise.all([
       listAdminEmails(),
       db.query.user.findFirst({
         where: (table, { eq }) => eq(table.id, userId),
         columns: { isRestricted: true, restrictionMessage: true },
       }),
+      getUserTeamMemberships(userId),
     ]);
+
+    // Resolve the user's primary team tier
+    const primaryTeamId = memberships[0]?.teamId ?? null;
+    const team = primaryTeamId
+      ? await db.query.teams.findFirst({
+          where: (t, { eq }) => eq(t.id, primaryTeamId),
+          columns: { tier: true, stripeCustomerId: true },
+        })
+      : null;
+    const teamTier = team?.tier ?? "free";
+    const hasStripeCustomer = Boolean(team?.stripeCustomerId);
 
     const existing = await db.query.userSettings.findFirst({
       where: eq(userSettings.userId, userId),
     });
 
+    const baseResponse = {
+      isRestricted: Boolean(userRecord?.isRestricted),
+      restrictionMessage: userRecord?.restrictionMessage ?? null,
+      adminContacts: adminContacts.map((row) => row.email),
+      teamTier,
+      hasStripeCustomer,
+    };
+
     if (existing) {
       const { weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage } = existing;
-      return NextResponse.json({
-        weeklyDigest,
-        reportComplete,
-        syncFailure,
-        emailReceipts,
-        reportLanguage,
-        isRestricted: Boolean(userRecord?.isRestricted),
-        restrictionMessage: userRecord?.restrictionMessage ?? null,
-        adminContacts: adminContacts.map((row) => row.email),
-      });
+      return NextResponse.json({ weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage, ...baseResponse });
     }
 
     // No row yet — upsert defaults and return them
@@ -53,16 +64,7 @@ export async function GET() {
       .returning();
 
     const { weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage } = created;
-    return NextResponse.json({
-      weeklyDigest,
-      reportComplete,
-      syncFailure,
-      emailReceipts,
-      reportLanguage,
-      isRestricted: Boolean(userRecord?.isRestricted),
-      restrictionMessage: userRecord?.restrictionMessage ?? null,
-      adminContacts: adminContacts.map((row) => row.email),
-    });
+    return NextResponse.json({ weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage, ...baseResponse });
   } catch (error: unknown) {
     return handleRouteError("GET /api/settings error", error);
   }

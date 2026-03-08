@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { FileText, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { propertyIdLabel } from "@/lib/property-label";
 import { NewReportDialog } from "./new-report-dialog";
 import { useRouter } from "next/navigation";
 
@@ -126,7 +127,7 @@ export function ReportsTable({ limit, showViewAll }: { limit?: number; showViewA
                   className="cursor-pointer hover:bg-muted/30 border-border/50 transition-colors group"
                   onClick={() => router.push(`/reports/${report.id}`)}
                 >
-                  <TableCell className="font-medium py-4">{report.propertyId.replace("gsc_", "")}</TableCell>
+                  <TableCell className="font-medium py-4">{propertyIdLabel(report.propertyId)}</TableCell>
                   <TableCell className="py-4 text-muted-foreground">
                     {new Date(report.dateRangeStart).toLocaleDateString()} –{" "}
                     {new Date(report.dateRangeEnd).toLocaleDateString()}

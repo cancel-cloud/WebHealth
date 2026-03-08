@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Globe2, BarChart2, Zap, Search, TrendingUp, FileDown, Check, ArrowRight, Sparkles } from "lucide-react";
+import { Globe2, BarChart2, Zap, Search, TrendingUp, Check, ArrowRight, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { authClient } from "@webhealth/shared/lib/auth-client";
 
@@ -60,25 +60,25 @@ const FEATURES = [
       "Top queries and pages ranked by traffic delta. Spot what dropped after your last deploy — immediately.",
   },
   {
-    icon: FileDown,
+    icon: BarChart2,
     color: "#06b6d4",
     tint: "#06b6d40c",
     border: "#06b6d41e",
-    title: "PDF, Excel, Markdown — client-ready or CMS-paste.",
+    title: "Historical context — spot regressions fast.",
     description:
-      "Download any report in the format your workflow expects. No formatting gymnastics required.",
+      "Compare any two date ranges side-by-side. Every metric shows a signed delta so you know instantly if last week's deploy hurt rankings.",
   },
 ];
 
 const PRICING = [
   {
-    name: "Solo",
+    name: "Free",
     price: "$0",
     period: "forever",
     description: "For developers auditing their own sites.",
     cta: "Start Free",
     href: "/dashboard",
-    features: ["Up to 3 properties", "5 reports / month", "AI Quick Wins", "Live crawl"],
+    features: ["Unlimited properties", "5 reports / month", "AI Quick Wins", "Live crawl"],
     highlight: false,
   },
   {
@@ -90,10 +90,10 @@ const PRICING = [
     href: "/dashboard",
     features: [
       "Unlimited properties",
-      "50 reports / month",
-      "PDF + Excel exports",
-      "Priority crawling",
-      "Team workspace",
+      "Unlimited reports",
+      "Priority queue",
+      "AI Quick Wins",
+      "Email support",
     ],
     highlight: true,
   },
@@ -103,13 +103,13 @@ const PRICING = [
     period: "/ month",
     description: "For high-volume reporting at scale.",
     cta: "Contact Us",
-    href: "/dashboard",
+    href: "mailto:contact@devbrew.dev",
     features: [
       "Unlimited everything",
-      "White-label exports",
-      "Custom AI prompts",
-      "API access",
+      "Priority queue",
       "Dedicated support",
+      "Custom AI prompts",
+      "Team workspace (coming soon)",
     ],
     highlight: false,
   },
@@ -231,12 +231,12 @@ export default function HomePage() {
               id="hero-heading"
               className="font-display text-6xl md:text-8xl font-extrabold tracking-tight leading-[1.05] mb-8 text-center w-full motion-safe:animate-[fade-slide-up_0.55s_0.1s_ease_both] opacity-0 [animation-fill-mode:forwards]"
             >
-              Site health.
+              GSC + GA4 data.
               <br />
               <span
                 className="text-primary"
               >
-                Finally&nbsp;automated.
+                Ranked fixes in&nbsp;3&nbsp;min.
               </span>
             </h1>
 
@@ -244,8 +244,8 @@ export default function HomePage() {
               className="text-lg md:text-xl max-w-xl mx-auto leading-relaxed mb-12 motion-safe:animate-[fade-slide-up_0.55s_0.2s_ease_both] opacity-0 [animation-fill-mode:forwards]"
               style={{ color: "oklch(0.45 0.02 250)" }}
             >
-              WebAudit syncs your GSC and GA4 data, crawls your site on demand, and delivers
-              AI&#8209;ranked fixes — without the dashboard babysitting.
+              Connect Google Search Console and Analytics, run a live crawl, and get an AI&#8209;ranked
+              fix list with affected URLs and impact scores — all in one report.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8 motion-safe:animate-[fade-slide-up_0.55s_0.3s_ease_both] opacity-0 [animation-fill-mode:forwards]">
@@ -262,8 +262,9 @@ export default function HomePage() {
                 variant="ghost"
                 className="h-12 px-8 rounded-full text-sm font-medium focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 touch-manipulation"
                 style={{ color: "oklch(0.45 0.02 250)" }}
+                asChild
               >
-                See a sample report
+                <Link href="/demo">See a sample report</Link>
               </Button>
             </div>
 
