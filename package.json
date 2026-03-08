@@ -10,7 +10,8 @@
     "worker:once": "pnpm --filter @webhealth/worker start:once",
     "db:push": "pnpm --filter @webhealth/shared db:push",
     "db:seed:plan-settings": "pnpm --filter @webhealth/shared db:seed:plan-settings",
-    "openai:reconcile-costs": "pnpm --filter @webhealth/worker openai:reconcile-costs"
+    "openai:reconcile-costs": "pnpm --filter @webhealth/worker openai:reconcile-costs",
+    "stripe:listen": "stripe listen --forward-to https://webaudit-79.localcan.dev/api/stripe/webhook"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.9"

@@ -5,8 +5,14 @@ import { eq } from "drizzle-orm";
 import { getStripe, tierFromPriceId } from "@/lib/server/stripe";
 import type Stripe from "stripe";
 
+// Stripe requires the exact raw bytes of the body for signature verification.
+// Reading as ArrayBuffer → Buffer avoids any encoding normalization Next.js
+// might apply when using req.text() (e.g. \r\n → \n).
+export const runtime = "nodejs";
+
 export async function POST(req: Request) {
-  const body = await req.text();
+  const rawBuffer = await req.arrayBuffer();
+  const body = Buffer.from(rawBuffer);
   const signature = req.headers.get("stripe-signature");
 
   if (!signature) {
@@ -51,6 +57,9 @@ export async function POST(req: Request) {
         const teamId = sub.metadata?.teamId;
         const priceId = sub.items.data[0]?.price.id ?? "";
         const tier = tierFromPriceId(priceId);
+        const cancelAt = sub.cancel_at ? new Date(sub.cancel_at * 1000) : null;
+
+        const updatePayload = { tier, stripeSubscriptionId: sub.id, subscriptionCancelAt: cancelAt };
 
         if (!teamId) {
           // Look up team by Stripe customer ID
@@ -58,10 +67,10 @@ export async function POST(req: Request) {
             where: (t, { eq }) => eq(t.stripeCustomerId, sub.customer as string),
           });
           if (team) {
-            await db.update(teams).set({ tier, stripeSubscriptionId: sub.id }).where(eq(teams.id, team.id));
+            await db.update(teams).set(updatePayload).where(eq(teams.id, team.id));
           }
         } else {
-          await db.update(teams).set({ tier, stripeSubscriptionId: sub.id }).where(eq(teams.id, teamId));
+          await db.update(teams).set(updatePayload).where(eq(teams.id, teamId));
         }
         break;
       }
@@ -74,7 +83,7 @@ export async function POST(req: Request) {
         if (team) {
           await db
             .update(teams)
-            .set({ tier: "free", stripeSubscriptionId: null })
+            .set({ tier: "free", stripeSubscriptionId: null, subscriptionCancelAt: null })
             .where(eq(teams.id, team.id));
         }
         break;

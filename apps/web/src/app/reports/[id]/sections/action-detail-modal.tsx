@@ -21,6 +21,11 @@ type ActionDetailModalProps = {
   detail: string | null;
 };
 
+function isSafeUrl(url: string): boolean {
+  try { return ["http:", "https:"].includes(new URL(url).protocol); }
+  catch { return false; }
+}
+
 export function ActionDetailModal({ open, onClose, title, detail }: ActionDetailModalProps) {
   let parsed: ActionDetail | null = null;
   let parseError = false;
@@ -56,14 +61,18 @@ export function ActionDetailModal({ open, onClose, title, detail }: ActionDetail
                 <ul className="space-y-1">
                   {parsed.affectedUrls.map((url) => (
                     <li key={url}>
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary underline underline-offset-2 break-all"
-                      >
-                        {url}
-                      </a>
+                      {isSafeUrl(url) ? (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary underline underline-offset-2 break-all"
+                        >
+                          {url}
+                        </a>
+                      ) : (
+                        <span className="break-all text-muted-foreground">{url}</span>
+                      )}
                     </li>
                   ))}
                 </ul>
