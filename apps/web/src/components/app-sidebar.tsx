@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { UsageCard } from "@/components/usage-card";
 import {
   LayoutDashboard,
   FileText,
@@ -71,13 +72,38 @@ const ADMIN_ITEMS = [
   { title: "AI Debug Console", url: "/admin/ai-report-debug", icon: Bug },
 ];
 
+type UsageData = {
+  reportsThisMonth: number;
+  reportsLimit: number | null;
+  detailsThisMonth: number;
+  detailsLimit: number | null;
+};
+
 export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const { data: session } = authClient.useSession();
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [usage, setUsage] = useState<UsageData | null>(null);
+
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d?.reportsThisMonth === "number") {
+          setUsage({
+            reportsThisMonth: d.reportsThisMonth,
+            reportsLimit: typeof d.reportsLimit === "number" ? d.reportsLimit : null,
+            detailsThisMonth: d.detailsThisMonth ?? 0,
+            detailsLimit: typeof d.detailsLimit === "number" ? d.detailsLimit : null,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSignOut = async () => {
     await authClient.signOut({
@@ -171,8 +197,21 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
         )}
       </SidebarContent>
 
-      {/* ── Footer: profile → theme → sign out ── */}
+      {/* ── Footer: usage → profile → theme → sign out ── */}
       <SidebarFooter>
+        {/* Usage card — hidden when sidebar is collapsed to icon mode */}
+        {usage && (
+          <div className="group-data-[collapsible=icon]:hidden px-2 pb-1">
+            <UsageCard
+              reportsThisMonth={usage.reportsThisMonth}
+              reportsLimit={usage.reportsLimit}
+              detailsThisMonth={usage.detailsThisMonth}
+              detailsLimit={usage.detailsLimit}
+              variant="compact"
+            />
+          </div>
+        )}
+
         <SidebarMenu>
 
           {/* Profile — opens popup */}
@@ -225,9 +264,11 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                     Settings
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <MessageSquare aria-hidden="true" className="mr-2 h-4 w-4" />
-                  Feedback
+                <DropdownMenuItem asChild>
+                  <Link href="/settings?tab=contact" className="cursor-pointer">
+                    <MessageSquare aria-hidden="true" className="mr-2 h-4 w-4" />
+                    Feedback
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
