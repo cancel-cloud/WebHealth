@@ -7,7 +7,8 @@ export const DEFAULT_PLAN_SETTINGS = [
     tier: "free",
     displayName: "Free",
     reportsPerMonth: 5,
-    maxProperties: 5,
+    maxProperties: null,
+    detailsPerMonth: 5,
   },
   {
     id: "plan_pro",
@@ -15,13 +16,15 @@ export const DEFAULT_PLAN_SETTINGS = [
     displayName: "Pro",
     reportsPerMonth: 50,
     maxProperties: null,
+    detailsPerMonth: 200,
   },
   {
-    id: "plan_team",
-    tier: "team",
-    displayName: "Team",
+    id: "plan_agency",
+    tier: "agency",
+    displayName: "Agency",
     reportsPerMonth: null,
     maxProperties: null,
+    detailsPerMonth: null,
   },
 ] as const;
 
@@ -52,6 +55,7 @@ export async function ensurePlanSettingsSeeded(db: DbLike) {
             displayName: string;
             reportsPerMonth: number | null;
             maxProperties: number | null;
+            detailsPerMonth: number | null;
             updatedAt: Date;
           };
         }) => Promise<unknown>;
@@ -65,6 +69,7 @@ export async function ensurePlanSettingsSeeded(db: DbLike) {
           displayName: tier.displayName,
           reportsPerMonth: tier.reportsPerMonth,
           maxProperties: tier.maxProperties,
+          detailsPerMonth: tier.detailsPerMonth,
           updatedAt: new Date(),
         },
       });

@@ -73,6 +73,7 @@ export const teams = pgTable("teams", {
   tier: text("tier").default("free").notNull(),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  subscriptionCancelAt: timestamp("subscription_cancel_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -327,12 +328,20 @@ export const userFeatureFlags = pgTable("user_feature_flags", {
 
 export const planSettings = pgTable("plan_settings", {
   id: text("id").primaryKey(),
-  tier: text("tier").unique().notNull(), // 'free' | 'pro' | 'team'
+  tier: text("tier").unique().notNull(), // 'free' | 'pro' | 'agency'
   displayName: text("display_name").notNull(),
   reportsPerMonth: integer("reports_per_month"), // null = unlimited
   maxProperties: integer("max_properties"), // null = unlimited
+  detailsPerMonth: integer("details_per_month"), // null = unlimited
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const teamUsage = pgTable("team_usage", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  yearMonth: text("year_month").notNull(), // e.g. "2026-03"
+  detailsCount: integer("details_count").default(0).notNull(),
+}, (t) => [unique().on(t.teamId, t.yearMonth)]);
 
 export const aiReportPromptVersions = pgTable("ai_report_prompt_versions", {
   id: text("id").primaryKey(),
