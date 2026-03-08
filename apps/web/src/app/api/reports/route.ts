@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from "@webhealth/shared/db";
-import { reports, systemLogs, teams } from "@webhealth/shared/db/schema";
+import { reports, systemLogs, teams, planSettings } from "@webhealth/shared/db/schema";
 import { eq, and, gte } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { isEnabled } from "@webhealth/shared/lib/feature-flags";
@@ -66,24 +66,29 @@ export async function POST(req: Request) {
     // When real multi-team support is added, authorize against the selected property's team.
     const teamId = ownerMembership.teamId;
 
-    // Plan enforcement — Free tier: max 5 reports per calendar month
+    // Plan enforcement — check monthly report limit from planSettings
     const team = await db.query.teams.findFirst({
       where: (t, { eq }) => eq(t.id, teamId),
       columns: { tier: true },
     });
     const teamTier = team?.tier ?? "free";
-    if (teamTier === "free") {
+    const planRecord = await db.query.planSettings.findFirst({
+      where: (ps, { eq }) => eq(ps.tier, teamTier),
+      columns: { reportsPerMonth: true },
+    });
+    const reportLimit = planRecord?.reportsPerMonth ?? null;
+    if (reportLimit !== null) {
       const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const monthlyReports = await db.query.reports.findMany({
-        where: (r, { and, eq, gte }) => and(eq(r.teamId, teamId), gte(r.createdAt, new Date(monthStart))),
+        where: (r, { and, eq, gte }) => and(eq(r.teamId, teamId), gte(r.createdAt, monthStart)),
         columns: { id: true },
       });
-      if (monthlyReports.length >= 5) {
+      if (monthlyReports.length >= reportLimit) {
         return NextResponse.json(
           {
             error: "PLAN_LIMIT_EXCEEDED",
-            message: "You have reached the 5 reports/month limit on the Free plan. Upgrade to Pro for unlimited reports.",
+            message: `You have reached the ${reportLimit} reports/month limit on the ${teamTier} plan. Upgrade for more reports.`,
           },
           { status: 402 }
         );
