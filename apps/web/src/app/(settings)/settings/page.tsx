@@ -47,6 +47,8 @@ type Settings = {
   isRestricted?: boolean;
   restrictionMessage?: string | null;
   adminContacts?: string[];
+  teamTier?: string;
+  hasStripeCustomer?: boolean;
 };
 
 export default function SettingsPage() {
@@ -70,11 +72,13 @@ export default function SettingsPage() {
           adminContacts: Array.isArray(data?.adminContacts)
             ? data.adminContacts.filter((value: unknown): value is string => typeof value === "string")
             : [],
+          teamTier: typeof data?.teamTier === "string" ? data.teamTier : "free",
+          hasStripeCustomer: Boolean(data?.hasStripeCustomer),
         })
       );
   }, []);
 
-  const SETTING_LABELS: Record<keyof Omit<Settings, "isRestricted" | "restrictionMessage" | "adminContacts">, string> = {
+  const SETTING_LABELS: Record<keyof Omit<Settings, "isRestricted" | "restrictionMessage" | "adminContacts" | "teamTier" | "hasStripeCustomer">, string> = {
     weeklyDigest: "Weekly digest",
     reportComplete: "Report complete",
     syncFailure: "Sync failure alerts",
@@ -108,6 +112,32 @@ export default function SettingsPage() {
         },
       },
     });
+  };
+
+  const handleUpgrade = async (plan: "pro" | "agency") => {
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok || !data.url) throw new Error(data.error ?? "Failed to create checkout session");
+      window.location.href = data.url;
+    } catch (err) {
+      toast.error("Upgrade failed", { description: err instanceof Error ? err.message : "Please try again." });
+    }
+  };
+
+  const handleBillingPortal = async () => {
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok || !data.url) throw new Error(data.error ?? "Failed to open billing portal");
+      window.location.href = data.url;
+    } catch (err) {
+      toast.error("Billing portal error", { description: err instanceof Error ? err.message : "Please try again." });
+    }
   };
 
   // TODO[delete-account]: Account deletion — not yet implemented
@@ -182,9 +212,8 @@ export default function SettingsPage() {
               <p className="text-xl font-bold">{name}</p>
               <p className="text-sm text-muted-foreground">{email}</p>
             </div>
-            {/* TODO[plan-tier]: Plan tier hardcoded — not read from DB */}
-            <Badge variant="outline" className="text-xs font-medium">
-              Free Plan
+            <Badge variant="outline" className="text-xs font-medium capitalize">
+              {settings?.teamTier ?? "free"} Plan
             </Badge>
           </div>
 
@@ -249,21 +278,25 @@ export default function SettingsPage() {
                     <h2 id="plan-heading" className="text-2xl font-bold font-display tracking-tight">
                       Choose Your Plan
                     </h2>
-                    {/* TODO[billing-portal]: No Stripe portal yet */}
-                    <Button variant="outline" size="sm" disabled>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!settings?.hasStripeCustomer}
+                      onClick={handleBillingPortal}
+                    >
                       Manage Billing &amp; Invoices
                     </Button>
                   </div>
 
                   <div className="grid grid-cols-3 gap-4">
                     {/* Free */}
-                    <div className="rounded-2xl border border-primary/40 bg-primary/5 p-5 flex flex-col gap-4">
+                    <div className={`rounded-2xl border p-5 flex flex-col gap-4 ${settings?.teamTier === "free" || !settings?.teamTier ? "border-primary/40 bg-primary/5" : "border-border bg-card"}`}>
                       <div>
                         <p className="font-semibold font-display text-lg">Free</p>
                         <p className="text-2xl font-bold font-display">$0</p>
                       </div>
                       <ul className="space-y-1.5 flex-1">
-                        {["5 properties", "10 reports/mo", "Community support"].map((f) => (
+                        {["Unlimited properties", "5 reports/month", "AI Quick Wins", "Live crawl"].map((f) => (
                           <li key={f} className="text-xs text-muted-foreground flex items-start gap-1.5">
                             <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/50 flex-shrink-0" />
                             {f}
@@ -271,12 +304,12 @@ export default function SettingsPage() {
                         ))}
                       </ul>
                       <Button size="sm" variant="outline" className="w-full" disabled>
-                        Current Plan
+                        {settings?.teamTier === "free" || !settings?.teamTier ? "Current Plan" : "Downgrade"}
                       </Button>
                     </div>
 
                     {/* Pro — Most Popular */}
-                    <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4 relative pt-8">
+                    <div className={`rounded-2xl border p-5 flex flex-col gap-4 relative pt-8 ${settings?.teamTier === "pro" ? "border-primary/40 bg-primary/5" : "border-border bg-card"}`}>
                       <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                         <Badge className="bg-primary text-primary-foreground text-xs px-3 py-0.5 rounded-full">
                           Most Popular
@@ -287,37 +320,47 @@ export default function SettingsPage() {
                         <p className="text-2xl font-bold font-display">$19<span className="text-base font-medium text-muted-foreground">/mo</span></p>
                       </div>
                       <ul className="space-y-1.5 flex-1">
-                        {["25 properties", "Unlimited reports", "Email support", "Advanced analytics"].map((f) => (
+                        {["Unlimited properties", "Unlimited reports", "Priority queue", "Email support"].map((f) => (
                           <li key={f} className="text-xs text-muted-foreground flex items-start gap-1.5">
                             <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-primary/60 flex-shrink-0" />
                             {f}
                           </li>
                         ))}
                       </ul>
-                      {/* TODO[upgrade-flow]: No Stripe / payment flow yet */}
-                      <Button size="sm" className="w-full" disabled>
-                        Upgrade
-                      </Button>
+                      {settings?.teamTier === "pro" ? (
+                        <Button size="sm" variant="outline" className="w-full" disabled>
+                          Current Plan
+                        </Button>
+                      ) : (
+                        <Button size="sm" className="w-full" onClick={() => handleUpgrade("pro")}>
+                          Upgrade to Pro
+                        </Button>
+                      )}
                     </div>
 
                     {/* Agency */}
-                    <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4">
+                    <div className={`rounded-2xl border p-5 flex flex-col gap-4 ${settings?.teamTier === "agency" ? "border-primary/40 bg-primary/5" : "border-border bg-card"}`}>
                       <div>
                         <p className="font-semibold font-display text-lg">Agency</p>
                         <p className="text-2xl font-bold font-display">$79<span className="text-base font-medium text-muted-foreground">/mo</span></p>
                       </div>
                       <ul className="space-y-1.5 flex-1">
-                        {["Unlimited properties", "Priority support", "Team members", "White-label reports"].map((f) => (
+                        {["Unlimited properties", "Unlimited reports", "Priority queue", "Dedicated support"].map((f) => (
                           <li key={f} className="text-xs text-muted-foreground flex items-start gap-1.5">
                             <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/50 flex-shrink-0" />
                             {f}
                           </li>
                         ))}
                       </ul>
-                      {/* TODO[upgrade-flow]: No Stripe / payment flow yet */}
-                      <Button size="sm" variant="outline" className="w-full" disabled>
-                        Upgrade
-                      </Button>
+                      {settings?.teamTier === "agency" ? (
+                        <Button size="sm" variant="outline" className="w-full" disabled>
+                          Current Plan
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => handleUpgrade("agency")}>
+                          Upgrade to Agency
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </section>
@@ -520,13 +563,13 @@ export default function SettingsPage() {
                         icon: Shield,
                         title: "Privacy Policy",
                         description: "Read our privacy policy and data handling practices",
-                        href: "#",
+                        href: "/privacy",
                       },
                       {
                         icon: FileText,
                         title: "Terms of Service",
                         description: "Review our terms of service and usage guidelines",
-                        href: "#",
+                        href: "/terms",
                       },
                     ].map(({ icon: Icon, title, description, href }) => (
                       <a

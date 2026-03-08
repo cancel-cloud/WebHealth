@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from "@webhealth/shared/db";
-import { reports, systemLogs } from "@webhealth/shared/db/schema";
-import { eq } from 'drizzle-orm';
+import { reports, systemLogs, teams } from "@webhealth/shared/db/schema";
+import { eq, and, gte } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { isEnabled } from "@webhealth/shared/lib/feature-flags";
 import { getGoogleAuthClient } from "@webhealth/shared/lib/google/api";
@@ -65,6 +65,30 @@ export async function POST(req: Request) {
     // TODO(team-authz): Current product behavior assumes one effective team per user.
     // When real multi-team support is added, authorize against the selected property's team.
     const teamId = ownerMembership.teamId;
+
+    // Plan enforcement — Free tier: max 5 reports per calendar month
+    const team = await db.query.teams.findFirst({
+      where: (t, { eq }) => eq(t.id, teamId),
+      columns: { tier: true },
+    });
+    const teamTier = team?.tier ?? "free";
+    if (teamTier === "free") {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const monthlyReports = await db.query.reports.findMany({
+        where: (r, { and, eq, gte }) => and(eq(r.teamId, teamId), gte(r.createdAt, new Date(monthStart))),
+        columns: { id: true },
+      });
+      if (monthlyReports.length >= 5) {
+        return NextResponse.json(
+          {
+            error: "PLAN_LIMIT_EXCEEDED",
+            message: "You have reached the 5 reports/month limit on the Free plan. Upgrade to Pro for unlimited reports.",
+          },
+          { status: 402 }
+        );
+      }
+    }
 
     let resolvedSources;
     try {
@@ -133,10 +157,13 @@ export async function POST(req: Request) {
         throw new Error(message);
       }
 
+      // Pro/Agency users get priority queue (lower value = processed first)
+      const jobPriority = ["pro", "agency"].includes(teamTier) ? 50 : 100;
       await enqueueReportJob({
         reportId,
         teamId,
         kind: 'generate_report',
+        priority: jobPriority,
         payload: { runXlsx: true, source: 'user_create' },
       });
     }

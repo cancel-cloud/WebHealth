@@ -71,6 +71,8 @@ export const teams = pgTable("teams", {
     .notNull()
     .references(() => user.id),
   tier: text("tier").default("free").notNull(),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
