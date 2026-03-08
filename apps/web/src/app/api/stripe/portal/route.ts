@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const origin = req.headers.get("origin") ?? process.env.BETTER_AUTH_URL ?? "https://webaudit-79.localcan.dev";
+    const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL ?? "https://webhealth.devbrew.dev";
     const stripe = getStripe();
 
     const portalSession = await stripe.billingPortal.sessions.create({

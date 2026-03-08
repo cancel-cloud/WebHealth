@@ -19,12 +19,12 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "WebAudit | SEO & Analytics Monitoring",
   description: "Connect GSC + GA4, run a live crawl, and get an AI-ranked fix list in 3 minutes. Automated SEO reporting for developers and freelancers.",
-  metadataBase: new URL("https://webaudit-79.localcan.dev"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://webhealth.devbrew.dev"),
   openGraph: {
     type: "website",
     title: "WebAudit — GSC + GA4 data. Ranked fixes in 3 min.",
     description: "Connect GSC + GA4, run a live crawl, and get an AI-ranked fix list with affected URLs and impact scores. Free to start.",
-    url: "https://webaudit-79.localcan.dev",
+    url: process.env.NEXT_PUBLIC_APP_URL ?? "https://webhealth.devbrew.dev",
     siteName: "WebAudit",
     images: [
       {

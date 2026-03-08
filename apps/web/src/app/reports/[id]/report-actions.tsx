@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Share2 } from "lucide-react";
 import { toast } from "sonner";
 
 export function ReportActions({
@@ -84,6 +85,17 @@ export function ReportActions({
 
   return (
     <div className="flex flex-wrap gap-2">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span tabIndex={0}>
+            <Button size="sm" variant="outline" disabled className="gap-1.5">
+              <Share2 className="h-3.5 w-3.5" aria-hidden="true" />
+              Share
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>Share a public link with clients — coming soon</TooltipContent>
+      </Tooltip>
       <ActionButton
         label="Retry Report"
         busyLabel="Re-queuing..."
