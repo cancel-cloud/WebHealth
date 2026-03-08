@@ -8,7 +8,8 @@ export function getStripe(): Stripe {
       throw new Error("STRIPE_SECRET_KEY is not set");
     }
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2026-02-25.clover",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      apiVersion: "2023-10-16" as any,
     });
   }
   return _stripe;
