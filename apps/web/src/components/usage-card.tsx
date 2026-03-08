@@ -1,5 +1,8 @@
 "use client";
 
+import { HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 type UsageCardProps = {
   reportsThisMonth: number;
   reportsLimit: number | null;
@@ -59,8 +62,18 @@ export function UsageCard({
       {detailsLimit !== null && (
         <div className={isCompact ? "space-y-1" : "space-y-2"}>
           <div className="flex items-center justify-between">
-            <span className={`font-medium ${isCompact ? "text-xs text-muted-foreground" : "text-xs"}`}>
-              AI Expansions
+            <span className="flex items-center gap-1">
+              <span className={`font-medium ${isCompact ? "text-xs text-muted-foreground" : "text-xs"}`}>
+                Deep Dives
+              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" aria-label="About Deep Dives" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Expand any report section for a deeper AI analysis. Use them on your highest-traffic pages first.
+                </TooltipContent>
+              </Tooltip>
             </span>
             <span className="text-xs text-muted-foreground">
               {detailsThisMonth} / {detailsLimit}

@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Globe2, BarChart2, Zap, Search, TrendingUp, Check, ArrowRight, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { authClient } from "@webhealth/shared/lib/auth-client";
+import { PricingSection } from "@/components/pricing-section";
 
 /* ─── Palette ────────────────────────────────────────────────────────── */
 // Primary: indigo #6366f1  Accent: cyan #06b6d4  Success: emerald #10b981
@@ -70,50 +72,6 @@ const FEATURES = [
   },
 ];
 
-const PRICING = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    description: "For developers auditing their own sites.",
-    cta: "Start Free",
-    href: "/dashboard",
-    features: ["Unlimited properties", "5 reports / month", "AI Quick Wins", "Live crawl"],
-    highlight: false,
-  },
-  {
-    name: "Pro",
-    price: "$19",
-    period: "/ month",
-    description: "For freelancers managing multiple clients.",
-    cta: "Get Started",
-    href: "/dashboard",
-    features: [
-      "Unlimited properties",
-      "Unlimited reports",
-      "Priority queue",
-      "AI Quick Wins",
-      "Email support",
-    ],
-    highlight: true,
-  },
-  {
-    name: "Agency",
-    price: "$79",
-    period: "/ month",
-    description: "For high-volume reporting at scale.",
-    cta: "Contact Us",
-    href: "mailto:contact@devbrew.dev",
-    features: [
-      "Unlimited everything",
-      "Priority queue",
-      "Dedicated support",
-      "Custom AI prompts",
-      "Team workspace (coming soon)",
-    ],
-    highlight: false,
-  },
-];
 
 const STEPS = [
   {
@@ -277,6 +235,47 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── HERO SCREENSHOT ──────────────────────────────────────────── */}
+        <section
+          aria-label="Product preview"
+          className="relative px-6 pb-8 overflow-hidden motion-safe:animate-[fade-slide-up_0.6s_0.55s_ease_both] opacity-0 [animation-fill-mode:forwards]"
+        >
+          {/* Glow halo behind the card */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 flex justify-center"
+          >
+            <div
+              className="h-48 w-[700px] rounded-full blur-3xl"
+              style={{ backgroundColor: "#6366f118" }}
+            />
+          </div>
+
+          <Link
+            href="/demo"
+            className="group relative mx-auto block max-w-5xl overflow-hidden rounded-2xl border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-4"
+            style={{ borderColor: "oklch(0.88 0.01 250 / 0.6)", boxShadow: "0 24px 64px -12px rgba(0,0,0,0.18), 0 0 0 1px rgba(99,102,241,0.08)" }}
+            aria-label="View sample WebAudit report"
+          >
+            <Image
+              src="/hero-screenshot.png"
+              alt="WebAudit report showing GSC impressions, CTR trends, Quick Win opportunities and a ranked fix list"
+              width={1601}
+              height={712}
+              priority
+              className="w-full h-auto transition-transform duration-500 ease-out group-hover:scale-[1.015]"
+            />
+            <div
+              className="absolute inset-0 flex items-center justify-center bg-transparent transition-colors duration-300 group-hover:bg-[#6366f10a]"
+              aria-hidden="true"
+            >
+              <span className="translate-y-1 rounded-full bg-white/95 px-5 py-2 text-sm font-semibold text-[#6366f1] opacity-0 shadow-lg transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                View sample report →
+              </span>
+            </div>
+          </Link>
+        </section>
+
         {/* ── FEATURES ─────────────────────────────────────────────────── */}
         <section id="features" className="py-28 px-6 scroll-mt-16" aria-labelledby="features-heading">
           <div className="max-w-5xl mx-auto">
@@ -424,116 +423,7 @@ export default function HomePage() {
         </section>
 
         {/* ── PRICING ──────────────────────────────────────────────────── */}
-        <section id="pricing" className="py-28 px-6 scroll-mt-16" aria-labelledby="pricing-heading">
-          <div className="max-w-5xl mx-auto">
-            <div className="mb-16 text-center">
-              <p
-                className="text-xs font-semibold uppercase tracking-widest mb-3"
-                style={{ color: "#6366f1" }}
-              >
-                Pricing
-              </p>
-              <h2
-                id="pricing-heading"
-                className="font-display text-4xl md:text-5xl font-bold tracking-tight"
-                style={{ textWrap: "balance" } as React.CSSProperties}
-              >
-                Simple. Transparent. No surprises.
-              </h2>
-            </div>
-
-            <motion.div
-              variants={stagger}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true }}
-              className="grid md:grid-cols-3 gap-5 items-start"
-            >
-              {PRICING.map((plan) => (
-                <motion.div
-                  key={plan.name}
-                  variants={fadeUp}
-                  className={`rounded-2xl p-8 flex flex-col bg-white ${
-                    plan.highlight ? "md:-translate-y-2" : ""
-                  }`}
-                  style={{
-                    border: plan.highlight
-                      ? "1.5px solid #6366f1"
-                      : "1px solid oklch(0.91 0.01 250)",
-                    boxShadow: plan.highlight
-                      ? "0 0 0 4px #6366f115, 0 8px 28px #6366f118"
-                      : "0 1px 4px oklch(0 0 0 / 0.04)",
-                  }}
-                >
-                  {plan.highlight && (
-                    <span
-                      className="self-start text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-4"
-                      style={{
-                        background: "#f59e0b",
-                        color: "#451a03",
-                      }}
-                    >
-                      Most popular
-                    </span>
-                  )}
-                  <h3 className="font-display text-sm font-semibold uppercase tracking-widest mb-1">
-                    {plan.name}
-                  </h3>
-                  <p
-                    className="text-xs mb-6 min-w-0"
-                    style={{ color: "oklch(0.55 0.02 250)" }}
-                  >
-                    {plan.description}
-                  </p>
-                  <div className="flex items-baseline gap-1 mb-8">
-                    <span className="font-display text-4xl font-bold tabular-nums">
-                      {plan.price}
-                    </span>
-                    <span className="text-sm" style={{ color: "oklch(0.6 0.02 250)" }}>
-                      {plan.period}
-                    </span>
-                  </div>
-                  <ul className="space-y-2.5 mb-8 flex-1">
-                    {plan.features.map((feat) => (
-                      <li key={feat} className="flex items-start gap-2 text-sm">
-                        <Check
-                          className="size-4 mt-0.5 shrink-0"
-                          aria-hidden="true"
-                          style={{ color: "#6366f1" }}
-                        />
-                        <span className="min-w-0">{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  {plan.highlight ? (
-                    <Link
-                      href={plan.href}
-                      className="flex items-center justify-center h-10 w-full rounded-full text-sm font-semibold text-white focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:outline-none touch-manipulation"
-                      style={{
-                        backgroundImage: "linear-gradient(90deg, #6366f1, #0ea5e9)",
-                      }}
-                    >
-                      {plan.cta}
-                    </Link>
-                  ) : (
-                    <Link href={plan.href}>
-                      <Button
-                        className="w-full rounded-full h-10 text-sm font-medium focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 touch-manipulation"
-                        style={{
-                          backgroundColor: "#6366f10e",
-                          color: "#6366f1",
-                          border: "1px solid #6366f122",
-                        }}
-                      >
-                        {plan.cta}
-                      </Button>
-                    </Link>
-                  )}
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-        </section>
+        <PricingSection />
 
         {/* ── CTA — Light indigo tint band, horizontal layout ──────────── */}
         <section

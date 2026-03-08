@@ -60,7 +60,7 @@ type DebugStatsResponse = {
       xlsxStatus: string | null;
     } | null;
   }>;
-  dailyCosts?: Array<{ sourceDate: string; totalUsd: string }>;
+
   detailRequests?: Array<{
     id: string;
     reportId: string;
@@ -414,15 +414,7 @@ export function DebugConsole({
             <Input value={jobFilter} onChange={(e) => setJobFilter(e.target.value)} placeholder="rj_xxx" />
           </div>
         </div>
-        <div className="text-sm">
-          <div className="font-medium mb-1">Daily billed spend (reconciled)</div>
-          <div className="text-muted-foreground">
-            {(debug?.dailyCosts ?? [])
-              .slice(0, 7)
-              .map((d) => `${d.sourceDate}: $${d.totalUsd}`)
-              .join(" • ") || "No reconciled cost buckets yet"}
-          </div>
-        </div>
+
         <h2 className="font-semibold text-lg">Last Jobs + AI Cost/Usage</h2>
         <div className="overflow-auto">
           <table className="w-full text-sm">

@@ -9,7 +9,7 @@ import { UsageCard } from "@/components/usage-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -27,7 +27,7 @@ import {
   Sparkles,
   Bug,
   CircleAlert,
-  // MessageSquare,
+  MessageSquare,
   Shield,
   FileText,
   Info,
@@ -190,12 +190,6 @@ export default function SettingsPage() {
     }
   };
 
-  // TODO[devices]: View Devices — no API yet
-  const handleViewDevices = () => {
-    toast("Coming soon", {
-      description: "Device management is not yet available.",
-    });
-  };
 
   const name = session?.user?.name ?? "—";
   const email = session?.user?.email ?? "—";
@@ -306,7 +300,6 @@ export default function SettingsPage() {
             <Tabs defaultValue={searchParams.get("tab") ?? "account"}>
               <TabsList className="mb-8">
                 <TabsTrigger value="account">Account</TabsTrigger>
-                <TabsTrigger value="notifications">Notifications</TabsTrigger>
                 <TabsTrigger value="contact">Contact Us</TabsTrigger>
               </TabsList>
 
@@ -414,25 +407,25 @@ export default function SettingsPage() {
                     {/* Agency */}
                     <div className={`rounded-2xl border p-5 flex flex-col gap-4 ${settings.teamTier === "agency" ? "border-primary/40 bg-primary/5" : "border-border bg-card"}`}>
                       <div>
-                        <p className="font-semibold font-display text-lg">Agency</p>
-                        <p className="text-2xl font-bold font-display">$79<span className="text-base font-medium text-muted-foreground">/mo</span></p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold font-display text-lg">Agency</p>
+                          <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          For agencies and high-volume clients. Get in touch to be first in line.
+                        </p>
                       </div>
-                      <ul className="space-y-1.5 flex-1">
-                        {["Unlimited properties", "Unlimited reports", "Priority queue", "Dedicated support"].map((f) => (
-                          <li key={f} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                            <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/50 flex-shrink-0" />
-                            {f}
-                          </li>
-                        ))}
-                      </ul>
                       {settings.teamTier === "agency" ? (
                         <Button size="sm" variant="outline" className="w-full" disabled>
                           {settings.subscriptionCancelAt ? "Canceling" : "Current Plan"}
                         </Button>
                       ) : (
-                        <Button size="sm" variant="outline" className="w-full" onClick={() => handleUpgrade("agency")}>
-                          Upgrade to Agency
-                        </Button>
+                        <a
+                          href="mailto:contact@devbrew.dev?subject=WebAudit%20Agency%20Interest"
+                          className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground w-full text-center transition-colors"
+                        >
+                          Get in touch →
+                        </a>
                       )}
                     </div>
                   </div>
@@ -478,22 +471,6 @@ export default function SettingsPage() {
                   </div>
                 </section>
 
-                {/* Security Options */}
-                <section aria-labelledby="security-heading" className="space-y-4">
-                  <h2 id="security-heading" className="text-2xl font-bold font-display tracking-tight">
-                    Security Options
-                  </h2>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Devices</p>
-                    <p className="text-xs text-muted-foreground">
-                      Manage and sign out from other devices that are currently logged in to your account.
-                    </p>
-                  </div>
-                  {/* TODO[devices]: No API yet — shows toast placeholder */}
-                  <Button variant="outline" size="sm" onClick={handleViewDevices}>
-                    View Devices
-                  </Button>
-                </section>
 
                 {/* Danger Zone */}
                 <section aria-labelledby="danger-heading" className="space-y-4">
@@ -503,7 +480,7 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">
                     Permanently delete your account and all associated data.
                   </p>
-                  {/* TODO[delete-account]: No real deletion yet */}
+
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="destructive" size="sm">
@@ -530,58 +507,6 @@ export default function SettingsPage() {
                 </section>
               </TabsContent>
 
-              {/* ── Notifications Tab ── */}
-              <TabsContent value="notifications">
-                <div className="rounded-3xl border border-border bg-card p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold font-display tracking-tight">
-                      Email Notifications
-                    </h2>
-                    <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full font-medium">
-                      Coming soon
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Email notifications are not yet available. These preferences will be applied once the feature launches.
-                  </p>
-                  {[
-                    {
-                      key: "weeklyDigest" as const,
-                      id: "weekly-digest",
-                      label: "Weekly digest email",
-                      description: "A summary of your properties' SEO health every week.",
-                    },
-                    {
-                      key: "reportComplete" as const,
-                      id: "report-complete",
-                      label: "Report complete email",
-                      description: "Notify me when an SEO report finishes processing.",
-                    },
-                    {
-                      key: "syncFailure" as const,
-                      id: "sync-failure",
-                      label: "Sync failure alerts",
-                      description: "Alert me when a property sync fails.",
-                    },
-                  ].map(({ id, label, description }) => (
-                    <div
-                      key={id}
-                      className="flex items-center justify-between gap-4 rounded-xl p-3 opacity-50"
-                    >
-                      <div>
-                        <p className="text-sm font-medium">{label}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-                      </div>
-                      <Switch
-                        id={id}
-                        checked={false}
-                        disabled
-                        className="flex-shrink-0"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
 
               {/* ── Contact Us Tab ── */}
               <TabsContent value="contact">
@@ -616,12 +541,12 @@ export default function SettingsPage() {
                           : "Email us for priority support — contact@devbrew.dev",
                         href: `mailto:${settings?.adminContacts?.[0] ?? "contact@devbrew.dev"}`,
                       },
-                      // {
-                      //   icon: MessageSquare,
-                      //   title: "Want to join the community?",
-                      //   description: "Come hang out on our Discord!",
-                      //   href: "#",
-                      // },
+                      {
+                        icon: MessageSquare,
+                        title: "Have a question or idea?",
+                        description: "Join the conversation on GitHub Discussions",
+                        href: "https://github.com/cancel-cloud/WebHealth/discussions",
+                      },
                       {
                         icon: Shield,
                         title: "Privacy Policy",

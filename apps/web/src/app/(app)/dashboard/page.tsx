@@ -6,7 +6,7 @@ import { count, eq } from "drizzle-orm";
 import { properties as propertiesSchema, reports as reportsSchema } from "@webhealth/shared/db/schema";
 import { SyncButton } from "./sync-button";
 import { ReportsTable } from "./reports-table";
-import { AutoSync } from "./auto-sync";
+import { OnboardingModal } from "./onboarding-modal";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
@@ -39,7 +39,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <AutoSync hasProperties={hasProperties} />
+      <OnboardingModal hasProperties={hasProperties} />
 
       <div className="flex justify-between items-end">
         <div>

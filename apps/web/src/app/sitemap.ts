@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE_URL = "https://webaudit-79.localcan.dev";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://webhealth.devbrew.dev";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
@@ -15,6 +15,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/pricing`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
     },
     {
       url: `${BASE_URL}/privacy`,
