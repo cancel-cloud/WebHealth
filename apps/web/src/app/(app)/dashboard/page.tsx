@@ -7,6 +7,7 @@ import { properties as propertiesSchema, reports as reportsSchema } from "@webhe
 import { SyncButton } from "./sync-button";
 import { ReportsTable } from "./reports-table";
 import { OnboardingModal } from "./onboarding-modal";
+import { ReportsGeneratedCard } from "./reports-generated-card";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
@@ -64,18 +65,7 @@ export default async function DashboardPage() {
           </div>
         </Link>
 
-        <Link
-          href="/reports"
-          className="group block p-6 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          aria-label="Go to Reports page"
-        >
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <h3 className="font-medium text-muted-foreground mb-1">Reports Generated</h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold font-display text-foreground">{reportCount}</span>
-            <span className="text-sm font-medium text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">New</span>
-          </div>
-        </Link>
+        <ReportsGeneratedCard reportCount={reportCount} />
 
         <div className="group p-6 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

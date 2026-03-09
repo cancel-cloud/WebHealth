@@ -22,6 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft,
   Sparkles,
@@ -98,12 +99,15 @@ export default function SettingsPage() {
   }, [fetchSettings]);
 
   useEffect(() => {
-    if (searchParams.get("stripe") === "success") {
+    if (searchParams.get("stripe") === "success" || searchParams.get("stripe") === "portal") {
       // Stripe just redirected back — sync plan from Stripe API then refetch
       fetch("/api/stripe/sync-plan", { method: "POST" })
         .then(() => fetchSettings())
         .catch(() => fetchSettings())
-        .finally(() => router.replace("/settings"));
+        .finally(() => {
+          router.refresh();
+          router.replace("/settings");
+        });
     }
   }, [searchParams, fetchSettings, router]);
 
@@ -175,6 +179,7 @@ export default function SettingsPage() {
       const data = await res.json() as { synced?: boolean; tier?: string; error?: string };
       if (!res.ok) throw new Error(data.error ?? "Sync failed");
       await fetchSettings();
+      router.refresh();
       toast.success("Plan refreshed", { description: `Active plan: ${data.tier ?? "free"}.` });
     } catch (err) {
       toast.error("Sync failed", { description: err instanceof Error ? err.message : "Please try again." });
@@ -258,13 +263,25 @@ export default function SettingsPage() {
           <Separator />
 
           {/* Usage card */}
-          {settings !== null && (
+          {settings !== null ? (
             <UsageCard
               reportsThisMonth={settings.reportsThisMonth ?? 0}
               reportsLimit={settings.reportsLimit ?? null}
               detailsThisMonth={settings.detailsThisMonth ?? 0}
               detailsLimit={settings.detailsLimit ?? null}
             />
+          ) : (
+            <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+              <Skeleton className="h-4 w-24" />
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-2 w-full rounded-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-2 w-full rounded-full" />
+              </div>
+            </div>
           )}
 
           {/* Keyboard shortcuts card */}
@@ -334,7 +351,11 @@ export default function SettingsPage() {
                   </div>
 
                   {settings === null && (
-                    <div className="h-48 rounded-2xl border border-border bg-muted/30 animate-pulse" />
+                    <div className="grid grid-cols-3 gap-4">
+                      <Skeleton className="h-48 rounded-2xl" />
+                      <Skeleton className="h-48 rounded-2xl" />
+                      <Skeleton className="h-48 rounded-2xl" />
+                    </div>
                   )}
 
                   {settings !== null && settings.subscriptionCancelAt && (
@@ -420,12 +441,11 @@ export default function SettingsPage() {
                           {settings.subscriptionCancelAt ? "Canceling" : "Current Plan"}
                         </Button>
                       ) : (
-                        <a
-                          href="mailto:contact@devbrew.dev?subject=WebAudit%20Agency%20Interest"
-                          className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground w-full text-center transition-colors"
-                        >
-                          Get in touch →
-                        </a>
+                        <Button size="sm" variant="outline" className="w-full mt-auto" asChild>
+                          <a href="mailto:contact@devbrew.dev?subject=WebAudit%20Agency%20Interest">
+                            Get in touch →
+                          </a>
+                        </Button>
                       )}
                     </div>
                   </div>

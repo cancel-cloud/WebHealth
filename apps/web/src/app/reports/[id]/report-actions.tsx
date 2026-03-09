@@ -41,6 +41,9 @@ export function ReportActions({
             error instanceof Error ? error.message : "Request failed",
         }
       );
+      if (mode === "retry") {
+        toast.loading("Processing report…", { id: `report-live-${reportId}`, duration: Infinity });
+      }
       router.refresh();
     } catch {
       // Toast is handled by toast.promise

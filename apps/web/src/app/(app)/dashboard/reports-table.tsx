@@ -38,6 +38,7 @@ export function ReportsTable({ limit, showViewAll }: { limit?: number; showViewA
       const next = data.reports ?? [];
       reportsRef.current = next;
       setReports(next);
+      window.dispatchEvent(new CustomEvent("reports-updated", { detail: { reports: next } }));
     } catch {
       reportsRef.current = [];
       setReports([]);
