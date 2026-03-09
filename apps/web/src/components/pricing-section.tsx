@@ -82,13 +82,13 @@ export function PricingSection() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
-          className="grid md:grid-cols-3 gap-5 items-start"
+          className="grid md:grid-cols-3 gap-5 items-stretch"
         >
           {PRICING.map((plan) => (
             <motion.div
               key={plan.name}
               variants={fadeUp}
-              className={`rounded-2xl p-8 flex flex-col bg-white ${
+              className={`rounded-2xl p-8 flex flex-col bg-white h-full ${
                 plan.highlight ? "md:-translate-y-2" : ""
               }`}
               style={{
