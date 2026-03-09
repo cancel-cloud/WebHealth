@@ -15,6 +15,7 @@ import {
   getScheduledNoticeState,
   shouldShowTopReportActions,
 } from "./report-page.logic";
+import { isAdminEmail } from "@webhealth/shared/lib/admin-access";
 import { ScheduledReportActions } from "./scheduled-report-actions";
 
 import { ExecutiveSummary } from "./sections/executive-summary";
@@ -87,7 +88,7 @@ export default async function ReportDetailPage({
       where: (p, { and, eq }) => and(eq(p.teamId, report.teamId), eq(p.type, "ga4")),
     }),
   ]);
-  const isOwner = team?.ownerId === session.user.id;
+  const isAdmin = await isAdminEmail(session.user.email ?? null);
 
   const data = report.data as ReportData | null;
   const aiReport = report.aiReportJson as AiSeoReport | null;
@@ -149,10 +150,10 @@ export default async function ReportDetailPage({
               <div className="text-xs text-muted-foreground text-right space-y-1">
                 <div>AI: {report.aiStatus ?? "n/a"}</div>
                 <div>XLSX: {report.xlsxStatus ?? "n/a"}</div>
-                {isOwner && report.aiEstimatedCostUsd ? (
+                {isAdmin && report.aiEstimatedCostUsd ? (
                   <div>AI Cost: ${String(report.aiEstimatedCostUsd)}</div>
                 ) : null}
-                {isOwner && report.detailsCostUsd ? (
+                {isAdmin && report.detailsCostUsd ? (
                   <div>Details cost: ${String(report.detailsCostUsd)}</div>
                 ) : null}
               </div>

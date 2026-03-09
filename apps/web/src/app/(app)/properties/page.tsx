@@ -26,7 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Globe, Link2 } from "lucide-react";
+import { Globe, Link2, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   SyncButton,
   formatPropertiesSyncSuccess,
@@ -78,7 +79,7 @@ function LinkGa4Dialog({
     if (!selectedGa4Id) return;
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/properties/${gscProperty.id}/link-ga4`, {
+      const res = await fetch(`/api/properties/${encodeURIComponent(gscProperty.id)}/link-ga4`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ga4PropertyId: selectedGa4Id }),
@@ -153,6 +154,7 @@ export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAutoSyncing, setIsAutoSyncing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const hasAttemptedAutoSync = useRef(false);
 
   const loadProperties = useCallback(async () => {
@@ -198,6 +200,12 @@ export default function PropertiesPage() {
   }, [isAutoSyncing, loading, loadProperties, properties.length]);
 
   const ga4Properties = properties.filter((p) => p.type === "ga4");
+  const filteredProperties = searchQuery.trim()
+    ? properties.filter((p) => {
+        const q = searchQuery.trim().toLowerCase();
+        return p.name.toLowerCase().includes(q) || p.url.toLowerCase().includes(q);
+      })
+    : properties;
 
   // Build a lookup: numeric GA4 ID → display name
   const ga4ById = Object.fromEntries(
@@ -239,6 +247,16 @@ export default function PropertiesPage() {
           </p>
         </div>
       ) : (
+        <div className="space-y-3">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Search properties…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
         <div className="border border-border/50 rounded-3xl overflow-hidden bg-card shadow-sm">
           <Table>
             <TableHeader className="bg-muted/30">
@@ -252,7 +270,7 @@ export default function PropertiesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {properties.map((property) => (
+              {filteredProperties.map((property) => (
                 <TableRow key={property.id} className="border-border/50 hover:bg-muted/20 transition-colors">
                   <TableCell className="font-medium py-4">{property.name}</TableCell>
                   <TableCell className="py-4 text-muted-foreground text-sm truncate max-w-[200px]">
@@ -290,6 +308,7 @@ export default function PropertiesPage() {
               ))}
             </TableBody>
           </Table>
+        </div>
         </div>
       )}
     </div>
