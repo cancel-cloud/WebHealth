@@ -285,6 +285,7 @@ export function GetDetailsButton({
         "code" in err &&
         (err as { code?: string }).code === "DETAIL_LIMIT_EXCEEDED"
       ) {
+        toast.dismiss(detailToastId);
         toast.info("Monthly Deep Dive limit reached", {
           description: "Upgrade your plan to keep expanding action details.",
           action: { label: "Upgrade", onClick: () => { window.location.href = "/settings"; } },

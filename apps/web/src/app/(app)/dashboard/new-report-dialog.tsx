@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { cn } from "@webhealth/shared/lib/utils";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -222,6 +222,7 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
   const [dataRange, setDataRange] = useState<{ earliest: string | null; latest: string | null } | null>(null);
   const [dataRangeLoading, setDataRangeLoading] = useState(false);
   const propertyPickerRef = useRef<HTMLDivElement | null>(null);
+  const hasAutoOpenedRef = useRef(false);
 
   useEffect(() => {
     if (open) {
@@ -274,6 +275,7 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
       setIsPropertyListOpen(false);
       setPropertyQuery("");
     }
+    hasAutoOpenedRef.current = false;
   }, [open]);
 
   useEffect(() => {
@@ -293,7 +295,7 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
   useEffect(() => {
     if (!propertyId) { setDataRange(null); return; }
     setDataRangeLoading(true);
-    fetch(`/api/properties/${propertyId}/data-range`)
+    fetch(`/api/properties/${encodeURIComponent(propertyId)}/data-range`)
       .then((r) => r.json())
       .then((data) => setDataRange(data))
       .catch(() => setDataRange(null))
@@ -323,8 +325,6 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
       { weekStartYesterday }
     );
     setIsSubmitting(true);
-    setOpen(false);
-    onCreated?.();
 
     try {
       const res = await fetch("/api/reports", {
@@ -348,6 +348,8 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
 
       if (!data.ga4Missing) {
         // Happy path — GA4 is linked, report is queued
+        setOpen(false);
+        onCreated?.();
         router.push(`/reports/${reportId}`);
         toast.promise(pollUntilComplete(reportId), {
           loading: "Processing report…",
@@ -372,6 +374,8 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
           if (updatedProp?.ga4PropertyId) {
             // Auto-link succeeded — start the scheduled report
             toast.success("GA4 data synced!", { id: TOAST_ID });
+            setOpen(false);
+            onCreated?.();
             router.push(`/reports/${reportId}`);
             await fetch(`/api/reports/${reportId}/start`, { method: "POST" });
             toast.promise(pollUntilComplete(reportId), {
@@ -393,6 +397,8 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
           },
         });
         // Navigate to the report page so the user can see the scheduled state
+        setOpen(false);
+        onCreated?.();
         router.push(`/reports/${reportId}`);
       }
     } catch (err) {
@@ -435,8 +441,11 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
                       setIsPropertyListOpen(true);
                     }}
                     onFocus={() => {
-                      setIsPropertyListOpen(true);
-                      setPropertyQuery("");
+                      if (!hasAutoOpenedRef.current) {
+                        hasAutoOpenedRef.current = true;
+                        setIsPropertyListOpen(true);
+                        setPropertyQuery("");
+                      }
                     }}
                     onChange={(event) => {
                       setPropertyQuery(event.target.value);
@@ -544,9 +553,17 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={isSubmitting || propertyOptions.length === 0 || !selectedPreset} className="rounded-full">
-              {isSubmitting ? "Queueing…" : "Generate Report"}
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>Cancel</Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting || dataRangeLoading || propertyOptions.length === 0 || !selectedPreset}
+              className="rounded-full"
+            >
+              {isSubmitting ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Queueing…</>
+              ) : dataRangeLoading ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" style={{ animationDuration: "2s" }} />Checking your data…</>
+              ) : "Generate Report"}
             </Button>
           </DialogFooter>
         </form>
