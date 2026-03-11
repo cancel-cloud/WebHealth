@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { RefreshCw } from "lucide-react";
+import { getAppErrorMessage } from "@/lib/client/app-error";
+import { requestJson } from "@/lib/client/api";
 
 interface AdminUser {
   id: string;
@@ -49,7 +51,14 @@ export function SyncSheet({ user, onClose }: SyncSheetProps) {
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/sync", {
+      const data = await requestJson<{
+        gscCount: number;
+        ga4Count: number;
+        autoLinked: number;
+        gscValidated: number;
+        ga4Validated: number;
+        timeframeLabel: string;
+      }>("/api/admin/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -59,14 +68,12 @@ export function SyncSheet({ user, onClose }: SyncSheetProps) {
           timeframe,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Sync failed");
       toast.success(
-        `Sync complete: ${data.gscCount} GSC, ${data.ga4Count} GA4, ${data.autoLinked} linked · tested ${data.gscValidated} GSC / ${data.ga4Validated} GA4 (${data.timeframeLabel})`
+        `Sync complete: ${data?.gscCount ?? 0} GSC, ${data?.ga4Count ?? 0} GA4, ${data?.autoLinked ?? 0} linked · tested ${data?.gscValidated ?? 0} GSC / ${data?.ga4Validated ?? 0} GA4 (${data?.timeframeLabel ?? timeframe})`
       );
       onClose();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Sync failed");
+      toast.error(getAppErrorMessage(err, "Sync failed"));
     } finally {
       setLoading(false);
     }

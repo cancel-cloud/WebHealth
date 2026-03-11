@@ -17,6 +17,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatPlanName } from "@/lib/plan-label";
+import { requestJson } from "@/lib/client/api";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
@@ -168,15 +169,15 @@ export function AppSidebar({
   });
 
   useEffect(() => {
-    fetch("/api/settings")
-      .then((response) => response.json())
+    requestJson<Record<string, unknown>>("/api/settings")
       .then((data) => {
+        const source = data ?? {};
         setMeta({
-          teamTier: typeof data?.teamTier === "string" ? data.teamTier : "free",
-          reportsThisMonth: typeof data?.reportsThisMonth === "number" ? data.reportsThisMonth : 0,
-          reportsLimit: typeof data?.reportsLimit === "number" ? data.reportsLimit : null,
-          detailsThisMonth: typeof data?.detailsThisMonth === "number" ? data.detailsThisMonth : 0,
-          detailsLimit: typeof data?.detailsLimit === "number" ? data.detailsLimit : null,
+          teamTier: typeof source.teamTier === "string" ? source.teamTier : "free",
+          reportsThisMonth: typeof source.reportsThisMonth === "number" ? source.reportsThisMonth : 0,
+          reportsLimit: typeof source.reportsLimit === "number" ? source.reportsLimit : null,
+          detailsThisMonth: typeof source.detailsThisMonth === "number" ? source.detailsThisMonth : 0,
+          detailsLimit: typeof source.detailsLimit === "number" ? source.detailsLimit : null,
         });
       })
       .catch(() => {});

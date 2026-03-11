@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { getAppErrorMessage, isAppError } from "@/lib/client/app-error";
+import { requestJson } from "@/lib/client/api";
 import { ActionDetailModal } from "./action-detail-modal";
 import { getDetailToastId, getDetailToastState } from "./get-details-button.logic";
 
@@ -150,16 +152,14 @@ export function GetDetailsButton({
 
       const pollOnce = async (): Promise<boolean> => {
         try {
-          const res = await fetch(
+          const data = await requestJson<{
+            ready?: boolean;
+            actionDetail?: string | null;
+          }>(
             `/api/reports/${reportId}/generate-detail?rowType=${encodeURIComponent(rowType)}&rowId=${encodeURIComponent(rowId)}`,
             { cache: "no-store" }
           );
-          const data = await res.json() as {
-            ready?: boolean;
-            actionDetail?: string | null;
-            error?: string;
-          };
-          if (!res.ok) throw new Error(data.error ?? "Polling failed");
+          if (!data) return false;
           if (!data.ready || !data.actionDetail) return false;
 
           if (cancelled) return true;
@@ -212,19 +212,14 @@ export function GetDetailsButton({
   }, [detailKey, detailToastArgs, detailToastId, initialDetail, pollSeed, reportId, rowId, rowType]);
 
   async function generateDetail() {
-    const res = await fetch(`/api/reports/${reportId}/generate-detail`, {
+    const data = await requestJson<{
+      actionDetail?: string | null;
+    }>(`/api/reports/${reportId}/generate-detail`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rowType, rowId }),
     });
-    const data = await res.json() as { actionDetail?: string; error?: string; queued?: boolean; message?: string };
-    if (res.status === 429 && data.error === "DETAIL_LIMIT_EXCEEDED") {
-      const err = new Error(data.message ?? "Monthly AI detail limit reached");
-      (err as Error & { code: string }).code = "DETAIL_LIMIT_EXCEEDED";
-      throw err;
-    }
-    if (!res.ok) throw new Error(data.error ?? "Request failed");
-    return data.actionDetail ?? null;
+    return data?.actionDetail ?? null;
   }
 
   async function handleGetDetails() {
@@ -279,12 +274,7 @@ export function GetDetailsButton({
 
       clearPendingPersisted(detailKey);
 
-      if (
-        typeof err === "object" &&
-        err !== null &&
-        "code" in err &&
-        (err as { code?: string }).code === "DETAIL_LIMIT_EXCEEDED"
-      ) {
+      if (isAppError(err) && err.code === "DETAIL_LIMIT_EXCEEDED") {
         toast.dismiss(detailToastId);
         toast.info("Monthly Deep Dive limit reached", {
           description: "Upgrade your plan to keep expanding action details.",
@@ -296,7 +286,7 @@ export function GetDetailsButton({
 
       const errorToast = getDetailToastState("error", detailToastArgs);
       toast.error(errorToast.message, { id: errorToast.id });
-      console.error(err);
+      console.error(getAppErrorMessage(err, "Failed to generate details"));
     } finally {
       inFlightByKey.delete(detailKey);
       if (!queuedForPolling) {

@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getAppErrorMessage } from "@/lib/client/app-error";
+import { requestJson } from "@/lib/client/api";
 
 type Settings = {
   id: string;
@@ -74,7 +76,7 @@ export function SettingsForm({
         throw new Error("Temperature must be a valid number.");
       }
 
-      const res = await fetch("/api/admin/ai-report-settings", {
+      await requestJson("/api/admin/ai-report-settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -93,11 +95,9 @@ export function SettingsForm({
           promptExamples: state.promptExamples,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to save settings");
       setState((s) => ({ ...s, saving: false, saved: true }));
     } catch (error) {
-      setState((s) => ({ ...s, saving: false, error: error instanceof Error ? error.message : "Save failed" }));
+      setState((s) => ({ ...s, saving: false, error: getAppErrorMessage(error, "Save failed") }));
     }
   }
 
