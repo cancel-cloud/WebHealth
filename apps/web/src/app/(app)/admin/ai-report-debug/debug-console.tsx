@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { formatEuroDisplay } from "@/lib/pricing";
 import { toast } from "sonner";
 
 type TeamRow = { id: string; name: string };
@@ -347,7 +348,7 @@ export function DebugConsole({
                 <th className="text-left py-2">Kind</th>
                 <th className="text-left py-2">Status</th>
                 <th className="text-left py-2">Usage</th>
-                <th className="text-left py-2">Est. Cost</th>
+                <th className="text-left py-2">Est. Cost (€)</th>
                 <th className="text-left py-2">Request IDs</th>
                 <th className="text-left py-2">When</th>
               </tr>
@@ -383,7 +384,7 @@ export function DebugConsole({
                     <td className="py-2 text-xs">
                       in:{inputTokens ?? "-"} out:{outputTokens ?? "-"} total:{totalTokens ?? "-"} cached:{cachedTokens ?? "-"}
                     </td>
-                    <td className="py-2">{req.estimatedCostUsd ?? "-"}</td>
+                    <td className="py-2">{req.estimatedCostUsd ? formatEuroDisplay(req.estimatedCostUsd) : "-"}</td>
                     <td className="py-2 text-xs whitespace-pre-wrap">
                       {`${req.xRequestId ?? "-"}\n${req.xClientRequestId ?? "-"}`}
                     </td>
@@ -427,7 +428,7 @@ export function DebugConsole({
                 <th className="text-left py-2">Phase</th>
                 <th className="text-left py-2">Attempts</th>
                 <th className="text-left py-2">Usage</th>
-                <th className="text-left py-2">Est. Cost</th>
+                <th className="text-left py-2">Est. Cost (€)</th>
                 <th className="text-left py-2">Request IDs</th>
               </tr>
             </thead>
@@ -459,7 +460,7 @@ export function DebugConsole({
                     <td className="py-2 text-xs">
                       in:{inputTokens ?? "-"} out:{outputTokens ?? "-"} total:{totalTokens ?? "-"} cached:{cachedTokens ?? "-"}
                     </td>
-                    <td className="py-2">{j.report?.aiEstimatedCostUsd ?? "-"}</td>
+                    <td className="py-2">{j.report?.aiEstimatedCostUsd ? formatEuroDisplay(j.report.aiEstimatedCostUsd) : "-"}</td>
                     <td className="py-2 text-xs">
                       {ids.length
                         ? ids.slice(0, 2).map((r) => `${r.phase ?? "?"}: ${r.xRequestId ?? "-"} / ${r.xClientRequestId ?? "-"}`).join("\n")

@@ -2,40 +2,28 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Check } from "lucide-react";
+import { PRICING_PLANS } from "@/lib/pricing";
 
 const PLANS = [
   {
-    name: "Free",
-    price: "$0",
+    name: PRICING_PLANS.solo.name,
+    price: PRICING_PLANS.solo.priceLabel,
     period: "forever",
     description: "For solo developers getting started.",
     active: true,
-    features: [
-      "5 properties",
-      "10 reports per month",
-      "Google Search Console sync",
-      "Basic AI quick wins",
-      "Community support",
-    ],
+    features: PRICING_PLANS.solo.features,
   },
   {
-    name: "Pro",
-    price: "$19",
+    name: PRICING_PLANS.pro.name,
+    price: PRICING_PLANS.pro.priceLabel,
     period: "per month",
     description: "For professionals who need more power.",
     active: false,
-    features: [
-      "25 properties",
-      "Unlimited reports",
-      "Google Analytics 4 sync",
-      "Advanced AI quick wins",
-      "Live web crawl",
-      "Email support",
-    ],
+    features: PRICING_PLANS.pro.features,
   },
   {
-    name: "Agency",
-    price: "$79",
+    name: PRICING_PLANS.agency.name,
+    price: PRICING_PLANS.agency.priceLabel,
     period: "per month",
     description: "For agencies managing multiple clients.",
     active: false,
