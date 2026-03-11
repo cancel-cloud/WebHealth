@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { getReportStatusBadge } from "@/lib/status-badge";
 import { FileText, ArrowRight } from "lucide-react";
 import { NewReportDialog } from "../dashboard/new-report-dialog";
 import { propertyIdLabel } from "@/lib/property-label";
@@ -35,22 +35,6 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "failed", label: "Failed" },
 ];
 
-function getStatusBadge(status: string) {
-  switch (status) {
-    case "complete":
-      return <Badge className="bg-green-500/10 text-green-600 border border-green-200 hover:bg-green-500/20">Complete</Badge>;
-    case "processing":
-      return <Badge className="bg-blue-500/10 text-blue-600 border border-blue-200 animate-pulse">Processing</Badge>;
-    case "queued":
-      return <Badge variant="outline" className="text-zinc-500">Queued</Badge>;
-    case "scheduled":
-      return <Badge className="bg-amber-500/10 text-amber-700 border border-amber-200 hover:bg-amber-500/20">Waiting For Data</Badge>;
-    case "failed":
-      return <Badge variant="destructive">Failed</Badge>;
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
-}
 
 export default function ReportsPage() {
   const router = useRouter();
@@ -153,16 +137,16 @@ export default function ReportsPage() {
       </div>
 
       {loading ? (
-        <div className="border border-border/50 rounded-3xl p-8 bg-card">
+        <div className="border border-border/50 rounded-lg p-8 bg-card">
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 rounded-xl bg-muted/40 animate-pulse" />
+              <div key={i} className="h-12 rounded-lg bg-muted/40 animate-pulse" />
             ))}
           </div>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="border border-border/50 rounded-3xl p-12 text-center flex flex-col items-center justify-center bg-card shadow-sm">
-          <div className="h-16 w-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-6">
+        <div className="border border-border/50 rounded-lg p-12 text-center flex flex-col items-center justify-center bg-card shadow-sm">
+          <div className="h-16 w-16 bg-muted/50 rounded-lg flex items-center justify-center mb-6">
             <FileText aria-hidden="true" className="h-8 w-8 text-muted-foreground/50" />
           </div>
           <h3 className="text-xl font-medium text-foreground font-display">
@@ -175,7 +159,7 @@ export default function ReportsPage() {
           </p>
         </div>
       ) : (
-        <div className="border border-border/50 rounded-3xl overflow-hidden bg-card shadow-sm">
+        <div className="border border-border/50 rounded-lg overflow-hidden bg-card shadow-sm">
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow className="hover:bg-transparent border-border/50">
@@ -197,7 +181,7 @@ export default function ReportsPage() {
                     {new Date(report.dateRangeStart).toLocaleDateString()} –{" "}
                     {new Date(report.dateRangeEnd).toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="py-4">{getStatusBadge(report.status)}</TableCell>
+                  <TableCell className="py-4">{getReportStatusBadge(report.status)}</TableCell>
                   <TableCell className="text-right text-muted-foreground text-sm py-4">
                     <span className="flex items-center justify-end gap-2">
                       {new Date(report.createdAt).toLocaleDateString()}

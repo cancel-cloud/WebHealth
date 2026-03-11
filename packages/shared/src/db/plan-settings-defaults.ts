@@ -5,10 +5,10 @@ export const DEFAULT_PLAN_SETTINGS = [
   {
     id: "plan_free",
     tier: "free",
-    displayName: "Free",
+    displayName: "Solo",
     reportsPerMonth: 5,
     maxProperties: null,
-    detailsPerMonth: 5,
+    detailsPerMonth: 20,
   },
   {
     id: "plan_pro",

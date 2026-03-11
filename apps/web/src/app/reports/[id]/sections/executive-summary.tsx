@@ -13,7 +13,7 @@ export function ExecutiveSummary({ executiveSummary, alertsAndFlags }: Executive
   if (!executiveSummary) return null;
 
   return (
-    <div className="p-6 rounded-3xl bg-card border border-border/50 shadow-sm">
+    <div className="p-6 rounded-lg bg-card border border-border/50 shadow-sm">
       <h2 className="text-xl font-bold font-display mb-2">Executive Summary</h2>
       <p className="text-lg font-medium mb-4">{executiveSummary.headline}</p>
 

@@ -5,7 +5,7 @@ export default function NotFound() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
       <div
-        className="size-20 rounded-3xl flex items-center justify-center mb-6"
+        className="size-20 rounded-lg flex items-center justify-center mb-6"
         style={{ backgroundColor: "#6366f110", border: "1px solid #6366f120" }}
       >
         <span className="font-display text-3xl font-extrabold" style={{ color: "#6366f1" }}>

@@ -16,14 +16,14 @@ export function JobTimeline({ events }: JobTimelineProps) {
   if (!events.length) return null;
 
   return (
-    <details className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden">
+    <details className="rounded-lg border border-border/50 bg-card shadow-sm overflow-hidden">
       <summary className="px-6 py-4 cursor-pointer text-base font-semibold font-display select-none">
         Job Timeline
         <span className="ml-2 text-sm font-normal text-muted-foreground">({events.length} events)</span>
       </summary>
       <div className="px-6 pb-6 space-y-2">
         {events.map((e) => (
-          <div key={e.id} className="p-3 rounded-xl bg-muted/30 border border-border/30">
+          <div key={e.id} className="p-3 rounded-lg bg-muted/30 border border-border/30">
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <Badge
                 variant="outline"

@@ -253,7 +253,7 @@ export default function HomePage() {
 
           <Link
             href="/demo"
-            className="group relative mx-auto block max-w-5xl overflow-hidden rounded-2xl border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-4"
+            className="group relative mx-auto block max-w-5xl overflow-hidden rounded-lg border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-4"
             style={{ borderColor: "oklch(0.88 0.01 250 / 0.6)", boxShadow: "0 24px 64px -12px rgba(0,0,0,0.18), 0 0 0 1px rgba(99,102,241,0.08)" }}
             aria-label="View sample WebAudit report"
           >
@@ -265,6 +265,7 @@ export default function HomePage() {
               priority
               className="w-full h-auto transition-transform duration-500 ease-out group-hover:scale-[1.015]"
             />
+            {/* Hover overlay — "View sample report" hint */}
             <div
               className="absolute inset-0 flex items-center justify-center bg-transparent transition-colors duration-300 group-hover:bg-[#6366f10a]"
               aria-hidden="true"
@@ -306,14 +307,14 @@ export default function HomePage() {
                 <motion.article
                   key={f.title}
                   variants={fadeUp}
-                  className="rounded-2xl p-6 flex flex-col gap-4 touch-manipulation"
+                  className="rounded-lg p-6 flex flex-col gap-4 touch-manipulation"
                   style={{
                     backgroundColor: f.tint,
                     border: `1px solid ${f.border}`,
                   }}
                 >
                   <div
-                    className="size-12 rounded-2xl flex items-center justify-center shrink-0"
+                    className="size-12 rounded-lg flex items-center justify-center shrink-0"
                     style={{
                       backgroundColor: `${f.color}18`,
                       border: `1px solid ${f.color}28`,
@@ -394,7 +395,7 @@ export default function HomePage() {
                   className="flex flex-col items-center text-center"
                 >
                   <div
-                    className="size-16 rounded-2xl flex items-center justify-center font-display text-2xl font-extrabold mb-6 tabular-nums shrink-0"
+                    className="size-16 rounded-lg flex items-center justify-center font-display text-2xl font-extrabold mb-6 tabular-nums shrink-0"
                     style={{
                       backgroundColor: s.tint,
                       color: s.color,
@@ -485,7 +486,7 @@ export default function HomePage() {
                   {STATS.map((s) => (
                     <div
                       key={s.label}
-                      className="rounded-xl px-4 py-4 text-center bg-white"
+                      className="rounded-lg px-4 py-4 text-center bg-white"
                       style={{
                         border: "1px solid #6366f11a",
                         boxShadow: "0 1px 4px oklch(0 0 0 / 0.04)",
@@ -517,7 +518,7 @@ export default function HomePage() {
                 className="flex flex-col items-start lg:items-end"
               >
                 <div
-                  className="w-full max-w-sm rounded-2xl p-8 flex flex-col gap-6 bg-white"
+                  className="w-full max-w-sm rounded-lg p-8 flex flex-col gap-6 bg-white"
                   style={{
                     border: "1px solid #6366f11a",
                     boxShadow: "0 4px 24px #6366f10e",

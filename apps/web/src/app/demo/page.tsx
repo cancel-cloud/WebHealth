@@ -117,7 +117,7 @@ export default function DemoPage() {
 
           {/* Bottom CTA */}
           <div
-            className="rounded-3xl p-10 text-center"
+            className="rounded-lg p-10 text-center"
             style={{ backgroundColor: "#6366f108", border: "1px solid #6366f120" }}
           >
             <h2 className="font-display text-2xl font-bold mb-3">

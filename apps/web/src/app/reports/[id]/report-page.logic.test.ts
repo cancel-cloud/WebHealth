@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  applyOptimisticReportRetry,
   getReportActionAvailability,
+  getReportDetailViewKind,
   getScheduledNoticeState,
   shouldShowTopReportActions,
 } from "./report-page.logic";
@@ -108,4 +110,26 @@ test("top action row is hidden only for scheduled reports", () => {
   assert.equal(shouldShowTopReportActions("scheduled"), false);
   assert.equal(shouldShowTopReportActions("queued"), true);
   assert.equal(shouldShowTopReportActions("complete"), true);
+});
+
+test("retrying a completed report immediately switches the detail view into the active generation state", () => {
+  assert.deepEqual(
+    applyOptimisticReportRetry({
+      reportStatus: "complete",
+      aiStatus: "complete",
+      xlsxStatus: "ready",
+      hasAiReportJson: true,
+      hasXlsxArtifact: true,
+    }),
+    {
+      reportStatus: "queued",
+      aiStatus: "queued",
+      xlsxStatus: "pending",
+      hasAiReportJson: false,
+      hasXlsxArtifact: false,
+    }
+  );
+
+  assert.equal(getReportDetailViewKind("queued"), "active");
+  assert.equal(getReportDetailViewKind("processing"), "active");
 });

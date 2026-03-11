@@ -2,18 +2,19 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { getPricingBadgeClassNames } from "@/components/pricing-badge-styles";
 import { Check } from "lucide-react";
 import { motion } from "framer-motion";
 
 const PRICING = [
   {
-    name: "Free",
+    name: "Solo",
     price: "$0",
     period: "forever",
     description: "For developers auditing their own sites.",
     cta: "Start Free",
     href: "/dashboard",
-    features: ["Unlimited properties", "5 reports / month", "AI Quick Wins", "Live crawl"],
+    features: ["Unlimited properties", "5 reports / month", "20 Deep Dives / month", "AI Quick Wins", "Live crawl"],
     comingSoon: false,
     highlight: false,
   },
@@ -21,12 +22,13 @@ const PRICING = [
     name: "Pro",
     price: "$19",
     period: "/ month",
-    description: "For freelancers managing multiple clients.",
+    description: "For freelancers managing multiple clients — 5× the limits of Solo Plan.",
     cta: "Get Started",
     href: "/dashboard",
     features: [
       "Unlimited properties",
-      "Unlimited reports",
+      "50 reports / month",
+      "200 Deep Dives / month",
       "Priority queue",
       "AI Quick Wins",
       "Email support",
@@ -58,6 +60,8 @@ const stagger = {
 };
 
 export function PricingSection() {
+  const pricingBadgeClasses = getPricingBadgeClassNames();
+
   return (
     <section id="pricing" className="py-28 px-6 scroll-mt-16" aria-labelledby="pricing-heading">
       <div className="max-w-5xl mx-auto">
@@ -88,7 +92,7 @@ export function PricingSection() {
             <motion.div
               key={plan.name}
               variants={fadeUp}
-              className={`rounded-2xl p-8 flex flex-col bg-white h-full ${
+              className={`rounded-lg p-8 flex flex-col bg-white h-full ${
                 plan.highlight ? "md:-translate-y-2" : ""
               }`}
               style={{
@@ -102,13 +106,9 @@ export function PricingSection() {
             >
               {plan.highlight && (
                 <span
-                  className="self-start text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-4"
-                  style={{
-                    background: "#f59e0b",
-                    color: "#451a03",
-                  }}
+                  className={`self-start mb-4 ${pricingBadgeClasses.base} ${pricingBadgeClasses.mostPopularSpacing} ${pricingBadgeClasses.mostPopular}`}
                 >
-                  Most popular
+                  Most Popular
                 </span>
               )}
               <div className="flex items-center gap-2 mb-1">
@@ -117,8 +117,7 @@ export function PricingSection() {
                 </h3>
                 {plan.comingSoon && (
                   <span
-                    className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
-                    style={{ background: "#6366f115", color: "#6366f1" }}
+                    className={`${pricingBadgeClasses.base} ${pricingBadgeClasses.comingSoonSpacing} ${pricingBadgeClasses.comingSoon}`}
                   >
                     Coming Soon
                   </span>

@@ -9,20 +9,31 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  hasWelcomedFromStorage,
+  ONBOARDING_WELCOMED_STORAGE_KEY,
+  shouldOpenOnboardingModal,
+} from "./onboarding-modal.logic";
 
 type SyncState = "syncing" | "success" | "error";
 
 export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [hasWelcomed, setHasWelcomed] = useState(() =>
+    hasWelcomedFromStorage(
+      typeof window === "undefined"
+        ? null
+        : window.localStorage.getItem(ONBOARDING_WELCOMED_STORAGE_KEY)
+    )
+  );
+  const [dismissed, setDismissed] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>("syncing");
   const [propertyCount, setPropertyCount] = useState<number>(0);
-
-  useEffect(() => {
-    if (hasProperties) return;
-    if (typeof window !== "undefined" && localStorage.getItem("webaudit_welcomed")) return;
-    setOpen(true);
-  }, [hasProperties]);
+  const open = shouldOpenOnboardingModal({
+    hasProperties,
+    hasWelcomed,
+    dismissed,
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -40,8 +51,9 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
   if (hasProperties) return null;
 
   function handleContinue() {
-    localStorage.setItem("webaudit_welcomed", "1");
-    setOpen(false);
+    localStorage.setItem(ONBOARDING_WELCOMED_STORAGE_KEY, "1");
+    setHasWelcomed(true);
+    setDismissed(true);
     router.push("/properties");
   }
 
@@ -63,7 +75,7 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
 
         <div className="space-y-6 pt-2">
           {/* Sync status */}
-          <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3">
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
             {syncState === "syncing" && (
               <>
                 <span className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin flex-shrink-0" />

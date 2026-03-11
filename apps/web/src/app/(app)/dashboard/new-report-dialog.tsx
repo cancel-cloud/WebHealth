@@ -463,7 +463,7 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
                     role="combobox"
                   />
                   {isPropertyListOpen && (
-                    <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+                    <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-popover text-popover-foreground shadow-md">
                       {filteredPropertyOptions.length === 0 ? (
                         <p className="px-3 py-2 text-sm text-muted-foreground">No properties found.</p>
                       ) : (
@@ -508,7 +508,7 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
                       disabled={!propertyId || dataRangeLoading || !available}
                       onClick={() => setSelectedPreset(preset.value)}
                       className={cn(
-                        "rounded-md border px-3 py-2 text-sm font-medium transition-colors",
+                        "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
                         "disabled:cursor-not-allowed disabled:opacity-40",
                         isSelected
                           ? "border-primary bg-primary text-primary-foreground"

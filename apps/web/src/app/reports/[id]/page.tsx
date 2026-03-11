@@ -3,20 +3,17 @@ import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@webhealth/shared/db";
 import Link from "next/link";
-import { ArrowLeft, BarChart2, AlertTriangle, Link2 } from "lucide-react";
+import { BarChart2, AlertTriangle, Link2 } from "lucide-react";
 import { resolveReportSourcesForExistingReport } from "@webhealth/shared/lib/properties/reportable-properties-db";
-import { ReportActions } from "./report-actions";
-import { ReportLiveStatus } from "./report-live-status";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { AiSeoReport } from "@webhealth/shared/lib/reports/types";
 import {
-  getReportActionAvailability,
   getScheduledNoticeState,
-  shouldShowTopReportActions,
+  type ReportLiveSnapshot,
 } from "./report-page.logic";
 import { isAdminEmail } from "@webhealth/shared/lib/admin-access";
 import { ScheduledReportActions } from "./scheduled-report-actions";
+import { ReportDetailClientView } from "./report-detail-client-view";
 
 import { ExecutiveSummary } from "./sections/executive-summary";
 import { KpiCards } from "./sections/kpi-cards";
@@ -37,18 +34,6 @@ type ReportData = {
   ga4: { current: Ga4Metrics | null; compare: Ga4Metrics | null };
   crawl: CrawlResult;
 };
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; class: string }> = {
-    queued: { label: "Queued", class: "text-zinc-500 bg-zinc-100 border-zinc-200" },
-    scheduled: { label: "Waiting For Data", class: "text-amber-700 bg-amber-50 border-amber-200" },
-    processing: { label: "Processing", class: "text-blue-600 bg-blue-50 border-blue-200 animate-pulse" },
-    complete: { label: "Complete", class: "text-green-600 bg-green-50 border-green-200" },
-    failed: { label: "Failed", class: "text-red-600 bg-red-50 border-red-200" },
-  };
-  const cfg = map[status] ?? map.queued;
-  return <Badge variant="outline" className={cfg.class}>{cfg.label}</Badge>;
-}
 
 export default async function ReportDetailPage({
   params,
@@ -75,10 +60,7 @@ export default async function ReportDetailPage({
     where: (p, { eq }) => eq(p.id, report.propertyId),
   });
 
-  const [team, recentEvents, teamGa4Property] = await Promise.all([
-    db.query.teams.findFirst({
-      where: (t, { eq }) => eq(t.id, report.teamId),
-    }),
+  const [recentEvents, teamGa4Property] = await Promise.all([
     db.query.reportJobEvents.findMany({
       where: (e, { eq }) => eq(e.reportId, reportId),
       orderBy: (e, { desc }) => [desc(e.createdAt)],
@@ -93,10 +75,6 @@ export default async function ReportDetailPage({
   const data = report.data as ReportData | null;
   const aiReport = report.aiReportJson as AiSeoReport | null;
   const teamHasAnyGa4Properties = !!teamGa4Property;
-  const actionAvailability = getReportActionAvailability({
-    hasAiReportJson: !!aiReport,
-    reportStatus: report.status,
-  });
   let sourceValid = false;
   let hasLinkedGa4Now = false;
   try {
@@ -112,72 +90,34 @@ export default async function ReportDetailPage({
     sourceValid,
     hasLinkedGa4Now,
   });
+  const propertyName = property?.name ?? report.propertyId;
+  const dateRangeLabel = `${new Date(report.dateRangeStart).toLocaleDateString()} – ${new Date(report.dateRangeEnd).toLocaleDateString()}`;
+  const compareRangeLabel = `${new Date(report.compareRangeStart).toLocaleDateString()} – ${new Date(report.compareRangeEnd).toLocaleDateString()}`;
+  const initialSnapshot: ReportLiveSnapshot = {
+    reportStatus: report.status,
+    aiStatus: report.aiStatus ?? null,
+    xlsxStatus: report.xlsxStatus,
+    hasAiReportJson: !!aiReport,
+    hasXlsxArtifact: !!report.xlsxArtifactUrl,
+  };
 
   return (
-    <div className="flex-1 bg-background min-h-screen">
-      <ReportLiveStatus
+    <div className="relative overflow-hidden">
+      <ReportDetailClientView
+        key={`${reportId}:${report.status}:${report.aiStatus ?? "n/a"}:${report.xlsxStatus ?? "n/a"}:${report.updatedAt instanceof Date ? report.updatedAt.toISOString() : String(report.updatedAt ?? "")}`}
         reportId={reportId}
-        initialStatus={report.status}
-        initialXlsxStatus={report.xlsxStatus}
-      />
-      <div className="absolute top-0 inset-x-0 h-[300px] bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
-
-      <div className="container mx-auto py-10 px-4 relative z-10">
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            href="/reports"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Reports
-          </Link>
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-3xl font-extrabold tracking-tight font-display mb-2">
-                {property?.name ?? report.propertyId}
-              </h1>
-              <p className="text-muted-foreground">
-                {new Date(report.dateRangeStart).toLocaleDateString()} –{" "}
-                {new Date(report.dateRangeEnd).toLocaleDateString()}
-                <span className="mx-2 text-border">vs</span>
-                {new Date(report.compareRangeStart).toLocaleDateString()} –{" "}
-                {new Date(report.compareRangeEnd).toLocaleDateString()}
-              </p>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <StatusBadge status={report.status} />
-              <div className="text-xs text-muted-foreground text-right space-y-1">
-                <div>AI: {report.aiStatus ?? "n/a"}</div>
-                <div>XLSX: {report.xlsxStatus ?? "n/a"}</div>
-                {isAdmin && report.aiEstimatedCostUsd ? (
-                  <div>AI Cost: ${String(report.aiEstimatedCostUsd)}</div>
-                ) : null}
-                {isAdmin && report.detailsCostUsd ? (
-                  <div>Details cost: ${String(report.detailsCostUsd)}</div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-          {shouldShowTopReportActions(report.status) ? (
-            <div className="mt-4">
-              <ReportActions
-                reportId={reportId}
-                xlsxReady={report.xlsxStatus === "ready" && !!report.xlsxArtifactUrl}
-                canRetryReport={actionAvailability.canRetryReport}
-                retryReportReason={actionAvailability.retryReportReason}
-                canRetryXlsx={actionAvailability.canRetryXlsx}
-                retryXlsxReason={actionAvailability.retryXlsxReason}
-              />
-            </div>
-          ) : null}
-        </div>
-
-        {report.status === "scheduled" ? (
-          <div className="border border-amber-200 rounded-3xl p-10 bg-amber-50/70 shadow-sm">
+        propertyName={propertyName}
+        dateRangeLabel={dateRangeLabel}
+        compareRangeLabel={compareRangeLabel}
+        initialSnapshot={initialSnapshot}
+        isAdmin={isAdmin}
+        aiEstimatedCostUsd={report.aiEstimatedCostUsd ?? null}
+        detailsCostUsd={report.detailsCostUsd ?? null}
+        scheduledContent={
+          <div className="border border-amber-200 rounded-lg p-10 bg-amber-50/70 shadow-sm">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
               <div className="max-w-2xl space-y-3">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
                   <Link2 className="h-6 w-6" />
                 </div>
                 <h2 className="text-2xl font-semibold font-display text-amber-950">{scheduledNoticeState.title}</h2>
@@ -198,9 +138,10 @@ export default async function ReportDetailPage({
               </div>
             </div>
           </div>
-        ) : report.status === "queued" || report.status === "processing" ? (
-          <div className="border border-border/50 rounded-3xl p-16 text-center bg-card shadow-sm">
-            <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+        }
+        activeContent={
+          <div className="border border-border/50 rounded-lg p-16 text-center bg-card shadow-sm">
+            <div className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center mb-6 mx-auto">
               <BarChart2 className="h-8 w-8 text-primary animate-pulse" />
             </div>
             <h2 className="text-2xl font-semibold font-display mb-3">Report is being generated</h2>
@@ -209,19 +150,21 @@ export default async function ReportDetailPage({
               takes 1–2 minutes.
             </p>
           </div>
-        ) : report.status === "failed" ? (
-          <div className="border border-red-200 rounded-3xl p-16 text-center bg-red-50 dark:bg-red-950/20">
+        }
+        failedContent={
+          <div className="border border-red-200 rounded-lg p-16 text-center bg-red-50 dark:bg-red-950/20">
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-2xl font-semibold mb-3 text-red-700">Report generation failed</h2>
             <p className="text-muted-foreground">
               Please try creating the report again or contact support if the problem persists.
             </p>
           </div>
-        ) : data ? (
+        }
+        completeContent={data ? (
           <div className="space-y-10">
             {/* 1. AI Summary */}
             {aiReport?.dashboardMarkdown ? (
-              <div className="p-6 rounded-3xl bg-card border border-border/50 shadow-sm">
+              <div className="p-6 rounded-lg bg-card border border-border/50 shadow-sm">
                 <h2 className="text-xl font-bold font-display mb-4">AI Summary</h2>
                 <DashboardMarkdown content={aiReport.dashboardMarkdown} />
               </div>
@@ -275,7 +218,7 @@ export default async function ReportDetailPage({
             <JobTimeline events={recentEvents} />
           </div>
         ) : null}
-      </div>
+      />
     </div>
   );
 }

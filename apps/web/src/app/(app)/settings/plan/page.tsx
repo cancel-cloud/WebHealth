@@ -73,7 +73,7 @@ export default function PlanPage() {
         {PLANS.map((plan) => (
           <div
             key={plan.name}
-            className={`relative rounded-3xl border p-6 flex flex-col gap-5 ${
+            className={`relative rounded-lg border p-6 flex flex-col gap-5 ${
               plan.active
                 ? "border-primary/50 bg-primary/5 shadow-lg shadow-primary/10"
                 : "border-border bg-card shadow-sm"

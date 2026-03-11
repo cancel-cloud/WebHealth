@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getSyncStatusBadge } from "@/lib/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,20 +46,6 @@ type Property = {
   ga4PropertyId: string | null;
 };
 
-function getSyncStatusBadge(status: string) {
-  switch (status) {
-    case "complete":
-      return <Badge className="bg-green-500/10 text-green-600 border border-green-200 hover:bg-green-500/20">Complete</Badge>;
-    case "syncing":
-      return <Badge className="bg-blue-500/10 text-blue-600 border border-blue-200 animate-pulse">Syncing</Badge>;
-    case "pending":
-      return <Badge variant="outline" className="text-zinc-500">Pending</Badge>;
-    case "failed":
-      return <Badge variant="destructive">Failed</Badge>;
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
-}
 
 function LinkGa4Dialog({
   gscProperty,
@@ -229,16 +216,16 @@ export default function PropertiesPage() {
       </div>
 
       {loading ? (
-        <div className="border border-border/50 rounded-3xl p-8 bg-card">
+        <div className="border border-border/50 rounded-lg p-8 bg-card">
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 rounded-xl bg-muted/40 animate-pulse" />
+              <div key={i} className="h-12 rounded-lg bg-muted/40 animate-pulse" />
             ))}
           </div>
         </div>
       ) : properties.length === 0 ? (
-        <div className="border border-border/50 rounded-3xl p-12 text-center flex flex-col items-center justify-center bg-card shadow-sm">
-          <div className="h-16 w-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-6">
+        <div className="border border-border/50 rounded-lg p-12 text-center flex flex-col items-center justify-center bg-card shadow-sm">
+          <div className="h-16 w-16 bg-muted/50 rounded-lg flex items-center justify-center mb-6">
             <Globe aria-hidden="true" className="h-8 w-8 text-muted-foreground/50" />
           </div>
           <h3 className="text-xl font-medium text-foreground font-display">No properties synced</h3>
@@ -257,7 +244,7 @@ export default function PropertiesPage() {
               className="pl-9"
             />
           </div>
-        <div className="border border-border/50 rounded-3xl overflow-hidden bg-card shadow-sm">
+        <div className="border border-border/50 rounded-lg overflow-hidden bg-card shadow-sm">
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow className="hover:bg-transparent border-border/50">

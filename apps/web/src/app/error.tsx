@@ -18,7 +18,7 @@ export default function ErrorPage({
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
       <div
-        className="size-20 rounded-3xl flex items-center justify-center mb-6"
+        className="size-20 rounded-lg flex items-center justify-center mb-6"
         style={{ backgroundColor: "#f43f5e10", border: "1px solid #f43f5e20" }}
       >
         <span className="font-display text-3xl font-extrabold" style={{ color: "#f43f5e" }}>

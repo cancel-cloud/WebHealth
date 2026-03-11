@@ -121,7 +121,7 @@ export function KpiCards({ gscCurrent, gscCompare, ga4Current, ga4Compare, kpiTr
             color: "#9333ea",
           },
         ].map(({ label, curr, comp, fmt, sparkKey, color }) => (
-          <div key={label} className="p-4 rounded-3xl bg-card border border-border/50 shadow-sm">
+          <div key={label} className="p-4 rounded-lg bg-card border border-border/50 shadow-sm">
             <p className="text-sm text-muted-foreground mb-1">{label}</p>
             <p className="text-2xl font-bold font-display mb-1">
               {fmt === "percent"
@@ -142,12 +142,12 @@ export function KpiCards({ gscCurrent, gscCompare, ga4Current, ga4Compare, kpiTr
 
       {ga4Current && (
         <div className="grid grid-cols-2 gap-4 max-w-sm">
-          <div className="p-4 rounded-3xl bg-card border border-border/50 shadow-sm">
+          <div className="p-4 rounded-lg bg-card border border-border/50 shadow-sm">
             <p className="text-sm text-muted-foreground mb-1">Sessions</p>
             <p className="text-2xl font-bold font-display mb-1">{ga4Current.sessions.toLocaleString()}</p>
             {ga4Compare && <Delta current={ga4Current.sessions} compare={ga4Compare.sessions} />}
           </div>
-          <div className="p-4 rounded-3xl bg-card border border-border/50 shadow-sm">
+          <div className="p-4 rounded-lg bg-card border border-border/50 shadow-sm">
             <p className="text-sm text-muted-foreground mb-1">Users</p>
             <p className="text-2xl font-bold font-display mb-1">{ga4Current.users.toLocaleString()}</p>
             {ga4Compare && <Delta current={ga4Current.users} compare={ga4Compare.users} />}
