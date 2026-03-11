@@ -156,6 +156,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@sentry/node':
+        specifier: ^10.43.0
+        version: 10.43.0
       '@webhealth/shared':
         specifier: workspace:*
         version: link:../../packages/shared
