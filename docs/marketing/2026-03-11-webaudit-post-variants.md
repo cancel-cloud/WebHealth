@@ -1,4 +1,4 @@
-# WebAudit Post Variants
+# Webhealth Post Variants
 
 **Prepared:** 2026-03-11
 **Canonical schedule:** `docs/marketing/2026-03-11-webaudit-promotion-kit.md`
@@ -251,7 +251,7 @@ They need a faster answer to a practical question:
 
 What changed, which pages were affected, and what should I fix first?
 
-That is the workflow I am trying to make more usable in WebAudit:
+That is the workflow I am trying to make more usable in Webhealth:
 
 - compare two periods instead of staring at one static window
 - combine GSC + GA4 with crawl context
@@ -271,7 +271,7 @@ the tools are usually good at showing data, but weak at turning a traffic change
 
 For founders doing SEO themselves, that gap is expensive because diagnosis ends up scattered across GSC, GA4, and crawl data.
 
-The report shape I am testing in WebAudit is simple:
+The report shape I am testing in Webhealth is simple:
 
 - start with the comparison, not the snapshot
 - surface the affected pages
@@ -493,7 +493,7 @@ https://webhealth.devbrew.dev/demo?utm_source=x&utm_medium=social&utm_campaign=l
 
 ### Option A
 
-WebAudit is for people doing their own SEO and wanting a faster idea of what changed.
+Webhealth is for people doing their own SEO and wanting a faster idea of what changed.
 
 Not for people who want the biggest suite possible just because it has more tabs.
 
@@ -555,7 +555,7 @@ They need a faster path from:
 to
 "these pages were affected, this likely caused it, start here."
 
-That is the shape I keep pushing WebAudit toward:
+That is the shape I keep pushing Webhealth toward:
 
 - comparison before snapshot
 - traffic change with crawl context
@@ -581,7 +581,7 @@ Not:
 More like:
 "these pages lost clicks, here is the likely cause, here is the next fix."
 
-That is the product implication I keep returning to with WebAudit, and it is why the report keeps leaning toward comparison, context, and prioritization over more dashboards.
+That is the product implication I keep returning to with Webhealth, and it is why the report keeps leaning toward comparison, context, and prioritization over more dashboards.
 
 Sample report:
 https://webhealth.devbrew.dev/demo?utm_source=linkedin&utm_medium=social&utm_campaign=launch_month1&utm_content=recap-post
@@ -614,7 +614,7 @@ what to look at next
 
 Post 2:
 
-That is the direction with WebAudit.
+That is the direction with Webhealth.
 
 Sample report below:
 https://webhealth.devbrew.dev/demo?utm_source=x&utm_medium=social&utm_campaign=launch_month1&utm_content=monthly-pain-roundup

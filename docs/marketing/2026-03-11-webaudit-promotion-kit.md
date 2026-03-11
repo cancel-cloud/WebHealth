@@ -1,7 +1,7 @@
-# WebAudit Launch Month Promotion Kit
+# Webhealth Launch Month Promotion Kit
 
 **Prepared:** 2026-03-11
-**Public brand to use:** `WebAudit`
+**Public brand to use:** `Webhealth`
 **Current public domain:** `https://webhealth.devbrew.dev`
 **Primary CTA:** `See the sample report`
 **Primary destination:** `https://webhealth.devbrew.dev/demo`
@@ -10,7 +10,7 @@
 
 Use this one-liner everywhere public until you decide to rebrand the site:
 
-> WebAudit helps founders doing their own SEO understand what changed in organic traffic and what to fix first.
+> Webhealth helps founders doing their own SEO understand what changed in organic traffic and what to fix first.
 
 ### Message house
 
@@ -310,7 +310,7 @@ to:
 
 here is what likely changed and what to fix first
 
-That is the workflow behind WebAudit:
+That is the workflow behind Webhealth:
 
 - compare periods clearly
 - add crawl context
@@ -411,7 +411,7 @@ Format: short thread (2 posts max)
 
 #### X post 10 - 2026-04-06
 
-WebAudit is for people doing their own SEO and wanting a faster idea of what changed.
+Webhealth is for people doing their own SEO and wanting a faster idea of what changed.
 
 Not for people who want the biggest suite possible just because it has more tabs.
 
@@ -447,7 +447,7 @@ what to look at next
 
 Post 2:
 
-That is the direction with WebAudit.
+That is the direction with Webhealth.
 
 Sample report below:
 https://webhealth.devbrew.dev/demo?utm_source=x&utm_medium=social&utm_campaign=launch_month1&utm_content=monthly-pain-roundup
@@ -472,7 +472,7 @@ to:
 
 these pages were affected, this likely caused it, start here.
 
-That is the report shape I keep pushing WebAudit toward:
+That is the report shape I keep pushing Webhealth toward:
 
 - comparison before snapshot
 - traffic change with crawl context
