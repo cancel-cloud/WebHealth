@@ -3,36 +3,30 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getPricingBadgeClassNames } from "@/components/pricing-badge-styles";
+import { PRICING_PLANS } from "@/lib/pricing";
 import { Check } from "lucide-react";
 import { motion } from "framer-motion";
 
 const PRICING = [
   {
-    name: "Solo",
-    price: "$0",
-    period: "forever",
-    description: "For developers auditing their own sites.",
+    name: PRICING_PLANS.solo.name,
+    price: PRICING_PLANS.solo.priceLabel,
+    period: PRICING_PLANS.solo.periodLabel,
+    description: PRICING_PLANS.solo.description,
     cta: "Start Free",
     href: "/dashboard",
-    features: ["Unlimited properties", "5 reports / month", "20 Deep Dives / month", "AI Quick Wins", "Live crawl"],
+    features: PRICING_PLANS.solo.features,
     comingSoon: false,
     highlight: false,
   },
   {
-    name: "Pro",
-    price: "$19",
-    period: "/ month",
-    description: "For freelancers managing multiple clients — 5× the limits of Solo Plan.",
+    name: PRICING_PLANS.pro.name,
+    price: PRICING_PLANS.pro.priceLabel,
+    period: PRICING_PLANS.pro.periodLabel,
+    description: PRICING_PLANS.pro.description,
     cta: "Get Started",
     href: "/dashboard",
-    features: [
-      "Unlimited properties",
-      "50 reports / month",
-      "200 Deep Dives / month",
-      "Priority queue",
-      "AI Quick Wins",
-      "Email support",
-    ],
+    features: PRICING_PLANS.pro.features,
     comingSoon: false,
     highlight: true,
   },

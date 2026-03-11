@@ -7,6 +7,7 @@ import { Globe2, BarChart2, Zap, Search, TrendingUp, Check, ArrowRight, Sparkles
 import { motion } from "framer-motion";
 import { authClient } from "@webhealth/shared/lib/auth-client";
 import { PricingSection } from "@/components/pricing-section";
+import { PRICING_PLANS } from "@/lib/pricing";
 
 /* ─── Palette ────────────────────────────────────────────────────────── */
 // Primary: indigo #6366f1  Accent: cyan #06b6d4  Success: emerald #10b981
@@ -100,7 +101,7 @@ const STEPS = [
 const STATS = [
   { value: "2 min", label: "average setup time" },
   { value: "100%", label: "automated workflow" },
-  { value: "$0", label: "to get started" },
+  { value: PRICING_PLANS.solo.priceLabel, label: "to get started" },
 ];
 
 /* ─── Animation variants ────────────────────────────────────────────── */
