@@ -21,8 +21,9 @@ import {
 } from "./fixture";
 
 export const metadata: Metadata = {
-  title: "Demo Report — WebAudit",
-  description: "See a sample WebAudit SEO report for example-store.com, with AI-ranked fixes, KPIs, quick wins, and technical analysis.",
+  title: "Demo Report — Webhealth",
+  description:
+    "See a sample Webhealth SEO report for example-store.com, with AI-ranked fixes, KPIs, quick wins, and technical analysis.",
 };
 
 export default function DemoPage() {
@@ -82,7 +83,9 @@ export default function DemoPage() {
 
           {/* 2. KPI Cards */}
           <section>
-            <h2 className="text-xl font-bold font-display mb-4">Search Console Metrics</h2>
+            <h2 className="text-xl font-bold font-display mb-4">
+              Search Console Metrics
+            </h2>
             <KpiCards
               gscCurrent={DEMO_GSC_CURRENT}
               gscCompare={DEMO_GSC_COMPARE}
@@ -107,10 +110,16 @@ export default function DemoPage() {
           {/* 4. Deep Dives */}
           <DeepDiveQueries rows={aiReport.queryOpportunityRows} />
           <DeepDivePages rows={aiReport.pageWinnerLoserRows} />
-          <DeepDiveTechnical rows={aiReport.technicalIssueRows} crawlSummary={crawlSummary} />
+          <DeepDiveTechnical
+            rows={aiReport.technicalIssueRows}
+            crawlSummary={crawlSummary}
+          />
 
           {/* 5. Action Backlog */}
-          <ActionBacklog reportId={DEMO_REPORT_ID} rows={aiReport.actionBacklogRows} />
+          <ActionBacklog
+            reportId={DEMO_REPORT_ID}
+            rows={aiReport.actionBacklogRows}
+          />
 
           {/* 6. Site Changes */}
           <SiteChangesSection siteChanges={aiReport.siteChanges} />
@@ -118,14 +127,17 @@ export default function DemoPage() {
           {/* Bottom CTA */}
           <div
             className="rounded-lg p-10 text-center"
-            style={{ backgroundColor: "#6366f108", border: "1px solid #6366f120" }}
+            style={{
+              backgroundColor: "#6366f108",
+              border: "1px solid #6366f120",
+            }}
           >
             <h2 className="font-display text-2xl font-bold mb-3">
               Ready to see your own site&apos;s data?
             </h2>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Connect your Google Search Console and Analytics in under 2 minutes.
-              Your first report is free — no credit card required.
+              Connect your Google Search Console and Analytics in under 2
+              minutes. Your first report is free — no credit card required.
             </p>
             <Button asChild size="lg" className="rounded-full px-8">
               <Link href="/">

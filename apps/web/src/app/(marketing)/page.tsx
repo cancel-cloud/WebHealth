@@ -3,7 +3,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Globe2, BarChart2, Zap, Search, TrendingUp, Check, ArrowRight, Sparkles } from "lucide-react";
+import {
+  Globe2,
+  BarChart2,
+  Zap,
+  Search,
+  TrendingUp,
+  Check,
+  ArrowRight,
+  Sparkles,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { authClient } from "@webhealth/shared/lib/auth-client";
 import { PricingSection } from "@/components/pricing-section";
@@ -73,14 +82,13 @@ const FEATURES = [
   },
 ];
 
-
 const STEPS = [
   {
     n: "01",
     color: "#6366f1",
     tint: "#6366f114",
     title: "Sign in with Google",
-    desc: "One OAuth click. WebAudit immediately discovers all your GSC and GA4 properties.",
+    desc: "One OAuth click. Webhealth immediately discovers all your GSC and GA4 properties.",
   },
   {
     n: "02",
@@ -141,9 +149,11 @@ export default function HomePage() {
 
       <div
         className="flex-1 flex flex-col"
-        style={{ backgroundColor: "oklch(0.99 0 0)", color: "oklch(0.12 0.01 250)" }}
+        style={{
+          backgroundColor: "oklch(0.99 0 0)",
+          color: "oklch(0.12 0.01 250)",
+        }}
       >
-
         {/* ── HERO ─────────────────────────────────────────────────────── */}
         {/*
           The negative top margin pulls this section UP behind the sticky navbar.
@@ -154,7 +164,11 @@ export default function HomePage() {
         <section
           id="main-content"
           className="relative flex flex-col items-center justify-center text-center px-6 pb-36 overflow-hidden"
-          style={{ marginTop: "-64px", paddingTop: "calc(64px + 5rem)", minHeight: "100svh" }}
+          style={{
+            marginTop: "-64px",
+            paddingTop: "calc(64px + 5rem)",
+            minHeight: "100svh",
+          }}
           aria-labelledby="hero-heading"
         >
           {/* Subtle grid overlay */}
@@ -192,9 +206,7 @@ export default function HomePage() {
             >
               GSC + GA4 data.
               <br />
-              <span
-                className="text-primary"
-              >
+              <span className="text-primary">
                 Ranked fixes in&nbsp;3&nbsp;min.
               </span>
             </h1>
@@ -203,8 +215,9 @@ export default function HomePage() {
               className="text-lg md:text-xl max-w-xl mx-auto leading-relaxed mb-12 motion-safe:animate-[fade-slide-up_0.55s_0.2s_ease_both] opacity-0 [animation-fill-mode:forwards]"
               style={{ color: "oklch(0.45 0.02 250)" }}
             >
-              Connect Google Search Console and Analytics, run a live crawl, and get an AI&#8209;ranked
-              fix list with affected URLs and impact scores — all in one report.
+              Connect Google Search Console and Analytics, run a live crawl, and
+              get an AI&#8209;ranked fix list with affected URLs and impact
+              scores — all in one report.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8 motion-safe:animate-[fade-slide-up_0.55s_0.3s_ease_both] opacity-0 [animation-fill-mode:forwards]">
@@ -212,7 +225,10 @@ export default function HomePage() {
                 type="button"
                 onClick={handleGoogleSignIn}
                 className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full text-sm font-semibold text-white focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:outline-none touch-manipulation motion-safe:animate-[gradient-pan_6s_ease_infinite] bg-[length:200%_100%]"
-                style={{ backgroundImage: "linear-gradient(90deg, #6366f1, #0ea5e9, #6366f1)" }}
+                style={{
+                  backgroundImage:
+                    "linear-gradient(90deg, #6366f1, #0ea5e9, #6366f1)",
+                }}
               >
                 Connect your Google account
                 <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
@@ -255,12 +271,16 @@ export default function HomePage() {
           <Link
             href="/demo"
             className="group relative mx-auto block max-w-5xl overflow-hidden rounded-lg border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-4"
-            style={{ borderColor: "oklch(0.88 0.01 250 / 0.6)", boxShadow: "0 24px 64px -12px rgba(0,0,0,0.18), 0 0 0 1px rgba(99,102,241,0.08)" }}
-            aria-label="View sample WebAudit report"
+            style={{
+              borderColor: "oklch(0.88 0.01 250 / 0.6)",
+              boxShadow:
+                "0 24px 64px -12px rgba(0,0,0,0.18), 0 0 0 1px rgba(99,102,241,0.08)",
+            }}
+            aria-label="View sample Webhealth report"
           >
             <Image
               src="/hero-screenshot.png"
-              alt="WebAudit report showing GSC impressions, CTR trends, Quick Win opportunities and a ranked fix list"
+              alt="Webhealth report showing GSC impressions, CTR trends, Quick Win opportunities and a ranked fix list"
               width={1601}
               height={712}
               priority
@@ -279,7 +299,11 @@ export default function HomePage() {
         </section>
 
         {/* ── FEATURES ─────────────────────────────────────────────────── */}
-        <section id="features" className="py-28 px-6 scroll-mt-16" aria-labelledby="features-heading">
+        <section
+          id="features"
+          className="py-28 px-6 scroll-mt-16"
+          aria-labelledby="features-heading"
+        >
           <div className="max-w-5xl mx-auto">
             <div className="mb-20 max-w-xl">
               <p
@@ -321,7 +345,11 @@ export default function HomePage() {
                       border: `1px solid ${f.color}28`,
                     }}
                   >
-                    <f.icon className="size-6" aria-hidden="true" style={{ color: f.color }} />
+                    <f.icon
+                      className="size-6"
+                      aria-hidden="true"
+                      style={{ color: f.color }}
+                    />
                   </div>
                   <div>
                     <h3
@@ -371,7 +399,9 @@ export default function HomePage() {
                 style={{ textWrap: "balance" } as React.CSSProperties}
               >
                 From sign-in to insights in{" "}
-                <span style={{ color: "#6366f1" }}>under&nbsp;3&nbsp;minutes</span>
+                <span style={{ color: "#6366f1" }}>
+                  under&nbsp;3&nbsp;minutes
+                </span>
               </h2>
               <p
                 className="text-lg mb-16 max-w-md mx-auto"
@@ -448,7 +478,6 @@ export default function HomePage() {
 
           <div className="relative z-10 max-w-6xl mx-auto px-6 py-24 lg:py-32">
             <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-
               {/* Left — claim + stats */}
               <motion.div
                 initial={{ opacity: 0, x: -24 }}
@@ -473,13 +502,16 @@ export default function HomePage() {
                 <h2
                   id="cta-heading"
                   className="font-display text-4xl md:text-5xl font-extrabold tracking-tight leading-[1.1] mb-8"
-                  style={{ color: "oklch(0.12 0.01 250)", textWrap: "balance" } as React.CSSProperties}
+                  style={
+                    {
+                      color: "oklch(0.12 0.01 250)",
+                      textWrap: "balance",
+                    } as React.CSSProperties
+                  }
                 >
                   Your GSC data is sitting there.
                   <br />
-                  <span className="text-primary">
-                    Put it to work.
-                  </span>
+                  <span className="text-primary">Put it to work.</span>
                 </h2>
 
                 {/* Stats row */}
@@ -532,9 +564,12 @@ export default function HomePage() {
                     >
                       Free forever on Solo plan.
                     </p>
-                    <p className="text-sm" style={{ color: "oklch(0.50 0.02 250)" }}>
-                      Sign in with Google and generate your first audit report in under
-                      3&nbsp;minutes. No credit card, no friction.
+                    <p
+                      className="text-sm"
+                      style={{ color: "oklch(0.50 0.02 250)" }}
+                    >
+                      Sign in with Google and generate your first audit report
+                      in under 3&nbsp;minutes. No credit card, no friction.
                     </p>
                   </div>
 
@@ -543,31 +578,37 @@ export default function HomePage() {
                     onClick={handleGoogleSignIn}
                     className="inline-flex items-center justify-center gap-2 h-12 w-full rounded-full text-sm font-semibold text-white focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:outline-none touch-manipulation motion-safe:animate-[gradient-pan_6s_ease_infinite] bg-[length:200%_100%]"
                     style={{
-                      backgroundImage: "linear-gradient(90deg, #6366f1, #06b6d4, #6366f1)",
+                      backgroundImage:
+                        "linear-gradient(90deg, #6366f1, #06b6d4, #6366f1)",
                       boxShadow: "0 4px 18px #6366f132",
                     }}
                   >
                     Connect your Google account
-                    <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+                    <ArrowRight
+                      className="size-4 shrink-0"
+                      aria-hidden="true"
+                    />
                   </button>
 
                   <ul className="space-y-2">
-                    {["No credit card required", "GSC + GA4 in one place", "Cancel any time"].map(
-                      (item) => (
-                        <li
-                          key={item}
-                          className="flex items-center gap-2 text-xs"
-                          style={{ color: "oklch(0.55 0.02 250)" }}
-                        >
-                          <Check
-                            className="size-3.5 shrink-0"
-                            aria-hidden="true"
-                            style={{ color: "#10b981" }}
-                          />
-                          {item}
-                        </li>
-                      )
-                    )}
+                    {[
+                      "No credit card required",
+                      "GSC + GA4 in one place",
+                      "Cancel any time",
+                    ].map((item) => (
+                      <li
+                        key={item}
+                        className="flex items-center gap-2 text-xs"
+                        style={{ color: "oklch(0.55 0.02 250)" }}
+                      >
+                        <Check
+                          className="size-3.5 shrink-0"
+                          aria-hidden="true"
+                          style={{ color: "#10b981" }}
+                        />
+                        {item}
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </motion.div>

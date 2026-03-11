@@ -1,4 +1,4 @@
-# WebAudit SEO Plan
+# Webhealth SEO Plan
 
 **Audited:** 2026-03-09
 **Site:** webhealth.devbrew.dev — SaaS SEO reporting tool
@@ -55,7 +55,7 @@ No JSON-LD anywhere. Missing:
     __html: JSON.stringify({
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      "name": "WebAudit",
+      "name": "Webhealth",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
@@ -110,11 +110,11 @@ The homepage targets everyone but ranks for no specific query. Dedicated pages w
 
 | Page | Current title | Issue |
 |---|---|---|
-| `/` | "WebAudit \| SEO & Analytics Monitoring" | "SEO & Analytics Monitoring" is vague |
-| `/pricing` | "Pricing — WebAudit" | Misses "seo audit tool pricing" |
-| `/demo` | "Demo Report — WebAudit" | Misses "free seo audit demo" |
+| `/` | "Webhealth \| SEO & Analytics Monitoring" | "SEO & Analytics Monitoring" is vague |
+| `/pricing` | "Pricing — Webhealth" | Misses "seo audit tool pricing" |
+| `/demo` | "Demo Report — Webhealth" | Misses "free seo audit demo" |
 
-**Suggested homepage title:** `"WebAudit — Automated SEO Reports from GSC + GA4 | Free to Start"`
+**Suggested homepage title:** `"Webhealth — Automated SEO Reports from GSC + GA4 | Free to Start"`
 
 ### 7. Homepage H1 isn't keyword-rich
 

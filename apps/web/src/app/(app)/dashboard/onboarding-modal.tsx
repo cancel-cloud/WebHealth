@@ -24,8 +24,8 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
     hasWelcomedFromStorage(
       typeof window === "undefined"
         ? null
-        : window.localStorage.getItem(ONBOARDING_WELCOMED_STORAGE_KEY)
-    )
+        : window.localStorage.getItem(ONBOARDING_WELCOMED_STORAGE_KEY),
+    ),
   );
   const [dismissed, setDismissed] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>("syncing");
@@ -66,7 +66,7 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
       >
         <DialogHeader>
           <DialogTitle className="text-xl font-bold font-display">
-            Welcome to WebAudit
+            Welcome to Webhealth
           </DialogTitle>
           <p className="text-sm text-muted-foreground mt-1">
             GSC + GA4 data. Ranked fixes in 3 minutes.
@@ -93,7 +93,9 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
             )}
             {syncState === "error" && (
               <>
-                <span className="text-destructive text-lg flex-shrink-0">!</span>
+                <span className="text-destructive text-lg flex-shrink-0">
+                  !
+                </span>
                 <span className="text-sm text-destructive">
                   Sync failed — you can retry from Properties
                 </span>
@@ -125,7 +127,9 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
                   },
                 ].map(({ n, title, desc }) => (
                   <li key={title} className="flex items-start gap-3 text-sm">
-                    <span className="text-primary font-bold flex-shrink-0">{n}</span>
+                    <span className="text-primary font-bold flex-shrink-0">
+                      {n}
+                    </span>
                     <span>
                       <span className="font-medium">{title}</span>
                       {" — "}

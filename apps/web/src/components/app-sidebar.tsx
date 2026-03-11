@@ -18,7 +18,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatPlanName } from "@/lib/plan-label";
 import { requestJson } from "@/lib/client/api";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,7 +64,10 @@ type SidebarMeta = {
   detailsLimit: number | null;
 };
 
-const ICONS: Record<AppSidebarIconKey, React.ComponentType<{ className?: string }>> = {
+const ICONS: Record<
+  AppSidebarIconKey,
+  React.ComponentType<{ className?: string }>
+> = {
   dashboard: LayoutDashboard,
   reports: FileText,
   properties: Globe,
@@ -89,11 +96,14 @@ function SidebarLink({
   nested?: boolean;
 }) {
   const Icon = ICONS[item.icon];
-  const stateClasses = getAppSidebarItemClasses({ current: item.current, nested });
+  const stateClasses = getAppSidebarItemClasses({
+    current: item.current,
+    nested,
+  });
   const className = cn(
     "group flex w-full items-center gap-3 rounded-lg text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60",
     nested ? "px-3 py-2 text-sm" : "px-3 py-2.5 text-sm font-medium",
-    stateClasses.link
+    stateClasses.link,
   );
 
   const content = (
@@ -102,7 +112,7 @@ function SidebarLink({
         className={cn(
           "shrink-0",
           nested ? "h-4 w-4" : "h-4 w-4",
-          stateClasses.icon
+          stateClasses.icon,
         )}
       />
       <span className="truncate">{item.label}</span>
@@ -173,11 +183,24 @@ export function AppSidebar({
       .then((data) => {
         const source = data ?? {};
         setMeta({
-          teamTier: typeof source.teamTier === "string" ? source.teamTier : "free",
-          reportsThisMonth: typeof source.reportsThisMonth === "number" ? source.reportsThisMonth : 0,
-          reportsLimit: typeof source.reportsLimit === "number" ? source.reportsLimit : null,
-          detailsThisMonth: typeof source.detailsThisMonth === "number" ? source.detailsThisMonth : 0,
-          detailsLimit: typeof source.detailsLimit === "number" ? source.detailsLimit : null,
+          teamTier:
+            typeof source.teamTier === "string" ? source.teamTier : "free",
+          reportsThisMonth:
+            typeof source.reportsThisMonth === "number"
+              ? source.reportsThisMonth
+              : 0,
+          reportsLimit:
+            typeof source.reportsLimit === "number"
+              ? source.reportsLimit
+              : null,
+          detailsThisMonth:
+            typeof source.detailsThisMonth === "number"
+              ? source.detailsThisMonth
+              : 0,
+          detailsLimit:
+            typeof source.detailsLimit === "number"
+              ? source.detailsLimit
+              : null,
         });
       })
       .catch(() => {});
@@ -199,7 +222,7 @@ export function AppSidebar({
       className={cn(
         "flex h-full min-h-0 flex-col bg-sidebar text-sidebar-foreground",
         floating &&
-          "rounded-lg border border-sidebar-border/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_30px_rgba(15,23,42,0.08)] dark:shadow-[0_1px_2px_rgba(2,6,23,0.16),0_18px_40px_rgba(2,6,23,0.38)]"
+          "rounded-lg border border-sidebar-border/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_30px_rgba(15,23,42,0.08)] dark:shadow-[0_1px_2px_rgba(2,6,23,0.16),0_18px_40px_rgba(2,6,23,0.38)]",
       )}
     >
       <div className="border-b border-sidebar-border/80 p-4">
@@ -209,10 +232,15 @@ export function AppSidebar({
           onClick={onNavigate}
         >
           <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-sky-500 text-primary-foreground shadow-lg shadow-primary/15">
-            <span aria-hidden="true" className="h-3 w-3 rounded-full bg-white/90" />
+            <span
+              aria-hidden="true"
+              className="h-3 w-3 rounded-full bg-white/90"
+            />
           </span>
           <span className="min-w-0">
-            <span className="block truncate font-display text-lg font-bold tracking-tight">WebAudit</span>
+            <span className="block truncate font-display text-lg font-bold tracking-tight">
+              Webhealth
+            </span>
           </span>
         </Link>
       </div>
@@ -221,7 +249,12 @@ export function AppSidebar({
         <div className="space-y-6">
           <section className="space-y-1">
             {model.primaryItems.map((item) => (
-              <SidebarLink key={item.id} item={item} onNavigate={onNavigate} onFeatureRequest={onFeatureRequest} />
+              <SidebarLink
+                key={item.id}
+                item={item}
+                onNavigate={onNavigate}
+                onFeatureRequest={onFeatureRequest}
+              />
             ))}
           </section>
 
@@ -232,7 +265,12 @@ export function AppSidebar({
               </p>
               <div className="space-y-1">
                 {model.adminItems.map((item) => (
-                  <SidebarLink key={item.id} item={item} onNavigate={onNavigate} onFeatureRequest={onFeatureRequest} />
+                  <SidebarLink
+                    key={item.id}
+                    item={item}
+                    onNavigate={onNavigate}
+                    onFeatureRequest={onFeatureRequest}
+                  />
                 ))}
               </div>
             </section>
@@ -244,13 +282,19 @@ export function AppSidebar({
             </p>
 
             <Collapsible
-              key={model.supportGroup.current ? "support-current" : "support-default"}
+              key={
+                model.supportGroup.current
+                  ? "support-current"
+                  : "support-default"
+              }
               defaultOpen={model.supportGroup.current}
             >
               <CollapsibleTrigger asChild>
                 <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground/78 transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 focus-visible:outline-none">
                   <CircleHelp className="h-4 w-4 shrink-0 text-sidebar-foreground/60" />
-                  <span className="flex-1 truncate">{model.supportGroup.label}</span>
+                  <span className="flex-1 truncate">
+                    {model.supportGroup.label}
+                  </span>
                   <ChevronDown className="h-4 w-4 shrink-0 text-sidebar-foreground/55 transition-transform data-[state=open]:rotate-180" />
                 </button>
               </CollapsibleTrigger>
@@ -286,7 +330,10 @@ export function AppSidebar({
             <DropdownMenuTrigger asChild>
               <button className="flex w-full min-w-0 items-center gap-3 rounded-lg border border-sidebar-border/70 bg-sidebar-accent/40 px-3 py-2.5 text-left transition-colors hover:bg-sidebar-accent/75 focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 focus-visible:outline-none">
                 <Avatar className="h-10 w-10 rounded-lg">
-                  <AvatarImage src={session?.user?.image ?? ""} alt={session?.user?.name ?? "User"} />
+                  <AvatarImage
+                    src={session?.user?.image ?? ""}
+                    alt={session?.user?.name ?? "User"}
+                  />
                   <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-semibold">
                     {session?.user?.name?.charAt(0).toUpperCase() ?? "U"}
                   </AvatarFallback>
@@ -310,8 +357,12 @@ export function AppSidebar({
             >
               <DropdownMenuLabel className="space-y-2 p-3 font-normal">
                 <div className="space-y-0.5">
-                  <p className="truncate text-sm font-semibold">{session?.user?.name ?? "Account"}</p>
-                  <p className="truncate text-xs text-muted-foreground">{session?.user?.email ?? ""}</p>
+                  <p className="truncate text-sm font-semibold">
+                    {session?.user?.name ?? "Account"}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {session?.user?.email ?? ""}
+                  </p>
                 </div>
                 <Badge variant="outline" className="capitalize">
                   {formatPlanName(meta?.teamTier)}
@@ -337,7 +388,11 @@ export function AppSidebar({
               <div className="overflow-hidden rounded-lg border border-border/70">
                 {themeOptions.map((option, index) => {
                   const Icon =
-                    option.value === "system" ? Monitor : option.value === "light" ? Sun : Moon;
+                    option.value === "system"
+                      ? Monitor
+                      : option.value === "light"
+                        ? Sun
+                        : Moon;
 
                   return (
                     <button

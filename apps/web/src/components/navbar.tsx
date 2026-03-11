@@ -60,7 +60,7 @@ export function Navbar() {
           <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center shadow-lg shadow-primary/20">
             <div className="h-2.5 w-2.5 rounded-full bg-white" />
           </div>
-          WebAudit
+          Webhealth
         </Link>
 
         {/* Marketing nav links (only on public pages) */}
