@@ -13,10 +13,9 @@ test("settings route marks settings current and keeps support links grouped", ()
 
   assert.equal(model.primaryItems.find((item) => item.href === "/settings")?.current, true);
   assert.equal(model.supportGroup.label, "Support");
-  assert.deepEqual(
-    model.supportGroup.items.map((item) => item.href),
-    ["/settings?tab=contact", "https://github.com/cancel-cloud/WebHealth/discussions"]
-  );
+  assert.deepEqual(model.supportGroup.items.map((item) => item.label), ["Contact Support", "Feature Requests"]);
+  assert.equal(model.supportGroup.items.find((item) => item.label === "Contact Support")?.href, "/settings?tab=contact");
+  assert.equal(model.supportGroup.items.find((item) => item.label === "Feature Requests")?.action, "feature-request");
   assert.equal(model.adminItems.length, 0);
 });
 
@@ -29,10 +28,11 @@ test("contact settings route marks the support group current", () => {
 });
 
 test("admin routes expose admin items and mark the matching entry current", () => {
-  const model = getAppSidebarModel({ pathname: "/admin/feature-flags", isAdmin: true });
+  const model = getAppSidebarModel({ pathname: "/admin/feedback", isAdmin: true });
 
   assert.equal(model.primaryItems.find((item) => item.href === "/dashboard")?.current, false);
-  assert.equal(model.adminItems.find((item) => item.href === "/admin/feature-flags")?.current, true);
+  assert.equal(model.adminItems.find((item) => item.href === "/admin/feedback")?.current, true);
+  assert.equal(model.adminItems.find((item) => item.href === "/admin/feedback")?.icon, "mail");
 });
 
 test("inactive sidebar items use a stronger hover treatment than the resting state", () => {
