@@ -13,7 +13,8 @@
     "stripe:listen": "stripe listen --forward-to ${NEXT_PUBLIC_APP_URL:-https://webhealth.devbrew.dev}/api/stripe/webhook"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.9"
+    "drizzle-kit": "^0.31.9",
+    "sharp": "^0.34.5"
   },
   "pnpm": {
     "overrides": {
