@@ -1,0 +1,29 @@
+date,weekday,channel,task_type,theme,asset_id,cta,target_url,utm_content,status,notes
+2026-03-16,Monday,X,post,workflow friction observation,,No CTA,,traffic-detective,draft,Single tweet; native Lukas voice; observation post
+2026-03-17,Tuesday,Community,post,workflow trust question,,Ask workflow question,https://webhealth.devbrew.dev/demo?utm_source=community&utm_medium=social&utm_campaign=launch_month1&utm_content=problem-feedback,problem-feedback,draft,Only link if thread rules allow it
+2026-03-17,Tuesday,X,reply-sprint,founder pain discovery,,Join 5-10 relevant conversations,,reply-sprint-1,planned,15 minutes
+2026-03-18,Wednesday,X,post,manual stitching proof,demo-summary-kpis,No CTA,,founder-detective-work,draft,Single tweet; native Lukas voice; proof post
+2026-03-19,Thursday,X,reply-sprint,workflow pain discovery,,Join 5-10 relevant conversations,,reply-sprint-2,planned,15 minutes
+2026-03-20,Friday,X,post,pages losing clicks proof,demo-quick-wins,See the sample report,https://webhealth.devbrew.dev/demo?utm_source=x&utm_medium=social&utm_campaign=launch_month1&utm_content=quick-wins-proof,quick-wins-proof,draft,Single tweet; native Lukas voice; direct click-driving post
+2026-03-21,Saturday,Ops,review,week 1 review,,Record impressions clicks and replies,,week-1-review,planned,Use the weekly review checklist in the markdown kit
+2026-03-23,Monday,X,post,workflow proof,gif-workflow,No CTA,,workflow-gif,draft,Short thread (2 posts max); native Lukas voice; proof post
+2026-03-24,Tuesday,X,reply-sprint,workflow conversation,,Join 5-10 relevant conversations,,reply-sprint-3,planned,15 minutes
+2026-03-25,Wednesday,X,post,diagnosis gap proof,demo-summary-kpis,No CTA,,before-after-report,draft,Single tweet; native Lukas voice; proof post
+2026-03-26,Thursday,LinkedIn,post,workflow proof carousel,demo-summary-kpis,See the sample report,https://webhealth.devbrew.dev/demo?utm_source=linkedin&utm_medium=social&utm_campaign=launch_month1&utm_content=workflow-carousel,workflow-carousel,draft,Repurpose strongest proof-led workflow angle
+2026-03-26,Thursday,X,reply-sprint,reporting pain conversation,,Join 5-10 relevant conversations,,reply-sprint-4,planned,15 minutes
+2026-03-27,Friday,X,post,technical issues proof,demo-technical-issues,See the sample report,https://webhealth.devbrew.dev/demo?utm_source=x&utm_medium=social&utm_campaign=launch_month1&utm_content=technical-issues-proof,technical-issues-proof,draft,Single tweet; native Lukas voice; direct click-driving post
+2026-03-28,Saturday,Ops,review,week 2 review,,Record impressions clicks and replies,,week-2-review,planned,Promote the strongest angle into next week
+2026-03-30,Monday,X,post,actionability proof,gif-quick-win-detail,No CTA,,quick-win-actionability,draft,Single tweet; native Lukas voice; proof post
+2026-03-31,Tuesday,Community,post,trusted output question,,Ask workflow question,https://webhealth.devbrew.dev/demo?utm_source=community&utm_medium=social&utm_campaign=launch_month1&utm_content=output-feedback,output-feedback,draft,Only link if thread rules allow it
+2026-03-31,Tuesday,X,reply-sprint,actionability conversation,,Join 5-10 relevant conversations,,reply-sprint-5,planned,15 minutes
+2026-04-01,Wednesday,X,post,report completeness standard,demo-action-backlog,No CTA,,action-backlog-native,draft,Single tweet; native Lukas voice; observation post
+2026-04-02,Thursday,X,reply-sprint,task-list reporting conversation,,Join 5-10 relevant conversations,,reply-sprint-6,planned,15 minutes
+2026-04-03,Friday,X,post,next fixes proof,demo-action-backlog,See the sample report,https://webhealth.devbrew.dev/demo?utm_source=x&utm_medium=social&utm_campaign=launch_month1&utm_content=action-backlog-proof,action-backlog-proof,draft,Short thread (2 posts max); native Lukas voice; direct click-driving post
+2026-04-04,Saturday,Ops,review,week 3 review,,Record impressions clicks and replies,,week-3-review,planned,Double down only on demo-click or good-conversation posts
+2026-04-06,Monday,X,post,audience fit,,Audience-fit statement,,who-its-for,draft,Single tweet; native Lukas voice; fit post
+2026-04-07,Tuesday,X,reply-sprint,audience fit conversation,,Join 5-10 relevant conversations,,reply-sprint-7,planned,15 minutes
+2026-04-08,Wednesday,X,post,diagnosis gap observation,demo-summary-kpis,No CTA,,monthly-pain-native,draft,Single tweet; native Lukas voice; observation post
+2026-04-09,Thursday,LinkedIn,post,month-one diagnosis recap,demo-summary-kpis,See the sample report,https://webhealth.devbrew.dev/demo?utm_source=linkedin&utm_medium=social&utm_campaign=launch_month1&utm_content=recap-post,recap-post,draft,Repurpose strongest month-one diagnosis insight
+2026-04-09,Thursday,X,reply-sprint,manual diagnosis conversation,,Join 5-10 relevant conversations,,reply-sprint-8,planned,15 minutes
+2026-04-10,Friday,X,post,month-end proof summary,demo-summary-kpis,See the sample report,https://webhealth.devbrew.dev/demo?utm_source=x&utm_medium=social&utm_campaign=launch_month1&utm_content=monthly-pain-roundup,monthly-pain-roundup,draft,Short thread (2 posts max); native Lukas voice; direct click-driving post
+2026-04-11,Saturday,Ops,review,week 4 review,,Record impressions clicks and replies,,week-4-review,planned,Decide whether Product Hunt prep is justified
