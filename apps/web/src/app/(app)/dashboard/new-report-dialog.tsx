@@ -17,6 +17,9 @@ import { Plus, Loader2 } from "lucide-react";
 import { cn } from "@webhealth/shared/lib/utils";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { getAppErrorMessage, isAppError } from "@/lib/client/app-error";
+import { requestJson } from "@/lib/client/api";
+import type { PropertiesSyncResult } from "./sync-button";
 
 const TOAST_ID = "report-create";
 const PROPERTY_LIST_VISIBLE_ITEMS = 5;
@@ -197,10 +200,8 @@ async function pollUntilComplete(reportId: string): Promise<void> {
   const MAX_POLLS = 60; // 5 minutes max
   for (let i = 0; i < MAX_POLLS; i++) {
     await new Promise((r) => setTimeout(r, 5000));
-    const res = await fetch(`/api/reports/${reportId}`);
-    if (!res.ok) throw new Error("Failed to check report status");
-    const data = await res.json();
-    const status = data.report?.status;
+    const data = await requestJson<{ report?: { status?: string } }>(`/api/reports/${reportId}`);
+    const status = data?.report?.status;
     if (status === "complete") return;
     if (status === "failed") throw new Error("Report processing failed");
   }
@@ -226,11 +227,13 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
 
   useEffect(() => {
     if (open) {
-      fetch("/api/properties")
-        .then((r) => r.json())
+      requestJson<{
+        properties?: Property[];
+        reportableProperties?: ReportableProperty[];
+      }>("/api/properties")
         .then((data) => {
-          setAllProperties(data.properties ?? []);
-          setReportableProperties(data.reportableProperties ?? []);
+          setAllProperties(data?.properties ?? []);
+          setReportableProperties(data?.reportableProperties ?? []);
         })
         .catch(() => {});
     }
@@ -295,8 +298,9 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
   useEffect(() => {
     if (!propertyId) { setDataRange(null); return; }
     setDataRangeLoading(true);
-    fetch(`/api/properties/${encodeURIComponent(propertyId)}/data-range`)
-      .then((r) => r.json())
+    requestJson<{ earliest: string | null; latest: string | null }>(
+      `/api/properties/${encodeURIComponent(propertyId)}/data-range`
+    )
       .then((data) => setDataRange(data))
       .catch(() => setDataRange(null))
       .finally(() => setDataRangeLoading(false));
@@ -327,24 +331,16 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch("/api/reports", {
+      const data = await requestJson<{
+        report?: { id: string };
+        ga4Missing?: boolean;
+      }>("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ propertyId, dateRangeStart, dateRangeEnd, compareRangeStart, compareRangeEnd }),
       });
-
-      const data = await res.json();
-      if (res.status === 402 && data.error === "PLAN_LIMIT_EXCEEDED") {
-        toast.info("Monthly report limit reached", {
-          description: "Upgrade your plan to create more reports.",
-          action: { label: "Upgrade", onClick: () => { window.location.href = "/settings"; } },
-          duration: 8000,
-        });
-        return;
-      }
-      if (!res.ok) throw new Error(data.error ?? "Failed to create report");
-
-      const reportId = data.report.id;
+      const reportId = data?.report?.id;
+      if (!reportId) throw new Error("Failed to create report");
 
       if (!data.ga4Missing) {
         // Happy path — GA4 is linked, report is queued
@@ -354,20 +350,20 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
         toast.promise(pollUntilComplete(reportId), {
           loading: "Processing report…",
           success: "Report ready!",
-          error: (err) => err.message,
+          error: (err) => getAppErrorMessage(err, "Report processing failed"),
         });
       } else {
         // GA4 missing — attempt auto-link via sync
         toast.loading("Syncing GA4 data…", { id: TOAST_ID, duration: Infinity });
 
-        const syncRes = await fetch("/api/properties/sync", { method: "POST" });
-        const syncData = await syncRes.json();
+        const syncData = await requestJson<PropertiesSyncResult>("/api/properties/sync", {
+          method: "POST",
+        });
 
-        if (syncRes.ok && syncData.autoLinked > 0) {
+        if ((syncData?.autoLinked ?? 0) > 0) {
           // Re-check: did this property get linked?
-          const propsRes = await fetch("/api/properties");
-          const propsData = await propsRes.json();
-          const updatedProp = (propsData.properties ?? []).find(
+          const propsData = await requestJson<{ properties?: Property[] }>("/api/properties");
+          const updatedProp = (propsData?.properties ?? []).find(
             (p: Property) => p.id === propertyId
           );
 
@@ -377,11 +373,11 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
             setOpen(false);
             onCreated?.();
             router.push(`/reports/${reportId}`);
-            await fetch(`/api/reports/${reportId}/start`, { method: "POST" });
+            await requestJson(`/api/reports/${reportId}/start`, { method: "POST" });
             toast.promise(pollUntilComplete(reportId), {
               loading: "Processing report…",
               success: "Report ready!",
-              error: (err) => err.message,
+              error: (err) => getAppErrorMessage(err, "Report processing failed"),
             });
             return;
           }
@@ -402,7 +398,15 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
         router.push(`/reports/${reportId}`);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "An error occurred", { id: TOAST_ID });
+      if (isAppError(err) && err.code === "PLAN_LIMIT_EXCEEDED") {
+        toast.info("Monthly report limit reached", {
+          description: "Upgrade your plan to create more reports.",
+          action: { label: "Upgrade", onClick: () => { window.location.href = "/settings"; } },
+          duration: 8000,
+        });
+      } else {
+        toast.error(getAppErrorMessage(err, "An error occurred"), { id: TOAST_ID });
+      }
     } finally {
       setIsSubmitting(false);
     }

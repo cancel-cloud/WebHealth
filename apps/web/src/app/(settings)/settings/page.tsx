@@ -28,6 +28,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPricingBadgeClassNames } from "@/components/pricing-badge-styles";
 import { useFeedbackModal } from "@/components/feedback-modal-context";
+import { getAppErrorMessage } from "@/lib/client/app-error";
+import { requestJson } from "@/lib/client/api";
 import { formatPlanName } from "@/lib/plan-label";
 import { PRICING_PLANS } from "@/lib/pricing";
 import { toast } from "sonner";
@@ -59,10 +61,9 @@ export default function SettingsPage() {
 
   const [settings, setSettings] = useState<Settings | null>(null);
 
-  const fetchSettings = useCallback(() => {
-    fetch("/api/settings")
-      .then((response) => response.json())
-      .then((data) => setSettings(normalizeSettingsResponse(data)));
+  const fetchSettings = useCallback(async () => {
+    const data = await requestJson<Record<string, unknown>>("/api/settings");
+    setSettings(normalizeSettingsResponse(data));
   }, []);
 
   useEffect(() => {
@@ -75,7 +76,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (searchParams.get("stripe") === "success" || searchParams.get("stripe") === "portal") {
-      fetch("/api/stripe/sync-plan", { method: "POST" })
+      requestJson("/api/stripe/sync-plan", { method: "POST" })
         .then(() => fetchSettings())
         .catch(() => fetchSettings())
         .finally(() => {
@@ -86,86 +87,85 @@ export default function SettingsPage() {
   }, [fetchSettings, router, searchParams]);
 
   const updateSetting = async (key: ToggleSettingKey | "reportLanguage", value: boolean | string) => {
+    const previous = settings;
     setSettings((prev) => (prev ? { ...prev, [key]: value } : prev));
-    await fetch("/api/settings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [key]: value }),
-    });
-
-    if (typeof value === "boolean" && key !== "reportLanguage") {
-      toast.success("Preference saved", {
-        description: `${SETTING_LABELS[key]} ${value ? "enabled" : "disabled"}.`,
+    try {
+      await requestJson("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: value }),
       });
-      return;
-    }
 
-    toast.success("Preference saved", {
-      description: "Report language updated.",
-    });
+      if (typeof value === "boolean" && key !== "reportLanguage") {
+        toast.success("Preference saved", {
+          description: `${SETTING_LABELS[key]} ${value ? "enabled" : "disabled"}.`,
+        });
+        return;
+      }
+
+      toast.success("Preference saved", {
+        description: "Report language updated.",
+      });
+    } catch (error) {
+      setSettings(previous);
+      toast.error("Preference not saved", {
+        description: getAppErrorMessage(error, "Please try again."),
+      });
+    }
   };
 
   const handleUpgrade = async (plan: "pro" | "agency") => {
     try {
-      const response = await fetch("/api/stripe/checkout", {
+      const data = await requestJson<{ url?: string }>("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan }),
       });
-      const data = (await response.json()) as { url?: string; error?: string };
-      if (!response.ok || !data.url) {
-        throw new Error(data.error ?? "Failed to create checkout session");
-      }
+      if (!data?.url) throw new Error("Failed to create checkout session");
       window.location.href = data.url;
     } catch (error) {
       toast.error("Upgrade failed", {
-        description: error instanceof Error ? error.message : "Please try again.",
+        description: getAppErrorMessage(error, "Please try again."),
       });
     }
   };
 
   const handleBillingPortal = async () => {
     try {
-      const response = await fetch("/api/stripe/portal", { method: "POST" });
-      const data = (await response.json()) as { url?: string; error?: string };
-      if (!response.ok || !data.url) {
-        throw new Error(data.error ?? "Failed to open billing portal");
-      }
+      const data = await requestJson<{ url?: string }>("/api/stripe/portal", { method: "POST" });
+      if (!data?.url) throw new Error("Failed to open billing portal");
       window.location.href = data.url;
     } catch (error) {
       toast.error("Billing portal error", {
-        description: error instanceof Error ? error.message : "Please try again.",
+        description: getAppErrorMessage(error, "Please try again."),
       });
     }
   };
 
   const handleSyncPlan = async () => {
     try {
-      const response = await fetch("/api/stripe/sync-plan", { method: "POST" });
-      const data = (await response.json()) as { synced?: boolean; tier?: string; error?: string };
-      if (!response.ok) {
-        throw new Error(data.error ?? "Sync failed");
-      }
+      const data = await requestJson<{ synced?: boolean; tier?: string }>("/api/stripe/sync-plan", { method: "POST" });
       await fetchSettings();
       router.refresh();
       toast.success("Plan refreshed", {
-        description: `Active plan: ${data.tier ?? "free"}.`,
+        description: `Active plan: ${data?.tier ?? "free"}.`,
       });
     } catch (error) {
       toast.error("Sync failed", {
-        description: error instanceof Error ? error.message : "Please try again.",
+        description: getAppErrorMessage(error, "Please try again."),
       });
     }
   };
 
   const handleDeleteAccount = async () => {
-    const response = await fetch("/api/account", { method: "DELETE" });
-    if (response.ok) {
+    try {
+      await requestJson("/api/account", { method: "DELETE" });
       window.location.href = "/";
-      return;
+    } catch (error) {
+      toast.error("Deletion failed", {
+        description: getAppErrorMessage(error, "Please contact support."),
+      });
     }
-
-    toast.error("Deletion failed", { description: "Please contact support." });
   };
 
   const handleTabChange = (nextTab: "account" | "contact") => {

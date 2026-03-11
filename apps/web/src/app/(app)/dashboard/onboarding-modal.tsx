@@ -14,6 +14,7 @@ import {
   ONBOARDING_WELCOMED_STORAGE_KEY,
   shouldOpenOnboardingModal,
 } from "./onboarding-modal.logic";
+import { requestJson } from "@/lib/client/api";
 
 type SyncState = "syncing" | "success" | "error";
 
@@ -37,10 +38,9 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
 
   useEffect(() => {
     if (!open) return;
-    fetch("/api/properties/sync", { method: "POST" })
-      .then(async (res) => {
-        const data = await res.json().catch(() => ({})) as { count?: number };
-        setPropertyCount(typeof data.count === "number" ? data.count : 0);
+    requestJson<{ count?: number }>("/api/properties/sync", { method: "POST" })
+      .then((data) => {
+        setPropertyCount(typeof data?.count === "number" ? data.count : 0);
         setSyncState("success");
       })
       .catch(() => {
@@ -74,7 +74,6 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
         </DialogHeader>
 
         <div className="space-y-6 pt-2">
-          {/* Sync status */}
           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
             {syncState === "syncing" && (
               <>
@@ -102,7 +101,6 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
             )}
           </div>
 
-          {/* Getting started guide */}
           {syncState !== "syncing" && (
             <div className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">

@@ -13,6 +13,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { FlagDetailSheet } from "./flag-detail-sheet";
+import { getAppErrorMessage } from "@/lib/client/app-error";
+import { requestJson } from "@/lib/client/api";
 
 interface FeatureFlag {
   id: string;
@@ -42,19 +44,20 @@ export function FlagsTable({
   const toggleGlobal = async (flag: FeatureFlag) => {
     setTogglingId(flag.id);
     try {
-      const res = await fetch(`/api/admin/feature-flags/${flag.id}`, {
+      const data = await requestJson<{ flag: { enabledGlobally: boolean } }>(
+        `/api/admin/feature-flags/${flag.id}`,
+        {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabledGlobally: !flag.enabledGlobally }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setFlags((prev) =>
-        prev.map((f) => (f.id === flag.id ? { ...f, enabledGlobally: data.flag.enabledGlobally } : f))
+        },
       );
-      toast.success(`${flag.name} ${data.flag.enabledGlobally ? "enabled" : "disabled"} globally`);
+      setFlags((prev) =>
+        prev.map((f) => (f.id === flag.id ? { ...f, enabledGlobally: Boolean(data?.flag.enabledGlobally) } : f))
+      );
+      toast.success(`${flag.name} ${data?.flag.enabledGlobally ? "enabled" : "disabled"} globally`);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to update flag");
+      toast.error(getAppErrorMessage(err, "Failed to update flag"));
     } finally {
       setTogglingId(null);
     }
