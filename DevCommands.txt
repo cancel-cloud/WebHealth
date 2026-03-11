@@ -1,7 +1,5 @@
-cd /Users/cancelcloud/Developer/DevBrew/WebHealth/.worktrees/landing-variants                                                                                                                            
-  npm run dev -- --port 3001                   
-                                                                                                                                                                                                           
-  Then visit http://localhost:3001/1, /2, /3.
+cd /Users/cancelcloud/Developer/DevBrew/WebHealth/.worktrees/landing-variants
+  npm run dev -- --port 3001
 
 to generate the socialimage do:
 node scripts/generate-og-image.mjs assets/img.png
@@ -114,3 +112,6 @@ node scripts/generate-og-image.mjs assets/img.png
 5. Guard checks
 - `DIRECT_DATABASE_URL` containing `-pooler` correctly fails in drizzle config
 - `DIRECT_DATABASE_URL` missing `sslmode=require` correctly fails in drizzle config
+
+run the migration against the live db too:
+DIRECT_DATABASE_URL='postgresql://neondb_owner:npg_dAr1YfPvz9QC@ep-falling-heart-ag9hmnqh.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require' pnpm --filter @webhealth/shared db:push

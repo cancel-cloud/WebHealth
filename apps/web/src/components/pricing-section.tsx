@@ -36,7 +36,7 @@ const PRICING = [
     period: "",
     description: "For agencies and high-volume clients running SEO at scale.",
     cta: "Get early access",
-    href: "mailto:contact@devbrew.dev?subject=WebAudit%20Agency%20Interest",
+    href: "mailto:contact@devbrew.dev?subject=Webhealth%20Agency%20Interest",
     features: [] as string[],
     comingSoon: true,
     highlight: false,

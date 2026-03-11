@@ -5,10 +5,20 @@ import Link from "next/link";
 import { PanelLeft } from "lucide-react";
 import type { FeedbackSource } from "@/lib/feedback";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { AppSidebar } from "@/components/app-sidebar";
 import { CommandPalette } from "@/components/command-palette";
-import { FeedbackModalProvider, getFeedbackModalInitialState, getFeedbackModalNextState } from "@/components/feedback-modal-context";
+import {
+  FeedbackModalProvider,
+  getFeedbackModalInitialState,
+  getFeedbackModalNextState,
+} from "@/components/feedback-modal-context";
 import { FeatureRequestModal } from "@/components/feature-request-modal";
 
 export function AppShell({
@@ -19,17 +29,28 @@ export function AppShell({
   isAdmin?: boolean;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [feedbackModalState, setFeedbackModalState] = useState(getFeedbackModalInitialState());
+  const [feedbackModalState, setFeedbackModalState] = useState(
+    getFeedbackModalInitialState(),
+  );
 
-  const openFeedback = useCallback((input: { source: FeedbackSource; initialType?: import("@/lib/feedback").FeedbackType | "" }) => {
-    setFeedbackModalState(getFeedbackModalNextState(input));
-  }, []);
+  const openFeedback = useCallback(
+    (input: {
+      source: FeedbackSource;
+      initialType?: import("@/lib/feedback").FeedbackType | "";
+    }) => {
+      setFeedbackModalState(getFeedbackModalNextState(input));
+    },
+    [],
+  );
 
   return (
     <FeedbackModalProvider value={{ openFeedback }}>
       <div className="relative isolate flex h-svh w-full overflow-hidden bg-app-shell text-foreground max-lg:flex-col">
         <div className="fixed inset-y-0 left-0 hidden w-72 bg-app-shell lg:block">
-          <AppSidebar isAdmin={isAdmin} onFeatureRequest={() => openFeedback({ source: "sidebar" })} />
+          <AppSidebar
+            isAdmin={isAdmin}
+            onFeatureRequest={() => openFeedback({ source: "sidebar" })}
+          />
         </div>
 
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -40,7 +61,9 @@ export function AppShell({
           >
             <SheetHeader className="sr-only">
               <SheetTitle>Navigation</SheetTitle>
-              <SheetDescription>Navigate the authenticated WebHealth application.</SheetDescription>
+              <SheetDescription>
+                Navigate the authenticated WebHealth application.
+              </SheetDescription>
             </SheetHeader>
             <AppSidebar
               isAdmin={isAdmin}
@@ -65,11 +88,18 @@ export function AppShell({
 
             <Link href="/dashboard" className="flex min-w-0 items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-sky-500 text-primary-foreground shadow-lg shadow-primary/15">
-                <span aria-hidden="true" className="h-3 w-3 rounded-full bg-white/90" />
+                <span
+                  aria-hidden="true"
+                  className="h-3 w-3 rounded-full bg-white/90"
+                />
               </span>
               <span className="min-w-0">
-                <span className="block truncate font-display text-base font-bold tracking-tight">WebAudit</span>
-                <span className="block truncate text-xs text-muted-foreground">SEO reporting cockpit</span>
+                <span className="block truncate font-display text-base font-bold tracking-tight">
+                  Webhealth
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  SEO reporting cockpit
+                </span>
               </span>
             </Link>
           </header>
@@ -83,10 +113,15 @@ export function AppShell({
           </main>
         </div>
 
-        <CommandPalette isAdmin={isAdmin} onFeatureRequest={() => openFeedback({ source: "command_palette" })} />
+        <CommandPalette
+          isAdmin={isAdmin}
+          onFeatureRequest={() => openFeedback({ source: "command_palette" })}
+        />
         <FeatureRequestModal
           open={feedbackModalState.open}
-          onOpenChange={(open) => setFeedbackModalState((prev) => ({ ...prev, open }))}
+          onOpenChange={(open) =>
+            setFeedbackModalState((prev) => ({ ...prev, open }))
+          }
           source={feedbackModalState.source}
           initialType={feedbackModalState.initialType}
         />

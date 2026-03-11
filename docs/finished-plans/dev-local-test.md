@@ -22,7 +22,7 @@ Then open https://webaudit-79.localcan.dev.
 What to test:
 
 1. Onboarding modal — sign in with a fresh account (no properties), should see the modal, sync fires, 3-step guide appears, "Go to Properties →" navigates away and sets
-   webaudit_welcomed in localStorage
+   webhealth_welcomed in localStorage
 2. Pricing page — visit /pricing directly, check metadata title in browser tab
 3. Agency card — on / and /settings, verify "Coming Soon" badge, no price/feature list, mailto link works
 4. Settings tabs — only "Account" and "Contact Us" visible (no Notifications), no "View Devices" button, GitHub Discussions link in Contact Us

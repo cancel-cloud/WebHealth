@@ -43,7 +43,11 @@ import {
   Info,
 } from "lucide-react";
 
-type ToggleSettingKey = "weeklyDigest" | "reportComplete" | "syncFailure" | "emailReceipts";
+type ToggleSettingKey =
+  | "weeklyDigest"
+  | "reportComplete"
+  | "syncFailure"
+  | "emailReceipts";
 
 const SETTING_LABELS: Record<ToggleSettingKey, string> = {
   weeklyDigest: "Weekly digest",
@@ -75,7 +79,10 @@ export default function SettingsPage() {
   }, [fetchSettings, searchParams]);
 
   useEffect(() => {
-    if (searchParams.get("stripe") === "success" || searchParams.get("stripe") === "portal") {
+    if (
+      searchParams.get("stripe") === "success" ||
+      searchParams.get("stripe") === "portal"
+    ) {
       requestJson("/api/stripe/sync-plan", { method: "POST" })
         .then(() => fetchSettings())
         .catch(() => fetchSettings())
@@ -86,7 +93,10 @@ export default function SettingsPage() {
     }
   }, [fetchSettings, router, searchParams]);
 
-  const updateSetting = async (key: ToggleSettingKey | "reportLanguage", value: boolean | string) => {
+  const updateSetting = async (
+    key: ToggleSettingKey | "reportLanguage",
+    value: boolean | string,
+  ) => {
     const previous = settings;
     setSettings((prev) => (prev ? { ...prev, [key]: value } : prev));
     try {
@@ -132,7 +142,9 @@ export default function SettingsPage() {
 
   const handleBillingPortal = async () => {
     try {
-      const data = await requestJson<{ url?: string }>("/api/stripe/portal", { method: "POST" });
+      const data = await requestJson<{ url?: string }>("/api/stripe/portal", {
+        method: "POST",
+      });
       if (!data?.url) throw new Error("Failed to open billing portal");
       window.location.href = data.url;
     } catch (error) {
@@ -144,7 +156,10 @@ export default function SettingsPage() {
 
   const handleSyncPlan = async () => {
     try {
-      const data = await requestJson<{ synced?: boolean; tier?: string }>("/api/stripe/sync-plan", { method: "POST" });
+      const data = await requestJson<{ synced?: boolean; tier?: string }>(
+        "/api/stripe/sync-plan",
+        { method: "POST" },
+      );
       await fetchSettings();
       router.refresh();
       toast.success("Plan refreshed", {
@@ -194,11 +209,15 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-extrabold tracking-tight font-display" style={{ textWrap: "balance" }}>
+        <h1
+          className="text-3xl font-extrabold tracking-tight font-display"
+          style={{ textWrap: "balance" }}
+        >
           Settings
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Manage billing, reporting preferences, and support options for your workspace.
+          Manage billing, reporting preferences, and support options for your
+          workspace.
         </p>
       </div>
 
@@ -210,7 +229,13 @@ export default function SettingsPage() {
         </div>
       ) : null}
 
-      <Tabs value={activeTab} onValueChange={(value) => handleTabChange(value as "account" | "contact")} className="space-y-8">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) =>
+          handleTabChange(value as "account" | "contact")
+        }
+        className="space-y-8"
+      >
         <TabsList className="h-auto rounded-lg border border-border/70 bg-muted/35 p-1">
           <TabsTrigger value="account" className="rounded-lg px-4 py-2.5">
             Account
@@ -234,12 +259,19 @@ export default function SettingsPage() {
 
                   <div className="min-w-0 space-y-3">
                     <div className="space-y-1">
-                      <p className="truncate text-2xl font-bold font-display">{name}</p>
-                      <p className="truncate text-sm text-muted-foreground">{email}</p>
+                      <p className="truncate text-2xl font-bold font-display">
+                        {name}
+                      </p>
+                      <p className="truncate text-sm text-muted-foreground">
+                        {email}
+                      </p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-medium capitalize">
+                      <Badge
+                        variant="outline"
+                        className="rounded-full px-3 py-1 text-xs font-medium capitalize"
+                      >
                         {accountSummary?.planLabel ?? "Solo Plan"}
                       </Badge>
                       {accountSummary?.planStatus ? (
@@ -253,7 +285,9 @@ export default function SettingsPage() {
                       <p className="text-sm text-muted-foreground">
                         Active until{" "}
                         <span className="font-medium text-foreground">
-                          {new Date(settings.subscriptionCancelAt).toLocaleDateString(undefined, {
+                          {new Date(
+                            settings.subscriptionCancelAt,
+                          ).toLocaleDateString(undefined, {
                             year: "numeric",
                             month: "long",
                             day: "numeric",
@@ -263,7 +297,8 @@ export default function SettingsPage() {
                       </p>
                     ) : (
                       <p className="text-sm text-muted-foreground">
-                        Your current plan and usage reset automatically each month.
+                        Your current plan and usage reset automatically each
+                        month.
                       </p>
                     )}
                   </div>
@@ -271,9 +306,13 @@ export default function SettingsPage() {
 
                 <div className="min-w-0">
                   <UsageCard
-                    reportsThisMonth={accountSummary?.usage.reportsThisMonth ?? 0}
+                    reportsThisMonth={
+                      accountSummary?.usage.reportsThisMonth ?? 0
+                    }
                     reportsLimit={accountSummary?.usage.reportsLimit ?? null}
-                    detailsThisMonth={accountSummary?.usage.detailsThisMonth ?? 0}
+                    detailsThisMonth={
+                      accountSummary?.usage.detailsThisMonth ?? 0
+                    }
                     detailsLimit={accountSummary?.usage.detailsLimit ?? null}
                   />
                 </div>
@@ -303,11 +342,15 @@ export default function SettingsPage() {
           <section aria-labelledby="plan-heading" className="space-y-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 id="plan-heading" className="text-2xl font-bold font-display tracking-tight">
+                <h2
+                  id="plan-heading"
+                  className="text-2xl font-bold font-display tracking-tight"
+                >
                   Choose Your Plan
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Upgrade, refresh billing status, or manage invoices without leaving the app.
+                  Upgrade, refresh billing status, or manage invoices without
+                  leaving the app.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -341,9 +384,12 @@ export default function SettingsPage() {
               <>
                 {settings.subscriptionCancelAt ? (
                   <div className="rounded-lg border border-amber-300/45 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
-                    Your <span className="font-semibold">{activePlanName}</span> is active until{" "}
+                    Your <span className="font-semibold">{activePlanName}</span>{" "}
+                    is active until{" "}
                     <span className="font-semibold">
-                      {new Date(settings.subscriptionCancelAt).toLocaleDateString(undefined, {
+                      {new Date(
+                        settings.subscriptionCancelAt,
+                      ).toLocaleDateString(undefined, {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
@@ -363,20 +409,34 @@ export default function SettingsPage() {
                   >
                     <div className={planCardLayout.content}>
                       <div>
-                        <p className="font-semibold font-display text-lg">{PRICING_PLANS.solo.name}</p>
-                        <p className="text-3xl font-bold font-display">{PRICING_PLANS.solo.priceLabel}</p>
+                        <p className="font-semibold font-display text-lg">
+                          {PRICING_PLANS.solo.name}
+                        </p>
+                        <p className="text-3xl font-bold font-display">
+                          {PRICING_PLANS.solo.priceLabel}
+                        </p>
                       </div>
                       <ul className="space-y-2">
                         {PRICING_PLANS.solo.features.map((feature) => (
-                          <li key={feature} className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <li
+                            key={feature}
+                            className="flex items-start gap-2 text-sm text-muted-foreground"
+                          >
                             <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/45" />
                             <span>{feature}</span>
                           </li>
                         ))}
                       </ul>
                       {settings.teamTier === "free" ? null : (
-                        <Button size="sm" variant="outline" className={planCardLayout.action} onClick={handleBillingPortal}>
-                          {settings.subscriptionCancelAt ? "Manage Cancellation" : "Downgrade"}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={planCardLayout.action}
+                          onClick={handleBillingPortal}
+                        >
+                          {settings.subscriptionCancelAt
+                            ? "Manage Cancellation"
+                            : "Downgrade"}
                         </Button>
                       )}
                     </div>
@@ -398,15 +458,22 @@ export default function SettingsPage() {
                     </div>
                     <div className={planCardLayout.content}>
                       <div>
-                        <p className="font-semibold font-display text-lg">{PRICING_PLANS.pro.name}</p>
+                        <p className="font-semibold font-display text-lg">
+                          {PRICING_PLANS.pro.name}
+                        </p>
                         <p className="text-3xl font-bold font-display">
                           {PRICING_PLANS.pro.priceLabel}
-                          <span className="text-base font-medium text-muted-foreground">/mo</span>
+                          <span className="text-base font-medium text-muted-foreground">
+                            /mo
+                          </span>
                         </p>
                       </div>
                       <ul className="space-y-2">
                         {PRICING_PLANS.pro.features.map((feature) => (
-                          <li key={feature} className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <li
+                            key={feature}
+                            className="flex items-start gap-2 text-sm text-muted-foreground"
+                          >
                             <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary/60" />
                             <span>{feature}</span>
                           </li>
@@ -414,12 +481,21 @@ export default function SettingsPage() {
                       </ul>
                       {settings.teamTier === "pro" ? (
                         settings.subscriptionCancelAt ? (
-                          <Button size="sm" variant="outline" className={planCardLayout.action} disabled>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className={planCardLayout.action}
+                            disabled
+                          >
                             Canceling
                           </Button>
                         ) : null
                       ) : (
-                        <Button size="sm" className={planCardLayout.action} onClick={() => handleUpgrade("pro")}>
+                        <Button
+                          size="sm"
+                          className={planCardLayout.action}
+                          onClick={() => handleUpgrade("pro")}
+                        >
                           Upgrade to Pro
                         </Button>
                       )}
@@ -436,7 +512,9 @@ export default function SettingsPage() {
                     <div className={planCardLayout.content}>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-semibold font-display text-lg">Agency</p>
+                          <p className="font-semibold font-display text-lg">
+                            Agency
+                          </p>
                           <Badge
                             className={`${pricingBadgeClasses.base} ${pricingBadgeClasses.comingSoonSpacing} ${pricingBadgeClasses.comingSoon}`}
                           >
@@ -444,18 +522,29 @@ export default function SettingsPage() {
                           </Badge>
                         </div>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          For agencies and high-volume clients. Get in touch to be first in line.
+                          For agencies and high-volume clients. Get in touch to
+                          be first in line.
                         </p>
                       </div>
                       {settings.teamTier === "agency" ? (
                         settings.subscriptionCancelAt ? (
-                          <Button size="sm" variant="outline" className={planCardLayout.action} disabled>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className={planCardLayout.action}
+                            disabled
+                          >
                             Canceling
                           </Button>
                         ) : null
                       ) : (
-                        <Button size="sm" variant="outline" className={planCardLayout.action} asChild>
-                          <a href="mailto:contact@devbrew.dev?subject=WebAudit%20Agency%20Interest">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={planCardLayout.action}
+                          asChild
+                        >
+                          <a href="mailto:contact@devbrew.dev?subject=Webhealth%20Agency%20Interest">
                             Get in touch
                           </a>
                         </Button>
@@ -468,7 +557,10 @@ export default function SettingsPage() {
           </section>
 
           <section aria-labelledby="billing-heading" className="space-y-4">
-            <h2 id="billing-heading" className="text-2xl font-bold font-display tracking-tight">
+            <h2
+              id="billing-heading"
+              className="text-2xl font-bold font-display tracking-tight"
+            >
               Billing Preferences
             </h2>
             <div className="flex items-center gap-2">
@@ -476,25 +568,38 @@ export default function SettingsPage() {
               <div className="group relative">
                 <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
                 <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-64 -translate-x-1/2 rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md opacity-0 transition-opacity group-hover:opacity-100">
-                  Stripe sends receipts automatically to your account email. If you didn&apos;t receive one, click{" "}
-                  <span className="font-medium">Manage Billing &amp; Invoices</span> above to view them in the billing portal.
+                  Stripe sends receipts automatically to your account email. If
+                  you didn&apos;t receive one, click{" "}
+                  <span className="font-medium">
+                    Manage Billing &amp; Invoices
+                  </span>{" "}
+                  above to view them in the billing portal.
                 </div>
               </div>
             </div>
           </section>
 
-          <section aria-labelledby="report-language-heading" className="space-y-4">
-            <h2 id="report-language-heading" className="text-2xl font-bold font-display tracking-tight">
+          <section
+            aria-labelledby="report-language-heading"
+            className="space-y-4"
+          >
+            <h2
+              id="report-language-heading"
+              className="text-2xl font-bold font-display tracking-tight"
+            >
               Report Language
             </h2>
             <p className="text-sm text-muted-foreground">
-              Controls AI report and XLSX output language. Dashboard language is unchanged.
+              Controls AI report and XLSX output language. Dashboard language is
+              unchanged.
             </p>
             <div className="max-w-xs">
               <select
                 className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={settings?.reportLanguage ?? "auto"}
-                onChange={(event) => updateSetting("reportLanguage", event.target.value)}
+                onChange={(event) =>
+                  updateSetting("reportLanguage", event.target.value)
+                }
               >
                 <option value="auto">Auto (from Google locale)</option>
                 <option value="de">German</option>
@@ -507,7 +612,10 @@ export default function SettingsPage() {
           </section>
 
           <section aria-labelledby="danger-heading" className="space-y-4">
-            <h2 id="danger-heading" className="text-2xl font-bold font-display tracking-tight text-destructive">
+            <h2
+              id="danger-heading"
+              className="text-2xl font-bold font-display tracking-tight text-destructive"
+            >
               Danger Zone
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -524,7 +632,8 @@ export default function SettingsPage() {
                 <DialogHeader>
                   <DialogTitle>Delete your account?</DialogTitle>
                   <DialogDescription>
-                    This action is <strong>permanent and irreversible</strong>. All your properties, reports, and data will be deleted.
+                    This action is <strong>permanent and irreversible</strong>.
+                    All your properties, reports, and data will be deleted.
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
@@ -556,14 +665,24 @@ export default function SettingsPage() {
                 {
                   icon: Sparkles,
                   title: "Have a cool feature idea?",
-                  description: "Share your idea directly with us from inside the app.",
-                  onClick: () => openFeedback({ source: "settings", initialType: "feature_request" }),
+                  description:
+                    "Share your idea directly with us from inside the app.",
+                  onClick: () =>
+                    openFeedback({
+                      source: "settings",
+                      initialType: "feature_request",
+                    }),
                 },
                 {
                   icon: Bug,
                   title: "Found a non-critical bug?",
-                  description: "UI glitches or formatting issues? Send a bug report here.",
-                  onClick: () => openFeedback({ source: "settings", initialType: "bug_report" }),
+                  description:
+                    "UI glitches or formatting issues? Send a bug report here.",
+                  onClick: () =>
+                    openFeedback({
+                      source: "settings",
+                      initialType: "bug_report",
+                    }),
                 },
                 {
                   icon: CircleAlert,
@@ -582,17 +701,20 @@ export default function SettingsPage() {
                 {
                   icon: Shield,
                   title: "Privacy Policy",
-                  description: "Read our privacy policy and data handling practices",
+                  description:
+                    "Read our privacy policy and data handling practices",
                   href: "/privacy",
                 },
                 {
                   icon: FileText,
                   title: "Terms of Service",
-                  description: "Review our terms of service and usage guidelines",
+                  description:
+                    "Review our terms of service and usage guidelines",
                   href: "/terms",
                 },
               ].map(({ icon: Icon, title, description, href, onClick }) => {
-                const className = "flex w-full items-start gap-4 rounded-lg border border-border bg-card p-5 text-left transition-colors hover:bg-muted/35";
+                const className =
+                  "flex w-full items-start gap-4 rounded-lg border border-border bg-card p-5 text-left transition-colors hover:bg-muted/35";
 
                 if (onClick) {
                   return (
@@ -602,25 +724,31 @@ export default function SettingsPage() {
                       onClick={onClick}
                       className={className}
                     >
-                      <Icon className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" aria-hidden="true" />
+                      <Icon
+                        className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary"
+                        aria-hidden="true"
+                      />
                       <div>
                         <p className="text-sm font-medium">{title}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {description}
+                        </p>
                       </div>
                     </button>
                   );
                 }
 
                 return (
-                  <a
-                    key={title}
-                    href={href}
-                    className={className}
-                  >
-                    <Icon className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" aria-hidden="true" />
+                  <a key={title} href={href} className={className}>
+                    <Icon
+                      className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary"
+                      aria-hidden="true"
+                    />
                     <div>
                       <p className="text-sm font-medium">{title}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {description}
+                      </p>
                     </div>
                   </a>
                 );

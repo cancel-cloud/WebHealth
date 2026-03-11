@@ -1,6 +1,6 @@
-# WebAudit Implementation Plan
+# Webhealth Implementation Plan
 
-This document outlines the architecture, database schema, and steps to build the WebAudit SaaS application according to the provided requirements.
+This document outlines the architecture, database schema, and steps to build the Webhealth SaaS application according to the provided requirements.
 
 ## Proposed Architecture
 

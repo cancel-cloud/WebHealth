@@ -1,4 +1,4 @@
-export const ONBOARDING_WELCOMED_STORAGE_KEY = "webaudit_welcomed";
+export const ONBOARDING_WELCOMED_STORAGE_KEY = "webhealth_welcomed";
 
 export function hasWelcomedFromStorage(value: string | null) {
   return value === "1";

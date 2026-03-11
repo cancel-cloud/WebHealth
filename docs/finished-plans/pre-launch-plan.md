@@ -1,4 +1,4 @@
-# Pre-Launch Plan — WebAudit
+# Pre-Launch Plan — Webhealth
 
 Status legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[?]` needs info
 
@@ -134,14 +134,14 @@ WORKER_ARTIFACT_URL
 **Context:** `AutoSync` (`dashboard/auto-sync.tsx`) already fires on first login when `hasProperties === false` — it silently POSTs to `/api/properties/sync` and shows a toast. The modal will take over this UX entirely.
 
 **Behaviour:**
-- Shows **immediately** on first login (before sync completes), triggered by `hasProperties === false` + localStorage flag `webaudit_welcomed` not set
+- Shows **immediately** on first login (before sync completes), triggered by `hasProperties === false` + localStorage flag `webhealth_welcomed` not set
 - The modal owns the sync: fires `/api/properties/sync` itself, shows a live spinner that updates to "X properties synced" on success
 - Once sync resolves, reveals the 3-step rundown (don't auto-close — user dismisses)
-- On dismiss: set `localStorage.setItem("webaudit_welcomed", "1")` so it never shows again
+- On dismiss: set `localStorage.setItem("webhealth_welcomed", "1")` so it never shows again
 - `AutoSync` component should be disabled/removed once modal handles this
 
 **Modal content:**
-1. **Header** — WebAudit logo + name, one-liner: "GSC + GA4 data. Ranked fixes in 3 minutes."
+1. **Header** — Webhealth logo + name, one-liner: "GSC + GA4 data. Ranked fixes in 3 minutes."
 2. **Live sync row** — spinner → "Syncing your Google properties…" → "✓ X properties synced" (or error state)
 3. **3-step rundown:**
    - **Properties** — Go to Properties, link any GSC and GA4 properties together
@@ -175,12 +175,12 @@ WORKER_ARTIFACT_URL
 - Remove all feature bullet points
 - Replace with a short teaser headline + 1–2 lines of copy aimed at agencies/high-volume users
 - Rename CTA from "Contact Us" → something like "Get early access" or "Let's talk"
-- CTA `href` → `mailto:contact@devbrew.dev?subject=WebAudit Agency Interest`
+- CTA `href` → `mailto:contact@devbrew.dev?subject=Webhealth Agency Interest`
 - Add a "Coming Soon" badge to the card header
 
 **Settings page** (`apps/web/src/app/(settings)/settings/page.tsx`) — Agency card in plan selector:
 - Replace price + feature list with the same teaser treatment
-- Replace "Upgrade to Agency" button → "Get in touch" button as `<a href="mailto:contact@devbrew.dev?subject=WebAudit Agency Interest">`
+- Replace "Upgrade to Agency" button → "Get in touch" button as `<a href="mailto:contact@devbrew.dev?subject=Webhealth Agency Interest">`
 - Keep current-plan state intact if user somehow has agency tier already
 
 ---
@@ -191,7 +191,7 @@ WORKER_ARTIFACT_URL
 **Plan:**
 - Extract the pricing section from `(marketing)/page.tsx` into a shared `<PricingSection />` component
 - Create `apps/web/src/app/(marketing)/pricing/page.tsx` with its own metadata:
-  - `title: "Pricing — WebAudit"`
+  - `title: "Pricing — Webhealth"`
   - `description: "Simple, transparent pricing. Free to start — no credit card required."`
 - Render `<PricingSection />` on both `/` (homepage) and `/pricing`
 - Add `/pricing` to `sitemap.ts` (priority 0.7, changeFrequency: "monthly")

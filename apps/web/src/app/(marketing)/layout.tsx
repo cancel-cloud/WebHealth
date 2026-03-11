@@ -5,12 +5,18 @@ function MarketingFooter() {
   return (
     <footer
       className="border-t py-8 px-6"
-      style={{ borderColor: "oklch(0.91 0.01 250)", backgroundColor: "oklch(0.975 0.003 250)" }}
+      style={{
+        borderColor: "oklch(0.91 0.01 250)",
+        backgroundColor: "oklch(0.975 0.003 250)",
+      }}
     >
       <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <span className="font-display font-bold text-sm" style={{ color: "oklch(0.12 0.01 250)" }}>
-            WebAudit
+          <span
+            className="font-display font-bold text-sm"
+            style={{ color: "oklch(0.12 0.01 250)" }}
+          >
+            Webhealth
           </span>
           <span className="text-xs" style={{ color: "oklch(0.62 0.02 250)" }}>
             &copy; {new Date().getFullYear()} DevBrew. All rights reserved.
@@ -44,7 +50,11 @@ function MarketingFooter() {
   );
 }
 
-export default function MarketingLayout({ children }: { children: React.ReactNode }) {
+export default function MarketingLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <>
       <Navbar />
