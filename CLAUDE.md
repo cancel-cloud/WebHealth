@@ -7,6 +7,10 @@
 
 If the localcan URL changes, update `BETTER_AUTH_URL` in `.env.local` to match.
 
+## GlitchTip Local Checks
+
+Browser-side GlitchTip/Sentry checks should also use the localcan HTTPS origin so cookies, auth redirects, and browser event delivery stay on the same origin. For local browser tests, set both `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN`, then open the app through `https://webaudit-79.localcan.dev`.
+
 ## Conventions
 - Shared types: `packages/shared/src/types/`
 - Zod schemas for OpenAI: `packages/shared/src/schemas/`

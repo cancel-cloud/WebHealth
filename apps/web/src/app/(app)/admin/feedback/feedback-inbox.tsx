@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { requestJson } from "@/lib/client/api";
 
 type FeedbackSubmission = {
   id: string;
@@ -75,10 +76,15 @@ export function FeedbackInbox({
         params.set("q", nextSearch.trim());
       }
 
-      const res = await fetch(`/api/admin/feedback?${params.toString()}`);
-      const data = await res.json();
-      setSubmissions(data.submissions ?? []);
-      setPagination(data.pagination ?? { page: nextPage, limit: pagination.limit, hasNext: false });
+      try {
+        const data = await requestJson<{ submissions?: FeedbackSubmission[]; pagination?: FeedbackPagination }>(
+          `/api/admin/feedback?${params.toString()}`
+        );
+        setSubmissions(data?.submissions ?? []);
+        setPagination(data?.pagination ?? { page: nextPage, limit: pagination.limit, hasNext: false });
+      } catch {
+        // Preserve the current list on fetch failures.
+      }
     } finally {
       setLoading(false);
     }
@@ -107,13 +113,13 @@ export function FeedbackInbox({
   const visibleSubmissions = useMemo(() => submissions, [submissions]);
 
   const updateSubmissionStatus = useCallback(async (id: string, nextStatus: "open" | "resolved") => {
-    const res = await fetch(`/api/admin/feedback/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: nextStatus }),
-    });
-
-    if (!res.ok) {
+    try {
+      await requestJson(`/api/admin/feedback/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+    } catch {
       return;
     }
 

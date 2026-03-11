@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { getAppErrorMessage, isAppError } from "@/lib/client/app-error";
+import { requestJson } from "@/lib/client/api";
 
 export type PropertiesSyncResult = {
   gscCount: number;
@@ -19,19 +21,10 @@ type SyncButtonProps = {
 };
 
 export async function runPropertiesSync(): Promise<PropertiesSyncResult> {
-  const res = await fetch("/api/properties/sync", {
+  const data = await requestJson<PropertiesSyncResult>("/api/properties/sync", {
     method: "POST",
   });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    const err = new Error(data.error ?? "Failed to sync properties");
-    (err as any).code = data.code ?? null;
-    throw err;
-  }
-
-  return data as PropertiesSyncResult;
+  return data ?? { gscCount: 0, ga4Count: 0, autoLinked: 0 };
 }
 
 export function formatPropertiesSyncSuccess(data: PropertiesSyncResult) {
@@ -68,7 +61,7 @@ export function SyncButton({
         router.refresh();
       }
     } catch (error) {
-      if ((error as any).code === "GOOGLE_AUTH_RELOGIN_REQUIRED") {
+      if (isAppError(error) && error.code === "GOOGLE_AUTH_RELOGIN_REQUIRED") {
         toast.error("Google authorization expired. Please sign in again.", {
           id: "sync-toast",
           duration: 10000,
@@ -78,10 +71,9 @@ export function SyncButton({
           },
         });
       } else {
-        toast.error(
-          `An error occurred: ${error instanceof Error ? error.message : "Unknown error"}`,
-          { id: "sync-toast" }
-        );
+        toast.error(`An error occurred: ${getAppErrorMessage(error, "Unknown error")}`, {
+          id: "sync-toast",
+        });
       }
     } finally {
       setIsSyncing(false);

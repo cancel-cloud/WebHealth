@@ -35,6 +35,8 @@ import {
   runPropertiesSync,
 } from "../dashboard/sync-button";
 import { toast } from "sonner";
+import { getAppErrorMessage } from "@/lib/client/app-error";
+import { requestJson } from "@/lib/client/api";
 
 type Property = {
   id: string;
@@ -66,23 +68,24 @@ function LinkGa4Dialog({
     if (!selectedGa4Id) return;
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/properties/${encodeURIComponent(gscProperty.id)}/link-ga4`, {
+      const data = await requestJson<{ scheduledReportsStarted?: number }>(
+        `/api/properties/${encodeURIComponent(gscProperty.id)}/link-ga4`,
+        {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ga4PropertyId: selectedGa4Id }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to link GA4");
+        }
+      );
 
       const msg =
-        data.scheduledReportsStarted > 0
-          ? `GA4 linked! ${data.scheduledReportsStarted} scheduled report${data.scheduledReportsStarted > 1 ? "s have" : " has"} started.`
+        (data?.scheduledReportsStarted ?? 0) > 0
+          ? `GA4 linked! ${data?.scheduledReportsStarted} scheduled report${(data?.scheduledReportsStarted ?? 0) > 1 ? "s have" : " has"} started.`
           : "GA4 linked!";
       toast.success(msg);
       setOpen(false);
       onLinked();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "An error occurred");
+      toast.error(getAppErrorMessage(err, "An error occurred"));
     } finally {
       setIsSubmitting(false);
     }
@@ -146,9 +149,8 @@ export default function PropertiesPage() {
 
   const loadProperties = useCallback(async () => {
     try {
-      const res = await fetch("/api/properties");
-      const data = await res.json();
-      setProperties(data.properties ?? []);
+      const data = await requestJson<{ properties?: Property[] }>("/api/properties");
+      setProperties(data?.properties ?? []);
     } catch {
       setProperties([]);
     } finally {

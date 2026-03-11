@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
+import { requestJson } from "@/lib/client/api";
 
 interface LogEntry {
   id: string;
@@ -67,9 +68,8 @@ export function LogsTable({ initialLogs }: { initialLogs: LogEntry[] }) {
       if (from) params.set("from", from);
       if (to) params.set("to", to);
       if (userEmail.trim()) params.set("userEmail", userEmail.trim());
-      const res = await fetch(`/api/admin/logs?${params.toString()}`);
-      const data = await res.json();
-      setLogs(data.logs ?? []);
+      const data = await requestJson<{ logs?: LogEntry[] }>(`/api/admin/logs?${params.toString()}`);
+      setLogs(data?.logs ?? []);
     } finally {
       setLoading(false);
     }

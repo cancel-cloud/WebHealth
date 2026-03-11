@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { getAppErrorMessage } from "@/lib/client/app-error";
+import { requestJson } from "@/lib/client/api";
 import { formatEuroDisplay } from "@/lib/pricing";
 import { toast } from "sonner";
 
@@ -134,12 +136,10 @@ async function pollUntilComplete(reportId: string): Promise<void> {
   const maxPolls = 60;
   for (let i = 0; i < maxPolls; i += 1) {
     await new Promise((resolve) => setTimeout(resolve, 5000));
-    const res = await fetch(`/api/reports/${reportId}`);
-    if (!res.ok) throw new Error("Failed to check report status");
-    const data = (await res.json()) as { report?: { status?: string; error?: string | null } };
-    const status = data.report?.status;
+    const data = await requestJson<{ report?: { status?: string; error?: string | null } }>(`/api/reports/${reportId}`);
+    const status = data?.report?.status;
     if (status === "complete") return;
-    if (status === "failed") throw new Error(data.report?.error ?? "Report processing failed");
+    if (status === "failed") throw new Error(data?.report?.error ?? "Report processing failed");
   }
   throw new Error("Report timed out");
 }
@@ -178,22 +178,18 @@ export function DebugConsole({
   }, [selectedPropertyId, teamProperties]);
 
   const refresh = useCallback(async () => {
-    const [debugRes, eventsRes] = await Promise.all([
-      fetch("/api/admin/ai-reports/debug"),
-      fetch(
+    const [debugJson, eventsJson] = await Promise.all([
+      requestJson<DebugStatsResponse>("/api/admin/ai-reports/debug"),
+      requestJson<{ events?: EventRow[] }>(
         `/api/admin/ai-reports/events?limit=200${reportFilter ? `&reportId=${encodeURIComponent(reportFilter)}` : ""}${jobFilter ? `&jobId=${encodeURIComponent(jobFilter)}` : ""}`
       ),
     ]);
-    const debugJson = await debugRes.json();
-    const eventsJson = await eventsRes.json();
-    if (!debugRes.ok) throw new Error(debugJson.error ?? "Failed to load debug stats");
-    if (!eventsRes.ok) throw new Error(eventsJson.error ?? "Failed to load events");
     setDebug(debugJson);
-    setEvents(eventsJson.events ?? []);
+    setEvents(eventsJson?.events ?? []);
   }, [jobFilter, reportFilter]);
 
   useEffect(() => {
-    void refresh().catch((e) => setError(e instanceof Error ? e.message : "Failed to load debug data"));
+    void refresh().catch((e) => setError(getAppErrorMessage(e, "Failed to load debug data")));
     const t = setInterval(() => {
       void refresh().catch(() => {});
     }, 5000);
@@ -208,7 +204,7 @@ export function DebugConsole({
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/ai-reports/test-generate", {
+      const data = await requestJson<{ reportId?: string }>("/api/admin/ai-reports/test-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -221,18 +217,17 @@ export function DebugConsole({
           },
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to generate test report");
+      if (!data?.reportId) throw new Error("Failed to generate test report");
       setReportFilter(data.reportId);
       void refresh();
       router.push(`/reports/${data.reportId}`);
       toast.promise(pollUntilComplete(data.reportId), {
         loading: "Processing report…",
         success: "Report ready!",
-        error: (err) => (err instanceof Error ? err.message : "Report processing failed"),
+        error: (err) => getAppErrorMessage(err, "Report processing failed"),
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to generate test report");
+      setError(getAppErrorMessage(e, "Failed to generate test report"));
     } finally {
       setLoading(false);
     }

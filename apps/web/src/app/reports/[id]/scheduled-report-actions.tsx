@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import { getAppErrorMessage } from "@/lib/client/app-error";
+import { requestJson } from "@/lib/client/api";
 import { waitForReportToStart } from "./scheduled-report-actions.logic";
 
 type ScheduledReportActionsProps = {
@@ -28,26 +30,26 @@ export function ScheduledReportActions({
     try {
       await toast.promise(
         (async () => {
-          const res = await fetch(`/api/reports/${reportId}/start`, {
+          await requestJson(`/api/reports/${reportId}/start`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(mode === "continue" ? { forceWithoutGa4: true } : {}),
           });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(data.error ?? "Request failed");
         })(),
         {
           loading: mode === "continue" ? "Starting report without GA4…" : "Starting report with GSC + GA4…",
           success: mode === "continue" ? "Report queued with GSC-only data" : "Report queued with GSC + GA4 data",
-          error: (error) => (error instanceof Error ? error.message : "Request failed"),
+          error: (error) => getAppErrorMessage(error),
         }
       );
       await waitForReportToStart({
         getStatus: async () => {
-          const res = await fetch(`/api/reports/${reportId}`, { cache: "no-store" });
-          if (!res.ok) return null;
-          const data = (await res.json()) as { report?: { status?: string } };
-          return data.report?.status ?? null;
+          try {
+            const data = await requestJson<{ report?: { status?: string } }>(`/api/reports/${reportId}`, { cache: "no-store" });
+            return data?.report?.status ?? null;
+          } catch {
+            return null;
+          }
         },
       });
       window.location.reload();

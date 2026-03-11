@@ -15,6 +15,7 @@ import Link from "next/link";
 import { propertyIdLabel } from "@/lib/property-label";
 import { NewReportDialog } from "./new-report-dialog";
 import { useRouter } from "next/navigation";
+import { requestJson } from "@/lib/client/api";
 
 type ReportType = {
   id: string;
@@ -33,9 +34,8 @@ export function ReportsTable({ limit, showViewAll }: { limit?: number; showViewA
 
   const fetchReports = useCallback(async () => {
     try {
-      const res = await fetch("/api/reports");
-      const data = await res.json();
-      const next = data.reports ?? [];
+      const data = await requestJson<{ reports?: ReportType[] }>("/api/reports");
+      const next = data?.reports ?? [];
       reportsRef.current = next;
       setReports(next);
       window.dispatchEvent(new CustomEvent("reports-updated", { detail: { reports: next } }));
