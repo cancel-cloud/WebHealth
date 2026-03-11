@@ -58,7 +58,7 @@ No JSON-LD anywhere. Missing:
       "name": "WebAudit",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
-      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
       "description": "Automated SEO reporting connecting GSC + GA4 with AI-ranked fix lists."
     })
   }}

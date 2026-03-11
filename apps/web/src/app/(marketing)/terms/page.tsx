@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PRICING_PLANS } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Terms of Service — WebAudit",
@@ -53,9 +54,10 @@ export default function TermsPage() {
         <section>
           <h2 className="text-xl font-bold font-display mb-3">5. Plans and billing</h2>
           <p className="text-muted-foreground leading-relaxed">
-            The Service is offered on a Free plan (5 reports per month) and paid plans (Pro at $19/mo, Agency at
-            $79/mo). Paid plans are billed monthly via Stripe. You may cancel at any time; cancellation takes effect
-            at the end of the current billing period. No refunds are issued for partial months.
+            The Service is offered on a Solo plan (5 reports per month) and paid plans (Pro at{" "}
+            {PRICING_PLANS.pro.priceLabel}/mo, Agency at {PRICING_PLANS.agency.priceLabel}/mo). Paid plans are billed
+            monthly via Stripe. You may cancel at any time; cancellation takes effect at the end of the current
+            billing period. No refunds are issued for partial months.
           </p>
         </section>
 

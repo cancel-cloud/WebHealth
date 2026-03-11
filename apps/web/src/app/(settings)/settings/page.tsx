@@ -28,6 +28,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPricingBadgeClassNames } from "@/components/pricing-badge-styles";
 import { formatPlanName } from "@/lib/plan-label";
+import { PRICING_PLANS } from "@/lib/pricing";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -360,11 +361,11 @@ export default function SettingsPage() {
                   >
                     <div className={planCardLayout.content}>
                       <div>
-                        <p className="font-semibold font-display text-lg">Solo</p>
-                        <p className="text-3xl font-bold font-display">$0</p>
+                        <p className="font-semibold font-display text-lg">{PRICING_PLANS.solo.name}</p>
+                        <p className="text-3xl font-bold font-display">{PRICING_PLANS.solo.priceLabel}</p>
                       </div>
                       <ul className="space-y-2">
-                        {["Unlimited properties", "5 reports/month", "20 Deep Dives/month", "AI Quick Wins", "Live crawl"].map((feature) => (
+                        {PRICING_PLANS.solo.features.map((feature) => (
                           <li key={feature} className="flex items-start gap-2 text-sm text-muted-foreground">
                             <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/45" />
                             <span>{feature}</span>
@@ -395,14 +396,14 @@ export default function SettingsPage() {
                     </div>
                     <div className={planCardLayout.content}>
                       <div>
-                        <p className="font-semibold font-display text-lg">Pro</p>
+                        <p className="font-semibold font-display text-lg">{PRICING_PLANS.pro.name}</p>
                         <p className="text-3xl font-bold font-display">
-                          $19
+                          {PRICING_PLANS.pro.priceLabel}
                           <span className="text-base font-medium text-muted-foreground">/mo</span>
                         </p>
                       </div>
                       <ul className="space-y-2">
-                        {["Unlimited properties", "Unlimited reports", "Priority queue", "Email support"].map((feature) => (
+                        {PRICING_PLANS.pro.features.map((feature) => (
                           <li key={feature} className="flex items-start gap-2 text-sm text-muted-foreground">
                             <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary/60" />
                             <span>{feature}</span>

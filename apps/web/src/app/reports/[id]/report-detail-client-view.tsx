@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { formatEuroDisplay } from "@/lib/pricing";
 import { ReportActions } from "./report-actions";
 import { ReportLiveStatus } from "./report-live-status";
 import {
@@ -114,10 +115,10 @@ export function ReportDetailClientView({
                 <div>AI: {snapshot.aiStatus ?? "n/a"}</div>
                 <div>XLSX: {snapshot.xlsxStatus ?? "n/a"}</div>
                 {isAdmin && viewKind === "complete" && aiEstimatedCostUsd ? (
-                  <div>AI Cost: ${String(aiEstimatedCostUsd)}</div>
+                  <div>AI Cost: {formatEuroDisplay(aiEstimatedCostUsd)}</div>
                 ) : null}
                 {isAdmin && viewKind === "complete" && detailsCostUsd ? (
-                  <div>Details cost: ${String(detailsCostUsd)}</div>
+                  <div>Details cost: {formatEuroDisplay(detailsCostUsd)}</div>
                 ) : null}
               </div>
             </div>
