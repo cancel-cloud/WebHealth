@@ -14,13 +14,28 @@ export type AppSidebarIconKey =
   | "bot"
   | "bug";
 
-export type AppSidebarItem = {
+export type AppSidebarActionKey = "feature-request";
+
+type AppSidebarItemBase = {
+  id: string;
   label: string;
-  href: string;
   icon: AppSidebarIconKey;
   current: boolean;
-  external?: boolean;
 };
+
+type AppSidebarLinkItem = AppSidebarItemBase & {
+  href: string;
+  external?: boolean;
+  action?: never;
+};
+
+type AppSidebarActionItem = AppSidebarItemBase & {
+  action: AppSidebarActionKey;
+  href?: never;
+  external?: never;
+};
+
+export type AppSidebarItem = AppSidebarLinkItem | AppSidebarActionItem;
 
 export type AppSidebarGroup = {
   label: string;
@@ -104,24 +119,28 @@ export function getAppSidebarModel({
 }): AppSidebarModel {
   const primaryItems: AppSidebarItem[] = [
     {
+      id: "dashboard",
       label: "Dashboard",
       href: "/dashboard",
       icon: "dashboard",
       current: isPathCurrent(pathname, "/dashboard"),
     },
     {
+      id: "reports",
       label: "Reports",
       href: "/reports",
       icon: "reports",
       current: isPathCurrent(pathname, "/reports"),
     },
     {
+      id: "properties",
       label: "Properties",
       href: "/properties",
       icon: "properties",
       current: isPathCurrent(pathname, "/properties"),
     },
     {
+      id: "settings",
       label: "Settings",
       href: "/settings",
       icon: "settings",
@@ -132,42 +151,56 @@ export function getAppSidebarModel({
   const adminItems: AppSidebarItem[] = isAdmin
     ? [
         {
+          id: "admin-syncing",
           label: "Syncing",
           href: "/admin/syncing",
           icon: "refresh",
           current: isPathCurrent(pathname, "/admin/syncing"),
         },
         {
+          id: "admin-users",
           label: "User Management",
           href: "/admin/users",
           icon: "users",
           current: isPathCurrent(pathname, "/admin/users"),
         },
         {
+          id: "admin-feedback",
+          label: "Feedback Inbox",
+          href: "/admin/feedback",
+          icon: "mail",
+          current: isPathCurrent(pathname, "/admin/feedback"),
+        },
+        {
+          id: "admin-logs",
           label: "System Logs",
           href: "/admin/logs",
           icon: "logs",
           current: isPathCurrent(pathname, "/admin/logs"),
         },
         {
+          id: "admin-feature-flags",
           label: "Feature Flags",
           href: "/admin/feature-flags",
           icon: "flags",
           current: isPathCurrent(pathname, "/admin/feature-flags"),
         },
         {
+          id: "admin-global-settings",
           label: "Global Settings",
           href: "/admin/global-settings",
           icon: "sliders",
           current: isPathCurrent(pathname, "/admin/global-settings"),
         },
         {
+          id: "admin-ai-report-settings",
           label: "AI Report Settings",
           href: "/admin/ai-report-settings",
           icon: "bot",
           current: isPathCurrent(pathname, "/admin/ai-report-settings"),
         },
         {
+          id: "admin-ai-report-debug",
           label: "AI Debug Console",
           href: "/admin/ai-report-debug",
           icon: "bug",
@@ -178,17 +211,18 @@ export function getAppSidebarModel({
 
   const supportItems: AppSidebarItem[] = [
     {
+      id: "contact-support",
       label: "Contact Support",
       href: "/settings?tab=contact",
       icon: "mail",
       current: pathname === "/settings" && tab === "contact",
     },
     {
+      id: "feature-request",
       label: "Feature Requests",
-      href: "https://github.com/cancel-cloud/WebHealth/discussions",
       icon: "sparkles",
       current: false,
-      external: true,
+      action: "feature-request",
     },
   ];
 

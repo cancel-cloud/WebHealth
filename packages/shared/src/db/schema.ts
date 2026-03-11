@@ -173,6 +173,26 @@ export const userSettings = pgTable("user_settings", {
   updatedAt:      timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const feedbackSubmissions = pgTable("feedback_submissions", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").references(() => teams.id, { onDelete: "set null" }),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+  userNameSnapshot: text("user_name_snapshot").notNull(),
+  emailSnapshot: text("email_snapshot").notNull(),
+  type: text("type").notNull(),
+  source: text("source").notNull(),
+  message: text("message").notNull(),
+  status: text("status").default("open").notNull(),
+  resolvedAt: timestamp("resolved_at"),
+  resolvedByUserId: text("resolved_by_user_id").references(() => user.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("feedback_submissions_status_created_idx").on(t.status, t.createdAt),
+  index("feedback_submissions_team_created_idx").on(t.teamId, t.createdAt),
+  index("feedback_submissions_user_created_idx").on(t.userId, t.createdAt),
+]);
+
 // Admin Tables
 
 export const systemLogs = pgTable("system_logs", {

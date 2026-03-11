@@ -79,10 +79,12 @@ const ICONS: Record<AppSidebarIconKey, React.ComponentType<{ className?: string 
 function SidebarLink({
   item,
   onNavigate,
+  onFeatureRequest,
   nested = false,
 }: {
   item: AppSidebarItem;
   onNavigate?: () => void;
+  onFeatureRequest?: () => void;
   nested?: boolean;
 }) {
   const Icon = ICONS[item.icon];
@@ -105,6 +107,21 @@ function SidebarLink({
       <span className="truncate">{item.label}</span>
     </>
   );
+
+  if ("action" in item) {
+    return (
+      <button
+        type="button"
+        className={className}
+        onClick={() => {
+          onNavigate?.();
+          onFeatureRequest?.();
+        }}
+      >
+        {content}
+      </button>
+    );
+  }
 
   if (item.external) {
     return (
@@ -130,10 +147,12 @@ function SidebarLink({
 export function AppSidebar({
   isAdmin = false,
   onNavigate,
+  onFeatureRequest,
   floating = false,
 }: {
   isAdmin?: boolean;
   onNavigate?: () => void;
+  onFeatureRequest?: () => void;
   floating?: boolean;
 }) {
   const pathname = usePathname();
@@ -201,7 +220,7 @@ export function AppSidebar({
         <div className="space-y-6">
           <section className="space-y-1">
             {model.primaryItems.map((item) => (
-              <SidebarLink key={item.href} item={item} onNavigate={onNavigate} />
+              <SidebarLink key={item.id} item={item} onNavigate={onNavigate} onFeatureRequest={onFeatureRequest} />
             ))}
           </section>
 
@@ -212,7 +231,7 @@ export function AppSidebar({
               </p>
               <div className="space-y-1">
                 {model.adminItems.map((item) => (
-                  <SidebarLink key={item.href} item={item} onNavigate={onNavigate} />
+                  <SidebarLink key={item.id} item={item} onNavigate={onNavigate} onFeatureRequest={onFeatureRequest} />
                 ))}
               </div>
             </section>
@@ -236,7 +255,13 @@ export function AppSidebar({
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2 space-y-1 border-l border-sidebar-border/70 pl-4 ml-5">
                 {model.supportGroup.items.map((item) => (
-                  <SidebarLink key={item.href} item={item} onNavigate={onNavigate} nested />
+                  <SidebarLink
+                    key={item.id}
+                    item={item}
+                    onNavigate={onNavigate}
+                    onFeatureRequest={onFeatureRequest}
+                    nested
+                  />
                 ))}
               </CollapsibleContent>
             </Collapsible>

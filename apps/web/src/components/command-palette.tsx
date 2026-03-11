@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import { useTheme } from "next-themes";
 import { authClient } from "@webhealth/shared/lib/auth-client";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@webhealth/shared/lib/utils";
 import {
   LayoutDashboard, FileText, Globe, Settings,
@@ -40,7 +40,13 @@ function CmdItem({ onSelect, icon: Icon, label, className }: {
   );
 }
 
-export function CommandPalette({ isAdmin = false }: { isAdmin?: boolean }) {
+export function CommandPalette({
+  isAdmin = false,
+  onFeatureRequest,
+}: {
+  isAdmin?: boolean;
+  onFeatureRequest?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -81,6 +87,7 @@ export function CommandPalette({ isAdmin = false }: { isAdmin?: boolean }) {
           inputRef.current?.focus();
         }}
       >
+        <DialogTitle className="sr-only">Command palette</DialogTitle>
         <Command className="w-full">
           <Command.Input
             ref={inputRef}
@@ -105,7 +112,7 @@ export function CommandPalette({ isAdmin = false }: { isAdmin?: boolean }) {
               <CmdItem onSelect={() => run(() => router.push("/reports"))} icon={Plus} label="New Report" />
               <CmdItem onSelect={() => run(() => router.push("/properties"))} icon={RefreshCw} label="Sync Properties" />
               <CmdItem onSelect={() => run(() => router.push("/settings?tab=contact"))} icon={MessageSquare} label="Contact Support" />
-              <CmdItem onSelect={() => run(() => window.open("https://github.com/cancel-cloud/WebHealth/discussions", "_blank", "noopener,noreferrer"))} icon={Sparkles} label="Feature Requests" />
+              <CmdItem onSelect={() => run(() => onFeatureRequest?.())} icon={Sparkles} label="Feature Requests" />
             </Command.Group>
 
             <Command.Separator className="my-1 h-px bg-border" />

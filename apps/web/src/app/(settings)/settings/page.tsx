@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPricingBadgeClassNames } from "@/components/pricing-badge-styles";
+import { useFeedbackModal } from "@/components/feedback-modal-context";
 import { formatPlanName } from "@/lib/plan-label";
 import { PRICING_PLANS } from "@/lib/pricing";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ const SETTING_LABELS: Record<ToggleSettingKey, string> = {
 
 export default function SettingsPage() {
   const { data: session } = authClient.useSession();
+  const { openFeedback } = useFeedbackModal();
   const searchParams = useSearchParams();
   const router = useRouter();
   const activeTab = resolveSettingsTab(searchParams.get("tab"));
@@ -554,14 +556,14 @@ export default function SettingsPage() {
                 {
                   icon: Sparkles,
                   title: "Have a cool feature idea?",
-                  description: "Vote on upcoming features or suggest your own",
-                  href: "https://github.com/cancel-cloud/WebHealth/discussions",
+                  description: "Share your idea directly with us from inside the app.",
+                  onClick: () => openFeedback({ source: "settings", initialType: "feature_request" }),
                 },
                 {
                   icon: Bug,
                   title: "Found a non-critical bug?",
-                  description: "UI glitches or formatting issues? Report them here :)",
-                  href: "https://github.com/cancel-cloud/WebHealth/issues",
+                  description: "UI glitches or formatting issues? Send a bug report here.",
+                  onClick: () => openFeedback({ source: "settings", initialType: "bug_report" }),
                 },
                 {
                   icon: CircleAlert,
@@ -589,19 +591,40 @@ export default function SettingsPage() {
                   description: "Review our terms of service and usage guidelines",
                   href: "/terms",
                 },
-              ].map(({ icon: Icon, title, description, href }) => (
-                <a
-                  key={title}
-                  href={href}
-                  className="flex items-start gap-4 rounded-lg border border-border bg-card p-5 transition-colors hover:bg-muted/35"
-                >
-                  <Icon className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" aria-hidden="true" />
-                  <div>
-                    <p className="text-sm font-medium">{title}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-                  </div>
-                </a>
-              ))}
+              ].map(({ icon: Icon, title, description, href, onClick }) => {
+                const className = "flex w-full items-start gap-4 rounded-lg border border-border bg-card p-5 text-left transition-colors hover:bg-muted/35";
+
+                if (onClick) {
+                  return (
+                    <button
+                      key={title}
+                      type="button"
+                      onClick={onClick}
+                      className={className}
+                    >
+                      <Icon className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" aria-hidden="true" />
+                      <div>
+                        <p className="text-sm font-medium">{title}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+                      </div>
+                    </button>
+                  );
+                }
+
+                return (
+                  <a
+                    key={title}
+                    href={href}
+                    className={className}
+                  >
+                    <Icon className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" aria-hidden="true" />
+                    <div>
+                      <p className="text-sm font-medium">{title}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+                    </div>
+                  </a>
+                );
+              })}
             </div>
           </div>
         </TabsContent>
