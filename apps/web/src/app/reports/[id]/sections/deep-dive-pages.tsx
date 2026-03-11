@@ -109,7 +109,7 @@ function PagesTable({ data }: { data: PageWinnerLoserRow[] }) {
   });
 
   return (
-    <div className="border border-border/50 rounded-3xl overflow-hidden bg-card shadow-sm">
+    <div className="border border-border/50 rounded-lg overflow-hidden bg-card shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/30">

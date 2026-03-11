@@ -170,7 +170,7 @@ export function SettingsForm({
         <textarea
           value={state.masterPrompt}
           onChange={(e) => setState((s) => ({ ...s, masterPrompt: e.target.value, saved: false }))}
-          className="min-h-52 w-full rounded-md border bg-background px-3 py-2 text-sm"
+          className="min-h-52 w-full rounded-lg border bg-background px-3 py-2 text-sm"
         />
       </div>
 
@@ -179,7 +179,7 @@ export function SettingsForm({
         <textarea
           value={state.promptExamples}
           onChange={(e) => setState((s) => ({ ...s, promptExamples: e.target.value, saved: false }))}
-          className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm"
+          className="min-h-32 w-full rounded-lg border bg-background px-3 py-2 text-sm"
         />
       </div>
 

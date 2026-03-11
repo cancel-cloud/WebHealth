@@ -152,7 +152,7 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
                 <h3 className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">
                   Plan Limits
                 </h3>
-                <div className="rounded-md border p-3 space-y-2 bg-muted/30">
+                <div className="rounded-lg border p-3 space-y-2 bg-muted/30">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Current tier</span>
                     <Badge variant="outline">{user.tier ?? "free"}</Badge>

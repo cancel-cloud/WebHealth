@@ -55,7 +55,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link
           href="/properties"
-          className="group block p-6 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="group block p-6 rounded-lg bg-card border border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           aria-label="Go to Properties page"
         >
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -67,7 +67,7 @@ export default async function DashboardPage() {
 
         <ReportsGeneratedCard reportCount={reportCount} />
 
-        <div className="group p-6 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden">
+        <div className="group p-6 rounded-lg bg-card border border-border shadow-sm hover:shadow-md transition-all relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <h3 className="font-medium text-muted-foreground mb-1">Sync Status</h3>
           <div className="flex items-baseline mt-1">

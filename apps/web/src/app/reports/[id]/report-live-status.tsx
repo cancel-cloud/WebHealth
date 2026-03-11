@@ -1,15 +1,27 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
+  hasActiveReportLiveStatus,
+  shouldIgnoreTerminalPollResult,
   shouldPollReportLiveStatus,
   type ReportStatus,
   type XlsxStatus,
 } from "./report-live-status.logic";
+import {
+  REPORT_LIVE_SNAPSHOT_EVENT,
+  type ReportLiveSnapshot,
+} from "./report-page.logic";
 
 const POLL_INTERVAL_MS = 4000;
+
+type ReportSnapshotEventDetail = {
+  reportId: string;
+  snapshot: ReportLiveSnapshot;
+  source?: "optimistic-retry" | "poll";
+};
 
 export function ReportLiveStatus({
   reportId,
@@ -21,24 +33,44 @@ export function ReportLiveStatus({
   initialXlsxStatus: XlsxStatus;
 }) {
   const router = useRouter();
+  const [currentStatus, setCurrentStatus] = useState<ReportStatus>(initialStatus);
+  const [currentXlsxStatus, setCurrentXlsxStatus] = useState<XlsxStatus>(initialXlsxStatus);
   const statusRef = useRef<ReportStatus>(initialStatus);
   const xlsxStatusRef = useRef<XlsxStatus>(initialXlsxStatus);
+  const hasConfirmedActiveServerStateRef = useRef(
+    hasActiveReportLiveStatus(initialStatus, initialXlsxStatus)
+  );
   const toastId = `report-live-${reportId}`;
 
   useEffect(() => {
-    statusRef.current = initialStatus;
-  }, [initialStatus]);
+    const handleSnapshot = (event: Event) => {
+      const detail = (event as CustomEvent<ReportSnapshotEventDetail>).detail;
+      if (!detail || detail.reportId !== reportId) return;
+
+      if (detail.source === "optimistic-retry") {
+        hasConfirmedActiveServerStateRef.current = false;
+      } else if (hasActiveReportLiveStatus(detail.snapshot.reportStatus, detail.snapshot.xlsxStatus)) {
+        hasConfirmedActiveServerStateRef.current = true;
+      }
+
+      statusRef.current = detail.snapshot.reportStatus;
+      xlsxStatusRef.current = detail.snapshot.xlsxStatus;
+      setCurrentStatus(detail.snapshot.reportStatus);
+      setCurrentXlsxStatus(detail.snapshot.xlsxStatus);
+    };
+
+    window.addEventListener(REPORT_LIVE_SNAPSHOT_EVENT, handleSnapshot);
+    return () => {
+      window.removeEventListener(REPORT_LIVE_SNAPSHOT_EVENT, handleSnapshot);
+    };
+  }, [reportId]);
 
   useEffect(() => {
-    xlsxStatusRef.current = initialXlsxStatus;
-  }, [initialXlsxStatus]);
-
-  useEffect(() => {
-    const isActive = shouldPollReportLiveStatus(initialStatus, initialXlsxStatus);
+    const isActive = shouldPollReportLiveStatus(currentStatus, currentXlsxStatus);
     if (!isActive) return;
 
     const toastMessage =
-      initialStatus === "queued" || initialStatus === "processing"
+      currentStatus === "queued" || currentStatus === "processing"
         ? "Processing report…"
         : "Rendering XLSX…";
     toast.loading(toastMessage, {
@@ -50,14 +82,37 @@ export function ReportLiveStatus({
       const res = await fetch(`/api/reports/${reportId}`, { cache: "no-store" });
       if (!res.ok) return;
       const data = (await res.json()) as {
-        report?: { status?: ReportStatus; xlsxStatus?: XlsxStatus };
+        report?: {
+          status?: ReportStatus;
+          aiStatus?: string | null;
+          xlsxStatus?: XlsxStatus;
+          aiReportJson?: unknown;
+          xlsxArtifactUrl?: string | null;
+        };
       };
-      const nextStatus = data.report?.status;
-      const nextXlsxStatus = data.report?.xlsxStatus;
+      const nextStatus = data.report?.status ?? statusRef.current;
+      const nextXlsxStatus = data.report?.xlsxStatus ?? xlsxStatusRef.current;
+      const nextSnapshot: ReportLiveSnapshot = {
+        reportStatus: nextStatus,
+        aiStatus: data.report?.aiStatus ?? null,
+        xlsxStatus: nextXlsxStatus,
+        hasAiReportJson: !!data.report?.aiReportJson,
+        hasXlsxArtifact: !!data.report?.xlsxArtifactUrl,
+      };
 
-      if (nextStatus && nextStatus !== statusRef.current) {
-        statusRef.current = nextStatus;
+      if (
+        shouldIgnoreTerminalPollResult({
+          currentStatus: statusRef.current,
+          currentXlsxStatus: xlsxStatusRef.current,
+          nextStatus,
+          nextXlsxStatus,
+          hasConfirmedActiveServerState: hasConfirmedActiveServerStateRef.current,
+        })
+      ) {
+        return;
+      }
 
+      if (nextStatus !== statusRef.current) {
         if (nextStatus === "complete") {
           toast.success("Report ready!", { id: toastId });
           router.refresh();
@@ -70,8 +125,7 @@ export function ReportLiveStatus({
         }
       }
 
-      if (nextXlsxStatus && nextXlsxStatus !== xlsxStatusRef.current) {
-        xlsxStatusRef.current = nextXlsxStatus;
+      if (nextXlsxStatus !== xlsxStatusRef.current) {
         if (nextXlsxStatus === "ready") {
           toast.success("XLSX ready!", { id: toastId });
           router.refresh();
@@ -81,6 +135,28 @@ export function ReportLiveStatus({
           toast.error("XLSX generation failed", { id: toastId });
           router.refresh();
         }
+      }
+
+      if (
+        nextStatus !== statusRef.current ||
+        nextXlsxStatus !== xlsxStatusRef.current
+      ) {
+        if (hasActiveReportLiveStatus(nextStatus, nextXlsxStatus)) {
+          hasConfirmedActiveServerStateRef.current = true;
+        }
+        statusRef.current = nextStatus;
+        xlsxStatusRef.current = nextXlsxStatus;
+        setCurrentStatus(nextStatus);
+        setCurrentXlsxStatus(nextXlsxStatus);
+        window.dispatchEvent(
+          new CustomEvent(REPORT_LIVE_SNAPSHOT_EVENT, {
+            detail: {
+              reportId,
+              snapshot: nextSnapshot,
+              source: "poll",
+            },
+          })
+        );
       }
     };
 
@@ -93,7 +169,7 @@ export function ReportLiveStatus({
       window.clearInterval(interval);
       toast.dismiss(toastId);
     };
-  }, [initialStatus, initialXlsxStatus, reportId, router, toastId]);
+  }, [currentStatus, currentXlsxStatus, reportId, router, toastId]);
 
   return null;
 }

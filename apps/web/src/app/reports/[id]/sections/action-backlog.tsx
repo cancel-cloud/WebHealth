@@ -18,7 +18,7 @@ export function ActionBacklog({ reportId, rows }: ActionBacklogProps) {
       <h2 className="text-xl font-bold font-display mb-4">What To Do This Week</h2>
       <div className="space-y-3">
         {data.slice(0, 12).map((row) => (
-          <div key={row.id} className="p-4 rounded-2xl bg-card border border-border/50 shadow-sm">
+          <div key={row.id} className="p-4 rounded-lg bg-card border border-border/50 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <p className="font-semibold">{row.task}</p>
               <div className="flex items-center gap-2 shrink-0">

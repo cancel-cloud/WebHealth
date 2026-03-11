@@ -239,13 +239,13 @@ export function DebugConsole({
 
   return (
     <div className="space-y-8">
-      <section className="rounded-2xl border p-4 space-y-4 bg-card">
+      <section className="rounded-lg border p-4 space-y-4 bg-card">
         <h2 className="font-semibold text-lg">Generate a Test Report</h2>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Team</Label>
             <select
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
               value={selectedTeamId}
               onChange={(e) => setSelectedTeamId(e.target.value)}
             >
@@ -257,7 +257,7 @@ export function DebugConsole({
           <div className="space-y-2">
             <Label>Property</Label>
             <select
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
               value={selectedPropertyId}
               onChange={(e) => setSelectedPropertyId(e.target.value)}
             >
@@ -297,7 +297,7 @@ export function DebugConsole({
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
       </section>
 
-      <section className="rounded-2xl border p-4 space-y-4 bg-card">
+      <section className="rounded-lg border p-4 space-y-4 bg-card">
         <h2 className="font-semibold text-lg">Worker Status</h2>
         <div className="flex flex-wrap gap-4 text-sm">
           <Badge variant="outline">Active Jobs (global): {debug?.stats.activeJobsGlobal ?? 0}</Badge>
@@ -334,7 +334,7 @@ export function DebugConsole({
         </div>
       </section>
 
-      <section className="rounded-2xl border p-4 space-y-4 bg-card">
+      <section className="rounded-lg border p-4 space-y-4 bg-card">
         <h2 className="font-semibold text-lg">Details Requests</h2>
         <div className="overflow-auto">
           <table className="w-full text-sm">
@@ -403,7 +403,7 @@ export function DebugConsole({
         </div>
       </section>
 
-      <section className="rounded-2xl border p-4 space-y-4 bg-card">
+      <section className="rounded-lg border p-4 space-y-4 bg-card">
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1">
             <Label>Filter by Report ID</Label>
@@ -473,11 +473,11 @@ export function DebugConsole({
         </div>
       </section>
 
-      <section className="rounded-2xl border p-4 space-y-4 bg-card">
+      <section className="rounded-lg border p-4 space-y-4 bg-card">
         <h2 className="font-semibold text-lg">Live Debug Timeline</h2>
         <div className="max-h-[500px] overflow-auto space-y-2">
           {events.map((e) => (
-            <div key={e.id} className="rounded-xl border p-3 text-sm">
+            <div key={e.id} className="rounded-lg border p-3 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge
                   variant="outline"

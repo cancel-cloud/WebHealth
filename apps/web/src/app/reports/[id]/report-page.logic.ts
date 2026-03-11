@@ -17,6 +17,18 @@ type ScheduledNoticeStateInput = {
   hasLinkedGa4Now: boolean;
 };
 
+export type ReportDetailViewKind = "scheduled" | "active" | "failed" | "complete";
+
+export type ReportLiveSnapshot = {
+  reportStatus: string;
+  aiStatus: string | null;
+  xlsxStatus: string | null | undefined;
+  hasAiReportJson: boolean;
+  hasXlsxArtifact: boolean;
+};
+
+export const REPORT_LIVE_SNAPSHOT_EVENT = "report-live-snapshot";
+
 export function getReportActionAvailability(input: ReportActionAvailabilityInput) {
   if (input.reportStatus === "queued" || input.reportStatus === "processing") {
     return {
@@ -89,4 +101,22 @@ export function getScheduledNoticeState(input: ScheduledNoticeStateInput) {
 
 export function shouldShowTopReportActions(status: string) {
   return status !== "scheduled";
+}
+
+export function getReportDetailViewKind(status: string): ReportDetailViewKind {
+  if (status === "scheduled") return "scheduled";
+  if (status === "queued" || status === "processing") return "active";
+  if (status === "failed") return "failed";
+  return "complete";
+}
+
+export function applyOptimisticReportRetry(snapshot: ReportLiveSnapshot): ReportLiveSnapshot {
+  return {
+    ...snapshot,
+    reportStatus: "queued",
+    aiStatus: "queued",
+    xlsxStatus: "pending",
+    hasAiReportJson: false,
+    hasXlsxArtifact: false,
+  };
 }

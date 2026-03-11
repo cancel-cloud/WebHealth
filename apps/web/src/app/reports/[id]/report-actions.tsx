@@ -1,14 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Share2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  applyOptimisticReportRetry,
+  REPORT_LIVE_SNAPSHOT_EVENT,
+} from "./report-page.logic";
 
 export function ReportActions({
   reportId,
+  reportStatus,
+  aiStatus,
+  xlsxStatus,
+  hasAiReportJson,
+  hasXlsxArtifact,
   xlsxReady,
   canRetryReport,
   retryReportReason,
@@ -16,13 +24,17 @@ export function ReportActions({
   retryXlsxReason,
 }: {
   reportId: string;
+  reportStatus: string;
+  aiStatus: string | null;
+  xlsxStatus: string | null | undefined;
+  hasAiReportJson: boolean;
+  hasXlsxArtifact: boolean;
   xlsxReady: boolean;
   canRetryReport: boolean;
   retryReportReason: string | null;
   canRetryXlsx: boolean;
   retryXlsxReason: string | null;
 }) {
-  const router = useRouter();
   const [busy, setBusy] = useState<null | "retry" | "xlsx">(null);
 
   async function post(path: string, mode: "retry" | "xlsx") {
@@ -42,9 +54,23 @@ export function ReportActions({
         }
       );
       if (mode === "retry") {
+        window.dispatchEvent(
+          new CustomEvent(REPORT_LIVE_SNAPSHOT_EVENT, {
+            detail: {
+              reportId,
+              snapshot: applyOptimisticReportRetry({
+                reportStatus,
+                aiStatus,
+                xlsxStatus,
+                hasAiReportJson,
+                hasXlsxArtifact,
+              }),
+              source: "optimistic-retry",
+            },
+          })
+        );
         toast.loading("Processing report…", { id: `report-live-${reportId}`, duration: Infinity });
       }
-      router.refresh();
     } catch {
       // Toast is handled by toast.promise
     } finally {

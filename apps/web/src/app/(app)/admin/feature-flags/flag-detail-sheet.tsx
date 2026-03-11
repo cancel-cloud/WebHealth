@@ -172,7 +172,7 @@ export function FlagDetailSheet({
                     {usersWithoutOverride.map((u) => (
                       <div
                         key={u.id}
-                        className="flex items-center justify-between gap-2 py-1.5 cursor-pointer hover:bg-muted/50 px-2 rounded-md"
+                        className="flex items-center justify-between gap-2 py-1.5 cursor-pointer hover:bg-muted/50 px-2 rounded-lg"
                         onClick={() => toggleUserOverride(u.id, null)}
                       >
                         <div className="min-w-0">

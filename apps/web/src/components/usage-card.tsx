@@ -43,8 +43,8 @@ export function UsageCard({
   return (
     <div className={
       isCompact
-        ? "rounded-xl border border-border bg-sidebar-accent/40 p-3 space-y-2.5"
-        : "rounded-2xl border border-border bg-card p-4 space-y-4"
+        ? "rounded-lg border border-sidebar-border/70 bg-sidebar-accent/55 p-3.5 space-y-2.5"
+        : "rounded-lg border border-border bg-card p-4 space-y-4"
     }>
       {reportsLimit !== null && (
         <div className={isCompact ? "space-y-1" : "space-y-2"}>

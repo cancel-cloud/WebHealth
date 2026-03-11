@@ -80,7 +80,7 @@ function QueryTable({ data }: { data: QueryOpportunityRow[] }) {
   });
 
   return (
-    <div className="border border-border/50 rounded-3xl overflow-hidden bg-card shadow-sm">
+    <div className="border border-border/50 rounded-lg overflow-hidden bg-card shadow-sm">
       <div className="p-4 border-b border-border/30">
         <input
           type="search"

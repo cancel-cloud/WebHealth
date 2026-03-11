@@ -1,0 +1,1 @@
+export const SIDEBAR_MENU_SKELETON_WIDTH = "72%";

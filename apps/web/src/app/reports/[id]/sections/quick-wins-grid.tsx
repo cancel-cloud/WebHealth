@@ -39,7 +39,7 @@ export function QuickWinsGrid({ reportId, ctrGaps, nearWinKeywords, contentDecay
   const [active, setActive] = useState<Tab>(defaultTab);
 
   return (
-    <div className="rounded-3xl bg-card border border-border/50 shadow-sm overflow-hidden">
+    <div className="rounded-lg bg-card border border-border/50 shadow-sm overflow-hidden">
       <div className="border-b border-border/50 flex gap-0 overflow-x-auto">
         {tabs.map((tab) => (
           <button
@@ -162,7 +162,7 @@ function ContentDecayTab({ reportId, rows }: { reportId: string; rows: ContentDe
   return (
     <div className="space-y-3">
       {rows.slice(0, 10).map((row) => (
-        <div key={row.page} className="p-3 rounded-2xl bg-muted/30 border border-border/30">
+        <div key={row.page} className="p-3 rounded-lg bg-muted/30 border border-border/30">
           <div className="flex items-start justify-between gap-2 mb-1">
             <p className="text-sm font-medium truncate max-w-[400px]">{row.page}</p>
             <div className="flex items-center gap-2 shrink-0">
@@ -196,7 +196,7 @@ function CannibalizationTab({ reportId, rows }: { reportId: string; rows: Cannib
   return (
     <div className="space-y-3">
       {rows.slice(0, 10).map((row) => (
-        <div key={row.query} className="p-3 rounded-2xl bg-muted/30 border border-border/30">
+        <div key={row.query} className="p-3 rounded-lg bg-muted/30 border border-border/30">
           <div className="flex items-start justify-between gap-2 mb-2">
             <p className="text-sm font-medium">&ldquo;{row.query}&rdquo;</p>
             <GetDetailsButton

@@ -1,15 +1,17 @@
 import { Suspense } from "react";
-import { headers } from "next/headers";
-import { auth } from "@webhealth/shared/lib/auth";
-import { redirect } from "next/navigation";
+import { AppShell } from "@/components/app-shell";
+import { getAppShellAccess } from "@/lib/server/app-shell";
 
 export default async function SettingsFullLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect("/");
+  const { isAdmin } = await getAppShellAccess({ allowRestricted: true });
 
-  return <Suspense>{children}</Suspense>;
+  return (
+    <AppShell isAdmin={isAdmin}>
+      <Suspense>{children}</Suspense>
+    </AppShell>
+  );
 }
