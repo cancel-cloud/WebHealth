@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Trash2 } from "lucide-react";
+import { requestJson } from "@/lib/client/api";
 
 interface UserOverride {
   id: string;
@@ -49,9 +50,8 @@ export function FlagDetailSheet({
   useEffect(() => {
     if (!flag) return;
     setLoadingOverrides(true);
-    fetch(`/api/admin/feature-flags/${flag.id}/users`)
-      .then((r) => r.json())
-      .then((data) => setOverrides(data.overrides ?? []))
+    requestJson<{ overrides?: UserOverride[] }>(`/api/admin/feature-flags/${flag.id}/users`)
+      .then((data) => setOverrides(data?.overrides ?? []))
       .catch(() => setOverrides([]))
       .finally(() => setLoadingOverrides(false));
   }, [flag]);
@@ -61,9 +61,8 @@ export function FlagDetailSheet({
     setTogglingUserId(userId);
     try {
       if (currentEnabled === null) {
-        // No override → create one toggling from global
         const newEnabled = !flag.enabledGlobally;
-        await fetch(`/api/admin/feature-flags/${flag.id}/users/${userId}`, {
+        await requestJson(`/api/admin/feature-flags/${flag.id}/users/${userId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ enabled: newEnabled }),
@@ -75,8 +74,7 @@ export function FlagDetailSheet({
         ]);
         toast.success("Override created");
       } else {
-        // Toggle existing override
-        await fetch(`/api/admin/feature-flags/${flag.id}/users/${userId}`, {
+        await requestJson(`/api/admin/feature-flags/${flag.id}/users/${userId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ enabled: !currentEnabled }),
@@ -97,7 +95,7 @@ export function FlagDetailSheet({
     if (!flag) return;
     setTogglingUserId(userId);
     try {
-      await fetch(`/api/admin/feature-flags/${flag.id}/users/${userId}`, {
+      await requestJson(`/api/admin/feature-flags/${flag.id}/users/${userId}`, {
         method: "DELETE",
       });
       setOverrides((prev) => prev.filter((o) => o.userId !== userId));

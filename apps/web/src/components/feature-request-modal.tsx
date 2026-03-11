@@ -31,6 +31,8 @@ import {
   getFeatureRequestSuccessDismissDelayMs,
   getFeatureRequestSubmitLabel,
 } from "./feature-request-modal.logic";
+import { getAppErrorMessage } from "@/lib/client/app-error";
+import { requestJson } from "@/lib/client/api";
 
 export function FeatureRequestModal({
   open,
@@ -99,7 +101,7 @@ export function FeatureRequestModal({
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/feedback", {
+      await requestJson("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -109,16 +111,10 @@ export function FeatureRequestModal({
         }),
       });
 
-      const data = await response.json().catch(() => null);
-      if (!response.ok) {
-        setError(typeof data?.error === "string" ? data.error : "Could not send your feedback.");
-        return;
-      }
-
       setMessage(submissionState.trimmedMessage);
       setSubmitted(true);
-    } catch {
-      setError("Could not send your feedback.");
+    } catch (error) {
+      setError(getAppErrorMessage(error, "Could not send your feedback."));
     } finally {
       setIsSubmitting(false);
     }

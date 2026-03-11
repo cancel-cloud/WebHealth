@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { getAppErrorMessage } from "@/lib/client/app-error";
+import { requestJson } from "@/lib/client/api";
 import {
   applyOptimisticReportRetry,
   REPORT_LIVE_SNAPSHOT_EVENT,
@@ -42,15 +44,12 @@ export function ReportActions({
     try {
       await toast.promise(
         (async () => {
-          const res = await fetch(path, { method: "POST" });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(data.error ?? "Request failed");
+          await requestJson(path, { method: "POST" });
         })(),
         {
           loading: mode === "retry" ? "Re-queuing report…" : "Re-queuing XLSX…",
           success: mode === "retry" ? "Report re-queued" : "XLSX render re-queued",
-          error: (error) =>
-            error instanceof Error ? error.message : "Request failed",
+          error: (error) => getAppErrorMessage(error),
         }
       );
       if (mode === "retry") {

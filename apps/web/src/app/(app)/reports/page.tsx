@@ -14,6 +14,7 @@ import { getReportStatusBadge } from "@/lib/status-badge";
 import { FileText, ArrowRight } from "lucide-react";
 import { NewReportDialog } from "../dashboard/new-report-dialog";
 import { propertyIdLabel } from "@/lib/property-label";
+import { requestJson } from "@/lib/client/api";
 
 type ReportType = {
   id: string;
@@ -61,9 +62,8 @@ export default function ReportsPage() {
 
   const fetchReports = useCallback(async () => {
     try {
-      const res = await fetch("/api/reports");
-      const data = await res.json();
-      const next = data.reports ?? [];
+      const data = await requestJson<{ reports?: ReportType[] }>("/api/reports");
+      const next = data?.reports ?? [];
       reportsRef.current = next;
       setReports(next);
     } catch {

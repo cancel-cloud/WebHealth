@@ -14,6 +14,7 @@ import {
   REPORT_LIVE_SNAPSHOT_EVENT,
   type ReportLiveSnapshot,
 } from "./report-page.logic";
+import { requestJson } from "@/lib/client/api";
 
 const POLL_INTERVAL_MS = 4000;
 
@@ -79,9 +80,7 @@ export function ReportLiveStatus({
     });
 
     const poll = async () => {
-      const res = await fetch(`/api/reports/${reportId}`, { cache: "no-store" });
-      if (!res.ok) return;
-      const data = (await res.json()) as {
+      let data: {
         report?: {
           status?: ReportStatus;
           aiStatus?: string | null;
@@ -89,7 +88,15 @@ export function ReportLiveStatus({
           aiReportJson?: unknown;
           xlsxArtifactUrl?: string | null;
         };
-      };
+      } | null;
+
+      try {
+        data = await requestJson(`/api/reports/${reportId}`, { cache: "no-store" });
+      } catch {
+        return;
+      }
+      if (!data) return;
+
       const nextStatus = data.report?.status ?? statusRef.current;
       const nextXlsxStatus = data.report?.xlsxStatus ?? xlsxStatusRef.current;
       const nextSnapshot: ReportLiveSnapshot = {

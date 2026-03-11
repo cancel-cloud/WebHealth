@@ -1,17 +1,24 @@
 import { loadWorkerEnv } from "./load-env";
+import { initWorkerMonitoring, reportWorkerFatalError } from "./monitoring";
 
 loadWorkerEnv();
+initWorkerMonitoring();
+
+let workerPhase = "boot";
 
 async function main() {
+  workerPhase = "imports";
   const { ensureWorkerDatabaseReady } = await import("@webhealth/shared/db/worker-db-bootstrap");
   const { startReportWorkerLoop, runSingleReportWorkerTick } = await import(
     "@webhealth/shared/lib/queue/report-worker"
   );
 
+  workerPhase = "database-ready";
   await ensureWorkerDatabaseReady();
 
   // Start artifact HTTP server for cross-service file downloads
   if (process.env.ARTIFACT_TOKEN_SECRET) {
+    workerPhase = "artifact-server";
     const { startArtifactServer } = await import("./artifact-server");
     await startArtifactServer();
   } else {
@@ -20,6 +27,7 @@ async function main() {
 
   const once = process.argv.includes("--once");
   if (once) {
+    workerPhase = "single-tick";
     const result = await runSingleReportWorkerTick();
     if (result.processed) {
       console.log(`[report-worker][INFO][WORKING] single tick processed job jobId=${result.jobId}`);
@@ -29,11 +37,16 @@ async function main() {
     return;
   }
 
+  workerPhase = "worker-loop";
   console.log("[report-worker][INFO][BOOT] starting worker process");
   startReportWorkerLoop();
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
+  await reportWorkerFatalError(error, {
+    phase: workerPhase,
+    target: workerPhase === "database-ready" ? "direct-database" : "worker-process",
+  });
   console.error("[report-worker][FATAL][FATAL] worker process crashed", error);
   process.exit(1);
 });

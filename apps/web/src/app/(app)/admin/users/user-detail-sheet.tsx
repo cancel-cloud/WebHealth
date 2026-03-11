@@ -32,6 +32,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
+import { getAppErrorMessage } from "@/lib/client/app-error";
+import { requestJson } from "@/lib/client/api";
 import type { AdminUser } from "./users-table";
 
 interface UserDetailSheetProps {
@@ -77,12 +80,14 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
     if (!user) return;
     setSaving(true);
     try {
-      await fetch(`/api/admin/users/${user.id}`, {
+      await requestJson(`/api/admin/users/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       router.refresh();
+    } catch (error) {
+      toast.error(getAppErrorMessage(error, "Failed to update user"));
     } finally {
       setSaving(false);
     }
@@ -92,9 +97,11 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
     if (!user) return;
     setDeleting(true);
     try {
-      await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
+      await requestJson(`/api/admin/users/${user.id}`, { method: "DELETE" });
       router.refresh();
       onClose();
+    } catch (error) {
+      toast.error(getAppErrorMessage(error, "Failed to delete user"));
     } finally {
       setDeleting(false);
       setShowDeleteConfirm(false);

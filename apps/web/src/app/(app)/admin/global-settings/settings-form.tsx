@@ -12,6 +12,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { getAppErrorMessage } from "@/lib/client/app-error";
+import { requestJson } from "@/lib/client/api";
 
 interface TierSetting {
   id: string;
@@ -71,17 +74,26 @@ export function SettingsForm({ initialSettings }: { initialSettings: TierSetting
       detailsPerMonth: stringToLimit(row.detailsInput),
     };
 
-    await fetch("/api/admin/global-settings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    try {
+      await requestJson("/api/admin/global-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    setSettings((prev) =>
-      prev.map((s) =>
-        s.tier === tier ? { ...s, saving: false, saved: true } : s,
-      ),
-    );
+      setSettings((prev) =>
+        prev.map((s) =>
+          s.tier === tier ? { ...s, saving: false, saved: true } : s,
+        ),
+      );
+    } catch (error) {
+      setSettings((prev) =>
+        prev.map((s) =>
+          s.tier === tier ? { ...s, saving: false, saved: false } : s,
+        ),
+      );
+      toast.error(getAppErrorMessage(error, "Failed to save settings"));
+    }
   };
 
   return (
