@@ -1,4 +1,4 @@
-# WebHealth — Project Notes for Claude
+# WebHealth - Project Notes for Claude
 
 ## Dev URL
 **Always use `https://webaudit-79.localcan.dev` — never `http://localhost:3000`.**
