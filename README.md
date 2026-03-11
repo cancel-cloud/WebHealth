@@ -39,6 +39,7 @@ drizzle/      # SQL migrations
 
 - Local macOS: `docs/how-to-run-locally-macos.md`
 - Deploy (Vercel + Neon + Worker VPS): `docs/deploy-runbook.md`
+- GlitchTip monitoring: `docs/glitchtip.md`
 
 ## Neon Connection Rules (Strict)
 

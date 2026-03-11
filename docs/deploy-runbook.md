@@ -6,6 +6,8 @@ This is the canonical deployment checklist for the split architecture:
 - Database: Neon Postgres
 - Worker: `apps/worker` on VPS (for example Hetzner)
 
+GlitchTip monitoring setup is documented separately in `docs/glitchtip.md`.
+
 `pnpm` is required across all environments.
 
 ## 0) Pre-deploy checks
@@ -110,6 +112,7 @@ Create env file (example path `/etc/webhealth/worker.env`) with at least:
 
 - `DATABASE_URL`
 - `DIRECT_DATABASE_URL` (recommended for explicit direct-host migrations)
+- `SENTRY_DSN` (recommended so worker startup/runtime crashes reach GlitchTip)
 - `BETTER_AUTH_URL`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
@@ -118,6 +121,7 @@ Create env file (example path `/etc/webhealth/worker.env`) with at least:
 - `REPORT_ARTIFACTS_DIR` (absolute container path for artifacts, for example `/app/artifacts`)
 - `ARTIFACT_TOKEN_SECRET`
 - `OAUTH_TOKEN_ENCRYPTION_KEY`
+- optional `SENTRY_ENVIRONMENT` / `SENTRY_RELEASE`
 - optional worker tuning vars from `apps/worker/.env.example`
 
 Artifact storage path requirements:

@@ -71,6 +71,7 @@ Required for worker:
 
 - `DATABASE_URL` (Neon pooled URL with `-pooler` and `sslmode=require`)
 - `DIRECT_DATABASE_URL` (recommended direct Neon URL; worker uses this for startup migrations)
+- `SENTRY_DSN` (recommended so worker startup/runtime crashes reach GlitchTip)
 - `BETTER_AUTH_URL`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
@@ -97,6 +98,8 @@ Common optional vars:
 - `ARTIFACT_TOKEN_SECRET` (required if the web app fetches XLSX artifacts from the worker)
 - `OAUTH_TOKEN_ENCRYPTION_KEY`
 - `WORKER_HTTP_PORT` (default `9100`)
+- `SENTRY_ENVIRONMENT`
+- `SENTRY_RELEASE`
 
 ## 6) Networking and Health Checks
 

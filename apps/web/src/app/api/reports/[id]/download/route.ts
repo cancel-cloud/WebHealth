@@ -6,7 +6,7 @@ import { mintArtifactDownloadToken } from "@webhealth/shared/lib/artifact-token"
 import { resolveReportArtifactBinary } from "@/lib/reports/resolve-report-artifact";
 import { badRequest, notFound } from "@webhealth/shared/lib/http-errors";
 import { requireAnyTeamMembership, requireUnrestrictedSession } from "@/lib/server/authz";
-import { handleRouteError } from "@/lib/server/route-security";
+import { handleRouteError, reportHandledRouteFailure } from "@/lib/server/route-security";
 
 export async function GET(
   req: Request,
@@ -40,6 +40,18 @@ export async function GET(
     });
 
     if (!artifactResult.ok) {
+      reportHandledRouteFailure({
+        label: "Error downloading report artifact",
+        status: artifactResult.status,
+        code: artifactResult.code,
+        message: `Artifact download failed: ${artifactResult.code}`,
+        context: {
+          reportId,
+          artifactKey: report.xlsxArtifactKey,
+          workerConfigured: Boolean(process.env.WORKER_ARTIFACT_URL),
+        },
+      });
+
       return NextResponse.json(
         { error: artifactResult.error, code: artifactResult.code },
         { status: artifactResult.status }
