@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  canContinueToCheckout,
+  getCheckoutConfirmationCopy,
+  getSettingsSoloPlanAction,
   getSettingsPlanCardLayoutClassNames,
   getSettingsAccountSummary,
   normalizeSettingsResponse,
@@ -73,6 +76,63 @@ test("getSettingsAccountSummary omits the current-plan label when the plan is ac
 
   assert.equal(summary.planLabel, "Solo Plan");
   assert.equal(summary.planStatus, null);
+});
+
+test("paid Solo action uses destructive styling for an active downgrade", () => {
+  assert.deepEqual(
+    getSettingsSoloPlanAction({
+      teamTier: "pro",
+      subscriptionCancelAt: null,
+    }),
+    {
+      label: "Cancel in Billing Portal",
+      variant: "destructive",
+    }
+  );
+});
+
+test("paid Solo action keeps manage-cancellation styling non-destructive", () => {
+  assert.deepEqual(
+    getSettingsSoloPlanAction({
+      teamTier: "pro",
+      subscriptionCancelAt: "2026-04-15T00:00:00.000Z",
+    }),
+    {
+      label: "Review Cancellation",
+      variant: "outline",
+    }
+  );
+});
+
+test("getCheckoutConfirmationCopy explains recurring billing and legal review before Stripe checkout", () => {
+  assert.deepEqual(
+    getCheckoutConfirmationCopy("pro", "€29"),
+    {
+      title: "Continue to Pro checkout?",
+      recurringNotice: "€29/mo. The subscription renews monthly until you cancel it.",
+      cancellationNotice:
+        "Cancellation, invoices, and plan changes are managed from the Stripe billing portal in your settings.",
+      confirmLabel: "Continue to Stripe Checkout",
+    },
+  );
+});
+
+test("canContinueToCheckout requires both legal acknowledgements", () => {
+  assert.equal(
+    canContinueToCheckout({
+      acceptedLegalDocuments: true,
+      acknowledgedImmediateAccess: false,
+    }),
+    false,
+  );
+
+  assert.equal(
+    canContinueToCheckout({
+      acceptedLegalDocuments: true,
+      acknowledgedImmediateAccess: true,
+    }),
+    true,
+  );
 });
 
 test("resolveSettingsTab falls back to account for unknown values", () => {
