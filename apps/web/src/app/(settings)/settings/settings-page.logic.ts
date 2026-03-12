@@ -1,4 +1,4 @@
-import { formatPlanName, getPlanStatusLabel } from "@/lib/plan-label";
+import { formatPlanName } from "@/lib/plan-label";
 
 export type Settings = {
   weeklyDigest: boolean;
@@ -97,7 +97,7 @@ export function normalizeSettingsResponse(data: unknown): Settings {
 export function getSettingsAccountSummary(settings: Pick<Settings, "teamTier" | "subscriptionCancelAt" | "reportsThisMonth" | "reportsLimit" | "detailsThisMonth" | "detailsLimit">) {
   return {
     planLabel: formatPlanName(settings.teamTier),
-    planStatus: getPlanStatusLabel(settings.subscriptionCancelAt),
+    planStatus: null,
     usage: {
       reportsThisMonth: settings.reportsThisMonth ?? 0,
       reportsLimit: settings.reportsLimit ?? null,
