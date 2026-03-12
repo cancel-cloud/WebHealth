@@ -52,7 +52,7 @@ test("normalizeSettingsResponse coerces optional values into stable defaults", (
   );
 });
 
-test("getSettingsAccountSummary returns a concise shell-ready summary", () => {
+test("getSettingsAccountSummary keeps the header focused on the active plan name", () => {
   const summary = getSettingsAccountSummary({
     teamTier: "pro",
     subscriptionCancelAt: "2026-04-15T00:00:00.000Z",
@@ -63,7 +63,7 @@ test("getSettingsAccountSummary returns a concise shell-ready summary", () => {
   });
 
   assert.equal(summary.planLabel, "Pro Plan");
-  assert.equal(summary.planStatus, "Canceling");
+  assert.equal(summary.planStatus, null);
   assert.equal(summary.usage.reportsThisMonth, 4);
   assert.equal(summary.usage.detailsLimit, 5);
 });
