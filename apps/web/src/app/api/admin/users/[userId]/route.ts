@@ -1,17 +1,25 @@
 import { NextResponse } from "next/server";
 import { db } from "@webhealth/shared/db";
-import { user, teams, systemLogs } from "@webhealth/shared/db/schema";
+import {
+  metricsBackfillJobs,
+  systemLogs,
+  teams,
+  user,
+  userFeatureFlags,
+} from "@webhealth/shared/db/schema";
 import { eq, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { requireAdminSession } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";
+import { getStripe } from "@/lib/server/stripe";
+import { deleteUserAccount } from "../../../account/route.logic";
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ userId: string }> },
 ) {
   try {
-    const session = await requireAdminSession();
+    await requireAdminSession();
 
     const { userId } = await params;
     const body = await req.json() as Record<string, unknown>;
@@ -47,18 +55,47 @@ export async function DELETE(
 
     const { userId } = await params;
 
-    // Clear log references to avoid FK constraint violations on delete
-    await db
-      .delete(systemLogs)
-      .where(
-        or(eq(systemLogs.triggeredBy, userId), eq(systemLogs.targetUserId, userId)),
-      );
-
-    // Delete team (cascades teamMembers, properties, reports)
-    await db.delete(teams).where(eq(teams.ownerId, userId));
-
-    // Delete user (cascades session, account)
-    await db.delete(user).where(eq(user.id, userId));
+    await deleteUserAccount(userId, {
+      listOwnedTeams: async (ownerId) =>
+        db.query.teams.findMany({
+          where: (table, { eq }) => eq(table.ownerId, ownerId),
+          columns: { id: true, stripeSubscriptionId: true },
+        }),
+      cancelStripeSubscription: async (subscriptionId) => {
+        await getStripe().subscriptions.cancel(subscriptionId);
+      },
+      deleteSystemLogsForUser: async (targetUserId) => {
+        await db
+          .delete(systemLogs)
+          .where(
+            or(
+              eq(systemLogs.triggeredBy, targetUserId),
+              eq(systemLogs.targetUserId, targetUserId),
+            ),
+          );
+      },
+      deleteUserFeatureFlagsForUser: async (targetUserId) => {
+        await db
+          .delete(userFeatureFlags)
+          .where(eq(userFeatureFlags.userId, targetUserId));
+      },
+      deleteMetricsBackfillJobsForUser: async (targetUserId) => {
+        await db
+          .delete(metricsBackfillJobs)
+          .where(
+            or(
+              eq(metricsBackfillJobs.triggeredByUserId, targetUserId),
+              eq(metricsBackfillJobs.targetUserId, targetUserId),
+            ),
+          );
+      },
+      deleteOwnedTeams: async (ownerId) => {
+        await db.delete(teams).where(eq(teams.ownerId, ownerId));
+      },
+      deleteUser: async (targetUserId) => {
+        await db.delete(user).where(eq(user.id, targetUserId));
+      },
+    });
 
     // Log after deletion (targetUserId is null since user is gone)
     db.insert(systemLogs)
