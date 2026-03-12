@@ -1,5 +1,25 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Navbar } from "@/components/navbar";
+import { LegalFooterLinks } from "./legal/legal-footer-links";
+import {
+  buildLegalHref,
+  LEGAL_DOCUMENT_IDS,
+  LEGAL_NAV_LABELS,
+} from "./legal/legal-routes";
+
+function LegalFooterLinksFallback() {
+  return LEGAL_DOCUMENT_IDS.map((documentId) => (
+    <Link
+      key={documentId}
+      href={buildLegalHref(documentId, "en")}
+      className="text-xs transition-colors hover:underline"
+      style={{ color: "oklch(0.55 0.02 250)" }}
+    >
+      {LEGAL_NAV_LABELS.en[documentId]}
+    </Link>
+  ));
+}
 
 function MarketingFooter() {
   return (
@@ -23,20 +43,9 @@ function MarketingFooter() {
           </span>
         </div>
         <nav className="flex items-center gap-5" aria-label="Footer navigation">
-          <Link
-            href="/privacy"
-            className="text-xs hover:underline transition-colors"
-            style={{ color: "oklch(0.55 0.02 250)" }}
-          >
-            Privacy Policy
-          </Link>
-          <Link
-            href="/terms"
-            className="text-xs hover:underline transition-colors"
-            style={{ color: "oklch(0.55 0.02 250)" }}
-          >
-            Terms of Service
-          </Link>
+          <Suspense fallback={<LegalFooterLinksFallback />}>
+            <LegalFooterLinks />
+          </Suspense>
           <a
             href="mailto:contact@devbrew.dev"
             className="text-xs hover:underline transition-colors"
