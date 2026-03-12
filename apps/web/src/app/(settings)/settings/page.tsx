@@ -1,13 +1,18 @@
 "use client";
 
 import { startTransition, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@webhealth/shared/lib/auth-client";
 import {
+  canContinueToCheckout,
+  getCheckoutConfirmationCopy,
   getSettingsAccountSummary,
   getSettingsPlanCardLayoutClassNames,
+  getSettingsSoloPlanAction,
   normalizeSettingsResponse,
   resolveSettingsTab,
+  type PaidPlan,
   type Settings,
 } from "./settings-page.logic";
 import { UsageCard } from "@/components/usage-card";
@@ -64,6 +69,11 @@ export default function SettingsPage() {
   const activeTab = resolveSettingsTab(searchParams.get("tab"));
 
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<PaidPlan | null>(null);
+  const [acceptedLegalDocuments, setAcceptedLegalDocuments] = useState(false);
+  const [acknowledgedImmediateAccess, setAcknowledgedImmediateAccess] =
+    useState(false);
+  const [isCheckoutStarting, setIsCheckoutStarting] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     const data = await requestJson<Record<string, unknown>>("/api/settings");
@@ -124,16 +134,35 @@ export default function SettingsPage() {
     }
   };
 
-  const handleUpgrade = async (plan: "pro" | "agency") => {
+  const openCheckoutConfirmation = (plan: PaidPlan) => {
+    setCheckoutPlan(plan);
+    setAcceptedLegalDocuments(false);
+    setAcknowledgedImmediateAccess(false);
+    setIsCheckoutStarting(false);
+  };
+
+  const closeCheckoutConfirmation = () => {
+    setCheckoutPlan(null);
+    setAcceptedLegalDocuments(false);
+    setAcknowledgedImmediateAccess(false);
+    setIsCheckoutStarting(false);
+  };
+
+  const handleUpgrade = async () => {
+    if (!checkoutPlan) return;
+
+    setIsCheckoutStarting(true);
+
     try {
       const data = await requestJson<{ url?: string }>("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan: checkoutPlan }),
       });
       if (!data?.url) throw new Error("Failed to create checkout session");
       window.location.href = data.url;
     } catch (error) {
+      setIsCheckoutStarting(false);
       toast.error("Upgrade failed", {
         description: getAppErrorMessage(error, "Please try again."),
       });
@@ -205,6 +234,18 @@ export default function SettingsPage() {
   const planCardLayout = getSettingsPlanCardLayoutClassNames();
   const pricingBadgeClasses = getPricingBadgeClassNames();
   const activePlanName = formatPlanName(settings?.teamTier);
+  const soloPlanAction = settings ? getSettingsSoloPlanAction(settings) : null;
+  const checkoutConfirmation =
+    checkoutPlan === null
+      ? null
+      : getCheckoutConfirmationCopy(
+          checkoutPlan,
+          PRICING_PLANS[checkoutPlan].priceLabel,
+        );
+  const canStartCheckout = canContinueToCheckout({
+    acceptedLegalDocuments,
+    acknowledgedImmediateAccess,
+  });
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-8">
@@ -349,8 +390,8 @@ export default function SettingsPage() {
                   Choose Your Plan
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Upgrade, refresh billing status, or manage invoices without
-                  leaving the app.
+                  Review subscription details before checkout, then manage
+                  billing, cancellation, and invoices from your Stripe portal.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -369,7 +410,7 @@ export default function SettingsPage() {
                   disabled={!settings?.hasStripeCustomer}
                   onClick={handleBillingPortal}
                 >
-                  Manage Billing &amp; Invoices
+                  Manage Billing, Cancellation &amp; Invoices
                 </Button>
               </div>
             </div>
@@ -427,18 +468,16 @@ export default function SettingsPage() {
                           </li>
                         ))}
                       </ul>
-                      {settings.teamTier === "free" ? null : (
+                      {soloPlanAction ? (
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant={soloPlanAction.variant}
                           className={planCardLayout.action}
                           onClick={handleBillingPortal}
                         >
-                          {settings.subscriptionCancelAt
-                            ? "Manage Cancellation"
-                            : "Downgrade"}
+                          {soloPlanAction.label}
                         </Button>
-                      )}
+                      ) : null}
                     </div>
                   </div>
 
@@ -494,7 +533,7 @@ export default function SettingsPage() {
                         <Button
                           size="sm"
                           className={planCardLayout.action}
-                          onClick={() => handleUpgrade("pro")}
+                          onClick={() => openCheckoutConfirmation("pro")}
                         >
                           Upgrade to Pro
                         </Button>
@@ -554,6 +593,113 @@ export default function SettingsPage() {
                 </div>
               </>
             )}
+
+            <Dialog
+              open={checkoutPlan !== null}
+              onOpenChange={(open) => {
+                if (!open) {
+                  closeCheckoutConfirmation();
+                }
+              }}
+            >
+              <DialogContent className="sm:max-w-xl">
+                <DialogHeader>
+                  <DialogTitle>
+                    {checkoutConfirmation?.title ?? "Continue to checkout?"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Review the recurring billing terms and linked legal
+                    documents before Stripe Checkout opens.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-border/70 bg-muted/35 p-4">
+                    <p className="text-sm font-medium text-foreground">
+                      {checkoutConfirmation?.recurringNotice}
+                    </p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {checkoutConfirmation?.cancellationNotice}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-border/70 p-4">
+                    <p className="text-sm font-medium text-foreground">
+                      Review the legal documents
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href="/terms" target="_blank" rel="noreferrer">
+                          Terms of Service
+                        </Link>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href="/privacy" target="_blank" rel="noreferrer">
+                          Privacy Policy
+                        </Link>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link
+                          href="/impressum"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Impressum
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="flex items-start gap-3 rounded-lg border border-border/70 p-4 text-sm">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 rounded border-border"
+                        checked={acceptedLegalDocuments}
+                        onChange={(event) =>
+                          setAcceptedLegalDocuments(event.target.checked)
+                        }
+                      />
+                      <span className="text-muted-foreground">
+                        I reviewed the Terms of Service, Privacy Policy, and
+                        Impressum for this purchase.
+                      </span>
+                    </label>
+
+                    <label className="flex items-start gap-3 rounded-lg border border-border/70 p-4 text-sm">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 rounded border-border"
+                        checked={acknowledgedImmediateAccess}
+                        onChange={(event) =>
+                          setAcknowledgedImmediateAccess(event.target.checked)
+                        }
+                      />
+                      <span className="text-muted-foreground">
+                        I want immediate access to the paid plan and understand
+                        that it renews monthly until I cancel it in the billing
+                        portal.
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+                  <Button
+                    onClick={handleUpgrade}
+                    disabled={!canStartCheckout || isCheckoutStarting}
+                  >
+                    {isCheckoutStarting
+                      ? "Opening Stripe Checkout..."
+                      : checkoutConfirmation?.confirmLabel ??
+                        "Continue to Stripe Checkout"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </section>
 
           <section aria-labelledby="billing-heading" className="space-y-4">
@@ -711,6 +857,13 @@ export default function SettingsPage() {
                   description:
                     "Review our terms of service and usage guidelines",
                   href: "/terms",
+                },
+                {
+                  icon: FileText,
+                  title: "Impressum",
+                  description:
+                    "View the legal notice and provider identification details",
+                  href: "/impressum",
                 },
               ].map(({ icon: Icon, title, description, href, onClick }) => {
                 const className =
