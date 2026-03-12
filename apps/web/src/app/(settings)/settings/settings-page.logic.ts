@@ -1,4 +1,4 @@
-import { formatPlanName, getPlanStatusLabel } from "@/lib/plan-label";
+import { formatPlanName } from "@/lib/plan-label";
 
 export type Settings = {
   weeklyDigest: boolean;
@@ -19,6 +19,12 @@ export type Settings = {
 };
 
 export type SettingsTab = "account" | "contact";
+export type PaidPlan = "pro" | "agency";
+
+export type CheckoutConfirmationState = {
+  acceptedLegalDocuments: boolean;
+  acknowledgedImmediateAccess: boolean;
+};
 
 export function getSettingsPlanCardLayoutClassNames() {
   return {
@@ -27,6 +33,40 @@ export function getSettingsPlanCardLayoutClassNames() {
     content: "flex h-full flex-col gap-4",
     action: "mt-auto w-full",
   };
+}
+
+export function getSettingsSoloPlanAction(
+  input: Pick<Settings, "teamTier" | "subscriptionCancelAt">,
+) {
+  if (input.teamTier === "free") return null;
+
+  if (input.subscriptionCancelAt) {
+    return {
+      label: "Review Cancellation" as const,
+      variant: "outline" as const,
+    };
+  }
+
+  return {
+    label: "Cancel in Billing Portal" as const,
+    variant: "destructive" as const,
+  };
+}
+
+export function getCheckoutConfirmationCopy(plan: PaidPlan, priceLabel: string) {
+  const planName = plan === "agency" ? "Agency" : "Pro";
+
+  return {
+    title: `Continue to ${planName} checkout?`,
+    recurringNotice: `${priceLabel}/mo. The subscription renews monthly until you cancel it.`,
+    cancellationNotice:
+      "Cancellation, invoices, and plan changes are managed from the Stripe billing portal in your settings.",
+    confirmLabel: "Continue to Stripe Checkout",
+  };
+}
+
+export function canContinueToCheckout(input: CheckoutConfirmationState) {
+  return input.acceptedLegalDocuments && input.acknowledgedImmediateAccess;
 }
 
 export function normalizeSettingsResponse(data: unknown): Settings {
@@ -57,7 +97,7 @@ export function normalizeSettingsResponse(data: unknown): Settings {
 export function getSettingsAccountSummary(settings: Pick<Settings, "teamTier" | "subscriptionCancelAt" | "reportsThisMonth" | "reportsLimit" | "detailsThisMonth" | "detailsLimit">) {
   return {
     planLabel: formatPlanName(settings.teamTier),
-    planStatus: getPlanStatusLabel(settings.subscriptionCancelAt),
+    planStatus: null,
     usage: {
       reportsThisMonth: settings.reportsThisMonth ?? 0,
       reportsLimit: settings.reportsLimit ?? null,
