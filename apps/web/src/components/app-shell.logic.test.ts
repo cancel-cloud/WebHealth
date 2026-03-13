@@ -35,6 +35,14 @@ test("admin routes expose admin items and mark the matching entry current", () =
   assert.equal(model.adminItems.find((item) => item.href === "/admin/feedback")?.icon, "mail");
 });
 
+test("glitchtip admin route exposes the test page and marks it current", () => {
+  const model = getAppSidebarModel({ pathname: "/admin/glitchtip-test", isAdmin: true });
+
+  assert.equal(model.adminItems.find((item) => item.href === "/admin/glitchtip-test")?.current, true);
+  assert.equal(model.adminItems.find((item) => item.href === "/admin/glitchtip-test")?.label, "GlitchTip Test");
+  assert.equal(model.adminItems.find((item) => item.href === "/admin/glitchtip-test")?.icon, "bug");
+});
+
 test("inactive sidebar items use a stronger hover treatment than the resting state", () => {
   const classes = getAppSidebarItemClasses({ current: false, nested: false });
 
