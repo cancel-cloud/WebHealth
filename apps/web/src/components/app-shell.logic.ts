@@ -206,6 +206,13 @@ export function getAppSidebarModel({
           icon: "bug",
           current: isPathCurrent(pathname, "/admin/ai-report-debug"),
         },
+        {
+          id: "admin-glitchtip-test",
+          label: "GlitchTip Test",
+          href: "/admin/glitchtip-test",
+          icon: "bug",
+          current: isPathCurrent(pathname, "/admin/glitchtip-test"),
+        },
       ]
     : [];
 
