@@ -1817,6 +1817,7 @@ export function startReportWorkerLoop() {
   let idleSinceMs = 0;
   let lastIdlePulseMs = 0;
   let idleCount = 0;
+  let isRunning = false;
   let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
   let listenConn: ReturnType<typeof postgres> | null = null;
 
@@ -1846,6 +1847,8 @@ export function startReportWorkerLoop() {
 
   const loop = async () => {
     if (stopped) return;
+    if (isRunning) return;
+    isRunning = true;
     let processed = false;
     try {
       const result = await runSingleReportWorkerTick(workerId);
@@ -1874,6 +1877,7 @@ export function startReportWorkerLoop() {
     } catch (error) {
       logFatal("FATAL", "worker loop error", { workerId }, error);
     } finally {
+      isRunning = false;
       if (!stopped) {
         const delay = Math.min(intervalMs * Math.pow(2, idleCount), maxPollMs);
         if (!processed) {
