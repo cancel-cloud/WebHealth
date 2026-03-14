@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { headers } from "next/headers";
 import { and, eq } from "drizzle-orm";
 import { auth } from "@webhealth/shared/lib/auth";
@@ -12,8 +13,12 @@ import { isAdminEmail } from "@webhealth/shared/lib/admin-access";
 
 type Session = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
 
+const getCachedSession = cache(async () => {
+  return auth.api.getSession({ headers: await headers() });
+});
+
 export async function requireSession() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getCachedSession();
   if (!session) {
     throw unauthorized();
   }
@@ -26,21 +31,29 @@ export async function requireUnrestrictedSession() {
   return session;
 }
 
-export async function assertUserNotRestricted(userId: string) {
-  const userRecord = await db.query.user.findFirst({
+const getCachedUserRecord = cache(async (userId: string) => {
+  return db.query.user.findFirst({
     where: (table, { eq }) => eq(table.id, userId),
     columns: { isRestricted: true },
   });
+});
+
+export async function assertUserNotRestricted(userId: string) {
+  const userRecord = await getCachedUserRecord(userId);
 
   if (userRecord?.isRestricted) {
     throw forbidden("Your account is restricted. Contact an administrator from the Settings page.", "ACCOUNT_RESTRICTED");
   }
 }
 
-export async function getUserTeamMemberships(userId: string) {
+const getCachedUserTeamMemberships = cache(async (userId: string) => {
   return db.query.teamMembers.findMany({
     where: (table, { eq }) => eq(table.userId, userId),
   });
+});
+
+export async function getUserTeamMemberships(userId: string) {
+  return getCachedUserTeamMemberships(userId);
 }
 
 export async function requireAnyTeamMembership(session: Session) {
