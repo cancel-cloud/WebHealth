@@ -9,11 +9,14 @@ export function withCache<T>(fn: () => Promise<T>, ttlMs: number): () => Promise
     if (entry && entry.expiresAt > now) return entry.value;
     if (inflight) return inflight;
 
-    inflight = fn().then((value) => {
-      entry = { value, expiresAt: Date.now() + ttlMs };
-      inflight = null;
-      return value;
-    });
+    inflight = fn()
+      .then((value) => {
+        entry = { value, expiresAt: Date.now() + ttlMs };
+        return value;
+      })
+      .finally(() => {
+        inflight = null;
+      });
     return inflight;
   };
 }
@@ -32,11 +35,14 @@ export function withKeyedCache<K extends string, T>(
     const pending = inflight.get(key);
     if (pending) return pending;
 
-    const promise = fn(key).then((value) => {
-      cache.set(key, { value, expiresAt: Date.now() + ttlMs });
-      inflight.delete(key);
-      return value;
-    });
+    const promise = fn(key)
+      .then((value) => {
+        cache.set(key, { value, expiresAt: Date.now() + ttlMs });
+        return value;
+      })
+      .finally(() => {
+        inflight.delete(key);
+      });
     inflight.set(key, promise);
     return promise;
   };
