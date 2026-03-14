@@ -73,6 +73,8 @@ export async function enqueueReportJob(input: EnqueueReportJobInput) {
     message: `Job enqueued (${input.kind})`,
   });
 
+  await db.execute(sql`SELECT pg_notify('job_available', '')`);
+
   return job;
 }
 
