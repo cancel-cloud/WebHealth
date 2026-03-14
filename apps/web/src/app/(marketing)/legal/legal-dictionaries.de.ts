@@ -66,7 +66,7 @@ export const legalDictionaryDe = {
             "Betrieb der Report-Pipeline einschließlich KI-gestützter Analyse: Vertragserfüllung.",
             "Bearbeitung von Supportanfragen, Feedback und accountbezogener Kommunikation: Vertragserfüllung und berechtigtes Interesse an Support.",
             "Missbrauchsverhinderung, Sicherheit, Incident-Untersuchungen und Audit-Trails: berechtigte Interessen an Sicherheit, Betrugsprävention und zuverlässigem Betrieb.",
-            "Messung der Produktnutzung und Fehlerdiagnose mit datenschutzbewussten Analyse- und Monitoring-Tools: berechtigte Interessen an Verbesserung und Betrieb des Dienstes.",
+            "Messung der Websitenutzung mit Google Analytics 4 nach Ihrer Einwilligung in Analytics-Cookies: Einwilligung.",
           ],
         },
         {
@@ -78,15 +78,21 @@ export const legalDictionaryDe = {
           ],
         },
         {
+          title: "Google Analytics 4 für Website-Tracking",
+          paragraphs: [
+            "Wir verwenden Google Analytics 4, um die Nutzung der Website zu messen. Dabei können insbesondere Seitenaufrufe, Navigations- und Interaktionsereignisse, ungefähre Geräte- und Browserinformationen sowie Referrer-Daten verarbeitet werden.",
+            "Google Analytics 4 wird erst aktiviert, nachdem Sie im Consent-Banner Analytics-Cookies akzeptiert haben. Wenn Sie ablehnen, wird das Google-Tag nicht geladen. Ihre Auswahl können Sie später jederzeit über die Cookie-Einstellungen im Footer ändern.",
+          ],
+        },
+        {
           title: "Empfänger und Auftragsverarbeiter",
           bullets: [
-            "Google für OAuth-Anmeldung und als verbundene Datenquelle für Search Console und GA4.",
+            "Google für OAuth-Anmeldung, als verbundene Datenquelle für Search Console und GA4 sowie als Anbieter von Google Analytics 4 für Website-Analysen nach Einwilligung.",
             "OpenAI zur Verarbeitung ausgewählter Report-Kontexte, URLs, Kennzahlen und strukturierter Auditdaten zur Erzeugung KI-gestützter Ausgaben.",
             "Stripe zur Anlage von Kundenprofilen, Abwicklung von Abonnements und Bereitstellung des Billing-Portals.",
             "Vercel zum Hosting und Ausliefern der Webanwendung.",
             "Neon/PostgreSQL zum Hosting der Anwendungsdatenbank in der EU.",
             "GlitchTip zur Erfassung operativer Fehler und sicherheitsrelevanter Ausnahmen.",
-            "Vercel Analytics für datenschutzbewusste Produktanalysen zur Webnutzung.",
           ],
         },
         {
@@ -115,15 +121,15 @@ export const legalDictionaryDe = {
         {
           title: "Cookies und sonstiger Gerätespeicher",
           paragraphs: [
-            "Wir verwenden Cookies und sonstigen Gerätespeicher, die für den Betrieb des Dienstes und die Speicherung einfacher UI-Zustände erforderlich sind. Dazu zählen Authentifizierungs-/Sitzungs-Cookies, ein Sidebar-State-Cookie sowie Local-Storage-Einträge für Onboarding oder ausstehende UI-Aktionen.",
-            "Werbe-Cookies setzen wir derzeit nicht ein. Falls später nicht erforderliche Tracking- oder Marketing-Technologien hinzukommen, aktualisieren wir diese Hinweise und etwaige Einwilligungsabläufe entsprechend.",
+            "Wir verwenden Cookies und sonstigen Gerätespeicher, die für den Betrieb des Dienstes und die Speicherung einfacher UI-Zustände erforderlich sind. Dazu zählen Authentifizierungs-/Sitzungs-Cookies, ein Sidebar-State-Cookie sowie Local-Storage-Einträge für Onboarding, ausstehende UI-Aktionen und Ihre gespeicherte Analytics-Einwilligung.",
+            "Wenn Sie Analytics-Cookies akzeptieren, laden wir zusätzlich das Google-Tag für Google Analytics 4 zur Reichweitenmessung der Website. Wenn Sie ablehnen, bleibt das Google-Tag deaktiviert.",
           ],
         },
         {
           title: "Ihre Rechte",
           bullets: [
             "Sie können nach Maßgabe der gesetzlichen Voraussetzungen Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit oder Widerspruch verlangen.",
-            "Soweit eine Verarbeitung auf Einwilligung beruht, können Sie diese jederzeit mit Wirkung für die Zukunft widerrufen.",
+            "Soweit eine Verarbeitung auf Einwilligung beruht, können Sie diese jederzeit mit Wirkung für die Zukunft widerrufen oder ändern, insbesondere über die Cookie-Einstellungen im Footer.",
             `Sie können sich bei einer zuständigen Aufsichtsbehörde beschweren. Für Hessen ist dies derzeit ${legalProfile.supervisoryAuthority}.`,
           ],
         },
