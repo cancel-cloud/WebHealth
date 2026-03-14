@@ -1,5 +1,6 @@
 import { db } from "@webhealth/shared/db";
 import { adminEmails } from "@webhealth/shared/db/schema";
+import { withCache } from "@webhealth/shared/lib/simple-cache";
 
 export async function isAdminEmail(email: string | null | undefined) {
   if (!email) return false;
@@ -13,12 +14,13 @@ export async function isAdminEmail(email: string | null | undefined) {
   return Boolean(row);
 }
 
-export async function listAdminEmails() {
-  return db.query.adminEmails.findMany({
+const _listAdminEmails = () =>
+  db.query.adminEmails.findMany({
     columns: { email: true },
     orderBy: (table, { asc }) => [asc(table.email)],
   });
-}
+
+export const listAdminEmails = withCache(_listAdminEmails, 5 * 60 * 1000);
 
 export async function ensureAdminEmail(email: string, createdByUserId?: string | null) {
   const normalizedEmail = email.trim().toLowerCase();
