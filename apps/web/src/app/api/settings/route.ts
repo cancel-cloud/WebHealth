@@ -5,8 +5,18 @@ import { eq, and, gte, count } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { listAdminEmails } from "@webhealth/shared/lib/admin-access";
 import { badRequest } from "@webhealth/shared/lib/http-errors";
+import { withKeyedCache } from "@webhealth/shared/lib/simple-cache";
 import { requireSession, getUserTeamMemberships } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";
+
+const getPlanSettings = withKeyedCache(
+  (tier: string) =>
+    db.query.planSettings.findFirst({
+      where: (ps, { eq }) => eq(ps.tier, tier),
+      columns: { reportsPerMonth: true, detailsPerMonth: true },
+    }),
+  30 * 60 * 1000
+);
 
 const ALLOWED_FIELDS = ['weeklyDigest', 'reportComplete', 'syncFailure', 'emailReceipts', 'reportLanguage'] as const;
 
@@ -43,10 +53,7 @@ export async function GET() {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const [planRecord, usageRecord, reportsThisMonthResult] = primaryTeamId
       ? await Promise.all([
-          db.query.planSettings.findFirst({
-            where: (ps, { eq }) => eq(ps.tier, teamTier),
-            columns: { reportsPerMonth: true, detailsPerMonth: true },
-          }),
+          getPlanSettings(teamTier),
           db.query.teamUsage.findFirst({
             where: (u, { and, eq }) => and(eq(u.teamId, primaryTeamId), eq(u.yearMonth, yearMonth)),
             columns: { detailsCount: true },
