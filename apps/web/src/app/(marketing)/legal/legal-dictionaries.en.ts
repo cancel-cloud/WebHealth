@@ -66,7 +66,7 @@ export const legalDictionaryEn = {
             "Operate the report pipeline, including AI-assisted analysis of report context: performance of a contract.",
             "Handle support requests, feedback, and account communications: performance of a contract and our legitimate interest in user support.",
             "Prevent abuse, secure the service, investigate incidents, and maintain audit trails: legitimate interests in security, fraud prevention, and reliable operations.",
-            "Measure product usage and diagnose errors using privacy-aware analytics and monitoring tools: legitimate interests in improving and maintaining the service.",
+            "Measure website usage with Google Analytics 4 after you accept analytics cookies: consent.",
           ],
         },
         {
@@ -78,15 +78,21 @@ export const legalDictionaryEn = {
           ],
         },
         {
+          title: "Google Analytics 4 website tracking",
+          paragraphs: [
+            "We use Google Analytics 4 to measure how visitors use the website, including page views, navigation events, approximate device and browser details, referrer information, and interaction events.",
+            "Google Analytics 4 is activated only after you accept analytics cookies in the consent banner. If you decline, the Google tag is not loaded. You can change your choice later at any time through Cookie settings in the footer.",
+          ],
+        },
+        {
           title: "Recipients and processors",
           bullets: [
-            "Google, for OAuth sign-in and as the connected data source for Search Console and GA4.",
+            "Google, for OAuth sign-in, as the connected data source for Search Console and GA4, and as the provider of Google Analytics 4 website analytics after consent.",
             "OpenAI, to process selected report context, URLs, metrics, and structured audit data in order to generate AI-assisted report output.",
             "Stripe, to create customer records, process subscriptions, and manage the billing portal.",
             "Vercel, to host and serve the web application.",
             "Neon/PostgreSQL, to host the application database in the EU.",
             "GlitchTip, to capture operational errors and security-relevant exceptions.",
-            "Vercel Analytics, to collect privacy-aware product analytics about site usage.",
           ],
         },
         {
@@ -115,15 +121,15 @@ export const legalDictionaryEn = {
         {
           title: "Cookies and device storage",
           paragraphs: [
-            "We use cookies and other device storage that are necessary to run the service and remember basic UI state. This includes authentication/session cookies, a sidebar-state cookie, and local storage entries used for onboarding or pending UI actions.",
-            "We do not currently use advertising cookies. If non-essential tracking or marketing storage is introduced later, we will update this notice and any consent flow as required.",
+            "We use cookies and other device storage that are necessary to run the service and remember basic UI state. This includes authentication/session cookies, a sidebar-state cookie, and local storage entries used for onboarding, pending UI actions, and your saved analytics consent preference.",
+            "If you accept analytics cookies, we also load the Google tag for Google Analytics 4 website measurement. If you decline, the Google tag remains disabled.",
           ],
         },
         {
           title: "Your rights",
           bullets: [
             "You may request access to your personal data, rectification, erasure, restriction of processing, data portability, or object to processing where the law grants that right.",
-            "Where processing is based on consent, you may withdraw consent at any time without affecting prior processing.",
+            "Where processing is based on consent, you may withdraw or change that consent at any time without affecting prior processing, including through Cookie settings in the footer.",
             `You may lodge a complaint with a competent supervisory authority. For Hesse, Germany, this is currently ${legalProfile.supervisoryAuthority}.`,
           ],
         },

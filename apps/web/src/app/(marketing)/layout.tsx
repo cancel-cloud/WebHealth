@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Navbar } from "@/components/navbar";
+import { CookieSettingsButton } from "@/components/cookie-consent";
 import { LegalFooterLinks } from "./legal/legal-footer-links";
 import {
   buildLegalHref,
@@ -46,6 +47,7 @@ function MarketingFooter() {
           <Suspense fallback={<LegalFooterLinksFallback />}>
             <LegalFooterLinks />
           </Suspense>
+          <CookieSettingsButton />
           <a
             href="mailto:contact@devbrew.dev"
             className="text-xs hover:underline transition-colors"

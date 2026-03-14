@@ -116,9 +116,15 @@ test("privacy dictionaries explicitly cover required data and absence of Article
 
   assert.match(englishPrivacyText, /required to create an account/i);
   assert.match(englishPrivacyText, /Article 22 GDPR/i);
+  assert.match(englishPrivacyText, /Google Analytics 4/i);
+  assert.match(englishPrivacyText, /cookie settings/i);
+  assert.match(englishPrivacyText, /consent/i);
 
   assert.match(germanPrivacyText, /erforderlich/i);
   assert.match(germanPrivacyText, /Artikel 22 DSGVO/i);
+  assert.match(germanPrivacyText, /Google Analytics 4/i);
+  assert.match(germanPrivacyText, /Cookie-Einstellungen/i);
+  assert.match(germanPrivacyText, /Einwilligung|Zustimmung/i);
 });
 
 test("legal profile exposes the core business fields", async () => {
