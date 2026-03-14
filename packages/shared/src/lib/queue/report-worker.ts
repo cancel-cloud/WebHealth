@@ -1,7 +1,9 @@
 import OpenAI from "openai";
 import { nanoid } from "nanoid";
+import postgres from "postgres";
 import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "@webhealth/shared/db";
+import { requireDirectDatabaseUrl } from "@webhealth/shared/db/url-guards";
 import {
   aiReportSettings,
   ga4DailyFacts,
@@ -1809,17 +1811,45 @@ export function startReportWorkerLoop() {
   let stopped = false;
   const workerId = `worker_${nanoid(8)}`;
   const intervalMs = parseInt(process.env.REPORT_WORKER_POLL_MS ?? "3000", 10);
+  const maxPollMs = parseInt(process.env.REPORT_WORKER_MAX_POLL_MS ?? "30000", 10);
   const idlePulseMs = getIdlePulseMs();
   let isIdle = false;
   let idleSinceMs = 0;
   let lastIdlePulseMs = 0;
+  let idleCount = 0;
+  let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
+  let listenConn: ReturnType<typeof postgres> | null = null;
 
   logInfo("BOOT", "worker loop starting", { workerId, pollMs: intervalMs, idlePulseMs });
 
+  const triggerImmediatePoll = () => {
+    if (stopped) return;
+    if (pendingTimeout !== null) {
+      clearTimeout(pendingTimeout);
+      pendingTimeout = null;
+    }
+    idleCount = 0;
+    void loop();
+  };
+
+  try {
+    const directUrl = requireDirectDatabaseUrl();
+    listenConn = postgres(directUrl, { max: 1 });
+    listenConn.listen("job_available", triggerImmediatePoll).catch((err) => {
+      logFatal("BOOT", "LISTEN setup failed", { workerId }, err);
+      listenConn = null;
+    });
+    logInfo("BOOT", "LISTEN/NOTIFY enabled", { workerId });
+  } catch {
+    logInfo("BOOT", "DIRECT_DATABASE_URL not set, LISTEN/NOTIFY disabled", { workerId });
+  }
+
   const loop = async () => {
     if (stopped) return;
+    let processed = false;
     try {
       const result = await runSingleReportWorkerTick(workerId);
+      processed = result.processed;
       const now = Date.now();
       if (!result.processed) {
         if (!isIdle) {
@@ -1844,7 +1874,15 @@ export function startReportWorkerLoop() {
     } catch (error) {
       logFatal("FATAL", "worker loop error", { workerId }, error);
     } finally {
-      if (!stopped) setTimeout(loop, intervalMs);
+      if (!stopped) {
+        const delay = Math.min(intervalMs * Math.pow(2, idleCount), maxPollMs);
+        if (!processed) {
+          idleCount++;
+        } else {
+          idleCount = 0;
+        }
+        pendingTimeout = setTimeout(loop, delay);
+      }
     }
   };
 
@@ -1852,6 +1890,14 @@ export function startReportWorkerLoop() {
   return {
     stop() {
       stopped = true;
+      if (pendingTimeout !== null) {
+        clearTimeout(pendingTimeout);
+        pendingTimeout = null;
+      }
+      if (listenConn) {
+        listenConn.end({ timeout: 5 }).catch(() => {});
+        listenConn = null;
+      }
     },
   } satisfies WorkerLoopControls;
 }
