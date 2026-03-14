@@ -1841,8 +1841,11 @@ export function startReportWorkerLoop() {
       listenConn = null;
     });
     logInfo("BOOT", "LISTEN/NOTIFY enabled", { workerId });
-  } catch {
-    logInfo("BOOT", "DIRECT_DATABASE_URL not set, LISTEN/NOTIFY disabled", { workerId });
+  } catch (err) {
+    const reason = err instanceof Error && err.message.includes("DIRECT_DATABASE_URL is required")
+      ? "DIRECT_DATABASE_URL not set"
+      : `DIRECT_DATABASE_URL misconfigured: ${err instanceof Error ? err.message : String(err)}`;
+    logInfo("BOOT", `LISTEN/NOTIFY disabled (${reason})`, { workerId });
   }
 
   const loop = async () => {
