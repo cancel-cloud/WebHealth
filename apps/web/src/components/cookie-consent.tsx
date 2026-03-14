@@ -28,11 +28,10 @@ type CookieConsentContextValue = {
   reopen: () => void;
 };
 
-type AnalyticsWindow = Window & {
+type AnalyticsWindow = Window & typeof globalThis & {
   dataLayer?: unknown[][];
   gtag?: (...args: unknown[]) => void;
   __webhealthGaInitialized?: boolean;
-  [key: string]: unknown;
 };
 
 const CookieConsentContext = createContext<CookieConsentContextValue | null>(null);
@@ -53,7 +52,8 @@ function getAnalyticsWindow() {
 }
 
 function setGoogleAnalyticsDisabled(disabled: boolean) {
-  const analyticsWindow = getAnalyticsWindow();
+  const analyticsWindow = getAnalyticsWindow() as AnalyticsWindow &
+    Record<string, unknown>;
   analyticsWindow[`ga-disable-${GOOGLE_ANALYTICS_MEASUREMENT_ID}`] = disabled;
 }
 
