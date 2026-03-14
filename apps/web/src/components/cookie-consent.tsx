@@ -12,8 +12,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  buildGoogleConsentDefault,
+  buildGoogleConsentUpdate,
   GOOGLE_ANALYTICS_MEASUREMENT_ID,
-  isGoogleAnalyticsEnabled,
   readCookieConsent,
   shouldShowCookieConsentBanner,
   writeCookieConsent,
@@ -51,12 +52,6 @@ function getAnalyticsWindow() {
   return window as AnalyticsWindow;
 }
 
-function setGoogleAnalyticsDisabled(disabled: boolean) {
-  const analyticsWindow = getAnalyticsWindow() as AnalyticsWindow &
-    Record<string, unknown>;
-  analyticsWindow[`ga-disable-${GOOGLE_ANALYTICS_MEASUREMENT_ID}`] = disabled;
-}
-
 function ensureGoogleTagLoaded() {
   const analyticsWindow = getAnalyticsWindow();
   analyticsWindow.dataLayer = analyticsWindow.dataLayer ?? [];
@@ -75,11 +70,16 @@ function ensureGoogleTagLoaded() {
   }
 
   if (!analyticsWindow.__webhealthGaInitialized) {
+    analyticsWindow.gtag("consent", "default", buildGoogleConsentDefault());
     analyticsWindow.gtag("js", new Date());
+    analyticsWindow.gtag("config", GOOGLE_ANALYTICS_MEASUREMENT_ID);
     analyticsWindow.__webhealthGaInitialized = true;
   }
+}
 
-  analyticsWindow.gtag("config", GOOGLE_ANALYTICS_MEASUREMENT_ID);
+function updateGoogleConsent(consent: CookieConsentState) {
+  const analyticsWindow = getAnalyticsWindow();
+  analyticsWindow.gtag?.("consent", "update", buildGoogleConsentUpdate(consent));
 }
 
 function CookieConsentBanner({
@@ -134,13 +134,8 @@ export function CookieConsentProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!hydrated) return;
 
-    if (isGoogleAnalyticsEnabled(consent)) {
-      setGoogleAnalyticsDisabled(false);
-      ensureGoogleTagLoaded();
-      return;
-    }
-
-    setGoogleAnalyticsDisabled(true);
+    ensureGoogleTagLoaded();
+    updateGoogleConsent(consent);
   }, [consent, hydrated]);
 
   const accept = () => {

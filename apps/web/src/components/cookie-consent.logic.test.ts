@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  buildGoogleConsentDefault,
+  buildGoogleConsentUpdate,
   COOKIE_CONSENT_STORAGE_KEY,
   getCookieConsentFromStorage,
   isGoogleAnalyticsEnabled,
@@ -59,4 +61,30 @@ test("stored consent can be changed later via cookie settings", () => {
 
   assert.equal(readCookieConsent(storage), "declined");
   assert.equal(isGoogleAnalyticsEnabled(readCookieConsent(storage)), false);
+});
+
+test("google consent defaults deny storage before user interaction", () => {
+  assert.deepEqual(buildGoogleConsentDefault(), {
+    ad_storage: "denied",
+    ad_user_data: "denied",
+    ad_personalization: "denied",
+    analytics_storage: "denied",
+    wait_for_update: 500,
+  });
+});
+
+test("google consent updates grant analytics only after acceptance", () => {
+  assert.deepEqual(buildGoogleConsentUpdate("accepted"), {
+    ad_storage: "denied",
+    ad_user_data: "denied",
+    ad_personalization: "denied",
+    analytics_storage: "granted",
+  });
+
+  assert.deepEqual(buildGoogleConsentUpdate("declined"), {
+    ad_storage: "denied",
+    ad_user_data: "denied",
+    ad_personalization: "denied",
+    analytics_storage: "denied",
+  });
 });
