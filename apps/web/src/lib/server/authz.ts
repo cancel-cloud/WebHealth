@@ -1,9 +1,7 @@
 import { cache } from "react";
 import { headers } from "next/headers";
-import { and, eq } from "drizzle-orm";
 import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
-import { teamMembers, user } from "@webhealth/shared/db/schema";
 import {
   forbidden,
   notFound,
