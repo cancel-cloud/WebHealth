@@ -10,9 +10,10 @@
     "db:seed:plan-settings": "tsx ../../packages/shared/src/db/seed-plan-settings.ts"
   },
   "dependencies": {
-    "@sentry/nextjs": "^10.43.0",
     "@better-fetch/fetch": "^1.1.21",
     "@hookform/resolvers": "^5.2.2",
+    "@next/third-parties": "^16.1.6",
+    "@sentry/nextjs": "^10.43.0",
     "@tanstack/react-table": "^8.21.3",
     "@vercel/analytics": "^1.6.1",
     "@webhealth/shared": "workspace:*",

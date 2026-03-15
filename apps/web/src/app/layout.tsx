@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CookieConsentProvider } from "@/components/cookie-consent";
+import { GoogleConsentDefault } from "@/components/google-consent-default";
+import { GOOGLE_ANALYTICS_MEASUREMENT_ID } from "@/components/cookie-consent.logic";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -66,10 +69,12 @@ export default function RootLayout({
           media="(prefers-color-scheme: dark)"
           content="#1a1f2e"
         />
+        <GoogleConsentDefault />
       </head>
       <body
         className={`${inter.variable} ${outfit.variable} font-sans antialiased min-h-screen flex flex-col`}
       >
+        <GoogleAnalytics gaId={GOOGLE_ANALYTICS_MEASUREMENT_ID} />
         <CookieConsentProvider>
           <ThemeProvider
             attribute="class"
