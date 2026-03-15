@@ -149,7 +149,7 @@ export function CookieConsentProvider({ children }: PropsWithChildren) {
       // Fire an explicit page_view only when transitioning from unknown → accepted
       // mid-session. For returning visitors (accepted on mount), the queued config
       // hit is released by the consent update within the wait_for_update window.
-      const firePageView = prev === "unknown" && consent === "accepted";
+      const firePageView = (prev === null || prev === "unknown") && consent === "accepted";
       updateGoogleConsent(consent, firePageView);
     }
   }, [consent, hydrated]);
