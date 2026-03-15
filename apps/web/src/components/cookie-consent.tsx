@@ -13,9 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  buildGoogleConsentDefault,
   buildGoogleConsentUpdate,
-  GOOGLE_ANALYTICS_MEASUREMENT_ID,
   readCookieConsent,
   shouldShowCookieConsentBanner,
   writeCookieConsent,
@@ -30,15 +28,7 @@ type CookieConsentContextValue = {
   reopen: () => void;
 };
 
-type AnalyticsWindow = Window & typeof globalThis & {
-  dataLayer?: unknown[][];
-  gtag?: (...args: unknown[]) => void;
-  __webhealthGaInitialized?: boolean;
-};
-
 const CookieConsentContext = createContext<CookieConsentContextValue | null>(null);
-
-const GOOGLE_TAG_SCRIPT_ID = "webhealth-google-tag";
 
 function subscribeToHydration() {
   return () => {};
@@ -49,40 +39,11 @@ function getInitialConsent() {
   return readCookieConsent(window.localStorage);
 }
 
-function getAnalyticsWindow() {
-  return window as AnalyticsWindow;
-}
-
-function ensureGoogleTagLoaded() {
-  const analyticsWindow = getAnalyticsWindow();
-  analyticsWindow.dataLayer = analyticsWindow.dataLayer ?? [];
-  analyticsWindow.gtag =
-    analyticsWindow.gtag ??
-    function gtag(...args: unknown[]) {
-      analyticsWindow.dataLayer?.push(args);
-    };
-
-  if (!document.getElementById(GOOGLE_TAG_SCRIPT_ID)) {
-    const script = document.createElement("script");
-    script.id = GOOGLE_TAG_SCRIPT_ID;
-    script.async = true;
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_MEASUREMENT_ID}`;
-    document.head.appendChild(script);
-  }
-
-  if (!analyticsWindow.__webhealthGaInitialized) {
-    analyticsWindow.gtag("consent", "default", buildGoogleConsentDefault());
-    analyticsWindow.gtag("js", new Date());
-    analyticsWindow.gtag("config", GOOGLE_ANALYTICS_MEASUREMENT_ID);
-    analyticsWindow.__webhealthGaInitialized = true;
-  }
-}
-
 function updateGoogleConsent(consent: CookieConsentState, firePageView: boolean) {
-  const analyticsWindow = getAnalyticsWindow();
-  analyticsWindow.gtag?.("consent", "update", buildGoogleConsentUpdate(consent));
+  const w = window as Window & { gtag?: (...args: unknown[]) => void };
+  w.gtag?.("consent", "update", buildGoogleConsentUpdate(consent));
   if (firePageView && consent === "accepted") {
-    analyticsWindow.gtag?.("event", "page_view");
+    w.gtag?.("event", "page_view");
   }
 }
 
@@ -141,10 +102,6 @@ export function CookieConsentProvider({ children }: PropsWithChildren) {
 
     const prev = prevConsentRef.current;
     prevConsentRef.current = consent;
-    ensureGoogleTagLoaded();
-    // Don't push a consent update for "unknown" — the consent default already
-    // sets analytics_storage: denied with wait_for_update. Pushing an immediate
-    // "denied" update would cancel that wait period before the banner is shown.
     if (consent !== "unknown") {
       // Fire an explicit page_view only when transitioning from unknown → accepted
       // mid-session. For returning visitors (accepted on mount), the queued config
