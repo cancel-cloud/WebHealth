@@ -5,6 +5,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useSyncExternalStore,
   type PropsWithChildren,
@@ -77,9 +78,12 @@ function ensureGoogleTagLoaded() {
   }
 }
 
-function updateGoogleConsent(consent: CookieConsentState) {
+function updateGoogleConsent(consent: CookieConsentState, firePageView: boolean) {
   const analyticsWindow = getAnalyticsWindow();
   analyticsWindow.gtag?.("consent", "update", buildGoogleConsentUpdate(consent));
+  if (firePageView && consent === "accepted") {
+    analyticsWindow.gtag?.("event", "page_view");
+  }
 }
 
 function CookieConsentBanner({
@@ -130,12 +134,19 @@ export function CookieConsentProvider({ children }: PropsWithChildren) {
   const [openBanner, setOpenBanner] = useState(() =>
     shouldShowCookieConsentBanner(getInitialConsent()),
   );
+  const prevConsentRef = useRef<CookieConsentState | null>(null);
 
   useEffect(() => {
     if (!hydrated) return;
 
+    const prev = prevConsentRef.current;
+    prevConsentRef.current = consent;
+    // Only fire an explicit page_view when transitioning from unknown → accepted
+    // mid-session. For returning visitors (already accepted on mount), the
+    // queued config hit is released by the consent update within wait_for_update.
+    const firePageView = prev === "unknown" && consent === "accepted";
     ensureGoogleTagLoaded();
-    updateGoogleConsent(consent);
+    updateGoogleConsent(consent, firePageView);
   }, [consent, hydrated]);
 
   const accept = () => {
