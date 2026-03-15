@@ -141,12 +141,17 @@ export function CookieConsentProvider({ children }: PropsWithChildren) {
 
     const prev = prevConsentRef.current;
     prevConsentRef.current = consent;
-    // Only fire an explicit page_view when transitioning from unknown → accepted
-    // mid-session. For returning visitors (already accepted on mount), the
-    // queued config hit is released by the consent update within wait_for_update.
-    const firePageView = prev === "unknown" && consent === "accepted";
     ensureGoogleTagLoaded();
-    updateGoogleConsent(consent, firePageView);
+    // Don't push a consent update for "unknown" — the consent default already
+    // sets analytics_storage: denied with wait_for_update. Pushing an immediate
+    // "denied" update would cancel that wait period before the banner is shown.
+    if (consent !== "unknown") {
+      // Fire an explicit page_view only when transitioning from unknown → accepted
+      // mid-session. For returning visitors (accepted on mount), the queued config
+      // hit is released by the consent update within the wait_for_update window.
+      const firePageView = prev === "unknown" && consent === "accepted";
+      updateGoogleConsent(consent, firePageView);
+    }
   }, [consent, hydrated]);
 
   const accept = () => {
