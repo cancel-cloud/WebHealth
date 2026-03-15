@@ -15,7 +15,7 @@ type WriteStorage = Pick<Storage, "setItem">;
 export const COOKIE_CONSENT_STORAGE_KEY = "webhealth_cookie_consent_v1";
 export const GOOGLE_ANALYTICS_MEASUREMENT_ID =
   process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim() || "G-3GH242QVM3";
-export const GOOGLE_CONSENT_WAIT_FOR_UPDATE_MS = 500;
+export const GOOGLE_CONSENT_WAIT_FOR_UPDATE_MS = 2000;
 
 export function getCookieConsentFromStorage(
   value: string | null | undefined,
