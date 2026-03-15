@@ -69,7 +69,7 @@ test("google consent defaults deny storage before user interaction", () => {
     ad_user_data: "denied",
     ad_personalization: "denied",
     analytics_storage: "denied",
-    wait_for_update: 500,
+    wait_for_update: 2000,
   });
 });
 
