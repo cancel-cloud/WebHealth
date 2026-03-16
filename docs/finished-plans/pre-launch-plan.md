@@ -114,7 +114,7 @@ WORKER_ARTIFACT_URL
 ### 4. Hide Notifications tab until email system is built
 **Decision:** Defer. No email provider set up, no user demand confirmed yet.
 - Hide the Notifications tab in Settings — do not delete any of the existing toggle code
-- "Email support" on Pro pricing card stays — it refers to contact@devbrew.dev (real, available now)
+- "Email support" on Pro pricing card stays — it refers to kontakt@devbrew.dev (real, available now)
 - Revisit after launch once users ask for it
 
 **File to edit:**
@@ -175,12 +175,12 @@ WORKER_ARTIFACT_URL
 - Remove all feature bullet points
 - Replace with a short teaser headline + 1–2 lines of copy aimed at agencies/high-volume users
 - Rename CTA from "Contact Us" → something like "Get early access" or "Let's talk"
-- CTA `href` → `mailto:contact@devbrew.dev?subject=Webhealth Agency Interest`
+- CTA `href` → `mailto:kontakt@devbrew.dev?subject=Webhealth Agency Interest`
 - Add a "Coming Soon" badge to the card header
 
 **Settings page** (`apps/web/src/app/(settings)/settings/page.tsx`) — Agency card in plan selector:
 - Replace price + feature list with the same teaser treatment
-- Replace "Upgrade to Agency" button → "Get in touch" button as `<a href="mailto:contact@devbrew.dev?subject=Webhealth Agency Interest">`
+- Replace "Upgrade to Agency" button → "Get in touch" button as `<a href="mailto:kontakt@devbrew.dev?subject=Webhealth Agency Interest">`
 - Keep current-plan state intact if user somehow has agency tier already
 
 ---

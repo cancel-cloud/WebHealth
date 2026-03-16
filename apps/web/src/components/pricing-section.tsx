@@ -36,7 +36,7 @@ const PRICING = [
     period: "",
     description: "For agencies and high-volume clients running SEO at scale.",
     cta: "Get early access",
-    href: "mailto:contact@devbrew.dev?subject=Webhealth%20Agency%20Interest",
+    href: "mailto:kontakt@devbrew.dev?subject=Webhealth%20Agency%20Interest",
     features: [] as string[],
     comingSoon: true,
     highlight: false,
@@ -45,7 +45,11 @@ const PRICING = [
 
 const fadeUp = {
   hidden: { opacity: 0, y: 18 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" as const },
+  },
 };
 
 const stagger = {
@@ -57,7 +61,11 @@ export function PricingSection() {
   const pricingBadgeClasses = getPricingBadgeClassNames();
 
   return (
-    <section id="pricing" className="py-28 px-6 scroll-mt-16" aria-labelledby="pricing-heading">
+    <section
+      id="pricing"
+      className="py-28 px-6 scroll-mt-16"
+      aria-labelledby="pricing-heading"
+    >
       <div className="max-w-5xl mx-auto">
         <div className="mb-16 text-center">
           <p
@@ -128,13 +136,20 @@ export function PricingSection() {
                   <span className="font-display text-4xl font-bold tabular-nums">
                     {plan.price}
                   </span>
-                  <span className="text-sm" style={{ color: "oklch(0.6 0.02 250)" }}>
+                  <span
+                    className="text-sm"
+                    style={{ color: "oklch(0.6 0.02 250)" }}
+                  >
                     {plan.period}
                   </span>
                 </div>
               ) : (
-                <p className="text-xs mb-8 italic" style={{ color: "oklch(0.55 0.02 250)" }}>
-                  Pricing available on request — get in touch to be first in line.
+                <p
+                  className="text-xs mb-8 italic"
+                  style={{ color: "oklch(0.55 0.02 250)" }}
+                >
+                  Pricing available on request — get in touch to be first in
+                  line.
                 </p>
               )}
               {plan.features.length > 0 && (
