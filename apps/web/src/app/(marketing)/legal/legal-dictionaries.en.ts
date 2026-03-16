@@ -96,6 +96,18 @@ export const legalDictionaryEn = {
           ],
         },
         {
+          title: "Data security",
+          bullets: [
+            "All network traffic between your browser, our servers, and third-party processors is encrypted in transit using TLS (HTTPS).",
+            "Google OAuth tokens — including access tokens, refresh tokens, and ID tokens — are encrypted at rest using AES-256-GCM with unique initialisation vectors before being stored in the database.",
+            "Google user data obtained through the Search Console and Analytics APIs is stored in an encrypted database and protected by the same access controls that apply to all application data.",
+            "The application database is hosted on Neon PostgreSQL with storage-level encryption at rest.",
+            "Access to production infrastructure, the database, and encryption keys is restricted to the operator and protected by strong authentication.",
+            "We maintain procedures to detect, investigate, and respond to security incidents, including notifying affected users and supervisory authorities where required by applicable law.",
+            "Third-party processors are selected with regard to their technical and organisational security measures and are bound by data processing agreements.",
+          ],
+        },
+        {
           title: "International transfers",
           paragraphs: [
             "Some processors may process or make data accessible outside the EU/EEA, including the United States. This can apply in particular to Google, OpenAI, Stripe, Vercel, and GlitchTip depending on the service flow and subprocessors involved.",
@@ -107,6 +119,7 @@ export const legalDictionaryEn = {
           bullets: [
             "Account profile and workspace records are retained for as long as the account remains active, unless a longer retention period is legally required.",
             "Reports, generated insights, and related metrics remain available while the account is active, subject to deletion requests and operational retention windows.",
+            "If you disconnect a Google data source or revoke access, the associated tokens are deleted promptly. If you delete your account, all stored Google user data — including tokens, synced properties, and report data — is deleted.",
             "Feedback submissions, audit logs, and security events are retained for as long as needed for support, abuse prevention, and accountability, then deleted or anonymized in line with operational retention rules.",
             "Billing and accounting records may be retained longer where tax or commercial law requires it.",
           ],

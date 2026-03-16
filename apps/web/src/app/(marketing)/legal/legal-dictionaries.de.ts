@@ -96,6 +96,18 @@ export const legalDictionaryDe = {
           ],
         },
         {
+          title: "Datensicherheit",
+          bullets: [
+            "Der gesamte Netzwerkverkehr zwischen Ihrem Browser, unseren Servern und Auftragsverarbeitern wird per TLS (HTTPS) transportverschlüsselt.",
+            "Google-OAuth-Tokens — einschließlich Access-Tokens, Refresh-Tokens und ID-Tokens — werden vor der Speicherung in der Datenbank mit AES-256-GCM und individuellen Initialisierungsvektoren verschlüsselt.",
+            "Über die Search-Console- und Analytics-APIs bezogene Google-Nutzerdaten werden in einer verschlüsselten Datenbank gespeichert und unterliegen denselben Zugangskontrollen wie alle übrigen Anwendungsdaten.",
+            "Die Anwendungsdatenbank wird bei Neon PostgreSQL mit Verschlüsselung auf Speicherebene gehostet.",
+            "Der Zugang zur Produktionsinfrastruktur, zur Datenbank und zu Verschlüsselungsschlüsseln ist auf den Betreiber beschränkt und durch starke Authentifizierung geschützt.",
+            "Wir unterhalten Verfahren zur Erkennung, Untersuchung und Reaktion auf Sicherheitsvorfälle, einschließlich der Benachrichtigung betroffener Personen und Aufsichtsbehörden, soweit gesetzlich vorgeschrieben.",
+            "Auftragsverarbeiter werden unter Berücksichtigung ihrer technischen und organisatorischen Sicherheitsmaßnahmen ausgewählt und durch Auftragsverarbeitungsverträge gebunden.",
+          ],
+        },
+        {
           title: "Internationale Datenübermittlungen",
           paragraphs: [
             "Einige Auftragsverarbeiter können Daten außerhalb der EU/des EWR verarbeiten oder zugänglich machen, insbesondere in den Vereinigten Staaten. Dies kann je nach Servicefluss und eingesetzten Unterauftragsverarbeitern vor allem Google, OpenAI, Stripe, Vercel und GlitchTip betreffen.",
@@ -107,6 +119,7 @@ export const legalDictionaryDe = {
           bullets: [
             "Konto- und Workspace-Daten werden grundsätzlich solange gespeichert, wie das Konto aktiv ist, sofern keine längere gesetzliche Aufbewahrungspflicht besteht.",
             "Reports, generierte Erkenntnisse und zugehörige Kennzahlen bleiben grundsätzlich verfügbar, solange das Konto aktiv ist, vorbehaltlich Löschanfragen und operativer Aufbewahrungsfristen.",
+            "Wenn Sie eine Google-Datenquelle trennen oder den Zugriff widerrufen, werden die zugehörigen Tokens umgehend gelöscht. Bei Löschung Ihres Kontos werden sämtliche gespeicherten Google-Nutzerdaten — einschließlich Tokens, synchronisierter Properties und Report-Daten — gelöscht.",
             "Feedback, Audit-Logs und Sicherheitsevents werden solange gespeichert, wie dies für Support, Missbrauchsverhinderung und Nachvollziehbarkeit erforderlich ist; anschließend werden sie gelöscht oder anonymisiert.",
             "Abrechnungs- und Buchhaltungsunterlagen können aufgrund steuer- oder handelsrechtlicher Vorgaben länger aufbewahrt werden.",
           ],

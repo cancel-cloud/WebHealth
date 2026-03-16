@@ -49,7 +49,7 @@ function MarketingFooter() {
           </Suspense>
           <CookieSettingsButton />
           <a
-            href="mailto:contact@devbrew.dev"
+            href="mailto:kontakt@devbrew.dev"
             className="text-xs hover:underline transition-colors"
             style={{ color: "oklch(0.55 0.02 250)" }}
           >

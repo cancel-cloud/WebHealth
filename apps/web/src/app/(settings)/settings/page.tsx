@@ -583,7 +583,7 @@ export default function SettingsPage() {
                           className={planCardLayout.action}
                           asChild
                         >
-                          <a href="mailto:contact@devbrew.dev?subject=Webhealth%20Agency%20Interest">
+                          <a href="mailto:kontakt@devbrew.dev?subject=Webhealth%20Agency%20Interest">
                             Get in touch
                           </a>
                         </Button>
@@ -694,8 +694,8 @@ export default function SettingsPage() {
                   >
                     {isCheckoutStarting
                       ? "Opening Stripe Checkout..."
-                      : checkoutConfirmation?.confirmLabel ??
-                        "Continue to Stripe Checkout"}
+                      : (checkoutConfirmation?.confirmLabel ??
+                        "Continue to Stripe Checkout")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -835,8 +835,8 @@ export default function SettingsPage() {
                   title: "Having account or billing issues?",
                   description: settings?.adminContacts?.length
                     ? `Email an admin for priority support — ${settings.adminContacts[0]}`
-                    : "Email us for priority support — contact@devbrew.dev",
-                  href: `mailto:${settings?.adminContacts?.[0] ?? "contact@devbrew.dev"}`,
+                    : "Email us for priority support — kontakt@devbrew.dev",
+                  href: `mailto:${settings?.adminContacts?.[0] ?? "kontakt@devbrew.dev"}`,
                 },
                 {
                   icon: MessageSquare,
