@@ -85,14 +85,22 @@ export const legalDictionaryDe = {
           ],
         },
         {
+          title: "Vercel Analytics",
+          paragraphs: [
+            "Wir verwenden Vercel Analytics zur Messung der Websitenutzung. Dabei können Seitenaufrufe, Referrer, Gerätetyp, Browsertyp sowie das Herkunftsland (abgeleitet aus der IP-Adresse) verarbeitet werden. Vercel Analytics setzt keine Cookies und verwendet keine persistenten Identifier.",
+            "Die Verarbeitung erfolgt auf Grundlage unseres berechtigten Interesses an der Messung der Websitenutzung (Art. 6 Abs. 1 lit. f DSGVO). Da keine Cookies oder clientseitiger Speicher eingesetzt werden, findet § 25 TDDDG keine Anwendung. Sie können der Verarbeitung widersprechen.",
+          ],
+        },
+        {
           title: "Empfänger und Auftragsverarbeiter",
           bullets: [
             "Google für OAuth-Anmeldung, als verbundene Datenquelle für Search Console und GA4 sowie als Anbieter von Google Analytics 4 für Website-Analysen nach Einwilligung.",
             "OpenAI zur Verarbeitung ausgewählter Report-Kontexte, URLs, Kennzahlen und strukturierter Auditdaten zur Erzeugung KI-gestützter Ausgaben.",
             "Stripe zur Anlage von Kundenprofilen, Abwicklung von Abonnements und Bereitstellung des Billing-Portals.",
             "Vercel zum Hosting und Ausliefern der Webanwendung.",
-            "Neon/PostgreSQL zum Hosting der Anwendungsdatenbank in der EU.",
+            "Hetzner/PostgreSQL zum Hosting der Anwendungsdatenbank und Worker-Infrastruktur in der EU.",
             "GlitchTip zur Erfassung operativer Fehler und sicherheitsrelevanter Ausnahmen.",
+            "Vercel Analytics zur cookielosen Messung von Seitenaufrufen, Referrern, Gerätetyp und Herkunftsland. Vercel verarbeitet diese Daten auf eigener Infrastruktur; IP-Adressen werden nicht dauerhaft gespeichert.",
           ],
         },
         {
@@ -101,7 +109,7 @@ export const legalDictionaryDe = {
             "Der gesamte Netzwerkverkehr zwischen Ihrem Browser, unseren Servern und Auftragsverarbeitern wird per TLS (HTTPS) transportverschlüsselt.",
             "Google-OAuth-Tokens — einschließlich Access-Tokens, Refresh-Tokens und ID-Tokens — werden vor der Speicherung in der Datenbank mit AES-256-GCM und individuellen Initialisierungsvektoren verschlüsselt.",
             "Über die Search-Console- und Analytics-APIs bezogene Google-Nutzerdaten werden in einer verschlüsselten Datenbank gespeichert und unterliegen denselben Zugangskontrollen wie alle übrigen Anwendungsdaten.",
-            "Die Anwendungsdatenbank wird bei Neon PostgreSQL mit Verschlüsselung auf Speicherebene gehostet.",
+            "Die Anwendungsdatenbank wird auf vom Betreiber verwalteter PostgreSQL-Infrastruktur in der EU mit eingeschränkter Netzfreigabe und authentifiziertem Administrationszugang betrieben.",
             "Der Zugang zur Produktionsinfrastruktur, zur Datenbank und zu Verschlüsselungsschlüsseln ist auf den Betreiber beschränkt und durch starke Authentifizierung geschützt.",
             "Wir unterhalten Verfahren zur Erkennung, Untersuchung und Reaktion auf Sicherheitsvorfälle, einschließlich der Benachrichtigung betroffener Personen und Aufsichtsbehörden, soweit gesetzlich vorgeschrieben.",
             "Auftragsverarbeiter werden unter Berücksichtigung ihrer technischen und organisatorischen Sicherheitsmaßnahmen ausgewählt und durch Auftragsverarbeitungsverträge gebunden.",
@@ -241,7 +249,7 @@ export const legalDictionaryDe = {
       description: "Anbieterkennzeichnung und Pflichtangaben für Webhealth.",
       lastUpdatedLabel: "Stand: März 2026",
       intro: [
-        "Dieses Impressum enthaelt die Anbieterkennzeichnung und die Angaben zur Verbraucherstreitbeilegung fuer Webhealth.",
+        "Dieses Impressum enthält die Anbieterkennzeichnung und die Angaben zur Verbraucherstreitbeilegung für Webhealth.",
       ],
       sections: [
         {
