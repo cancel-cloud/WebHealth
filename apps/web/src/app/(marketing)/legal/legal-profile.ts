@@ -35,11 +35,11 @@ export const legalProfile: LegalProfile = {
   country: "Germany",
   email: "kontakt@devbrew.dev",
   privacyEmail: "kontakt@devbrew.dev",
-  phone: null,
+  phone: "+49(0)1703044192",
   registerCourt: null,
   registerNumber: null,
   vatId: null,
-  economicId: null,
+  economicId: "DE445529090",
   dpoName: null,
   dpoEmail: null,
   supervisoryAuthority:

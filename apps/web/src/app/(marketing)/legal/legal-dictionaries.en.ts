@@ -85,14 +85,22 @@ export const legalDictionaryEn = {
           ],
         },
         {
+          title: "Vercel Analytics",
+          paragraphs: [
+            "We use Vercel Analytics to measure how visitors use the website. This may include page views, referrers, device type, browser type, and country of origin (derived from IP address). Vercel Analytics does not set cookies and does not use persistent identifiers.",
+            "Processing is based on our legitimate interest in measuring website usage (Article 6(1)(f) GDPR). Because no cookies or client-side storage are used, § 25 TDDDG does not apply. You may object to this processing.",
+          ],
+        },
+        {
           title: "Recipients and processors",
           bullets: [
             "Google, for OAuth sign-in, as the connected data source for Search Console and GA4, and as the provider of Google Analytics 4 website analytics after consent.",
             "OpenAI, to process selected report context, URLs, metrics, and structured audit data in order to generate AI-assisted report output.",
             "Stripe, to create customer records, process subscriptions, and manage the billing portal.",
             "Vercel, to host and serve the web application.",
-            "Neon/PostgreSQL, to host the application database in the EU.",
+            "Hetzner/PostgreSQL, to host the application database and worker infrastructure in the EU.",
             "GlitchTip, to capture operational errors and security-relevant exceptions.",
+            "Vercel Analytics, for cookieless measurement of page views, referrers, device type, and country of origin. Vercel processes this data on its own infrastructure; IP addresses are not stored persistently.",
           ],
         },
         {
@@ -101,7 +109,7 @@ export const legalDictionaryEn = {
             "All network traffic between your browser, our servers, and third-party processors is encrypted in transit using TLS (HTTPS).",
             "Google OAuth tokens — including access tokens, refresh tokens, and ID tokens — are encrypted at rest using AES-256-GCM with unique initialisation vectors before being stored in the database.",
             "Google user data obtained through the Search Console and Analytics APIs is stored in an encrypted database and protected by the same access controls that apply to all application data.",
-            "The application database is hosted on Neon PostgreSQL with storage-level encryption at rest.",
+            "The application database is hosted on operator-managed PostgreSQL infrastructure in the EU with restricted network exposure and authenticated administrative access.",
             "Access to production infrastructure, the database, and encryption keys is restricted to the operator and protected by strong authentication.",
             "We maintain procedures to detect, investigate, and respond to security incidents, including notifying affected users and supervisory authorities where required by applicable law.",
             "Third-party processors are selected with regard to their technical and organisational security measures and are bound by data processing agreements.",
