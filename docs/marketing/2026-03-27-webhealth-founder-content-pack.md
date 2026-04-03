@@ -267,9 +267,9 @@ Manual SEO diagnosis still feels like stitching together 3 different partial tru
 
 GSC says one thing
 GA4 adds some context
-crawl data adds another layer
+the websites content is on another layer
 
-I want the report to do the stitching first.
+I want the report to do the stitching first of those first.
 
 ### Day 14 - 2026-04-10
 

@@ -18,12 +18,12 @@ show server_version;
 show server_version_num;
 ```
 
-Set `POSTGRES_BASE_IMAGE` in [infra/self-hosted-postgres/.env.example](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/self-hosted-postgres/.env.example) to the matching Postgres major version.
+For this downtime-based `pg_dump`/`pg_restore` migration, the target does not need to match Neon exactly. The stack default is PostgreSQL `18.3` in [infra/self-hosted-postgres/.env.example](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/self-hosted-postgres/.env.example). Keep the source version check as a compatibility sanity check and rollback reference.
 
 ## 2) Deploy and validate the target stack
 
 1. Deploy the Compose stack in Coolify.
-2. Confirm Postgres, PgBouncer, pgBackRest, Prometheus, Grafana, and pgAdmin start cleanly.
+2. Confirm Postgres, PgBouncer, pgBackRest, and pgAdmin start cleanly.
 3. Confirm the target endpoints work:
    - pooled runtime endpoint on `6432`
    - private direct Postgres endpoint on `5432`
