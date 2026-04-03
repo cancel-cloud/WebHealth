@@ -9,6 +9,7 @@ full_interval="${WEBHEALTH_PGBACKREST_FULL_INTERVAL_SECONDS:-86400}"
 diff_interval="${WEBHEALTH_PGBACKREST_DIFF_INTERVAL_SECONDS:-21600}"
 sleep_interval="${WEBHEALTH_PGBACKREST_LOOP_SLEEP_SECONDS:-300}"
 pgdata_path="${PGDATA:-/var/lib/postgresql/18/docker}"
+backup_user="${POSTGRES_SUPERUSER:-postgres}"
 full_stamp="${state_dir}/last-full"
 diff_stamp="${state_dir}/last-diff"
 failure_stamp="${state_dir}/last-failure"
@@ -32,7 +33,7 @@ EOF
 }
 
 function wait_for_postgres() {
-  until pg_isready -h /var/run/postgresql -U "${POSTGRES_DIRECT_USER}" -d "${POSTGRES_DB}" >/dev/null 2>&1; do
+  until pg_isready -h /var/run/postgresql -U "${backup_user}" -d postgres >/dev/null 2>&1; do
     sleep 2
   done
 }
@@ -48,7 +49,7 @@ function run_backup() {
     --repo1-retention-diff="${WEBHEALTH_PGBACKREST_REPO_RETENTION_DIFF:-28}" \
     --pg1-path="${pgdata_path}" \
     --pg1-socket-path=/var/run/postgresql \
-    --pg1-user="${POSTGRES_DIRECT_USER}" \
+    --pg1-user="${backup_user}" \
     backup --type="${backup_type}"; then
     date +%s > "${stamp_file}"
     write_metrics
@@ -66,14 +67,14 @@ pgbackrest \
   --repo1-path=/var/lib/pgbackrest \
   --pg1-path="${pgdata_path}" \
   --pg1-socket-path=/var/run/postgresql \
-  --pg1-user="${POSTGRES_DIRECT_USER}" \
+  --pg1-user="${backup_user}" \
   stanza-create || true
 pgbackrest \
   --stanza="${stanza}" \
   --repo1-path=/var/lib/pgbackrest \
   --pg1-path="${pgdata_path}" \
   --pg1-socket-path=/var/run/postgresql \
-  --pg1-user="${POSTGRES_DIRECT_USER}" \
+  --pg1-user="${backup_user}" \
   check
 
 while true; do
