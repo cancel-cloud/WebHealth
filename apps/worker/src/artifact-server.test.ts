@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { extractReportIdFromArtifactKey } from "./artifact-server";
+import { buildWorkerReadyResponse, extractReportIdFromArtifactKey } from "./artifact-server";
+import { createWorkerRuntimeState, markDatabaseReady, markLoopTick } from "./runtime-state";
 import { mintArtifactDownloadToken, verifyArtifactDownloadToken } from "@webhealth/shared/lib/artifact-token";
 
 test("extracts report id from a valid artifact key", () => {
@@ -30,4 +31,24 @@ test("artifact tokens are scoped to report and key", () => {
     verifyArtifactDownloadToken(token)?.artifactKey,
     "reports/rep_6qG1TZ474M9W/1772208322489-seo-report.xlsx"
   );
+});
+
+test("buildWorkerReadyResponse returns 503 when the worker loop is not ready", () => {
+  const snapshot = buildWorkerReadyResponse(
+    createWorkerRuntimeState({ artifactServerExpected: true }),
+  );
+
+  assert.equal(snapshot.statusCode, 503);
+  assert.equal(snapshot.body.ok, false);
+});
+
+test("buildWorkerReadyResponse returns 200 after the worker loop is healthy", () => {
+  const state = createWorkerRuntimeState({ artifactServerExpected: false });
+  markDatabaseReady(state, 100);
+  markLoopTick(state, 110);
+
+  const snapshot = buildWorkerReadyResponse(state, { nowMs: 120, staleAfterMs: 1_000 });
+
+  assert.equal(snapshot.statusCode, 200);
+  assert.equal(snapshot.body.ok, true);
 });
