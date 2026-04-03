@@ -3,8 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "tsx --tsconfig ./tsconfig.json src/main.ts",
-    "start:once": "tsx --tsconfig ./tsconfig.json src/main.ts --once",
+    "dev": "tsx --tsconfig ./tsconfig.json src/main.ts",
+    "dev:once": "tsx --tsconfig ./tsconfig.json src/main.ts --once",
+    "build:runtime": "node ../../scripts/build-worker-dist.mjs",
+    "start": "node ../../dist/apps/worker/src/main.js",
+    "start:once": "node ../../dist/apps/worker/src/main.js --once",
     "openai:reconcile-costs": "tsx --tsconfig ./tsconfig.json src/reconcile-openai-costs.ts"
   },
   "engines": {

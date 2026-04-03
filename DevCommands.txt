@@ -102,7 +102,7 @@ node scripts/generate-og-image.mjs assets/img.png
 - Passed
 2. `pnpm --filter @webhealth/web build`
 - Passed with temporary non-secret env values (required because build evaluates auth/openai config)
-3. `pnpm --filter @webhealth/worker start:once`
+3. `pnpm worker:once`
 - Worker boot path validated
 - Guard failure validated for non-pooled URL: `DB_CONFIG_ERROR: DATABASE_URL must use Neon pooled host (-pooler).`
 - With pooled-format localhost URL, runtime reached DB connection attempt and failed TLS as expected in local setup (`ECONNRESET`)

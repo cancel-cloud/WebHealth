@@ -47,6 +47,16 @@ test("supports overriding migrations folder with WORKER_DB_MIGRATIONS_DIR", () =
   assert.equal(config.migrationsFolder, "/repo/custom/drizzle");
 });
 
+test("resolves migrations from dist runtime layout", () => {
+  const config = resolveWorkerMigrationConfig({
+    env: { DATABASE_URL: pooledUrl },
+    cwd: "/repo",
+    moduleDir: "/repo/dist/apps/worker/src",
+  });
+
+  assert.equal(config.migrationsFolder, "/repo/dist/drizzle");
+});
+
 test("throws when neither DIRECT_DATABASE_URL nor DATABASE_URL is usable", () => {
   assert.throws(
     () =>

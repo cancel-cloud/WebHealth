@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { config as loadDotenv } from "dotenv";
+import { resolveWorkerEnvSearchPaths } from "./runtime-paths";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,8 +16,8 @@ function loadIfExists(filePath: string, env: NodeJS.ProcessEnv) {
 
 export function loadWorkerEnv({
   env = process.env,
-  repoRoot = defaultRepoRoot,
-  workerRoot = defaultWorkerRoot,
+  repoRoot,
+  workerRoot,
 }: {
   env?: NodeJS.ProcessEnv;
   repoRoot?: string;
@@ -27,11 +28,19 @@ export function loadWorkerEnv({
     loadIfExists(path.resolve(explicitFile), env);
   }
 
+  const searchPaths = resolveWorkerEnvSearchPaths(__dirname);
+  const workerRoots = workerRoot ? [workerRoot] : searchPaths.workerRoots;
+  const repoRoots = repoRoot ? [repoRoot] : searchPaths.repoRoots;
+
   // Worker-local files should win over repo-root defaults.
-  loadIfExists(path.join(workerRoot, ".env.local"), env);
-  loadIfExists(path.join(workerRoot, ".env"), env);
-  loadIfExists(path.join(repoRoot, ".env.local"), env);
-  loadIfExists(path.join(repoRoot, ".env"), env);
+  for (const root of workerRoots) {
+    loadIfExists(path.join(root, ".env.local"), env);
+    loadIfExists(path.join(root, ".env"), env);
+  }
+  for (const root of repoRoots) {
+    loadIfExists(path.join(root, ".env.local"), env);
+    loadIfExists(path.join(root, ".env"), env);
+  }
 
   if (!env.DATABASE_URL) {
     throw new Error("DB_CONFIG_ERROR: DATABASE_URL is required for worker runtime.");
