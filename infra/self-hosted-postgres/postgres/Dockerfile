@@ -1,4 +1,4 @@
-ARG POSTGRES_BASE_IMAGE=postgres:16-bookworm
+ARG POSTGRES_BASE_IMAGE=postgres:18.3-bookworm
 FROM ${POSTGRES_BASE_IMAGE}
 
 RUN apt-get update \

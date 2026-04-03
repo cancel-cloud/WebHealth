@@ -1,7 +1,7 @@
 services:
   postgres:
     build:
-      context: ./postgres
+      context: ./infra/self-hosted-postgres/postgres
       args:
         POSTGRES_BASE_IMAGE: ${POSTGRES_BASE_IMAGE}
     restart: unless-stopped
@@ -45,7 +45,7 @@ services:
 
   pgbouncer:
     build:
-      context: ./pgbouncer
+      context: ./infra/self-hosted-postgres/pgbouncer
       args:
         PGBOUNCER_BASE_IMAGE: ${PGBOUNCER_BASE_IMAGE}
     restart: unless-stopped
@@ -81,7 +81,7 @@ services:
 
   pgbackrest:
     build:
-      context: ./postgres
+      context: ./infra/self-hosted-postgres/postgres
       args:
         POSTGRES_BASE_IMAGE: ${POSTGRES_BASE_IMAGE}
     restart: unless-stopped
@@ -119,7 +119,7 @@ services:
     expose:
       - "9187"
     volumes:
-      - ./postgres-exporter/queries.yaml:/etc/postgres_exporter/queries.yaml:ro
+      - ./infra/self-hosted-postgres/postgres-exporter/queries.yaml:/etc/postgres_exporter/queries.yaml:ro
 
   node-exporter:
     image: ${NODE_EXPORTER_IMAGE}
