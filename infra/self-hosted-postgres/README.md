@@ -35,6 +35,8 @@ openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
 
 The default image pin is PostgreSQL `18.3` via `POSTGRES_BASE_IMAGE=postgres:18.3-bookworm`.
 
+If the first initialization fails before the init script creates the `webhealth` database and roles, remove the self-hosted Postgres data volume and redeploy before importing production data. The init scripts only run on a fresh cluster.
+
 ## Runtime env mapping
 
 After the stack is live, the app-side envs should look like:

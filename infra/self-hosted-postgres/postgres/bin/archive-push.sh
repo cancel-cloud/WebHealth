@@ -2,7 +2,7 @@
 set -euo pipefail
 
 wal_path="${1:?wal path is required}"
-stanza="${PGBACKREST_STANZA:-webhealth}"
+stanza="${WEBHEALTH_PGBACKREST_STANZA:-webhealth}"
 metrics_dir="/var/lib/node_exporter/textfile_collector"
 metrics_file="${metrics_dir}/pgbackrest-archive.prom"
 

@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-stanza="${PGBACKREST_STANZA:-webhealth}"
+stanza="${WEBHEALTH_PGBACKREST_STANZA:-webhealth}"
 repo_dir="/var/lib/pgbackrest"
 metrics_dir="/var/lib/node_exporter/textfile_collector"
 state_dir="${repo_dir}/schedule-state"
-full_interval="${PGBACKREST_FULL_INTERVAL_SECONDS:-86400}"
-diff_interval="${PGBACKREST_DIFF_INTERVAL_SECONDS:-21600}"
-sleep_interval="${PGBACKREST_LOOP_SLEEP_SECONDS:-300}"
+full_interval="${WEBHEALTH_PGBACKREST_FULL_INTERVAL_SECONDS:-86400}"
+diff_interval="${WEBHEALTH_PGBACKREST_DIFF_INTERVAL_SECONDS:-21600}"
+sleep_interval="${WEBHEALTH_PGBACKREST_LOOP_SLEEP_SECONDS:-300}"
+pgdata_path="${PGDATA:-/var/lib/postgresql/18/docker}"
 full_stamp="${state_dir}/last-full"
 diff_stamp="${state_dir}/last-diff"
 failure_stamp="${state_dir}/last-failure"
@@ -43,9 +44,9 @@ function run_backup() {
   if pgbackrest \
     --stanza="${stanza}" \
     --repo1-path=/var/lib/pgbackrest \
-    --repo1-retention-full="${PGBACKREST_REPO_RETENTION_FULL:-7}" \
-    --repo1-retention-diff="${PGBACKREST_REPO_RETENTION_DIFF:-28}" \
-    --pg1-path=/var/lib/postgresql/data \
+    --repo1-retention-full="${WEBHEALTH_PGBACKREST_REPO_RETENTION_FULL:-7}" \
+    --repo1-retention-diff="${WEBHEALTH_PGBACKREST_REPO_RETENTION_DIFF:-28}" \
+    --pg1-path="${pgdata_path}" \
     --pg1-socket-path=/var/run/postgresql \
     --pg1-user="${POSTGRES_DIRECT_USER}" \
     backup --type="${backup_type}"; then
@@ -63,14 +64,14 @@ wait_for_postgres
 pgbackrest \
   --stanza="${stanza}" \
   --repo1-path=/var/lib/pgbackrest \
-  --pg1-path=/var/lib/postgresql/data \
+  --pg1-path="${pgdata_path}" \
   --pg1-socket-path=/var/run/postgresql \
   --pg1-user="${POSTGRES_DIRECT_USER}" \
   stanza-create || true
 pgbackrest \
   --stanza="${stanza}" \
   --repo1-path=/var/lib/pgbackrest \
-  --pg1-path=/var/lib/postgresql/data \
+  --pg1-path="${pgdata_path}" \
   --pg1-socket-path=/var/run/postgresql \
   --pg1-user="${POSTGRES_DIRECT_USER}" \
   check
