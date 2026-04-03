@@ -97,6 +97,17 @@ function resolveMigrationsFolder(input: ResolveWorkerMigrationConfigInput): stri
     return DEFAULT_MIGRATIONS_DIR;
   }
 
+  let current = moduleDir;
+  while (true) {
+    if (path.basename(current) === "dist") {
+      return path.join(current, "drizzle");
+    }
+
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+
   return path.resolve(moduleDir, "../../../../drizzle");
 }
 

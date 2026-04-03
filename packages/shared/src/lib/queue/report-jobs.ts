@@ -4,7 +4,11 @@ import { db } from "@webhealth/shared/db";
 import { reportJobEvents, reportJobs, reports } from "@webhealth/shared/db/schema";
 import { normalizeClaimedReportJobRow } from "@webhealth/shared/lib/queue/report-job-row-shape";
 
-export type ReportJobKind = "generate_report" | "generate_detail" | "render_xlsx";
+export type ReportJobKind =
+  | "generate_report"
+  | "generate_detail"
+  | "render_xlsx"
+  | "crawl_site_changes";
 export type ReportJobStatus = "queued" | "processing" | "complete" | "failed";
 export type ReportJobPhase =
   | "queued"

@@ -11,24 +11,22 @@ This guide explains how to run `apps/worker` in Coolify while the database stack
 Worker process:
 
 ```bash
-pnpm --filter @webhealth/worker start
+node dist/apps/worker/src/main.js
 ```
 
 ## 2) Coolify worker setup
 
 1. Create a new application resource from this repo.
-2. Use **Nixpacks**.
+2. Use **Dockerfile**.
 3. Keep **Base Directory** as `/`.
-4. Start command:
+4. Set **Dockerfile Location** to `apps/worker/Dockerfile`.
+5. Do not add a separate build or start command. The Docker image installs production dependencies from `dist/package.json` and starts the compiled worker bundle directly.
+
+Before pushing a worker release, rebuild and verify the committed runtime bundle:
 
 ```bash
-pnpm --filter @webhealth/worker start
-```
-
-Recommended build guard:
-
-```bash
-pnpm --filter @webhealth/worker exec tsc --noEmit
+pnpm worker:build-dist
+pnpm worker:verify-dist
 ```
 
 ## 3) Required env vars
@@ -44,6 +42,9 @@ pnpm --filter @webhealth/worker exec tsc --noEmit
 - `ARTIFACT_TOKEN_SECRET`
 - `REPORT_ARTIFACTS_DIR`
 - `OAUTH_TOKEN_ENCRYPTION_KEY`
+- `REPORT_WORKER_MAX_JOB_RUNTIME_MS`
+- `REPORT_WORKER_WATCHDOG_INTERVAL_MS`
+- `WORKER_READY_STALE_AFTER_MS`
 
 ## 4) Direct Postgres access
 
@@ -59,13 +60,15 @@ Do not point `DIRECT_DATABASE_URL` at PgBouncer.
 
 ## 5) Artifact server
 
-The worker artifact server still exposes `/health` on `WORKER_HTTP_PORT` when `ARTIFACT_TOKEN_SECRET` is set.
+The worker artifact server still exposes `/health` and `/ready` on `WORKER_HTTP_PORT` when `ARTIFACT_TOKEN_SECRET` is set.
 
 Set `WORKER_ARTIFACT_URL` on the web app to the worker's reachable artifact URL and keep `ARTIFACT_TOKEN_SECRET` identical across web and worker.
 
 ## 6) Verification
 
-1. Deploy the worker.
-2. Confirm logs show the worker loop start and DB migration bootstrap.
-3. Create a report from the web app.
-4. Verify job state transitions and artifact downloads.
+1. Rebuild the runtime bundle and commit the `dist/` changes.
+2. Deploy the worker.
+3. Confirm logs show the DB migration bootstrap, artifact server readiness, and worker loop start.
+4. Check the worker health endpoint returns ready on `/ready`.
+5. Create a report from the web app.
+6. Verify job state transitions, deferred crawl refresh behavior, and artifact downloads.
