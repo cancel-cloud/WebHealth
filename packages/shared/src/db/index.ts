@@ -12,7 +12,7 @@ let queryClientSingleton: ReturnType<typeof postgres> | null = null;
 function getQueryClient() {
   if (queryClientSingleton) return queryClientSingleton;
 
-  // Runtime connections must use Neon pooled host (`-pooler`) with TLS enabled.
+  // Runtime connections must use the pooled endpoint with TLS enabled.
   const databaseUrl = requireRuntimeDatabaseUrl();
 
   queryClientSingleton = postgres(databaseUrl, {

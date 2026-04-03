@@ -18,8 +18,8 @@ test("worker-local env overrides repo root fallback values", () => {
   ].join("\n"));
 
   writeFileSync(path.join(workerRoot, ".env.local"), [
-    "DATABASE_URL=postgresql://worker:pass@ep-worker-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require",
-    "DIRECT_DATABASE_URL=postgresql://worker:pass@ep-worker.eu-central-1.aws.neon.tech/neondb?sslmode=require",
+    "DATABASE_URL=postgresql://worker:pass@db.webhealth.local:6432/webhealth?sslmode=require",
+    "DIRECT_DATABASE_URL=postgresql://worker:pass@postgres.webhealth.internal:5432/webhealth?sslmode=require",
   ].join("\n"));
 
   const env: NodeJS.ProcessEnv = {};
@@ -29,7 +29,7 @@ test("worker-local env overrides repo root fallback values", () => {
 
     assert.equal(
       env.DATABASE_URL,
-      "postgresql://worker:pass@ep-worker-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require",
+      "postgresql://worker:pass@db.webhealth.local:6432/webhealth?sslmode=require",
     );
     assert.equal(env.BETTER_AUTH_URL, "https://root.example.test");
   } finally {

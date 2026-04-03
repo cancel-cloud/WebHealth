@@ -1,62 +1,61 @@
-# Deploy Runbook (Vercel + Neon + Worker VPS)
+# Deploy Runbook (Vercel + Self-Hosted Postgres + Worker)
 
 This is the canonical deployment checklist for the split architecture:
 
 - Web: `apps/web` on Vercel
-- Database: Neon Postgres
-- Worker: `apps/worker` on VPS (for example Hetzner)
+- Database stack: `infra/self-hosted-postgres` on Hetzner via Coolify Docker Compose
+- Monitoring stack: `infra/monitoring` on Hetzner via Coolify Docker Compose
+- Worker: `apps/worker` on Hetzner
 
-GlitchTip monitoring setup is documented separately in `docs/glitchtip.md`.
-
-`pnpm` is required across all environments.
+GlitchTip monitoring remains documented in [docs/glitchtip.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/glitchtip.md).
 
 ## 0) Pre-deploy checks
 
 From repo root:
 
 ```bash
-pnpm install
-pnpm --filter @webhealth/web build
-pnpm --filter @webhealth/web exec tsc --noEmit
-pnpm --filter @webhealth/worker exec tsc --noEmit
+pnpm install --frozen-lockfile
+pnpm --filter @webhealth/shared exec tsx --test src/db/url-guards.test.ts src/db/worker-db-bootstrap.test.ts
+pnpm --filter @webhealth/worker exec tsx --test src/load-env.test.ts
+pnpm --filter @webhealth/web exec eslint src/app/'(marketing)'/legal/legal-dictionaries.en.ts src/app/'(marketing)'/legal/legal-dictionaries.de.ts
 pnpm worker:once
 ```
 
-Optional: apply migrations manually before deploy:
+If schema changes are pending, apply them manually with:
 
 ```bash
 pnpm db:migrate
 ```
 
-`apps/worker` now runs startup migrations automatically before entering its loop.
+## 1) Deploy the DB stack
 
-## 1) Neon configuration
+1. Copy [infra/self-hosted-postgres/.env.example](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/self-hosted-postgres/.env.example) to `.env` in the same folder.
+2. Set all DB role passwords, pgAdmin credentials, and image overrides if needed.
+3. In Coolify, add `DB_TLS_CERT_PEM` and `DB_TLS_KEY_PEM` as multiline runtime environment variables for the stack.
+4. Deploy [infra/self-hosted-postgres/docker-compose.yml](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/self-hosted-postgres/docker-compose.yml) in Coolify.
+5. Publish only:
+   - `pgbouncer` on `db.webhealth.devbrew.dev` and port `6432`
+   - `pgadmin` on `pgadmin.webhealth.devbrew.dev`
+6. Keep direct Postgres private. The stack binds `5432` only on loopback for same-host admin/tunnel use.
 
-You must keep both URLs:
+## 2) Deploy the monitoring stack
 
-- `DATABASE_URL` = pooled Neon runtime URL (`-pooler`, `sslmode=require`)
-- `DIRECT_DATABASE_URL` = direct Neon migration URL (no `-pooler`, `sslmode=require`)
+1. Copy [infra/monitoring/.env.example](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/monitoring/.env.example) to `.env` in the same folder.
+2. Put the monitoring stack on the same Coolify predefined network as the DB stack, or plan to use private hostnames/IPs for the scrape targets.
+3. Set `GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`, and the Prometheus scrape targets.
+4. Point:
+   - `PROMETHEUS_POSTGRES_EXPORTER_TARGET` at the DB stack `postgres-exporter` service
+   - `PROMETHEUS_NODE_EXPORTER_TARGET` at the DB stack `node-exporter` service
+5. Deploy [infra/monitoring/docker-compose.yml](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/monitoring/docker-compose.yml) in Coolify.
+6. Publish only:
+   - `grafana` on `grafana.devbrew.dev`
+7. Keep `prometheus` private.
 
-Example patterns:
+## 3) Configure Vercel (`apps/web`)
 
-```bash
-DATABASE_URL=postgresql://<user>:<pass>@<project>-pooler.<region>.neon.tech/<db>?sslmode=require
-DIRECT_DATABASE_URL=postgresql://<user>:<pass>@<project>.<region>.neon.tech/<db>?sslmode=require
-```
+Required env vars:
 
-## 2) Deploy web to Vercel (`apps/web`)
-
-Vercel project settings:
-
-1. Root Directory: `apps/web`
-2. Node.js version: `20.x` (or newer compatible version)
-3. Install Command: `pnpm install --frozen-lockfile`
-4. Build Command: `pnpm build`
-5. Start Command: `pnpm start` (used for non-serverless environments / previews as needed)
-
-Required env vars in Vercel project:
-
-- `DATABASE_URL`
+- `DATABASE_URL` = pooled PgBouncer URL such as `postgresql://<runtime-user>:<pass>@db.webhealth.devbrew.dev:6432/webhealth?sslmode=require`
 - `BETTER_AUTH_URL`
 - `NEXT_PUBLIC_BETTER_AUTH_URL`
 - `BETTER_AUTH_SECRET`
@@ -68,107 +67,44 @@ Required env vars in Vercel project:
 - `DATABASE_POOL_MAX`
 - `DATABASE_POOL_IDLE_TIMEOUT`
 - `DATABASE_POOL_CONNECT_TIMEOUT`
+- `WORKER_ARTIFACT_URL`
+- `ARTIFACT_TOKEN_SECRET`
 
-Local sync from Vercel:
+Keep Vercel project settings:
 
-```bash
-vercel env pull apps/web/.env.local
-```
+1. Root Directory: `apps/web`
+2. Install Command: `pnpm install --frozen-lockfile`
+3. Build Command: `pnpm build`
 
-Vercel troubleshooting:
+## 4) Configure the worker
 
-- Symptom: `No Next.js version detected`.
-  - Cause: Vercel is not building from `apps/web`.
-  - Fix: set Project Root Directory to `apps/web` and redeploy.
-- Symptom: Deploy logs show an older commit hash than expected.
-  - Cause: deployment not triggered from latest branch head.
-  - Fix: verify Production Branch is `main`, then redeploy latest commit.
-- Symptom: `ERR_PNPM_OUTDATED_LOCKFILE` during install.
-  - Cause: `pnpm-lock.yaml` does not match committed `package.json`.
-  - Fix: update lockfile in git (`pnpm install` locally, commit lockfile), keep Vercel install command on `pnpm install --frozen-lockfile`.
-- Symptom: download API returns `{"error":"Failed to reach artifact download worker"}`.
-  - Cause: Vercel could not connect to `WORKER_ARTIFACT_URL`.
-  - Fix: verify the URL is publicly reachable from the internet, prefer HTTPS ingress/domain, and verify `/health`.
-- Symptom: download API returns `{"error":"Failed to fetch artifact from worker"}`.
-  - Cause: worker returned non-200 for `/artifacts` (for example 400/401/500).
-  - Fix: verify `ARTIFACT_TOKEN_SECRET` matches web + worker and inspect worker artifact-server logs.
-- Symptom: worker logs show `ENOENT ... stat 'artifacts/reports/...xlsx'` for `/artifacts`.
-  - Cause: worker is looking in a relative path while artifacts are mounted elsewhere.
-  - Fix: set `REPORT_ARTIFACTS_DIR` to the mounted absolute path (for example `/app/artifacts`), redeploy worker, and regenerate missing XLSX artifacts.
+Set at least:
 
-## 3) Deploy worker to VPS
-
-Server bootstrap:
-
-```bash
-# install node + corepack + pnpm first
-git clone <your-repo-url> /opt/webhealth
-cd /opt/webhealth
-corepack enable
-pnpm install --frozen-lockfile
-```
-
-Create env file (example path `/etc/webhealth/worker.env`) with at least:
-
-- `DATABASE_URL`
-- `DIRECT_DATABASE_URL` (recommended for explicit direct-host migrations)
-- `SENTRY_DSN` (recommended so worker startup/runtime crashes reach GlitchTip)
+- `DATABASE_URL` = pooled PgBouncer URL
+- `DIRECT_DATABASE_URL` = private direct Postgres URL, usually the Postgres service name on Coolify's predefined network or an SSH tunnel endpoint
+- `SENTRY_DSN`
 - `BETTER_AUTH_URL`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL`
-- `REPORT_ARTIFACTS_DIR` (absolute container path for artifacts, for example `/app/artifacts`)
+- `REPORT_ARTIFACTS_DIR`
 - `ARTIFACT_TOKEN_SECRET`
 - `OAUTH_TOKEN_ENCRYPTION_KEY`
-- optional `SENTRY_ENVIRONMENT` / `SENTRY_RELEASE`
-- optional worker tuning vars from `apps/worker/.env.example`
 
-Artifact storage path requirements:
+For Coolify worker deployment, follow [docs/coolify-worker-deploy.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/coolify-worker-deploy.md).
 
-- Do not use a relative path like `./artifacts` in production containers.
-- Use an absolute path that matches your mounted volume destination.
-- Coolify example: if the persistent volume destination is `/app/artifacts`, set `REPORT_ARTIFACTS_DIR=/app/artifacts`.
+## 5) Post-deploy verification
 
-systemd unit example (`/etc/systemd/system/webhealth-worker.service`):
+1. Confirm Grafana loads the provisioned Postgres dashboard.
+2. Confirm `pgbackrest` has created its stanza and backup metrics files.
+3. Open the web app and verify sign-in succeeds.
+4. Create a report and confirm the queue lifecycle progresses.
+5. Confirm worker logs show `LISTEN/NOTIFY enabled`.
+6. Confirm report downloads still work through the worker artifact endpoint.
 
-```ini
-[Unit]
-Description=WebHealth Report Worker
-After=network.target
+## 6) Rollback
 
-[Service]
-Type=simple
-WorkingDirectory=/opt/webhealth
-EnvironmentFile=/etc/webhealth/worker.env
-ExecStart=/usr/bin/pnpm --filter @webhealth/worker start
-Restart=always
-RestartSec=5
-User=webhealth
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable/start:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable webhealth-worker
-sudo systemctl start webhealth-worker
-sudo systemctl status webhealth-worker
-```
-
-## 4) Post-deploy verification
-
-1. Open web app and create a report.
-2. Confirm DB entry exists in `report_jobs` with status flow.
-3. Confirm worker logs show claim and processing lifecycle.
-4. Confirm report in UI changes from `queued` to `complete|failed`.
-5. Confirm `POST /api/reports/[id]/process` returns `410`.
-
-## 5) Rollback strategy
-
-1. Web rollback: redeploy previous Vercel deployment.
-2. Worker rollback: checkout previous commit/tag on VPS and restart systemd.
-3. Database rollback: apply backward-safe migration strategy (never edit historical migration files already applied).
+1. Web rollback: redeploy the previous Vercel deployment.
+2. Worker rollback: redeploy the previous worker release or restart the earlier commit.
+3. Database rollback: point `DATABASE_URL` and `DIRECT_DATABASE_URL` back to Neon only if the production cutover checklist in [docs/self-hosted-postgres-migration.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/self-hosted-postgres-migration.md) has not irreversibly advanced writes on the new primary.

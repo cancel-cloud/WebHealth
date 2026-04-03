@@ -16,10 +16,6 @@ function requireDirectDatabaseUrl() {
     throw new Error("DB_CONFIG_ERROR: DIRECT_DATABASE_URL is not a valid URL.");
   }
 
-  if (parsed.hostname.includes("-pooler")) {
-    throw new Error("DB_CONFIG_ERROR: DIRECT_DATABASE_URL must not use pooled host (-pooler).");
-  }
-
   if (parsed.searchParams.get("sslmode") !== "require") {
     throw new Error("DB_CONFIG_ERROR: DIRECT_DATABASE_URL must include sslmode=require.");
   }

@@ -477,7 +477,7 @@ apps/web/src/app/reports/[id]/
 **Verification**:
 ```bash
 pnpm typecheck
-# Manual: navigate to https://webaudit-79.localcan.dev/reports/[id]
+# Manual: navigate to https://webaudit-48.localcan.dev/reports/[id]
 # Verify: all 7 sections render in order
 # Verify: clicking a collapsible section expands it
 # Verify: TanStack Table sorts by opportunityScore on load
@@ -518,7 +518,7 @@ pnpm typecheck
 pnpm typecheck              # zero errors
 cd packages/shared && pnpm test  # all tests pass
 cd apps/web && pnpm test    # all tests pass
-# Regenerate a report end-to-end via https://webaudit-79.localcan.dev
+# Regenerate a report end-to-end via https://webaudit-48.localcan.dev
 # Verify XLSX download works
 # Verify report live status polling still functions during generation
 ```

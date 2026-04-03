@@ -1,158 +1,71 @@
 # Coolify Worker Deployment Guide (WebHealth)
 
-This guide explains how to run the backend worker (`apps/worker`) in Coolify using the GUI.
+This guide explains how to run `apps/worker` in Coolify while the database stack lives in the separate self-hosted Postgres Compose deployment.
 
-It complements [deploy-runbook.md](./deploy-runbook.md), which remains the canonical full-stack deployment checklist.
+## 1) Target architecture
 
-## 1) Scope and Architecture
+- Web app: Vercel
+- Database: self-hosted PostgreSQL + PgBouncer on Hetzner
+- Worker: Coolify application resource
 
-Target architecture:
-
-- Web app: Vercel (`apps/web`)
-- Database: Neon Postgres
-- Worker: Coolify application resource (this guide)
-
-Worker process started by Coolify:
+Worker process:
 
 ```bash
 pnpm --filter @webhealth/worker start
 ```
 
-## 2) Prerequisites
+## 2) Coolify worker setup
 
-Before creating the worker resource in Coolify:
-
-1. Ensure your server is connected in Coolify.
-2. Create/select a destination for that server.
-3. Ensure the repository is accessible from Coolify (public repo, GitHub App, or deploy key).
-4. Keep using `pnpm` and the existing monorepo layout.
-
-## 3) Create the Worker Resource in Coolify
-
-1. Open your project in Coolify.
-2. Click **Create New Resource**.
-3. Select your repository source (public/private Git).
-4. Set **Build Pack** to **Nixpacks**.
-5. Configure:
-- **Branch**: your deploy branch.
-- **Base Directory**: `/` (repo root).
-- **Port**: leave the default unless your UI requires a value. This worker is not exposed via a domain.
-6. Continue to deployment settings.
-
-## 4) Commands for This Monorepo
-
-In the Nixpacks build section, set explicit commands so only worker runtime behavior is deployed:
-
-- Install command:
+1. Create a new application resource from this repo.
+2. Use **Nixpacks**.
+3. Keep **Base Directory** as `/`.
+4. Start command:
 
 ```bash
-npm i -g pnpm@9.15.5 && export PATH="$(npm bin -g):$PATH" && pnpm -v && pnpm install
+pnpm --filter @webhealth/worker start
 ```
 
-- Build command (optional but recommended as guard):
+Recommended build guard:
 
 ```bash
 pnpm --filter @webhealth/worker exec tsc --noEmit
 ```
 
-- Start command:
+## 3) Required env vars
 
-```bash
-pnpm --filter @webhealth/worker start
-```
-
-If Coolify does not apply command overrides as expected in your version, add a `nixpacks.toml` in repo root and define the commands there.
-
-## 5) Environment Variables
-
-Set these in the Coolify **Environment Variables** tab.
-
-Required for worker:
-
-- `DATABASE_URL` (Neon pooled URL with `-pooler` and `sslmode=require`)
-- `DIRECT_DATABASE_URL` (recommended direct Neon URL; worker uses this for startup migrations)
-- `SENTRY_DSN` (recommended so worker startup/runtime crashes reach GlitchTip)
+- `DATABASE_URL=postgresql://<runtime-user>:<pass>@db.webhealth.devbrew.dev:6432/webhealth?sslmode=require`
+- `DIRECT_DATABASE_URL=postgresql://<direct-user>:<pass>@<private-host-or-predefined-network-name>:5432/webhealth?sslmode=require`
+- `SENTRY_DSN`
 - `BETTER_AUTH_URL`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `OPENAI_API_KEY`
-
-Common optional vars:
-
 - `OPENAI_MODEL`
-- `OPENAI_BASE_URL`
-- `OPENAI_PROJECT`
-- `OPENAI_ORG`
-- `DATABASE_POOL_MAX`
-- `DATABASE_POOL_IDLE_TIMEOUT`
-- `DATABASE_POOL_CONNECT_TIMEOUT`
-- `REPORT_WORKER_POLL_MS`
-- `REPORT_WORKER_LEASE_SECONDS`
-- `REPORT_WORKER_HEARTBEAT_SECONDS`
-- `REPORT_WORKER_MAX_ACTIVE_GLOBAL`
-- `REPORT_WORKER_MAX_ACTIVE_PER_TEAM`
+- `ARTIFACT_TOKEN_SECRET`
 - `REPORT_ARTIFACTS_DIR`
-- `REPORT_AI_COST_CAP_USD`
-- `REPORT_OPENAI_POLL_INTERVAL_MS`
-- `REPORT_OPENAI_POLL_TIMEOUT_MS`
-- `ARTIFACT_TOKEN_SECRET` (required if the web app fetches XLSX artifacts from the worker)
 - `OAUTH_TOKEN_ENCRYPTION_KEY`
-- `WORKER_HTTP_PORT` (default `9100`)
-- `SENTRY_ENVIRONMENT`
-- `SENTRY_RELEASE`
 
-## 6) Networking and Health Checks
+## 4) Direct Postgres access
 
-The worker runs a lightweight artifact HTTP server on port `9100` (configurable via `WORKER_HTTP_PORT`) that the web app uses to fetch XLSX report files. This server only starts when `ARTIFACT_TOKEN_SECRET` is set.
+The worker must use the private direct Postgres endpoint for startup migrations and `LISTEN/NOTIFY`.
 
-- **Port exposure**: Expose port `9100` publicly (or via a tunnel) so Vercel can reach it. Short-lived signed artifact tokens protect the endpoint.
-- **Health check**: Use path `/health` on port `9100` — returns `{"ok":true}`.
-- **Web app config**: Set `WORKER_ARTIFACT_URL` (e.g. `http://<worker-ip>:9100`) and `ARTIFACT_TOKEN_SECRET` on the web app so it can mint signed artifact tokens.
+Use one of these:
 
-## 7) Optional Persistent Storage for Artifacts
+- the full Postgres service name exposed through Coolify's predefined network
+- a private host/IP on the Hetzner network
+- an SSH tunnel during admin or migration work
 
-If you want artifacts to survive redeploys/restarts:
+Do not point `DIRECT_DATABASE_URL` at PgBouncer.
 
-1. Add persistent storage in Coolify.
-2. Set destination path to match your worker artifacts directory (for example `/app/artifacts`).
-3. Set `REPORT_ARTIFACTS_DIR=/app/artifacts`.
+## 5) Artifact server
 
-Note: Coolify container base path is `/app`.
+The worker artifact server still exposes `/health` on `WORKER_HTTP_PORT` when `ARTIFACT_TOKEN_SECRET` is set.
 
-## 8) Deploy and Verify
+Set `WORKER_ARTIFACT_URL` on the web app to the worker's reachable artifact URL and keep `ARTIFACT_TOKEN_SECRET` identical across web and worker.
 
-After first deploy:
+## 6) Verification
 
-1. Open deployment logs and confirm worker boot line:
-
-```text
-[report-worker] starting loop...
-```
-
-You should also see a migration bootstrap line before loop startup:
-
-```text
-[report-worker] ensuring DB schema via migrations in ...
-```
-
-2. Create a report job from the web app.
-3. Verify worker logs show claim/processing activity.
-4. Verify job status transitions in DB/UI (`queued` -> `complete` or `failed`).
-5. Verify `POST /api/reports/[id]/process` returns `410` after queue-based processing takes over.
-
-## 9) Rollback
-
-If a deployment breaks worker processing:
-
-1. In Coolify, redeploy the previous known-good commit.
-2. Confirm logs return to normal worker loop behavior.
-3. Re-test a single report job end-to-end.
-
-## 10) Source References (Coolify Docs)
-
-- https://coolify.io/docs/applications/build-packs/nixpacks.md
-- https://coolify.io/docs/applications/build-packs/dockerfile.md
-- https://coolify.io/docs/knowledge-base/environment-variables.md
-- https://coolify.io/docs/knowledge-base/health-checks.md
-- https://coolify.io/docs/knowledge-base/persistent-storage.md
-- https://coolify.io/docs/knowledge-base/destinations/create.md
+1. Deploy the worker.
+2. Confirm logs show the worker loop start and DB migration bootstrap.
+3. Create a report from the web app.
+4. Verify job state transitions and artifact downloads.

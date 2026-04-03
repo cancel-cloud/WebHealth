@@ -2,25 +2,18 @@
 
 This runbook starts the split architecture locally:
 
-- `apps/web` (Next.js UI + short API routes)
-- `apps/worker` (long-running queue worker)
-- Neon/Postgres as shared backend state
-
-`pnpm` is required and used everywhere in this repository.
+- `apps/web`
+- `apps/worker`
+- a TLS-enabled PostgreSQL backend using the same pooled/direct URL contract as production
 
 ## Prerequisites
 
 - Node.js 20+
-- Corepack enabled (`corepack enable`)
-- `pnpm` (version pinned by root `packageManager`)
-- Postgres/Neon database access
+- Corepack enabled
+- `pnpm`
+- access to a TLS-enabled Postgres database
 - Google OAuth credentials
 - OpenAI API key
-
-Optional:
-
-- `psql`
-- Docker Desktop (if you want local Postgres container)
 
 ## 1) Install dependencies
 
@@ -31,9 +24,7 @@ corepack enable
 pnpm install
 ```
 
-## 2) Configure environment files
-
-Create local env files from placeholders:
+## 2) Configure env files
 
 ```bash
 cp apps/web/.env.example apps/web/.env.local
@@ -42,87 +33,68 @@ cp apps/worker/.env.example apps/worker/.env.local
 
 Required rules:
 
-- `DATABASE_URL` must be Neon pooled host (`-pooler`) and include `sslmode=require`
-- `DIRECT_DATABASE_URL` must be direct Neon host (no `-pooler`) and include `sslmode=require`
-- Runtime (`web` + `worker`) uses `DATABASE_URL`
-- Migrations use `DIRECT_DATABASE_URL` (worker startup can derive direct host from pooled `DATABASE_URL` if not set)
+- `DATABASE_URL` points at the pooled runtime endpoint and includes `sslmode=require`
+- `DIRECT_DATABASE_URL` points at direct Postgres and includes `sslmode=require`
+- runtime uses `DATABASE_URL`
+- migrations and `LISTEN/NOTIFY` use `DIRECT_DATABASE_URL`
 
-## 3) (Optional) Run database migrations manually
-
-From repo root:
+## 3) Optional manual migrations
 
 ```bash
 pnpm db:migrate
 ```
 
-Worker startup already runs migrations before processing jobs, so this step is optional.
-Use it when you want to apply schema changes without starting the worker.
-
-Optional for schema sync during development:
-
-```bash
-pnpm db:push
-```
-
 ## 4) Start web and worker
 
-Terminal 1 (web):
+Terminal 1:
 
 ```bash
 pnpm dev
 ```
 
-Terminal 2 (worker):
+Terminal 2:
 
 ```bash
 pnpm worker
 ```
 
-Single worker tick for debugging:
+## 5) Local verification
 
 ```bash
-pnpm worker:once
+pnpm --filter @webhealth/shared exec tsx --test src/db/url-guards.test.ts src/db/worker-db-bootstrap.test.ts
+pnpm --filter @webhealth/worker exec tsx --test src/load-env.test.ts
 ```
 
-## 5) Basic local verification
+Then:
 
-From repo root:
-
-```bash
-pnpm --filter @webhealth/web build
-pnpm --filter @webhealth/web exec tsc --noEmit
-pnpm --filter @webhealth/worker exec tsc --noEmit
-```
-
-Queue flow smoke test:
-
-1. Start web + worker.
-2. Create or retry a report from UI.
-3. Confirm report status transitions: `queued` -> `processing` -> `complete|failed`.
-4. Verify job/event rows in DB (`report_jobs`, `report_job_events`).
-
-Legacy process endpoint guard:
-
-```bash
-curl -i -X POST http://localhost:3000/api/reports/<reportId>/process
-```
-
-Expected status: `410 Gone`.
+1. Create a report.
+2. Confirm `queued -> processing -> complete|failed`.
+3. Verify worker logs show `LISTEN/NOTIFY enabled`.
 
 ## Common issues
 
-## Wrong Neon URL type
+### Missing TLS on the DB endpoint
 
 Symptoms:
 
-- Worker/web abort on startup with DB config errors
+- startup fails with `sslmode=require` config errors or SSL connection failures
 
 Fix:
 
-- Ensure `DATABASE_URL` has `-pooler` and `sslmode=require`
-- Ensure `DIRECT_DATABASE_URL` has no `-pooler` and has `sslmode=require`
+- ensure both DB URLs terminate TLS
+- if you are using the self-hosted stack, set `DB_TLS_CERT_PEM` and `DB_TLS_KEY_PEM` before booting the stack
 
-## OAuth redirect mismatch
+### Wrong direct endpoint
+
+Symptoms:
+
+- worker starts but startup migrations or `LISTEN/NOTIFY` fail
+
+Fix:
+
+- ensure `DIRECT_DATABASE_URL` points at direct Postgres, not PgBouncer
+
+### OAuth redirect mismatch
 
 Symptoms:
 
@@ -130,17 +102,4 @@ Symptoms:
 
 Fix:
 
-- Align `BETTER_AUTH_URL` with your local URL
-- Update Google OAuth redirect URIs accordingly
-
-## Worker starts but no jobs get processed
-
-Symptoms:
-
-- Reports stay `queued`
-
-Fix:
-
-- Confirm worker process is running
-- Confirm worker has DB + Google + OpenAI envs
-- Check `report_job_events` and worker logs for claim/lease errors
+- align `BETTER_AUTH_URL` with your local URL and configured Google redirect URIs

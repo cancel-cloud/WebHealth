@@ -20,6 +20,7 @@ export interface PlanLimits {
   displayName: string;
   reportsPerMonth: number | null;
   maxProperties: number | null;
+  detailsPerMonth: number | null;
   updatedAt: string;
 }
 
@@ -37,6 +38,8 @@ export interface AdminUser {
   propertiesCount: number;
   reportsCount: number;
   reportsLast30Days: number;
+  deepDivesTotal: number;
+  deepDivesThisMonth: number;
   lastSyncedAt: string | null;
   lastSignedInAt: string | null;
   planLimits: PlanLimits | null;
