@@ -12,20 +12,20 @@ This runbook covers day-to-day management of the database Compose stack in [`inf
 
 ## Start or update the stack
 
-From `infra/self-hosted-postgres`:
+From repo root:
 
 ```bash
-docker compose pull
-docker compose up -d --build
+docker compose --project-directory . -f infra/self-hosted-postgres/docker-compose.yml pull
+docker compose --project-directory . -f infra/self-hosted-postgres/docker-compose.yml up -d --build
 ```
 
 ## Health checks
 
 ```bash
-docker compose ps
-docker compose logs postgres --tail=100
-docker compose logs pgbackrest --tail=100
-docker compose logs pgbouncer --tail=100
+docker compose --project-directory . -f infra/self-hosted-postgres/docker-compose.yml ps
+docker compose --project-directory . -f infra/self-hosted-postgres/docker-compose.yml logs postgres --tail=100
+docker compose --project-directory . -f infra/self-hosted-postgres/docker-compose.yml logs pgbackrest --tail=100
+docker compose --project-directory . -f infra/self-hosted-postgres/docker-compose.yml logs pgbouncer --tail=100
 ```
 
 Key checks:
@@ -41,10 +41,10 @@ Nightly full and 6-hour diff backups are driven by the `pgbackrest` service loop
 Manual commands:
 
 ```bash
-docker compose exec pgbackrest pgbackrest --stanza=webhealth info
-docker compose exec pgbackrest pgbackrest --stanza=webhealth check
-docker compose exec pgbackrest pgbackrest --stanza=webhealth backup --type=full
-docker compose exec pgbackrest pgbackrest --stanza=webhealth backup --type=diff
+docker compose --project-directory . -f infra/self-hosted-postgres/docker-compose.yml exec pgbackrest pgbackrest --stanza=webhealth info
+docker compose --project-directory . -f infra/self-hosted-postgres/docker-compose.yml exec pgbackrest pgbackrest --stanza=webhealth check
+docker compose --project-directory . -f infra/self-hosted-postgres/docker-compose.yml exec pgbackrest pgbackrest --stanza=webhealth backup --type=full
+docker compose --project-directory . -f infra/self-hosted-postgres/docker-compose.yml exec pgbackrest pgbackrest --stanza=webhealth backup --type=diff
 ```
 
 ## Restore rehearsal

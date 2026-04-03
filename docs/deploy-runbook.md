@@ -32,11 +32,23 @@ pnpm db:migrate
 1. Copy [infra/self-hosted-postgres/.env.example](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/self-hosted-postgres/.env.example) to `.env` in the same folder.
 2. Set all DB role passwords, pgAdmin credentials, and image overrides if needed.
 3. In Coolify, add `DB_TLS_CERT_PEM` and `DB_TLS_KEY_PEM` as multiline runtime environment variables for the stack.
+   Generate them with:
+
+```bash
+openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+  -keyout db-tls.key -out db-tls.crt \
+  -subj "/CN=db.webhealth.devbrew.dev" \
+  -addext "subjectAltName=DNS:db.webhealth.devbrew.dev,IP:178.104.11.44"
+```
+
+   Then paste the full PEM contents of `db-tls.crt` into `DB_TLS_CERT_PEM` and `db-tls.key` into `DB_TLS_KEY_PEM`.
 4. Deploy [infra/self-hosted-postgres/docker-compose.yml](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/self-hosted-postgres/docker-compose.yml) in Coolify.
 5. Publish only:
    - `pgbouncer` on `db.webhealth.devbrew.dev` and port `6432`
    - `pgadmin` on `pgadmin.webhealth.devbrew.dev`
 6. Keep direct Postgres private. The stack binds `5432` only on loopback for same-host admin/tunnel use.
+7. The default stack now targets PostgreSQL `18.3` via `POSTGRES_BASE_IMAGE=postgres:18.3-bookworm`.
+8. If the first initialization ever failed before creating the `webhealth` database and roles, delete the self-hosted Postgres data volume and redeploy before migrating production data.
 
 ## 2) Deploy the monitoring stack
 

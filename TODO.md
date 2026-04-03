@@ -1,5 +1,7 @@
 # TODO — Placeholder / Dummy Data Tracker
 - Upgrade to pro get 5x the value!
+- If a user on the sign-in flow disagrees to share its properties, we simply show a default sync failed error and no explanation why that could have happened. And we've got no way to fix that for the user, because the user can sign out and simply can sign in. And if he doesn't tick the two boxes that are unticked by default, I don't know why, we can't get his properties.
+- YT-Short testing?
 
 
 
@@ -25,3 +27,5 @@
 - In Settings introduce a skeleton that has the same layout of the plan stuff in the sitebar and the plan details on the right side
 - Branding guidelines idk wtf to do here
 - In settings the butons upgrade/downgrade buttons are not on the same hight
+- Screenshot 30.03.2026
+  - There needs to be the Deep dives count added to the user slideover screen
