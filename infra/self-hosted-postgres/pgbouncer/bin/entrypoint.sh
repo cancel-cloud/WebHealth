@@ -2,18 +2,27 @@
 set -euo pipefail
 
 config_dir="/etc/pgbouncer"
+
+write_pem_file() {
+  local value="$1"
+  local target="$2"
+  local mode="$3"
+
+  value="${value//$'\r'/}"
+  printf '%b\n' "${value}" > "${target}"
+  chmod "${mode}" "${target}"
+}
+
 mkdir -p "${config_dir}"
 
 if [[ -n "${DB_TLS_CERT_PEM:-}" ]]; then
   mkdir -p "$(dirname "${PGBOUNCER_TLS_CERT_FILE}")"
-  printf '%s\n' "${DB_TLS_CERT_PEM}" > "${PGBOUNCER_TLS_CERT_FILE}"
-  chmod 0644 "${PGBOUNCER_TLS_CERT_FILE}"
+  write_pem_file "${DB_TLS_CERT_PEM}" "${PGBOUNCER_TLS_CERT_FILE}" 0644
 fi
 
 if [[ -n "${DB_TLS_KEY_PEM:-}" ]]; then
   mkdir -p "$(dirname "${PGBOUNCER_TLS_KEY_FILE}")"
-  printf '%s\n' "${DB_TLS_KEY_PEM}" > "${PGBOUNCER_TLS_KEY_FILE}"
-  chmod 0600 "${PGBOUNCER_TLS_KEY_FILE}"
+  write_pem_file "${DB_TLS_KEY_PEM}" "${PGBOUNCER_TLS_KEY_FILE}" 0600
 fi
 
 cat > "${config_dir}/userlist.txt" <<EOF
