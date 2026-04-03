@@ -19,6 +19,9 @@ importers:
       drizzle-kit:
         specifier: ^0.31.9
         version: 0.31.9
+      esbuild:
+        specifier: ^0.25.11
+        version: 0.25.12
       sharp:
         specifier: ^0.34.5
         version: 0.34.5

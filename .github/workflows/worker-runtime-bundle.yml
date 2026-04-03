@@ -1,0 +1,40 @@
+name: worker-runtime-bundle
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  verify-worker-runtime-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify worker tests
+        run: pnpm --filter @webhealth/worker exec tsx --test src/async-utils.test.ts src/runtime-paths.test.ts src/runtime-state.test.ts src/runtime-watchdog.test.ts src/load-env.test.ts src/artifact-server.test.ts src/monitoring.test.ts
+
+      - name: Verify shared tests
+        run: pnpm --filter @webhealth/shared exec tsx --test src/db/url-guards.test.ts src/db/worker-db-bootstrap.test.ts src/lib/queue/report-job-row-shape.test.ts src/lib/queue/report-worker-policy.test.ts
+
+      - name: Verify worker typecheck
+        run: pnpm --filter @webhealth/worker exec tsc --noEmit
+
+      - name: Verify committed worker dist
+        run: pnpm worker:verify-dist

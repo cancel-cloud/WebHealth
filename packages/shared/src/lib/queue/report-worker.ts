@@ -62,6 +62,11 @@ import { buildSanitizedReportInputSnapshot } from "@webhealth/shared/lib/reports
 import type { AiSeoReport, OpenAIRequestTrace } from "@webhealth/shared/lib/reports/types";
 import { buildWorkbookBufferFromAiReport } from "@webhealth/shared/lib/reports/xlsx-builder";
 import { resolveReportSourcesForExistingReport } from "@webhealth/shared/lib/properties/reportable-properties-db";
+import {
+  buildCrawlRefreshGeneratePayload,
+  planReportGenerationPass,
+  shouldSkipExistingAiReport,
+} from "@webhealth/shared/lib/queue/report-worker-policy";
 import { enqueueReportJob } from "@webhealth/shared/lib/queue/report-jobs";
 import { getGoogleAccountTokensForUser } from "@webhealth/shared/lib/provider-tokens";
 import {
@@ -69,6 +74,7 @@ import {
   claimNextReportJob,
   completeReportJob,
   failReportJob,
+  findLatestJobForReport,
   heartbeatReportJob,
   requeueJobForRetry,
   updateReportJobPhase,
@@ -78,6 +84,18 @@ import {
 
 export type WorkerLoopControls = {
   stop: () => void;
+};
+
+export type WorkerLoopObserverHooks = {
+  onFatalError?: (input: { workerId: string; error: unknown; nowMs: number }) => void;
+  onJobEnd?: (input: { workerId: string; jobId: string; nowMs: number }) => void;
+  onJobStart?: (input: { workerId: string; jobId: string; nowMs: number }) => void;
+  onLoopTick?: (input: {
+    workerId: string;
+    nowMs: number;
+    processed: boolean;
+    jobId?: string;
+  }) => void;
 };
 
 type TrendPoint = {
@@ -149,6 +167,43 @@ function extractChatCompletionRequestId(response: unknown): string | null {
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function readTimeoutMs(envName: string, fallbackMs: number) {
+  const parsed = parseInt(process.env[envName] ?? `${fallbackMs}`, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackMs;
+}
+
+function getOpenAiPollPhaseTimeoutMs() {
+  const configured = parseInt(process.env.REPORT_OPENAI_POLL_PHASE_TIMEOUT_MS ?? "", 10);
+  if (Number.isFinite(configured) && configured > 0) {
+    return configured;
+  }
+
+  return readTimeoutMs("REPORT_OPENAI_POLL_TIMEOUT_MS", 360_000) + 15_000;
+}
+
+async function withExternalPhaseTimeout<T>(input: {
+  label: string;
+  timeoutMs: number;
+  operation: () => Promise<T>;
+}) {
+  let timeoutHandle: NodeJS.Timeout | null = null;
+
+  try {
+    return await Promise.race([
+      input.operation(),
+      new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          reject(new Error(`${input.label} timed out after ${input.timeoutMs}ms`));
+        }, input.timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  }
 }
 
 type WorkerLogLevel = "INFO" | "WARN" | "ERROR" | "FATAL";
@@ -456,6 +511,36 @@ function shouldRunXlsxForJob(job: ClaimedReportJob) {
   );
 }
 
+function emptySiteChanges(): NonNullable<AiSeoReport["siteChanges"]> {
+  return { newPages: [], changedPages: [], removedPages: [] };
+}
+
+function readStoredSiteChanges(
+  value: unknown,
+): NonNullable<AiSeoReport["siteChanges"]> {
+  if (!value || typeof value !== "object") return emptySiteChanges();
+
+  const siteChanges = value as Partial<NonNullable<AiSeoReport["siteChanges"]>>;
+  return {
+    newPages: Array.isArray(siteChanges.newPages) ? siteChanges.newPages : [],
+    changedPages: Array.isArray(siteChanges.changedPages) ? siteChanges.changedPages : [],
+    removedPages: Array.isArray(siteChanges.removedPages) ? siteChanges.removedPages : [],
+  };
+}
+
+function readStoredCrawlData(value: unknown): CrawlResult | null {
+  if (!value || typeof value !== "object") return null;
+  const crawl = (value as Record<string, unknown>).crawl;
+  if (!crawl || typeof crawl !== "object") return null;
+  return crawl as CrawlResult;
+}
+
+function hasPendingReportJob(
+  job: Awaited<ReturnType<typeof findLatestJobForReport>> | null,
+) {
+  return !!job && (job.status === "queued" || job.status === "processing");
+}
+
 async function queueXlsxJobFromReportGeneration(job: ClaimedReportJob) {
   await enqueueReportJob({
     reportId: job.reportId,
@@ -472,6 +557,28 @@ async function queueXlsxJobFromReportGeneration(job: ClaimedReportJob) {
     phase: "store_report",
     level: "info",
     message: "Queued render_xlsx job",
+  });
+}
+
+async function queueCrawlSiteChangesJobFromReportGeneration(job: ClaimedReportJob) {
+  await enqueueReportJob({
+    reportId: job.reportId,
+    teamId: job.teamId,
+    kind: "crawl_site_changes",
+    priority: 105,
+    payload: {
+      sourceJobId: job.id,
+      runXlsx: shouldRunXlsxForJob(job),
+    },
+  });
+
+  await appendReportJobEvent({
+    jobId: job.id,
+    reportId: job.reportId,
+    teamId: job.teamId,
+    phase: "site_changes",
+    level: "info",
+    message: "Queued crawl_site_changes job",
   });
 }
 
@@ -916,55 +1023,65 @@ async function buildReportInputs(job: ClaimedReportJob) {
         cachedMetrics.ga4.current,
         cachedMetrics.ga4.compare,
       ]
-    : await (async () => {
-        const [liveGscCurrent, liveGscCompare] = await Promise.all([
-          fetchGscMetrics(
-            teamAuth.authClient,
-            property.url,
-            formatDate(report.dateRangeStart),
-            formatDate(report.dateRangeEnd)
-          ),
-          fetchGscMetrics(
-            teamAuth.authClient,
-            property.url,
-            formatDate(report.compareRangeStart),
-            formatDate(report.compareRangeEnd)
-          ),
-        ]);
+    : await withExternalPhaseTimeout({
+        label: "google metrics fetch",
+        timeoutMs: readTimeoutMs("REPORT_GOOGLE_METRICS_TIMEOUT_MS", 60_000),
+        operation: async () => {
+          const [liveGscCurrent, liveGscCompare] = await Promise.all([
+            fetchGscMetrics(
+              teamAuth.authClient,
+              property.url,
+              formatDate(report.dateRangeStart),
+              formatDate(report.dateRangeEnd)
+            ),
+            fetchGscMetrics(
+              teamAuth.authClient,
+              property.url,
+              formatDate(report.compareRangeStart),
+              formatDate(report.compareRangeEnd)
+            ),
+          ]);
 
-        const [liveGa4Current, liveGa4Compare] = property.ga4PropertyId
-          ? await Promise.all([
-              fetchGa4Metrics(
-                teamAuth.authClient,
-                property.ga4PropertyId,
-                formatDate(report.dateRangeStart),
-                formatDate(report.dateRangeEnd)
-              ),
-              fetchGa4Metrics(
-                teamAuth.authClient,
-                property.ga4PropertyId,
-                formatDate(report.compareRangeStart),
-                formatDate(report.compareRangeEnd)
-              ),
-            ])
-          : [null, null];
+          const [liveGa4Current, liveGa4Compare] = property.ga4PropertyId
+            ? await Promise.all([
+                fetchGa4Metrics(
+                  teamAuth.authClient,
+                  property.ga4PropertyId,
+                  formatDate(report.dateRangeStart),
+                  formatDate(report.dateRangeEnd)
+                ),
+                fetchGa4Metrics(
+                  teamAuth.authClient,
+                  property.ga4PropertyId,
+                  formatDate(report.compareRangeStart),
+                  formatDate(report.compareRangeEnd)
+                ),
+              ])
+            : [null, null];
 
-        return [liveGscCurrent, liveGscCompare, liveGa4Current, liveGa4Compare] as const;
-      })();
+          return [liveGscCurrent, liveGscCompare, liveGa4Current, liveGa4Compare] as const;
+        },
+      });
 
   let ga4Current = ga4CurrentBase as Record<string, unknown> | null;
   let ga4Compare = ga4CompareBase as Record<string, unknown> | null;
 
   if (property.ga4PropertyId) {
+    const ga4PropertyId = property.ga4PropertyId;
     try {
-      const profile = await fetchGa4ReportProfile(
-        teamAuth.authClient,
-        property.ga4PropertyId,
-        formatDate(report.dateRangeStart),
-        formatDate(report.dateRangeEnd),
-        formatDate(report.compareRangeStart),
-        formatDate(report.compareRangeEnd)
-      );
+      const profile = await withExternalPhaseTimeout({
+        label: "ga4 profile fetch",
+        timeoutMs: readTimeoutMs("REPORT_GOOGLE_PROFILE_TIMEOUT_MS", 60_000),
+        operation: () =>
+          fetchGa4ReportProfile(
+            teamAuth.authClient,
+            ga4PropertyId,
+            formatDate(report.dateRangeStart),
+            formatDate(report.dateRangeEnd),
+            formatDate(report.compareRangeStart),
+            formatDate(report.compareRangeEnd)
+          ),
+      });
 
       ga4Current = { ...(ga4CurrentBase ?? {}), ...profile.current };
       ga4Compare = { ...(ga4CompareBase ?? {}), ...profile.compare };
@@ -977,7 +1094,7 @@ async function buildReportInputs(job: ClaimedReportJob) {
         level: "warn",
         message: "GA4 profile fetch failed; using summary-only GA4 payload",
         meta: {
-          ga4PropertyId: property.ga4PropertyId,
+          ga4PropertyId,
           error: error instanceof Error ? error.message : "Unknown GA4 profile error",
         },
       });
@@ -985,14 +1102,20 @@ async function buildReportInputs(job: ClaimedReportJob) {
   }
 
   const crawlingEnabled = await isEnabled("crawling_enabled", teamAuth.owner.userId);
-  const crawlData = crawlingEnabled ? await crawlWebsite(property.url, 120) : null;
+  const crawlData = readStoredCrawlData(report.data);
+  const siteChanges = readStoredSiteChanges(report.siteChanges);
 
-  const queryPagePairsCurrent = await fetchGscQueryPagePairs(
-    teamAuth.authClient,
-    property.url,
-    formatDate(report.dateRangeStart),
-    formatDate(report.dateRangeEnd)
-  ).catch(() => []);
+  const queryPagePairsCurrent = await withExternalPhaseTimeout({
+    label: "gsc query-page pair fetch",
+    timeoutMs: readTimeoutMs("REPORT_GSC_QUERY_PAGE_PAIRS_TIMEOUT_MS", 60_000),
+    operation: () =>
+      fetchGscQueryPagePairs(
+        teamAuth.authClient,
+        property.url,
+        formatDate(report.dateRangeStart),
+        formatDate(report.dateRangeEnd)
+      ),
+  }).catch(() => []);
 
   const currentSeries = await loadDailyTrends({
     propertyId: property.id,
@@ -1007,15 +1130,6 @@ async function buildReportInputs(job: ClaimedReportJob) {
     end: formatDate(report.compareRangeEnd),
   });
   const compareSeries = alignCompareSeriesToCurrent(currentSeries, compareSeriesRaw);
-
-  const siteChanges = crawlData
-    ? await computeAndPersistSiteChanges({
-        reportId: report.id,
-        teamId: report.teamId,
-        propertyId: property.id,
-        pages: crawlData.pages,
-      })
-    : { newPages: [], changedPages: [], removedPages: [] };
 
   const deterministic = buildDeterministicInsights({
     gscCurrent: gscCurrent as unknown as Parameters<typeof buildDeterministicInsights>[0]["gscCurrent"],
@@ -1049,6 +1163,7 @@ async function buildReportInputs(job: ClaimedReportJob) {
     reportData,
     deterministic,
     siteChanges,
+    crawlingEnabled,
   };
 }
 
@@ -1087,7 +1202,19 @@ async function processGenerateReportJob(job: ClaimedReportJob, workerId: string)
   });
   if (!reportBefore) throw new Error("Report not found");
 
-  if (reportBefore.aiReportJson) {
+  const payload =
+    job.payload && typeof job.payload === "object"
+      ? (job.payload as Record<string, unknown>)
+      : {};
+  const forceRegenerate = payload.forceRegenerate === true;
+  const skipCrawlEnqueue = payload.skipCrawlEnqueue === true;
+
+  if (
+    shouldSkipExistingAiReport({
+      hasAiReport: !!reportBefore.aiReportJson,
+      forceRegenerate,
+    })
+  ) {
     await appendReportJobEvent({
       jobId: job.id,
       reportId: job.reportId,
@@ -1108,7 +1235,23 @@ async function processGenerateReportJob(job: ClaimedReportJob, workerId: string)
     .set({ status: "processing", aiStatus: "preprocessing", error: null, updatedAt: new Date() })
     .where(eq(reports.id, job.reportId));
 
-  const { report, property, teamAuth, reportData, deterministic, siteChanges } = await buildReportInputs(job);
+  const latestCrawlJob = await findLatestJobForReport(job.reportId, ["crawl_site_changes"]);
+  const { report, property, teamAuth, reportData, deterministic, siteChanges, crawlingEnabled } =
+    await buildReportInputs(job);
+  const generationPlan = planReportGenerationPass({
+    crawlingEnabled,
+    skipCrawlEnqueue,
+    hasStoredSiteChanges:
+      siteChanges.newPages.length > 0 ||
+      siteChanges.changedPages.length > 0 ||
+      siteChanges.removedPages.length > 0,
+    hasPendingCrawlJob: hasPendingReportJob(latestCrawlJob),
+    requestedRunXlsx: shouldRunXlsxForJob(job),
+  });
+
+  if (generationPlan.queueCrawlJob) {
+    await queueCrawlSiteChangesJobFromReportGeneration(job);
+  }
 
   await setJobPhaseWithLog(job, workerId, "site_changes");
   await appendReportJobEvent({
@@ -1117,8 +1260,10 @@ async function processGenerateReportJob(job: ClaimedReportJob, workerId: string)
     teamId: report.teamId,
     phase: "site_changes",
     level: "info",
-    message: "Deterministic site change tracking completed",
+    message: "Using deferred site change data for report generation",
     meta: {
+      crawlQueued: generationPlan.queueCrawlJob,
+      siteChangesSource: generationPlan.siteChangesSource,
       newPages: siteChanges.newPages.length,
       changedPages: siteChanges.changedPages.length,
       removedPages: siteChanges.removedPages.length,
@@ -1221,7 +1366,6 @@ async function processGenerateReportJob(job: ClaimedReportJob, workerId: string)
     })
     .where(eq(reports.id, report.id));
 
-  const payload = (job.payload ?? {}) as Record<string, unknown>;
   const modelOverride = typeof payload.modelOverride === "string" ? payload.modelOverride : null;
   const selectedModel = modelOverride ?? settings.model;
   const schemaForModel = settings.useStrictSchema
@@ -1304,25 +1448,30 @@ async function processGenerateReportJob(job: ClaimedReportJob, workerId: string)
     });
   } else {
     try {
-      startResult = await runWithOrgHeaderFallback({
-        phase: "openai_start",
-        operation: (client) =>
-          startOpenAiWithFallback({
-            client,
-            reportId: report.id,
-            jobId: job.id,
-            prompt: prompt.prompt,
-            schema: schemaForModel,
-            strictSchema: settings.useStrictSchema,
-            model: selectedModel,
-            fallbackModel: "gpt-5-mini",
-            strategy: settings.outputStrategy as "json_schema" | "tool_strict",
-            temperature: Number(settings.temperature),
-            maxOutputTokens,
-            background: settings.useBackgroundMode,
-            promptCacheKey: settings.usePromptCaching ? prompt.promptCacheKey : undefined,
-            serviceTier: settings.serviceTier,
-            costCapUsd,
+      startResult = await withExternalPhaseTimeout({
+        label: "openai generation start",
+        timeoutMs: readTimeoutMs("REPORT_OPENAI_START_TIMEOUT_MS", 120_000),
+        operation: () =>
+          runWithOrgHeaderFallback({
+            phase: "openai_start",
+            operation: (client) =>
+              startOpenAiWithFallback({
+                client,
+                reportId: report.id,
+                jobId: job.id,
+                prompt: prompt.prompt,
+                schema: schemaForModel,
+                strictSchema: settings.useStrictSchema,
+                model: selectedModel,
+                fallbackModel: "gpt-5-mini",
+                strategy: settings.outputStrategy as "json_schema" | "tool_strict",
+                temperature: Number(settings.temperature),
+                maxOutputTokens,
+                background: settings.useBackgroundMode,
+                promptCacheKey: settings.usePromptCaching ? prompt.promptCacheKey : undefined,
+                serviceTier: settings.serviceTier,
+                costCapUsd,
+              }),
           }),
       });
     } catch (error) {
@@ -1382,7 +1531,7 @@ async function processGenerateReportJob(job: ClaimedReportJob, workerId: string)
         message: "Stored deterministic fallback report after schema contract error",
       });
 
-      if (shouldRunXlsxForJob(job)) {
+      if (generationPlan.shouldRunXlsxAfterThisPass) {
         await queueXlsxJobFromReportGeneration(job);
       }
       return;
@@ -1445,14 +1594,19 @@ async function processGenerateReportJob(job: ClaimedReportJob, workerId: string)
     (settings.useBackgroundMode || !isTerminalResponseStatus(startResult.status))
   ) {
     const responseId = startResult.responseId;
-    const polled = await runWithOrgHeaderFallback({
-      phase: "openai_poll",
-      operation: (client) =>
-        pollUntilFinished({
-          client,
-          responseId,
-          reportId: report.id,
-          jobId: job.id,
+    const polled = await withExternalPhaseTimeout({
+      label: "openai generation poll",
+      timeoutMs: getOpenAiPollPhaseTimeoutMs(),
+      operation: () =>
+        runWithOrgHeaderFallback({
+          phase: "openai_poll",
+          operation: (client) =>
+            pollUntilFinished({
+              client,
+              responseId,
+              reportId: report.id,
+              jobId: job.id,
+            }),
         }),
     });
 
@@ -1502,27 +1656,34 @@ async function processGenerateReportJob(job: ClaimedReportJob, workerId: string)
     });
 
     try {
-      const fallbackStart = await runWithOrgHeaderFallback({
-        phase: "parse",
-        operation: (client) =>
-          startOpenAiReportGeneration({
-            client,
-            reportId: report.id,
-            jobId: job.id,
-            prompt: prompt.prompt,
-            schema: schemaForModel,
-            strictSchema: settings.useStrictSchema,
-            model: "gpt-5-mini",
-            fallbackModel: "gpt-5-mini",
-            strategy: chooseFallbackStrategy(settings.outputStrategy as "json_schema" | "tool_strict"),
-            temperature: Number(settings.temperature),
-            maxOutputTokens:
-              maxOutputTokens != null ? Math.max(1200, Math.floor(maxOutputTokens * 0.8)) : undefined,
-            background: false,
-            promptCacheKey: settings.usePromptCaching ? `${prompt.promptCacheKey}:fallback` : undefined,
-            serviceTier: settings.serviceTier,
-            costCapUsd,
-            phase: "openai_parse_fallback",
+      const fallbackStart = await withExternalPhaseTimeout({
+        label: "openai parse fallback",
+        timeoutMs: readTimeoutMs("REPORT_OPENAI_PARSE_FALLBACK_TIMEOUT_MS", 120_000),
+        operation: () =>
+          runWithOrgHeaderFallback({
+            phase: "parse",
+            operation: (client) =>
+              startOpenAiReportGeneration({
+                client,
+                reportId: report.id,
+                jobId: job.id,
+                prompt: prompt.prompt,
+                schema: schemaForModel,
+                strictSchema: settings.useStrictSchema,
+                model: "gpt-5-mini",
+                fallbackModel: "gpt-5-mini",
+                strategy: chooseFallbackStrategy(settings.outputStrategy as "json_schema" | "tool_strict"),
+                temperature: Number(settings.temperature),
+                maxOutputTokens:
+                  maxOutputTokens != null
+                    ? Math.max(1200, Math.floor(maxOutputTokens * 0.8))
+                    : undefined,
+                background: false,
+                promptCacheKey: settings.usePromptCaching ? `${prompt.promptCacheKey}:fallback` : undefined,
+                serviceTier: settings.serviceTier,
+                costCapUsd,
+                phase: "openai_parse_fallback",
+              }),
           }),
       });
 
@@ -1665,9 +1826,95 @@ async function processGenerateReportJob(job: ClaimedReportJob, workerId: string)
     },
   });
 
-  if (shouldRunXlsxForJob(job)) {
+  if (generationPlan.shouldRunXlsxAfterThisPass) {
     await queueXlsxJobFromReportGeneration(job);
   }
+}
+
+async function processCrawlSiteChangesJob(job: ClaimedReportJob, workerId: string) {
+  await setJobPhaseWithLog(job, workerId, "site_changes");
+
+  const report = await db.query.reports.findFirst({
+    where: (r, { eq }) => eq(r.id, job.reportId),
+  });
+  if (!report) throw new Error("Report not found");
+
+  const resolvedSources = await resolveReportSourcesForExistingReport(report);
+  const property = resolvedSources.canonicalGscProperty;
+  const teamAuth = await getTeamOwnerGoogleAuth(report.teamId);
+  const crawlingEnabled = await isEnabled("crawling_enabled", teamAuth.owner.userId);
+
+  if (!crawlingEnabled) {
+    await appendReportJobEvent({
+      jobId: job.id,
+      reportId: job.reportId,
+      teamId: job.teamId,
+      phase: "site_changes",
+      level: "info",
+      message: "Skipped crawl_site_changes because crawling is disabled",
+    });
+    return;
+  }
+
+  const crawlData = await withExternalPhaseTimeout({
+    label: "site crawl",
+    timeoutMs: readTimeoutMs("REPORT_CRAWL_TIMEOUT_MS", 180_000),
+    operation: () => crawlWebsite(property.url, 120),
+  });
+  const siteChanges = await computeAndPersistSiteChanges({
+    reportId: report.id,
+    teamId: report.teamId,
+    propertyId: property.id,
+    pages: crawlData.pages,
+  });
+
+  const existingData =
+    report.data && typeof report.data === "object"
+      ? (report.data as Record<string, unknown>)
+      : {};
+
+  await db
+    .update(reports)
+    .set({
+      data: { ...existingData, crawl: crawlData } as Record<string, unknown>,
+      siteChanges: siteChanges as unknown as Record<string, unknown>,
+      updatedAt: new Date(),
+    })
+    .where(eq(reports.id, report.id));
+
+  await appendReportJobEvent({
+    jobId: job.id,
+    reportId: job.reportId,
+    teamId: job.teamId,
+    phase: "site_changes",
+    level: "info",
+    message: "Crawl and site change tracking completed",
+    meta: {
+      pages: crawlData.pages.length,
+      newPages: siteChanges.newPages.length,
+      changedPages: siteChanges.changedPages.length,
+      removedPages: siteChanges.removedPages.length,
+    },
+  });
+
+  await enqueueReportJob({
+    reportId: report.id,
+    teamId: report.teamId,
+    kind: "generate_report",
+    priority: 95,
+    payload: buildCrawlRefreshGeneratePayload({
+      runXlsx: shouldRunXlsxForJob(job),
+    }),
+  });
+
+  await appendReportJobEvent({
+    jobId: job.id,
+    reportId: job.reportId,
+    teamId: job.teamId,
+    phase: "queued",
+    level: "info",
+    message: "Queued generate_report refresh after crawl completion",
+  });
 }
 
 async function processXlsxRenderJob(job: ClaimedReportJob, workerId: string) {
@@ -1716,10 +1963,15 @@ async function processXlsxRenderJob(job: ClaimedReportJob, workerId: string) {
   });
 }
 
-async function processClaimedJob(job: ClaimedReportJob, workerId: string) {
+async function processClaimedJob(
+  job: ClaimedReportJob,
+  workerId: string,
+  hooks?: WorkerLoopObserverHooks,
+) {
   let heartbeatTimer: NodeJS.Timeout | null = null;
   const startedAtMs = Date.now();
   try {
+    hooks?.onJobStart?.({ workerId, jobId: job.id, nowMs: startedAtMs });
     logInfo("WORKING", "starting claimed job", buildJobLogContext(job, workerId));
     heartbeatTimer = setInterval(() => {
       void heartbeatReportJob(job.id, workerId);
@@ -1731,6 +1983,8 @@ async function processClaimedJob(job: ClaimedReportJob, workerId: string) {
       await processGenerateDetailJob(job, workerId);
     } else if (job.kind === "render_xlsx") {
       await processXlsxRenderJob(job, workerId);
+    } else if (job.kind === "crawl_site_changes") {
+      await processCrawlSiteChangesJob(job, workerId);
     } else {
       throw new Error(`Unsupported job kind: ${job.kind}`);
     }
@@ -1776,6 +2030,16 @@ async function processClaimedJob(job: ClaimedReportJob, workerId: string) {
           .update(reports)
           .set({ xlsxStatus: "failed", aiStatus: "partial", error: message, updatedAt: new Date() })
           .where(eq(reports.id, job.reportId));
+      } else if (job.kind === "crawl_site_changes") {
+        await appendReportJobEvent({
+          jobId: job.id,
+          reportId: job.reportId,
+          teamId: job.teamId,
+          phase: "site_changes",
+          level: "error",
+          message: "Crawl and site change tracking failed",
+          meta: { error: message },
+        });
       } else if (job.kind === "generate_detail") {
         await appendReportJobEvent({
           jobId: job.id,
@@ -1796,18 +2060,22 @@ async function processClaimedJob(job: ClaimedReportJob, workerId: string) {
     }
   } finally {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
+    hooks?.onJobEnd?.({ workerId, jobId: job.id, nowMs: Date.now() });
   }
 }
 
-export async function runSingleReportWorkerTick(workerId = `worker_${nanoid(8)}`) {
+export async function runSingleReportWorkerTick(
+  workerId = `worker_${nanoid(8)}`,
+  hooks?: WorkerLoopObserverHooks,
+) {
   const job = await claimNextReportJob(workerId);
   if (!job) return { processed: false as const };
   logInfo("WORKING", "claimed job", buildJobLogContext(job, workerId));
-  await processClaimedJob(job, workerId);
+  await processClaimedJob(job, workerId, hooks);
   return { processed: true as const, jobId: job.id };
 }
 
-export function startReportWorkerLoop() {
+export function startReportWorkerLoop(input?: { hooks?: WorkerLoopObserverHooks }) {
   let stopped = false;
   const workerId = `worker_${nanoid(8)}`;
   const intervalMs = parseInt(process.env.REPORT_WORKER_POLL_MS ?? "3000", 10);
@@ -1854,9 +2122,15 @@ export function startReportWorkerLoop() {
     isRunning = true;
     let processed = false;
     try {
-      const result = await runSingleReportWorkerTick(workerId);
+      const result = await runSingleReportWorkerTick(workerId, input?.hooks);
       processed = result.processed;
       const now = Date.now();
+      input?.hooks?.onLoopTick?.({
+        workerId,
+        nowMs: now,
+        processed: result.processed,
+        jobId: result.processed ? result.jobId : undefined,
+      });
       if (!result.processed) {
         if (!isIdle) {
           isIdle = true;
@@ -1879,6 +2153,7 @@ export function startReportWorkerLoop() {
       }
     } catch (error) {
       logFatal("FATAL", "worker loop error", { workerId }, error);
+      input?.hooks?.onFatalError?.({ workerId, error, nowMs: Date.now() });
     } finally {
       isRunning = false;
       if (!stopped) {

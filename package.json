@@ -6,14 +6,17 @@
     "dev": "pnpm --filter @webhealth/web dev",
     "build": "pnpm --filter @webhealth/web build",
     "start": "pnpm --filter @webhealth/web start",
-    "worker": "pnpm --filter @webhealth/worker start",
-    "worker:once": "pnpm --filter @webhealth/worker start:once",
+    "worker": "pnpm --filter @webhealth/worker dev",
+    "worker:once": "pnpm --filter @webhealth/worker dev:once",
+    "worker:build-dist": "pnpm --filter @webhealth/worker build:runtime",
+    "worker:verify-dist": "node ./scripts/verify-worker-dist.mjs",
     "db:push": "pnpm --filter @webhealth/shared db:push",
     "db:seed:plan-settings": "pnpm --filter @webhealth/shared db:seed:plan-settings",
     "stripe:listen": "stripe listen --forward-to ${NEXT_PUBLIC_APP_URL:-https://webhealth.devbrew.dev}/api/stripe/webhook"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.9",
+    "esbuild": "^0.25.11",
     "sharp": "^0.34.5"
   },
   "pnpm": {
