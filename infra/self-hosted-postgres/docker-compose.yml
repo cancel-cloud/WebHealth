@@ -38,7 +38,7 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
       - pgbackrest-repo:/var/lib/pgbackrest
       - node-exporter-text:/var/lib/node_exporter/textfile_collector
       - postgres-socket:/var/run/postgresql
@@ -102,7 +102,7 @@ services:
       PGBACKREST_REPO_RETENTION_DIFF: ${PGBACKREST_REPO_RETENTION_DIFF}
     command: ["/opt/webhealth/bin/backup-loop.sh"]
     volumes:
-      - postgres-data:/var/lib/postgresql/data:ro
+      - postgres-data:/var/lib/postgresql:ro
       - postgres-socket:/var/run/postgresql
       - pgbackrest-repo:/var/lib/pgbackrest
       - node-exporter-text:/var/lib/node_exporter/textfile_collector
