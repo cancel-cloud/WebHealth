@@ -16,13 +16,24 @@ This stack replaces Neon with a Coolify-friendly Docker Compose deployment on He
 ## Deploy in Coolify
 
 1. Copy `.env.example` to `.env` and replace every placeholder with production secrets.
-2. In Coolify, add `DB_TLS_CERT_PEM` and `DB_TLS_KEY_PEM` as multiline runtime environment variables. The containers will write `server.crt` and `server.key` on startup.
-3. In Coolify, create a Docker Compose resource that uses [`docker-compose.yml`](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/self-hosted-postgres/docker-compose.yml).
-4. Publish:
+2. Generate a TLS certificate and key for Postgres/PgBouncer transport encryption:
+
+```bash
+openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+  -keyout db-tls.key -out db-tls.crt \
+  -subj "/CN=db.webhealth.devbrew.dev" \
+  -addext "subjectAltName=DNS:db.webhealth.devbrew.dev,IP:178.104.11.44"
+```
+
+3. In Coolify, add `DB_TLS_CERT_PEM` and `DB_TLS_KEY_PEM` as multiline runtime environment variables. The containers will write `server.crt` and `server.key` on startup.
+4. In Coolify, create a Docker Compose resource that uses [`docker-compose.yml`](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/self-hosted-postgres/docker-compose.yml).
+5. Publish:
    - `pgbouncer` on `db.webhealth.devbrew.dev` and port `6432`
    - `pgadmin` on `pgadmin.webhealth.devbrew.dev`
-5. Keep `postgres`, `pgbackrest`, and the exporter services unexposed to the public internet.
-6. Deploy the separate monitoring stack from [infra/monitoring](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/monitoring) for Prometheus and Grafana.
+6. Keep `postgres`, `pgbackrest`, and the exporter services unexposed to the public internet.
+7. Deploy the separate monitoring stack from [infra/monitoring](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/monitoring) for Prometheus and Grafana.
+
+The default image pin is PostgreSQL `18.3` via `POSTGRES_BASE_IMAGE=postgres:18.3-bookworm`.
 
 ## Runtime env mapping
 
@@ -37,25 +48,27 @@ Use SSH tunneling or pgAdmin for direct/private access. Do not publish the direc
 
 In Coolify, set `DB_TLS_CERT_PEM` and `DB_TLS_KEY_PEM` in Normal View with `Multiline` enabled. If your key contains `$`, also enable `Literal`.
 
+The generated certificate above is self-signed. That is fine for encrypted transport with `sslmode=require`, but it does not provide CA-backed identity verification. If you later want `verify-full`, issue a certificate from a trusted internal or public CA instead.
+
 ## Day-2 operations
 
 - Backup status: check the Grafana dashboard in the separate monitoring stack
 - Manual backup:
 
 ```bash
-docker compose exec pgbackrest pgbackrest --stanza=webhealth backup --type=full
+docker compose --project-directory . -f infra/self-hosted-postgres/docker-compose.yml exec pgbackrest pgbackrest --stanza=webhealth backup --type=full
 ```
 
 - Backup inventory:
 
 ```bash
-docker compose exec pgbackrest pgbackrest --stanza=webhealth info
+docker compose --project-directory . -f infra/self-hosted-postgres/docker-compose.yml exec pgbackrest pgbackrest --stanza=webhealth info
 ```
 
 - Restore rehearsal:
 
 ```bash
-docker compose run --rm postgres bash -lc 'rm -rf "$PGDATA"/* && pgbackrest --stanza=webhealth --delta restore'
+docker compose --project-directory . -f infra/self-hosted-postgres/docker-compose.yml run --rm postgres bash -lc 'rm -rf "$PGDATA"/* && pgbackrest --stanza=webhealth --delta restore'
 ```
 
 ## Migration docs

@@ -1,7 +1,7 @@
 services:
   prometheus:
     build:
-      context: ./prometheus
+      context: ./infra/monitoring/prometheus
       args:
         PROMETHEUS_BASE_IMAGE: ${PROMETHEUS_BASE_IMAGE}
     restart: unless-stopped
@@ -28,9 +28,9 @@ services:
       - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./infra/monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./infra/monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./infra/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
 
 volumes:
   prometheus-data:
