@@ -12,10 +12,12 @@ write_pem_file() {
 
   value="${value//$'\r'/}"
   printf '%b\n' "${value}" > "${target}"
+  chown postgres:postgres "${target}"
   chmod "${mode}" "${target}"
 }
 
 mkdir -p "${cert_dir}"
+chown postgres:postgres "${cert_dir}"
 
 if [[ -n "${DB_TLS_CERT_PEM:-}" ]]; then
   write_pem_file "${DB_TLS_CERT_PEM}" "${cert_file}" 0644
