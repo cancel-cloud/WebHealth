@@ -2,6 +2,7 @@
 set -euo pipefail
 
 config_dir="/etc/pgbouncer"
+runtime_user="pgbouncer"
 
 write_pem_file() {
   local value="$1"
@@ -56,4 +57,12 @@ client_tls_cert_file = ${PGBOUNCER_TLS_CERT_FILE}
 client_tls_key_file = ${PGBOUNCER_TLS_KEY_FILE}
 EOF
 
-exec pgbouncer "${config_dir}/pgbouncer.ini"
+chown -R "${runtime_user}:${runtime_user}" "${config_dir}"
+if [[ -n "${PGBOUNCER_TLS_CERT_FILE:-}" ]]; then
+  chown "${runtime_user}:${runtime_user}" "${PGBOUNCER_TLS_CERT_FILE}"
+fi
+if [[ -n "${PGBOUNCER_TLS_KEY_FILE:-}" ]]; then
+  chown "${runtime_user}:${runtime_user}" "${PGBOUNCER_TLS_KEY_FILE}"
+fi
+
+exec su -s /bin/sh -c "exec pgbouncer ${config_dir}/pgbouncer.ini" "${runtime_user}"
