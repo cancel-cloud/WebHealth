@@ -1,0 +1,21 @@
+pg_table_size:
+  query: |
+    SELECT
+      current_database() AS datname,
+      schemaname,
+      relname,
+      pg_total_relation_size(relid) AS size_bytes
+    FROM pg_catalog.pg_statio_user_tables
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Database name"
+    - schemaname:
+        usage: "LABEL"
+        description: "Schema name"
+    - relname:
+        usage: "LABEL"
+        description: "Table name"
+    - size_bytes:
+        usage: "GAUGE"
+        description: "Total relation size in bytes"

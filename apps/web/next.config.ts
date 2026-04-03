@@ -16,7 +16,7 @@ const contentSecurityPolicy = [
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
-  allowedDevOrigins: ["webaudit-79.localcan.dev"],
+  allowedDevOrigins: ["webaudit-48.localcan.dev"],
   transpilePackages: ["@webhealth/shared"],
   async headers() {
     return [

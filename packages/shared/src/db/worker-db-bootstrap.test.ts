@@ -10,9 +10,9 @@ import {
 } from "./worker-db-bootstrap";
 
 const pooledUrl =
-  "postgresql://user:pass@ep-example-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require";
+  "postgresql://user:pass@db-pooler.internal/webhealth?sslmode=require";
 const directUrl =
-  "postgresql://user:pass@ep-example.eu-central-1.aws.neon.tech/neondb?sslmode=require";
+  "postgresql://user:pass@db.internal/webhealth?sslmode=require";
 
 test("prefers DIRECT_DATABASE_URL when provided", () => {
   const config = resolveWorkerMigrationConfig({
@@ -61,7 +61,7 @@ test("throws when neither DIRECT_DATABASE_URL nor DATABASE_URL is usable", () =>
 
 test("tryBuildDirectDatabaseUrlFromRuntime returns null when runtime host is not pooled", () => {
   const noPoolUrl =
-    "postgresql://user:pass@ep-example.eu-central-1.aws.neon.tech/neondb?sslmode=require";
+    "postgresql://user:pass@db.internal/webhealth?sslmode=require";
 
   assert.equal(tryBuildDirectDatabaseUrlFromRuntime(noPoolUrl), null);
 });

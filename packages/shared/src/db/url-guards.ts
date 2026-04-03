@@ -14,18 +14,12 @@ function assertSslModeRequire(name: string, parsed: URL) {
 
 export function validateRuntimeDatabaseUrl(url: string) {
   const parsed = parseDatabaseUrl("DATABASE_URL", url);
-  if (!parsed.hostname.includes("-pooler")) {
-    throw new Error("DB_CONFIG_ERROR: DATABASE_URL must use Neon pooled host (-pooler).");
-  }
   assertSslModeRequire("DATABASE_URL", parsed);
   return url;
 }
 
 export function validateDirectDatabaseUrl(url: string) {
   const parsed = parseDatabaseUrl("DIRECT_DATABASE_URL", url);
-  if (parsed.hostname.includes("-pooler")) {
-    throw new Error("DB_CONFIG_ERROR: DIRECT_DATABASE_URL must not use pooled host (-pooler).");
-  }
   assertSslModeRequire("DIRECT_DATABASE_URL", parsed);
   return url;
 }

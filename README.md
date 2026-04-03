@@ -1,18 +1,18 @@
 # WebHealth
 
-A queue-first SEO reporting platform with a clean production split:
+A queue-first SEO reporting platform with a split production architecture:
 
-- `apps/web` on Vercel for product UI + short request/response APIs
-- Neon Postgres for state, queueing, leases, and analytics data
-- `apps/worker` for long-running report processing
+- `apps/web` on Vercel for UI and short request/response APIs
+- self-hosted PostgreSQL + PgBouncer on Hetzner for state, queueing, leases, and analytics data
+- `apps/worker` on Hetzner for long-running report processing
 
 ## Architecture
 
 ```mermaid
 flowchart LR
   U[User] --> W[apps/web\nNext.js on Vercel]
-  W -->|enqueue + read status| DB[(Neon Postgres)]
-  WK[apps/worker\nNode process on VPS] -->|claim/process/update| DB
+  W -->|enqueue + read status| DB[(PgBouncer + PostgreSQL)]
+  WK[apps/worker\nNode process on Hetzner] -->|claim/process/update| DB
   W -->|poll status/results| DB
 ```
 
@@ -22,7 +22,7 @@ flowchart LR
 |---|---|---|
 | `apps/web` | Render UI, authenticate, enqueue jobs, read report/job state | Run long background report generation in HTTP handlers |
 | `apps/worker` | Claim jobs, process report pipeline, write status/events/artifacts | Serve product UI |
-| Neon Postgres | Queue + source of truth (`report_jobs`, `reports`, events) | App-specific orchestration logic |
+| PostgreSQL | Queue + source of truth (`report_jobs`, `reports`, events) | App-specific orchestration logic |
 
 ## Monorepo Layout
 
@@ -33,69 +33,42 @@ apps/
 packages/
   shared/     # @webhealth/shared (db + queue + report core)
 drizzle/      # SQL migrations
+infra/
+  self-hosted-postgres/  # Coolify-ready database/ops stack
+  monitoring/            # Coolify-ready Prometheus + Grafana stack
 ```
 
-## Runbooks
+## DB Connection Contract
 
-- Local macOS: `docs/how-to-run-locally-macos.md`
-- Deploy (Vercel + Neon + Worker VPS): `docs/deploy-runbook.md`
-- GlitchTip monitoring: `docs/glitchtip.md`
+Web and worker keep two distinct database URLs:
 
-## Neon Connection Rules (Strict)
+- `DATABASE_URL`: pooled runtime endpoint through PgBouncer
+- `DIRECT_DATABASE_URL`: direct Postgres endpoint for Drizzle migrations, worker startup migrations, and `LISTEN/NOTIFY`
 
-Web and worker enforce these rules at runtime:
+Both URLs must be valid Postgres URLs and include `sslmode=require`.
 
-- `DATABASE_URL` must use **pooled** Neon host (`-pooler`) and include `sslmode=require`
-- `DIRECT_DATABASE_URL` must use **direct** Neon host (no `-pooler`) and include `sslmode=require`
-
-### Required env patterns
+### Example envs
 
 ```bash
-# Runtime (web + worker)
-DATABASE_URL=postgresql://<user>:<pass>@<project>-pooler.<region>.neon.tech/<db>?sslmode=require
-
-# Migrations/tooling + worker startup migrations
-DIRECT_DATABASE_URL=postgresql://<user>:<pass>@<project>.<region>.neon.tech/<db>?sslmode=require
+DATABASE_URL=postgresql://<runtime-user>:<pass>@db.webhealth.devbrew.dev:6432/webhealth?sslmode=require
+DIRECT_DATABASE_URL=postgresql://<direct-user>:<pass>@<private-host-or-predefined-network-name>:5432/webhealth?sslmode=require
 ```
 
-Guardrails are implemented in:
+Guardrails live in:
 
-- `packages/shared/src/db/url-guards.ts`
-- `packages/shared/src/db/index.ts`
-- `drizzle.config.ts`
+- [url-guards.ts](/Users/cancelcloud/Developer/DevBrew/WebHealth/packages/shared/src/db/url-guards.ts)
+- [index.ts](/Users/cancelcloud/Developer/DevBrew/WebHealth/packages/shared/src/db/index.ts)
+- [drizzle.config.ts](/Users/cancelcloud/Developer/DevBrew/WebHealth/drizzle.config.ts)
 
 ## Quick Start
 
-### 1) Install
-
-```bash
-pnpm install
-```
-
-### 2) Configure env
-
-Use placeholders from:
-
-- `.env.example`
-- `apps/web/.env.example`
-- `apps/worker/.env.example`
-
-### 3) Run services
-
-```bash
-# web
-pnpm dev
-
-# worker
-pnpm worker
-
-# single worker tick
-pnpm worker:once
-```
+1. Install dependencies with `pnpm install`.
+2. Copy placeholders from `.env.example`, `apps/web/.env.example`, and `apps/worker/.env.example`.
+3. Run `pnpm dev` for the web app and `pnpm worker` for the worker.
 
 ## Database Commands
 
-All run from repository root:
+Run from repo root:
 
 ```bash
 pnpm db:migrate
@@ -104,67 +77,15 @@ pnpm db:seed:plan-settings
 ```
 
 Worker startup automatically ensures migrations before entering the job loop.
-Migration tooling remains pinned to `DIRECT_DATABASE_URL` via `drizzle.config.ts`.
 
-## Deploy `apps/web` on Vercel
+## Runbooks
 
-1. Import this repository in Vercel.
-2. Set project **Root Directory** to `apps/web`.
-3. Ensure Vercel uses `pnpm` (`packageManager` is pinned at repo root).
-4. Recommended commands:
-   - Install: `pnpm install --frozen-lockfile`
-   - Build: `pnpm build`
-5. Add required env vars in Vercel:
-   - `DATABASE_URL` (pooled, `-pooler`, `sslmode=require`)
-   - `BETTER_AUTH_URL`
-   - `NEXT_PUBLIC_BETTER_AUTH_URL`
-   - `BETTER_AUTH_SECRET`
-   - `GOOGLE_CLIENT_ID`
-   - `GOOGLE_CLIENT_SECRET`
-   - `GOOGLE_OAUTH_STATE_SECRET`
-   - `OPENAI_API_KEY`
-6. Pull envs locally when needed:
-
-```bash
-vercel env pull .env.local
-```
-
-Troubleshooting:
-
-- If Vercel shows `No Next.js version detected`, the project is building from the wrong directory.
-  - Fix: set **Root Directory** to `apps/web` (this is required in this monorepo).
-- If Vercel logs show an older commit than expected, redeploy from the latest `main` commit and verify Production Branch is `main`.
-
-## Run Worker on VPS (systemd)
-
-Example unit (`/etc/systemd/system/webhealth-worker.service`):
-
-```ini
-[Unit]
-Description=WebHealth Report Worker
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=/opt/webhealth
-EnvironmentFile=/etc/webhealth/worker.env
-ExecStart=/usr/bin/pnpm --filter @webhealth/worker start
-Restart=always
-RestartSec=5
-User=webhealth
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable and start:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable webhealth-worker
-sudo systemctl start webhealth-worker
-sudo systemctl status webhealth-worker
-```
+- Local macOS: [docs/how-to-run-locally-macos.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/how-to-run-locally-macos.md)
+- Full deploy: [docs/deploy-runbook.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/deploy-runbook.md)
+- DB stack operations: [docs/self-hosted-postgres-operations.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/self-hosted-postgres-operations.md)
+- Monitoring stack: [infra/monitoring/README.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/monitoring/README.md)
+- Neon migration + cutover: [docs/self-hosted-postgres-migration.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/self-hosted-postgres-migration.md)
+- GlitchTip monitoring: [docs/glitchtip.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/glitchtip.md)
 
 ## Queue-Only Processing Contract
 

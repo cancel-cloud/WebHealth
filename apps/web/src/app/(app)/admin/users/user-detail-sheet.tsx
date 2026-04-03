@@ -142,6 +142,14 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
                     <span className="font-medium">{user.reportsCount}</span>
                   </div>
                   <div className="flex justify-between">
+                    <span className="text-muted-foreground">Deep dives (this month)</span>
+                    <span className="font-medium">{user.deepDivesThisMonth}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Deep dives (total)</span>
+                    <span className="font-medium">{user.deepDivesTotal}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Properties</span>
                     <span className="font-medium">{user.propertiesCount}</span>
                   </div>
@@ -174,6 +182,12 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
                     <span className="text-muted-foreground">Max properties</span>
                     <span className="font-medium">
                       {fmtLimit(user.planLimits?.maxProperties)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Deep dives / month</span>
+                    <span className="font-medium">
+                      {fmtLimit(user.planLimits?.detailsPerMonth)}
                     </span>
                   </div>
                 </div>
