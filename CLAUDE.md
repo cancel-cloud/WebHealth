@@ -18,6 +18,7 @@ Browser-side GlitchTip/Sentry checks should also use the localcan HTTPS origin s
 - Barrel exports (index.ts) in packages/shared
 - Server components default in Next.js; 'use client' only when needed
 - Always run `pnpm typecheck` after cross-package changes
+- For `apps/worker` or shared worker-runtime changes, run `pnpm worker:build-dist` and `pnpm worker:verify-dist` before committing or claiming the task is done
 ## Report Pipeline
 Worker: fetch GSC/GA4 → compute deterministic insights → OpenAI structured output → store to DB
 Web: read from DB → render typed report sections as React components

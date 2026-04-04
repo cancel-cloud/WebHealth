@@ -10,5 +10,6 @@
   - run `pnpm dev` for the feedback loop
   - run focused `eslint` only on touched files
   - run targeted tests only for the touched logic or behavior
+- For worker changes, always finish by running `pnpm worker:build-dist` and `pnpm worker:verify-dist` before committing or wrapping up the task.
 - Do not run `pnpm --filter @webhealth/web build` after every small UI tweak.
 - Run a web build only when the user explicitly asks for it or when the change is a larger structural change such as routing, layout architecture, import boundaries, or server/client rendering behavior.
