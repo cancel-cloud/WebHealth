@@ -8,7 +8,7 @@ This runbook covers day-to-day management of the database Compose stack in [`inf
 - PgBouncer on the public pooled port `6432`
 - pgBackRest with local PITR repository
 - postgres_exporter and node_exporter for the separate monitoring stack
-- pgAdmin
+- pgAdmin on host loopback only for SSH-tunneled access
 
 ## Start or update the stack
 
@@ -32,7 +32,18 @@ Key checks:
 
 - PgBouncer accepts TLS connections on `6432`
 - direct Postgres is reachable only on host loopback/private access paths
+- pgAdmin listens only on `127.0.0.1:5050`
 - the exporter endpoints are healthy so the monitoring stack can scrape them
+
+## pgAdmin access
+
+pgAdmin is intentionally not published to the public internet. Access it by tunneling to the DB host:
+
+```bash
+ssh -L 5050:127.0.0.1:5050 root@178.104.11.44
+```
+
+Then open `http://127.0.0.1:5050` locally.
 
 ## Backup management
 

@@ -11,7 +11,7 @@ This stack replaces Neon with a Coolify-friendly Docker Compose deployment on He
 - `pgbouncer`: the only public DB endpoint for Vercel/app runtime traffic
 - `pgbackrest`: headless backup loop for nightly full backups, 6-hour differential backups, and WAL archive management
 - `postgres-exporter`, `node-exporter`: exporter endpoints for the separate monitoring stack
-- `pgadmin`: browser-based admin UI for occasional inspection and debugging
+- `pgadmin`: browser-based admin UI for occasional inspection and debugging over an SSH tunnel
 
 ## Deploy in Coolify
 
@@ -27,10 +27,9 @@ openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
 
 3. In Coolify, add `DB_TLS_CERT_PEM` and `DB_TLS_KEY_PEM` as multiline runtime environment variables. The containers will write `server.crt` and `server.key` on startup.
 4. In Coolify, create a Docker Compose resource that uses [`docker-compose.yml`](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/self-hosted-postgres/docker-compose.yml).
-5. Publish:
+5. Publish only:
    - `pgbouncer` on `db.webhealth.devbrew.dev` and port `6432`
-   - `pgadmin` on `pgadmin.webhealth.devbrew.dev`
-6. Keep `postgres`, `pgbackrest`, and the exporter services unexposed to the public internet. Postgres binds `5432` on the host for same-machine resources such as the worker, so your firewall must continue blocking external inbound access to `5432`.
+6. Keep `postgres`, `pgbackrest`, `pgadmin`, and the exporter services unexposed to the public internet. Postgres binds `5432` on the host for same-machine resources such as the worker, so your firewall must continue blocking external inbound access to `5432`. pgAdmin binds only to host loopback on `127.0.0.1:5050`.
 7. Deploy the separate monitoring stack from [infra/monitoring](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/monitoring) for Prometheus and Grafana.
 
 The default image pin is PostgreSQL `18.3` via `POSTGRES_BASE_IMAGE=postgres:18.3-bookworm`.
@@ -46,7 +45,15 @@ DATABASE_URL=postgresql://<runtime-user>:<pass>@db.webhealth.devbrew.dev:6432/we
 DIRECT_DATABASE_URL=postgresql://<direct-user>:<pass>@178.104.11.44:5432/webhealth?sslmode=require
 ```
 
-Use pgAdmin, SSH tunneling, or same-host private access for direct connections. Do not open `5432` in the external firewall.
+Use SSH tunneling or same-host private access for direct connections. Do not open `5432` in the external firewall.
+
+For pgAdmin, tunnel to the DB host first:
+
+```bash
+ssh -L 5050:127.0.0.1:5050 root@178.104.11.44
+```
+
+Then open `http://127.0.0.1:5050` locally.
 
 In Coolify, set `DB_TLS_CERT_PEM` and `DB_TLS_KEY_PEM` in Normal View with `Multiline` enabled. If your key contains `$`, also enable `Literal`.
 
