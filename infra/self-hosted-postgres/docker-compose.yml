@@ -85,6 +85,7 @@ services:
       context: ./infra/self-hosted-postgres/postgres
       args:
         POSTGRES_BASE_IMAGE: ${POSTGRES_BASE_IMAGE}
+    user: "postgres"
     restart: unless-stopped
     depends_on:
       postgres:
