@@ -105,7 +105,7 @@ services:
       WEBHEALTH_PGBACKREST_LOOP_SLEEP_SECONDS: ${WEBHEALTH_PGBACKREST_LOOP_SLEEP_SECONDS}
       WEBHEALTH_PGBACKREST_REPO_RETENTION_FULL: ${WEBHEALTH_PGBACKREST_REPO_RETENTION_FULL}
       WEBHEALTH_PGBACKREST_REPO_RETENTION_DIFF: ${WEBHEALTH_PGBACKREST_REPO_RETENTION_DIFF}
-    command: ["/opt/webhealth/bin/backup-loop.sh"]
+    entrypoint: ["/opt/webhealth/bin/backup-loop.sh"]
     volumes:
       - postgres-data:/var/lib/postgresql:ro
       - postgres-socket:/var/run/postgresql
