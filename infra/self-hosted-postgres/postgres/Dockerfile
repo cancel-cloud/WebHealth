@@ -8,13 +8,13 @@ RUN apt-get update \
 COPY conf/postgresql.conf /opt/webhealth/postgresql.conf
 COPY conf/pg_hba.conf /opt/webhealth/pg_hba.conf
 COPY init/01-init-cluster.sh /docker-entrypoint-initdb.d/01-init-cluster.sh
-COPY bin/archive-push.sh /opt/webhealth/bin/archive-push.sh
+COPY bin/archive-push.sh /opt/webhealth/bin/pgbackrest-archive-push.sh
 COPY bin/backup-loop.sh /opt/webhealth/bin/backup-loop.sh
 COPY bin/container-entrypoint.sh /opt/webhealth/bin/container-entrypoint.sh
 
 RUN chmod +x \
   /docker-entrypoint-initdb.d/01-init-cluster.sh \
-  /opt/webhealth/bin/archive-push.sh \
+  /opt/webhealth/bin/pgbackrest-archive-push.sh \
   /opt/webhealth/bin/backup-loop.sh \
   /opt/webhealth/bin/container-entrypoint.sh
 
