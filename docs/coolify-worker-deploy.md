@@ -22,7 +22,7 @@ node dist/apps/worker/src/main.js
 4. Set **Dockerfile Location** to `apps/worker/Dockerfile`.
 5. Do not add a separate build or start command. The Docker image installs production dependencies from `dist/package.json` and starts the compiled worker bundle directly.
 
-Before pushing a worker release, rebuild and verify the committed runtime bundle:
+Before committing, pushing, or finishing any worker refactor or feature task, rebuild and verify the committed runtime bundle:
 
 ```bash
 pnpm worker:build-dist

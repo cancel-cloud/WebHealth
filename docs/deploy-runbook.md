@@ -23,6 +23,8 @@ pnpm --filter @webhealth/web exec eslint src/app/'(marketing)'/legal/legal-dicti
 pnpm worker:once
 ```
 
+For any `apps/worker` or worker-runtime change, treat `pnpm worker:build-dist` and `pnpm worker:verify-dist` as required finish-line checks before commit or handoff, not just pre-deploy checks.
+
 If schema changes are pending, apply them manually with:
 
 ```bash
@@ -48,7 +50,7 @@ openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
 5. Publish only:
    - `pgbouncer` on `db.webhealth.devbrew.dev` and port `6432`
    - `pgadmin` on `pgadmin.webhealth.devbrew.dev`
-6. Keep direct Postgres private. The stack binds `5432` only on loopback for same-host admin/tunnel use.
+6. Keep direct Postgres private at the firewall level. The stack binds `5432` on the host so same-machine resources like the worker can reach it, but inbound `5432` must stay blocked externally.
 7. The default stack now targets PostgreSQL `18.3` via `POSTGRES_BASE_IMAGE=postgres:18.3-bookworm`.
 8. If the first initialization ever failed before creating the `webhealth` database and roles, delete the self-hosted Postgres data volume and redeploy before migrating production data.
 
@@ -95,7 +97,7 @@ Keep Vercel project settings:
 Set at least:
 
 - `DATABASE_URL` = pooled PgBouncer URL
-- `DIRECT_DATABASE_URL` = private direct Postgres URL, usually the Postgres service name on Coolify's predefined network or an SSH tunnel endpoint
+- `DIRECT_DATABASE_URL` = direct Postgres URL, usually `postgresql://<direct-user>:<pass>@178.104.11.44:5432/webhealth?sslmode=require` when the worker runs on the same Hetzner host and `5432` is blocked by the firewall
 - `SENTRY_DSN`
 - `BETTER_AUTH_URL`
 - `GOOGLE_CLIENT_ID`
