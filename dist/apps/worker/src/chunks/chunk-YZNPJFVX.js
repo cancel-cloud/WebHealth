@@ -1,4 +1,4 @@
-// ../../packages/shared/src/lib/reports/artifacts/store.ts
+// packages/shared/src/lib/reports/artifacts/store.ts
 import { mkdir, writeFile, stat } from "fs/promises";
 import path from "path";
 var LocalFilesystemArtifactStore = class {

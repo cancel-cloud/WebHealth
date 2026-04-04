@@ -2,7 +2,7 @@ import {
   __export
 } from "./chunk-3LHI6BO3.js";
 
-// ../../packages/shared/src/db/schema.ts
+// packages/shared/src/db/schema.ts
 var schema_exports = {};
 __export(schema_exports, {
   account: () => account,

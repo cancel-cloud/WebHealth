@@ -1,14 +1,14 @@
 import {
   getArtifactStore
-} from "./chunks/chunk-ZNCV7UFM.js";
+} from "./chunks/chunk-YZNPJFVX.js";
 import "./chunks/chunk-3LHI6BO3.js";
 
-// src/artifact-server.ts
+// apps/worker/src/artifact-server.ts
 import { createServer } from "node:http";
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 
-// ../../packages/shared/src/lib/artifact-token.ts
+// packages/shared/src/lib/artifact-token.ts
 import { createHmac, timingSafeEqual } from "node:crypto";
 function getArtifactTokenSecret() {
   const secret = process.env.ARTIFACT_TOKEN_SECRET?.trim();
@@ -42,7 +42,7 @@ function verifyArtifactDownloadToken(token) {
   }
 }
 
-// src/runtime-state.ts
+// apps/worker/src/runtime-state.ts
 function createWorkerRuntimeState(input) {
   return {
     artifactServerExpected: input?.artifactServerExpected ?? false,
@@ -120,7 +120,7 @@ function buildWorkerReadinessSnapshot(state, input) {
   };
 }
 
-// src/artifact-server.ts
+// apps/worker/src/artifact-server.ts
 var PORT = parseInt(process.env.WORKER_HTTP_PORT ?? "9100", 10);
 function isValidArtifactKey(key) {
   if (!key || key.includes("..") || key.startsWith("/") || key.includes("\\")) {
@@ -256,13 +256,13 @@ async function startArtifactServer(input) {
   };
 }
 
-// src/load-env.ts
+// apps/worker/src/load-env.ts
 import { existsSync } from "node:fs";
 import path2 from "node:path";
 import { fileURLToPath } from "node:url";
 import { config as loadDotenv } from "dotenv";
 
-// src/runtime-paths.ts
+// apps/worker/src/runtime-paths.ts
 import path from "node:path";
 function findDistRoot(moduleDir) {
   let current = moduleDir;
@@ -297,7 +297,7 @@ function resolveWorkerEnvSearchPaths(moduleDir) {
   };
 }
 
-// src/load-env.ts
+// apps/worker/src/load-env.ts
 var __filename = fileURLToPath(import.meta.url);
 var __dirname = path2.dirname(__filename);
 var defaultWorkerRoot = path2.resolve(__dirname, "..");
@@ -331,7 +331,7 @@ function loadWorkerEnv({
   }
 }
 
-// src/monitoring.ts
+// apps/worker/src/monitoring.ts
 import * as Sentry from "@sentry/node";
 function initWorkerMonitoring(env = process.env) {
   const dsn = env.SENTRY_DSN?.trim();
@@ -357,13 +357,13 @@ async function reportWorkerFatalError(error, context, env = process.env) {
   await Sentry.close(2e3);
 }
 
-// src/runtime-watchdog.ts
+// apps/worker/src/runtime-watchdog.ts
 function shouldForceExitForStuckJob(input) {
   if (input.currentJobStartedAtMs == null) return false;
   return input.nowMs - input.currentJobStartedAtMs > input.maxJobRuntimeMs;
 }
 
-// src/main.ts
+// apps/worker/src/main.ts
 loadWorkerEnv();
 initWorkerMonitoring();
 var runtimeState = createWorkerRuntimeState({
@@ -415,9 +415,9 @@ async function main() {
   });
   workerPhase = "imports";
   markWorkerPhase(runtimeState, "imports");
-  const sharedDbModule = await import("./chunks/db-KJ4GK4XL.js");
-  const { ensureWorkerDatabaseReady } = await import("./chunks/worker-db-bootstrap-OMKUO4FA.js");
-  const { startReportWorkerLoop, runSingleReportWorkerTick } = await import("./chunks/report-worker-BQNMYROZ.js");
+  const sharedDbModule = await import("./chunks/db-RP6IEFW4.js");
+  const { ensureWorkerDatabaseReady } = await import("./chunks/worker-db-bootstrap-YZKWFQGY.js");
+  const { startReportWorkerLoop, runSingleReportWorkerTick } = await import("./chunks/report-worker-5P2F24GT.js");
   closeDb = sharedDbModule.closeDb;
   workerPhase = "database-ready";
   markWorkerPhase(runtimeState, "database-ready");
