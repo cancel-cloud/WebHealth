@@ -151,7 +151,7 @@ services:
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
       PGADMIN_LISTEN_PORT: "5050"
     ports:
-      - "5050:5050"
+      - "127.0.0.1:5050:5050"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
 

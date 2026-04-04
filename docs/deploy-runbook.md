@@ -49,10 +49,17 @@ openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
 4. Deploy [infra/self-hosted-postgres/docker-compose.yml](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/self-hosted-postgres/docker-compose.yml) in Coolify.
 5. Publish only:
    - `pgbouncer` on `db.webhealth.devbrew.dev` and port `6432`
-   - `pgadmin` on `pgadmin.webhealth.devbrew.dev`
 6. Keep direct Postgres private at the firewall level. The stack binds `5432` on the host so same-machine resources like the worker can reach it, but inbound `5432` must stay blocked externally.
-7. The default stack now targets PostgreSQL `18.3` via `POSTGRES_BASE_IMAGE=postgres:18.3-bookworm`.
-8. If the first initialization ever failed before creating the `webhealth` database and roles, delete the self-hosted Postgres data volume and redeploy before migrating production data.
+7. Keep pgAdmin private. It binds only to `127.0.0.1:5050` on the DB host, so do not attach a public Coolify domain to it.
+8. Reach pgAdmin only via SSH tunnel:
+
+```bash
+ssh -L 5050:127.0.0.1:5050 root@178.104.11.44
+```
+
+   Then open `http://127.0.0.1:5050` locally.
+9. The default stack now targets PostgreSQL `18.3` via `POSTGRES_BASE_IMAGE=postgres:18.3-bookworm`.
+10. If the first initialization ever failed before creating the `webhealth` database and roles, delete the self-hosted Postgres data volume and redeploy before migrating production data.
 
 ## 2) Deploy the monitoring stack
 
