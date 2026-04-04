@@ -30,7 +30,7 @@ openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
 5. Publish:
    - `pgbouncer` on `db.webhealth.devbrew.dev` and port `6432`
    - `pgadmin` on `pgadmin.webhealth.devbrew.dev`
-6. Keep `postgres`, `pgbackrest`, and the exporter services unexposed to the public internet.
+6. Keep `postgres`, `pgbackrest`, and the exporter services unexposed to the public internet. Postgres binds `5432` on the host for same-machine resources such as the worker, so your firewall must continue blocking external inbound access to `5432`.
 7. Deploy the separate monitoring stack from [infra/monitoring](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/monitoring) for Prometheus and Grafana.
 
 The default image pin is PostgreSQL `18.3` via `POSTGRES_BASE_IMAGE=postgres:18.3-bookworm`.
@@ -43,10 +43,10 @@ After the stack is live, the app-side envs should look like:
 
 ```bash
 DATABASE_URL=postgresql://<runtime-user>:<pass>@db.webhealth.devbrew.dev:6432/webhealth?sslmode=require
-DIRECT_DATABASE_URL=postgresql://<direct-user>:<pass>@<private-host-or-predefined-network-name>:5432/webhealth?sslmode=require
+DIRECT_DATABASE_URL=postgresql://<direct-user>:<pass>@178.104.11.44:5432/webhealth?sslmode=require
 ```
 
-Use SSH tunneling or pgAdmin for direct/private access. Do not publish the direct Postgres port.
+Use pgAdmin, SSH tunneling, or same-host private access for direct connections. Do not open `5432` in the external firewall.
 
 In Coolify, set `DB_TLS_CERT_PEM` and `DB_TLS_KEY_PEM` in Normal View with `Multiline` enabled. If your key contains `$`, also enable `Literal`.
 
