@@ -4,6 +4,10 @@ cd /Users/cancelcloud/Developer/DevBrew/WebHealth/.worktrees/landing-variants
 to generate the socialimage do:
 node scripts/generate-og-image.mjs assets/img.png
 
+worker finish/checklist:
+pnpm worker:build-dist
+pnpm worker:verify-dist
+
 
   Implemented. The monorepo is now split into `apps/web`, `apps/worker`, and `packages/shared`, with queue-only web behavior and Neon pooled/direct guardrails.
 
