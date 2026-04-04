@@ -1,9 +1,9 @@
 import {
   getArtifactStore
-} from "./chunk-ZNCV7UFM.js";
+} from "./chunk-YZNPJFVX.js";
 import {
   db
-} from "./chunk-VEW7T2CC.js";
+} from "./chunk-SMAQ62OZ.js";
 import {
   aiReportSettings,
   crawlPageSnapshots,
@@ -19,19 +19,19 @@ import {
   reports,
   systemLogs,
   teamMembers
-} from "./chunk-S6A2XRFT.js";
+} from "./chunk-IOIQNMWH.js";
 import {
   requireDirectDatabaseUrl
-} from "./chunk-6RLW34GO.js";
+} from "./chunk-HZS2OUZK.js";
 import "./chunk-3LHI6BO3.js";
 
-// ../../packages/shared/src/lib/queue/report-worker.ts
+// packages/shared/src/lib/queue/report-worker.ts
 import OpenAI from "openai";
 import { nanoid as nanoid4 } from "nanoid";
 import postgres from "postgres";
 import { and as and4, eq as eq5, gte, lte, sql as sql2 } from "drizzle-orm";
 
-// ../../packages/shared/src/lib/crawl.ts
+// packages/shared/src/lib/crawl.ts
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import * as cheerio from "cheerio";
@@ -286,7 +286,7 @@ async function crawlWebsite(startUrl, maxPages = DEFAULT_MAX_PAGES, options) {
   return { pages, brokenLinks, summary };
 }
 
-// ../../packages/shared/src/lib/feature-flags.ts
+// packages/shared/src/lib/feature-flags.ts
 async function isEnabled(flagName, userId) {
   const flag = await db.query.featureFlags.findFirst({
     where: (f, { eq: eq6 }) => eq6(f.name, flagName)
@@ -299,7 +299,7 @@ async function isEnabled(flagName, userId) {
   return flag.enabledGlobally;
 }
 
-// ../../packages/shared/src/lib/google/api.ts
+// packages/shared/src/lib/google/api.ts
 import { google } from "googleapis";
 function getGoogleAuthClient(accessToken, refreshToken, expiresAt) {
   const oauth2Client = new google.auth.OAuth2(
@@ -639,7 +639,7 @@ async function fetchGa4ReportProfile(authClient, propertyId, currentStart, curre
   return { current, compare };
 }
 
-// ../../packages/shared/src/lib/metrics-cache.ts
+// packages/shared/src/lib/metrics-cache.ts
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 var ZERO_TOTALS = () => ({
@@ -1280,7 +1280,7 @@ async function ensureMetricsCoverageForReport(params) {
   return { needed: true, jobId: job.id, result };
 }
 
-// ../../packages/shared/src/lib/openai/cost-estimator.ts
+// packages/shared/src/lib/openai/cost-estimator.ts
 var MODEL_PRICING = {
   "gpt-5.2": { inputPer1M: 1.75, outputPer1M: 14, cachedInputPer1M: 0.175 },
   "gpt-5-mini": { inputPer1M: 0.25, outputPer1M: 2 },
@@ -1326,7 +1326,7 @@ function normalizeOpenAIUsage(raw) {
   };
 }
 
-// ../../packages/shared/src/lib/openai/request-tracing.ts
+// packages/shared/src/lib/openai/request-tracing.ts
 function makeClientRequestId(params) {
   const phase = params.phase.replace(/[^a-zA-Z0-9_-]/g, "_");
   return `report_${params.reportId}_job_${params.jobId}_${phase}`;
@@ -1340,7 +1340,7 @@ function extractOpenAIRequestId(headers) {
   return value ?? null;
 }
 
-// ../../packages/shared/src/lib/safe-url.ts
+// packages/shared/src/lib/safe-url.ts
 var LOCALHOST_HOSTS = /* @__PURE__ */ new Set(["localhost", "127.0.0.1", "::1"]);
 function isLocalHostname(hostname) {
   const normalized = hostname.trim().toLowerCase();
@@ -1376,7 +1376,7 @@ function sanitizeHttpUrls(values, options) {
   return Array.from(sanitized);
 }
 
-// ../../packages/shared/src/lib/action-detail.ts
+// packages/shared/src/lib/action-detail.ts
 function sanitizeActionDetailPayload(input) {
   const raw = input && typeof input === "object" ? input : {};
   const affectedUrls = Array.isArray(raw.affectedUrls) ? raw.affectedUrls.filter((value) => typeof value === "string") : [];
@@ -1389,7 +1389,7 @@ function sanitizeActionDetailPayload(input) {
   };
 }
 
-// ../../packages/shared/src/lib/report-detail.ts
+// packages/shared/src/lib/report-detail.ts
 var rowTypeToArrayKey = {
   actionBacklog: "actionBacklogRows",
   ctrGap: "lostClickEstimateRows",
@@ -1486,7 +1486,7 @@ function serializeActionDetail(raw) {
   return JSON.stringify(sanitizeActionDetailPayload(normalizeActionDetailInput(raw)));
 }
 
-// ../../packages/shared/src/lib/reports/ai-report-schema.ts
+// packages/shared/src/lib/reports/ai-report-schema.ts
 import { z } from "zod";
 var priority = z.enum(["KRITISCH", "HOCH", "MITTEL", "NIEDRIG"]);
 var metadataSchema = z.object({
@@ -1808,7 +1808,7 @@ function safeParseAiSeoReport(value) {
   return aiSeoReportSchema.safeParse(value);
 }
 
-// ../../packages/shared/src/lib/reports/ai-output-strategy.ts
+// packages/shared/src/lib/reports/ai-output-strategy.ts
 function supportsTemperature(model) {
   return !model.toLowerCase().startsWith("gpt-5");
 }
@@ -1900,7 +1900,7 @@ function chooseFallbackStrategy(name) {
   return name === "json_schema" ? "tool_strict" : "json_schema";
 }
 
-// ../../packages/shared/src/lib/reports/deterministic-insights.ts
+// packages/shared/src/lib/reports/deterministic-insights.ts
 function asNumber(n) {
   if (typeof n === "number" && Number.isFinite(n)) return n;
   return 0;
@@ -2389,7 +2389,7 @@ function buildDeterministicInsights(input) {
   };
 }
 
-// ../../packages/shared/src/lib/reports/openai-orchestrator.ts
+// packages/shared/src/lib/reports/openai-orchestrator.ts
 function estimateMaxCostUsd(input) {
   if (!input.maxOutputTokens || input.maxOutputTokens <= 0) return null;
   const estimatedInputTokens = Math.ceil(input.prompt.length / 4);
@@ -2589,7 +2589,7 @@ function isSchemaContractError(error) {
   return /invalid schema|json_schema|response_format|required|additionalProperties|schema/i.test(message);
 }
 
-// ../../packages/shared/src/lib/reports/prompt-builder.ts
+// packages/shared/src/lib/reports/prompt-builder.ts
 function stableJson(value) {
   if (Array.isArray(value)) {
     return `[${value.map(stableJson).join(",")}]`;
@@ -2682,7 +2682,7 @@ ${payloadJson}`
   };
 }
 
-// ../../packages/shared/src/lib/reports/report-language.ts
+// packages/shared/src/lib/reports/report-language.ts
 var DEFAULT_LANGUAGE = "de";
 function normalizeLanguageTag(value) {
   if (!value) return null;
@@ -2718,7 +2718,7 @@ async function resolveReportLanguage(params) {
   return { language: DEFAULT_LANGUAGE, source: "default" };
 }
 
-// ../../packages/shared/src/lib/reports/site-change-tracker.ts
+// packages/shared/src/lib/reports/site-change-tracker.ts
 import { createHash } from "crypto";
 import { nanoid as nanoid2 } from "nanoid";
 import { and, eq as eq2, inArray } from "drizzle-orm";
@@ -2876,7 +2876,7 @@ async function computeAndPersistSiteChanges(input) {
   return siteChanges;
 }
 
-// ../../packages/shared/src/lib/reports/snapshot-sanitizer.ts
+// packages/shared/src/lib/reports/snapshot-sanitizer.ts
 var MAX_ARRAY_ITEMS = 20;
 function sanitizeValue(value) {
   if (value == null) return value;
@@ -2899,7 +2899,7 @@ function buildSanitizedReportInputSnapshot(payload) {
   return sanitized && typeof sanitized === "object" ? sanitized : { payload: sanitized };
 }
 
-// ../../packages/shared/src/lib/reports/xlsx-builder.ts
+// packages/shared/src/lib/reports/xlsx-builder.ts
 import ExcelJS from "exceljs";
 var MAX_ROWS = 1500;
 function capRows(rows, limit = MAX_ROWS) {
@@ -3226,7 +3226,7 @@ async function buildWorkbookBufferFromAiReport(report) {
   return Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
 }
 
-// ../../packages/shared/src/lib/properties/reportable-properties.ts
+// packages/shared/src/lib/properties/reportable-properties.ts
 function isGscProperty(property) {
   return property.type === "gsc" || property.id.startsWith("gsc_");
 }
@@ -3293,7 +3293,7 @@ function resolveReportSourcesFromProperties(allProperties, selectedPropertyId) {
   throw new Error(`Unsupported property type for reports: ${selectedProperty.type}`);
 }
 
-// ../../packages/shared/src/lib/properties/reportable-properties-db.ts
+// packages/shared/src/lib/properties/reportable-properties-db.ts
 async function listTeamProperties(teamId) {
   return db.query.properties.findMany({
     where: (p, { eq: eq6 }) => eq6(p.teamId, teamId)
@@ -3310,7 +3310,7 @@ async function resolveReportSourcesForExistingReport(report) {
   return resolveTeamReportSources(report.teamId, report.propertyId);
 }
 
-// ../../packages/shared/src/lib/queue/report-worker-policy.ts
+// packages/shared/src/lib/queue/report-worker-policy.ts
 function planReportGenerationPass(input) {
   const siteChangesSource = input.hasStoredSiteChanges ? "stored" : "empty";
   const crawlDeferralActive = input.crawlingEnabled && !input.skipCrawlEnqueue;
@@ -3338,11 +3338,11 @@ function buildCrawlRefreshGeneratePayload(input) {
   };
 }
 
-// ../../packages/shared/src/lib/queue/report-jobs.ts
+// packages/shared/src/lib/queue/report-jobs.ts
 import { nanoid as nanoid3 } from "nanoid";
 import { and as and2, desc, eq as eq3, inArray as inArray2, sql } from "drizzle-orm";
 
-// ../../packages/shared/src/lib/queue/report-job-row-shape.ts
+// packages/shared/src/lib/queue/report-job-row-shape.ts
 var snakeToCamelClaimJobKeys = [
   ["report_id", "reportId"],
   ["team_id", "teamId"],
@@ -3368,7 +3368,7 @@ function normalizeClaimedReportJobRow(row) {
   return normalized;
 }
 
-// ../../packages/shared/src/lib/queue/report-jobs.ts
+// packages/shared/src/lib/queue/report-jobs.ts
 function getQueueLeaseConfig() {
   return {
     leaseSeconds: parseInt(process.env.REPORT_WORKER_LEASE_SECONDS ?? "45", 10),
@@ -3592,7 +3592,7 @@ async function findLatestJobForReport(reportId, kinds) {
   });
 }
 
-// ../../packages/shared/src/lib/provider-tokens.ts
+// packages/shared/src/lib/provider-tokens.ts
 import { createCipheriv, createDecipheriv, createHash as createHash2, randomBytes } from "node:crypto";
 import { and as and3, eq as eq4 } from "drizzle-orm";
 var ENCRYPTION_PREFIX = "enc:v1";
@@ -3640,7 +3640,7 @@ function decryptGoogleAccountTokens(row) {
   };
 }
 async function getGoogleAccountTokensForUser(userId) {
-  const { db: db2 } = await import("./db-KJ4GK4XL.js");
+  const { db: db2 } = await import("./db-RP6IEFW4.js");
   const googleAccount = await db2.query.account.findFirst({
     where: (table, { and: and5, eq: eq6 }) => and5(eq6(table.userId, userId), eq6(table.providerId, "google"))
   });
@@ -3648,7 +3648,7 @@ async function getGoogleAccountTokensForUser(userId) {
   return decryptGoogleAccountTokens(googleAccount);
 }
 
-// ../../packages/shared/src/lib/queue/report-worker.ts
+// packages/shared/src/lib/queue/report-worker.ts
 var configuredOpenAiOrg = process.env.OPENAI_ORG?.trim() || null;
 var DETAIL_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 var MAX_DETAIL_WRITE_RETRIES = 5;

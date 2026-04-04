@@ -1,4 +1,4 @@
-// ../../packages/shared/src/db/url-guards.ts
+// packages/shared/src/db/url-guards.ts
 function parseDatabaseUrl(name, value) {
   try {
     return new URL(value);
