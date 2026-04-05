@@ -1,11 +1,11 @@
 import {
   schema_exports
-} from "./chunk-IOIQNMWH.js";
+} from "./chunk-S6A2XRFT.js";
 import {
   requireRuntimeDatabaseUrl
-} from "./chunk-HZS2OUZK.js";
+} from "./chunk-6RLW34GO.js";
 
-// packages/shared/src/db/index.ts
+// ../../packages/shared/src/db/index.ts
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 var DATABASE_POOL_MAX = parseInt(process.env.DATABASE_POOL_MAX ?? "5", 10);

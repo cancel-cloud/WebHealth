@@ -64,6 +64,7 @@ export type GoogleAccountTokens = {
   idToken: string | null;
   accessTokenExpiresAt: Date | null;
   refreshTokenExpiresAt: Date | null;
+  scope: string | null;
 };
 
 export function decryptGoogleAccountTokens<T extends {
@@ -72,12 +73,14 @@ export function decryptGoogleAccountTokens<T extends {
   idToken: string | null;
   accessTokenExpiresAt: Date | null;
   refreshTokenExpiresAt: Date | null;
+  scope?: string | null;
 }>(row: T): T & GoogleAccountTokens {
   return {
     ...row,
     accessToken: decryptProviderToken(row.accessToken),
     refreshToken: decryptProviderToken(row.refreshToken),
     idToken: decryptProviderToken(row.idToken),
+    scope: row.scope ?? null,
   };
 }
 
@@ -105,6 +108,7 @@ export async function updateGoogleAccountTokens(
   if ("idToken" in input) update.idToken = encryptProviderToken(input.idToken ?? null);
   if ("accessTokenExpiresAt" in input) update.accessTokenExpiresAt = input.accessTokenExpiresAt ?? null;
   if ("refreshTokenExpiresAt" in input) update.refreshTokenExpiresAt = input.refreshTokenExpiresAt ?? null;
+  if ("scope" in input) update.scope = input.scope ?? null;
 
   if (Object.keys(update).length === 0) return;
 
@@ -127,6 +131,7 @@ export async function backfillPlaintextGoogleTokens() {
       idToken: row.idToken,
       accessTokenExpiresAt: row.accessTokenExpiresAt ?? null,
       refreshTokenExpiresAt: row.refreshTokenExpiresAt ?? null,
+      scope: row.scope ?? null,
     });
   }
 }

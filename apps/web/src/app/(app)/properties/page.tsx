@@ -37,6 +37,11 @@ import {
 import { toast } from "sonner";
 import { getAppErrorMessage } from "@/lib/client/app-error";
 import { requestJson } from "@/lib/client/api";
+import { useGoogleAccessRecovery } from "@/components/google-access-recovery";
+import {
+  getGoogleAccessDialogModel,
+  getGoogleAccessIssueFromCode,
+} from "@/components/google-access-recovery.logic";
 
 type Property = {
   id: string;
@@ -61,6 +66,7 @@ function LinkGa4Dialog({
   const [open, setOpen] = useState(false);
   const [selectedGa4Id, setSelectedGa4Id] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { hasBlockingIssue } = useGoogleAccessRecovery();
 
   const unlinkedGa4 = ga4Properties;
 
@@ -98,7 +104,7 @@ function LinkGa4Dialog({
         size="sm"
         className="h-7 text-xs gap-1"
         onClick={() => setOpen(true)}
-        disabled={unlinkedGa4.length === 0}
+        disabled={unlinkedGa4.length === 0 || hasBlockingIssue}
       >
         <Link2 className="h-3 w-3" />
         Link GA4
@@ -146,6 +152,7 @@ export default function PropertiesPage() {
   const [isAutoSyncing, setIsAutoSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const hasAttemptedAutoSync = useRef(false);
+  const { issue, hasBlockingIssue, openDialog, refreshHealth } = useGoogleAccessRecovery();
 
   const loadProperties = useCallback(async () => {
     try {
@@ -163,7 +170,13 @@ export default function PropertiesPage() {
   }, [loadProperties]);
 
   useEffect(() => {
-    if (loading || properties.length > 0 || isAutoSyncing || hasAttemptedAutoSync.current) {
+    if (
+      loading ||
+      properties.length > 0 ||
+      isAutoSyncing ||
+      hasAttemptedAutoSync.current ||
+      hasBlockingIssue
+    ) {
       return;
     }
 
@@ -179,14 +192,20 @@ export default function PropertiesPage() {
     void toast.promise(syncPromise, {
       loading: "Properties are syncing. Please wait a few seconds…",
       success: (data) => formatPropertiesSyncSuccess(data),
-      error: (err) =>
-        `Auto-sync failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+      error: (err) => {
+        const code = err instanceof Error && "code" in err ? (err as { code?: string | null }).code : null;
+        if (getGoogleAccessIssueFromCode(code)) {
+          void refreshHealth();
+          return "Google access needs attention before properties can sync.";
+        }
+        return `Auto-sync failed: ${err instanceof Error ? err.message : "Unknown error"}`;
+      },
     });
 
     void syncPromise.finally(() => {
       setIsAutoSyncing(false);
     });
-  }, [isAutoSyncing, loading, loadProperties, properties.length]);
+  }, [hasBlockingIssue, isAutoSyncing, loading, loadProperties, properties.length, refreshHealth]);
 
   const ga4Properties = properties.filter((p) => p.type === "ga4");
   const filteredProperties = searchQuery.trim()
@@ -200,6 +219,7 @@ export default function PropertiesPage() {
   const ga4ById = Object.fromEntries(
     ga4Properties.map((p) => [p.id.replace("ga4_", ""), p.name])
   );
+  const recoveryModel = issue ? getGoogleAccessDialogModel(issue) : null;
 
   return (
     <div className="space-y-6">
@@ -217,6 +237,27 @@ export default function PropertiesPage() {
         />
       </div>
 
+      {issue ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <h2 className="font-display text-lg font-semibold text-amber-950">
+                {recoveryModel?.title ?? "Google access needs attention"}
+              </h2>
+              <p className="text-sm text-amber-950/85">
+                {recoveryModel?.description}
+              </p>
+              <p className="text-sm text-amber-900/80">
+                Your existing properties stay visible, but sync and linking are paused until Google access is restored.
+              </p>
+            </div>
+            <Button onClick={openDialog} className="rounded-full">
+              Reconnect Google
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {loading ? (
         <div className="border border-border/50 rounded-lg p-8 bg-card">
           <div className="space-y-3">
@@ -232,7 +273,7 @@ export default function PropertiesPage() {
           </div>
           <h3 className="text-xl font-medium text-foreground font-display">No properties synced</h3>
           <p className="max-w-sm mt-3 text-muted-foreground leading-relaxed">
-            Click <strong>Sync Properties</strong> to fetch your Google Search Console and Analytics properties.
+            No Google Search Console or Analytics properties are associated with this connected Google account yet.
           </p>
         </div>
       ) : (

@@ -8,6 +8,11 @@ import { shouldAllowScheduledStart } from "./route.logic";
 import { badRequest, notFound } from "@webhealth/shared/lib/http-errors";
 import { requireTeamOwner, requireUnrestrictedSession } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";
+import {
+  getGoogleAccessHealthForUser,
+  shouldBlockGoogleAction,
+  toGoogleAccessPublicError,
+} from "@/lib/server/google-access";
 
 // POST /api/reports/[id]/start — promote a scheduled report to queued and fire processing
 export async function POST(
@@ -17,6 +22,15 @@ export async function POST(
   try {
     const session = await requireUnrestrictedSession();
     const ownerMembership = await requireTeamOwner(session);
+
+    const health = await getGoogleAccessHealthForUser(session.user.id);
+    if (shouldBlockGoogleAction(health)) {
+      const publicError = toGoogleAccessPublicError(health);
+      if (publicError) {
+        return NextResponse.json(publicError.body, { status: publicError.status });
+      }
+    }
+
     const body = await req.json().catch(() => ({}));
     const forceWithoutGa4 = body?.forceWithoutGa4 === true;
 

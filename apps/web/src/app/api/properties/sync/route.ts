@@ -1,14 +1,27 @@
 import { NextResponse } from 'next/server';
 import { syncPropertiesForUser } from "@webhealth/shared/lib/sync-properties";
 import { getGoogleAccountTokensForUser } from "@webhealth/shared/lib/provider-tokens";
-import { badRequest, unauthorized } from "@webhealth/shared/lib/http-errors";
+import { badRequest } from "@webhealth/shared/lib/http-errors";
 import { handleRouteError } from "@/lib/server/route-security";
 import { requireTeamOwner, requireUnrestrictedSession } from "@/lib/server/authz";
+import {
+  getGoogleAccessHealthForUser,
+  shouldBlockGoogleAction,
+  toGoogleAccessPublicError,
+} from "@/lib/server/google-access";
 
-export async function POST(_req: Request) {
+export async function POST() {
   try {
     const session = await requireUnrestrictedSession();
     const ownerMembership = await requireTeamOwner(session);
+
+    const health = await getGoogleAccessHealthForUser(session.user.id);
+    if (shouldBlockGoogleAction(health)) {
+      const publicError = toGoogleAccessPublicError(health);
+      if (publicError) {
+        return NextResponse.json(publicError.body, { status: publicError.status });
+      }
+    }
 
     const googleAccount = await getGoogleAccountTokensForUser(session.user.id);
     if (!googleAccount?.accessToken) {
@@ -27,13 +40,6 @@ export async function POST(_req: Request) {
 
     return NextResponse.json({ success: true, ...result });
   } catch (error: unknown) {
-    const code = (error as any)?.code;
-    if (code === "GOOGLE_AUTH_RELOGIN_REQUIRED") {
-      return NextResponse.json(
-        { error: "Google authorization expired. Please sign in again.", code },
-        { status: 401 }
-      );
-    }
     return handleRouteError("Error syncing properties", error);
   }
 }
