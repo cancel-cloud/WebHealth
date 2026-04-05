@@ -8,6 +8,28 @@ import { nanoid } from "nanoid";
 import { syncPropertiesForUser } from "@webhealth/shared/lib/sync-properties";
 import { updateGoogleAccountTokens, decryptProviderToken } from "@webhealth/shared/lib/provider-tokens";
 
+async function persistGoogleAccountState(account: {
+  providerId: string;
+  userId: string;
+  accessToken?: string | null;
+  refreshToken?: string | null;
+  idToken?: string | null;
+  scope?: string | null;
+  accessTokenExpiresAt?: Date | null;
+  refreshTokenExpiresAt?: Date | null;
+}) {
+  if (account.providerId !== "google") return;
+
+  await updateGoogleAccountTokens(account.userId, {
+    accessToken: account.accessToken ?? null,
+    refreshToken: account.refreshToken ?? null,
+    idToken: account.idToken ?? null,
+    accessTokenExpiresAt: account.accessTokenExpiresAt ?? null,
+    refreshTokenExpiresAt: account.refreshTokenExpiresAt ?? null,
+    scope: account.scope ?? null,
+  });
+}
+
 /**
  * Call Google's userinfo endpoint with the stored access token to get the
  * profile picture URL and write it to user.image. Fire-and-forget — never throws.
@@ -90,11 +112,7 @@ export const auth = betterAuth({
         after: async (account) => {
           // Auto-sync properties on first Google login (account.create only fires once per provider)
           if (account.providerId !== "google" || !account.accessToken) return;
-          await updateGoogleAccountTokens(account.userId, {
-            accessToken: account.accessToken,
-            refreshToken: account.refreshToken ?? null,
-            idToken: account.idToken ?? null,
-          });
+          await persistGoogleAccountState(account);
           const userTeams = await db.query.teamMembers.findMany({
             where: (tm, { eq }) => eq(tm.userId, account.userId),
           });
@@ -105,6 +123,11 @@ export const auth = betterAuth({
             accessToken: account.accessToken,
             refreshToken: account.refreshToken ?? undefined,
           }).catch(() => {});
+        },
+      },
+      update: {
+        after: async (account) => {
+          await persistGoogleAccountState(account);
         },
       },
     },

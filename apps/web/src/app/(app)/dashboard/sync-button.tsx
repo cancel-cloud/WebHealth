@@ -7,6 +7,8 @@ import { RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getAppErrorMessage, isAppError } from "@/lib/client/app-error";
 import { requestJson } from "@/lib/client/api";
+import { useGoogleAccessRecovery } from "@/components/google-access-recovery";
+import { getGoogleAccessIssueFromCode } from "@/components/google-access-recovery.logic";
 
 export type PropertiesSyncResult = {
   gscCount: number;
@@ -28,6 +30,9 @@ export async function runPropertiesSync(): Promise<PropertiesSyncResult> {
 }
 
 export function formatPropertiesSyncSuccess(data: PropertiesSyncResult) {
+  if (data.gscCount === 0 && data.ga4Count === 0) {
+    return "No Google Search Console or Analytics properties are associated with this Google account yet.";
+  }
   const parts = [];
   if (data.gscCount > 0) parts.push(`${data.gscCount} GSC`);
   if (data.ga4Count > 0) parts.push(`${data.ga4Count} GA4`);
@@ -43,10 +48,15 @@ export function SyncButton({
 }: SyncButtonProps = {}) {
   const [isSyncing, setIsSyncing] = useState(false);
   const router = useRouter();
+  const { hasBlockingIssue, openDialog, refreshHealth } = useGoogleAccessRecovery();
   const isBusy = isSyncing || externalIsSyncing;
 
   const handleSync = async () => {
     if (isBusy) return;
+    if (hasBlockingIssue) {
+      openDialog();
+      return;
+    }
     setIsSyncing(true);
     toast("Syncing properties...", { id: "sync-toast" });
 
@@ -61,15 +71,8 @@ export function SyncButton({
         router.refresh();
       }
     } catch (error) {
-      if (isAppError(error) && error.code === "GOOGLE_AUTH_RELOGIN_REQUIRED") {
-        toast.error("Google authorization expired. Please sign in again.", {
-          id: "sync-toast",
-          duration: 10000,
-          action: {
-            label: "Sign in again",
-            onClick: () => router.push("/"),
-          },
-        });
+      if (isAppError(error) && getGoogleAccessIssueFromCode(error.code)) {
+        await refreshHealth({ openDialogOnIssue: true });
       } else {
         toast.error(`An error occurred: ${getAppErrorMessage(error, "Unknown error")}`, {
           id: "sync-toast",

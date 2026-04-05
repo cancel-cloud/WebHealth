@@ -20,6 +20,12 @@ import { useRouter } from "next/navigation";
 import { getAppErrorMessage, isAppError } from "@/lib/client/app-error";
 import { requestJson } from "@/lib/client/api";
 import type { PropertiesSyncResult } from "./sync-button";
+import { useGoogleAccessRecovery } from "@/components/google-access-recovery";
+import {
+  getGoogleAccessDialogModel,
+  getGoogleAccessIssueFromCode,
+} from "@/components/google-access-recovery.logic";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const TOAST_ID = "report-create";
 const PROPERTY_LIST_VISIBLE_ITEMS = 5;
@@ -210,6 +216,7 @@ async function pollUntilComplete(reportId: string): Promise<void> {
 
 export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
   const router = useRouter();
+  const { issue, hasBlockingIssue, openDialog, refreshHealth } = useGoogleAccessRecovery();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [allProperties, setAllProperties] = useState<Property[]>([]);
@@ -316,6 +323,10 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasBlockingIssue) {
+      openDialog();
+      return;
+    }
     if (!propertyId) {
       toast.error("Please select a property.");
       return;
@@ -398,7 +409,9 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
         router.push(`/reports/${reportId}`);
       }
     } catch (err) {
-      if (isAppError(err) && err.code === "PLAN_LIMIT_EXCEEDED") {
+      if (isAppError(err) && getGoogleAccessIssueFromCode(err.code)) {
+        await refreshHealth({ openDialogOnIssue: true });
+      } else if (isAppError(err) && err.code === "PLAN_LIMIT_EXCEEDED") {
         toast.info("Monthly report limit reached", {
           description: "Upgrade your plan to create more reports.",
           action: { label: "Upgrade", onClick: () => { window.location.href = "/settings"; } },
@@ -412,13 +425,31 @@ export function NewReportDialog({ onCreated }: { onCreated?: () => void }) {
     }
   };
 
+  const recoveryModel = issue ? getGoogleAccessDialogModel(issue) : null;
+  const triggerButton = (
+    <Button className="rounded-full" disabled={hasBlockingIssue}>
+      <Plus className="mr-2 h-4 w-4" /> New Report
+    </Button>
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="rounded-full">
-          <Plus className="mr-2 h-4 w-4" /> New Report
-        </Button>
-      </DialogTrigger>
+      {hasBlockingIssue ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex" tabIndex={0}>
+              {triggerButton}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={8}>
+            {recoveryModel?.description ?? "Reconnect Google to create reports."}
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        <DialogTrigger asChild>
+          {triggerButton}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[460px]">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">Create Comparison Report</DialogTitle>

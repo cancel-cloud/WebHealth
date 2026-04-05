@@ -15,6 +15,9 @@ import {
   shouldOpenOnboardingModal,
 } from "./onboarding-modal.logic";
 import { requestJson } from "@/lib/client/api";
+import type { PropertiesSyncResult } from "./sync-button";
+import { useGoogleAccessRecovery } from "@/components/google-access-recovery";
+import { getGoogleAccessDialogModel, getGoogleAccessIssueFromCode } from "@/components/google-access-recovery.logic";
 
 type SyncState = "syncing" | "success" | "error";
 
@@ -28,8 +31,9 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
     ),
   );
   const [dismissed, setDismissed] = useState(false);
-  const [syncState, setSyncState] = useState<SyncState>("syncing");
+  const [syncAttemptState, setSyncAttemptState] = useState<SyncState>("syncing");
   const [propertyCount, setPropertyCount] = useState<number>(0);
+  const { issue, hasBlockingIssue, openDialog, refreshHealth } = useGoogleAccessRecovery();
   const open = shouldOpenOnboardingModal({
     hasProperties,
     hasWelcomed,
@@ -38,17 +42,24 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
 
   useEffect(() => {
     if (!open) return;
-    requestJson<{ count?: number }>("/api/properties/sync", { method: "POST" })
+    if (hasBlockingIssue) return;
+    requestJson<PropertiesSyncResult>("/api/properties/sync", { method: "POST" })
       .then((data) => {
-        setPropertyCount(typeof data?.count === "number" ? data.count : 0);
-        setSyncState("success");
+        setPropertyCount((data?.gscCount ?? 0) + (data?.ga4Count ?? 0));
+        setSyncAttemptState("success");
       })
-      .catch(() => {
-        setSyncState("error");
+      .catch(async (error) => {
+        if (error instanceof Error && "code" in error && getGoogleAccessIssueFromCode((error as { code?: string | null }).code)) {
+          await refreshHealth();
+        }
+        setSyncAttemptState("error");
       });
-  }, [open]);
+  }, [hasBlockingIssue, open, refreshHealth]);
 
   if (hasProperties) return null;
+
+  const recoveryModel = issue ? getGoogleAccessDialogModel(issue) : null;
+  const syncState: SyncState = hasBlockingIssue ? "error" : syncAttemptState;
 
   function handleContinue() {
     localStorage.setItem(ONBOARDING_WELCOMED_STORAGE_KEY, "1");
@@ -87,7 +98,7 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
                 <span className="text-sm">
                   {propertyCount > 0
                     ? `${propertyCount} ${propertyCount === 1 ? "property" : "properties"} synced`
-                    : "Sync complete — you can add properties next"}
+                    : "No Google Search Console or Analytics properties are associated with this Google account yet."}
                 </span>
               </>
             )}
@@ -97,7 +108,7 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
                   !
                 </span>
                 <span className="text-sm text-destructive">
-                  Sync failed — you can retry from Properties
+                  {recoveryModel?.description ?? "Sync failed — reconnect Google to continue."}
                 </span>
               </>
             )}
@@ -143,11 +154,17 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
 
           <Button
             className="w-full"
-            disabled={syncState === "syncing"}
+            disabled={syncState === "syncing" || hasBlockingIssue}
             onClick={handleContinue}
           >
             Go to Properties →
           </Button>
+
+          {hasBlockingIssue ? (
+            <Button variant="outline" className="w-full" onClick={openDialog}>
+              Reconnect Google
+            </Button>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>

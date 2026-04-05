@@ -20,6 +20,7 @@ import {
   getFeedbackModalNextState,
 } from "@/components/feedback-modal-context";
 import { FeatureRequestModal } from "@/components/feature-request-modal";
+import { GoogleAccessRecoveryProvider } from "@/components/google-access-recovery";
 
 export function AppShell({
   children,
@@ -44,8 +45,9 @@ export function AppShell({
   );
 
   return (
-    <FeedbackModalProvider value={{ openFeedback }}>
-      <div className="relative isolate flex h-svh w-full overflow-hidden bg-app-shell text-foreground max-lg:flex-col">
+    <GoogleAccessRecoveryProvider>
+      <FeedbackModalProvider value={{ openFeedback }}>
+        <div className="relative isolate flex h-svh w-full overflow-hidden bg-app-shell text-foreground max-lg:flex-col">
         <div className="fixed inset-y-0 left-0 hidden w-72 bg-app-shell lg:block">
           <AppSidebar
             isAdmin={isAdmin}
@@ -125,7 +127,8 @@ export function AppShell({
           source={feedbackModalState.source}
           initialType={feedbackModalState.initialType}
         />
-      </div>
-    </FeedbackModalProvider>
+        </div>
+      </FeedbackModalProvider>
+    </GoogleAccessRecoveryProvider>
   );
 }

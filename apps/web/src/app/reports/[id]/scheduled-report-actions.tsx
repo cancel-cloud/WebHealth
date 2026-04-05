@@ -7,6 +7,11 @@ import { toast } from "sonner";
 import { getAppErrorMessage } from "@/lib/client/app-error";
 import { requestJson } from "@/lib/client/api";
 import { waitForReportToStart } from "./scheduled-report-actions.logic";
+import { useGoogleAccessRecovery } from "@/components/google-access-recovery";
+import {
+  getGoogleAccessDialogModel,
+  getGoogleAccessIssueFromCode,
+} from "@/components/google-access-recovery.logic";
 
 type ScheduledReportActionsProps = {
   reportId: string;
@@ -24,6 +29,7 @@ export function ScheduledReportActions({
   proceedWithGa4Reason,
 }: ScheduledReportActionsProps) {
   const [busy, setBusy] = useState<null | "continue" | "full">(null);
+  const { issue, hasBlockingIssue, refreshHealth } = useGoogleAccessRecovery();
 
   async function start(mode: "continue" | "full") {
     setBusy(mode);
@@ -53,8 +59,14 @@ export function ScheduledReportActions({
         },
       });
       window.location.reload();
-    } catch {
-      // Toast handled above
+    } catch (error) {
+      const code =
+        error instanceof Error && "code" in error
+          ? (error as { code?: string | null }).code
+          : null;
+      if (getGoogleAccessIssueFromCode(code)) {
+        await refreshHealth({ openDialogOnIssue: true });
+      }
     } finally {
       setBusy(null);
     }
@@ -66,7 +78,11 @@ export function ScheduledReportActions({
     canRun: boolean;
     disabledReason: string | null;
   }) {
-    const isDisabled = busy !== null || !props.canRun;
+    const recoveryModel = issue ? getGoogleAccessDialogModel(issue) : null;
+    const disabledReason = hasBlockingIssue
+      ? recoveryModel?.description ?? "Reconnect Google to continue."
+      : props.disabledReason;
+    const isDisabled = busy !== null || !props.canRun || hasBlockingIssue;
     const button = (
       <Button
         variant={props.mode === "full" ? "default" : "outline"}
@@ -82,7 +98,7 @@ export function ScheduledReportActions({
       </Button>
     );
 
-    if (!props.disabledReason) return button;
+    if (!disabledReason) return button;
 
     return (
       <Tooltip>
@@ -91,7 +107,7 @@ export function ScheduledReportActions({
             {button}
           </span>
         </TooltipTrigger>
-        <TooltipContent sideOffset={8}>{props.disabledReason}</TooltipContent>
+        <TooltipContent sideOffset={8}>{disabledReason}</TooltipContent>
       </Tooltip>
     );
   }

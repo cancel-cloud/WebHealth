@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from "@webhealth/shared/db";
-import { reports, systemLogs, teams, planSettings } from "@webhealth/shared/db/schema";
-import { eq, and, gte } from 'drizzle-orm';
+import { reports, systemLogs } from "@webhealth/shared/db/schema";
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { isEnabled } from "@webhealth/shared/lib/feature-flags";
 import { getGoogleAuthClient } from "@webhealth/shared/lib/google/api";
@@ -12,6 +12,11 @@ import { getGoogleAccountTokensForUser } from "@webhealth/shared/lib/provider-to
 import { badRequest, notFound } from "@webhealth/shared/lib/http-errors";
 import { requireAnyTeamMembership, requireTeamOwner, requireUnrestrictedSession } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";
+import {
+  getGoogleAccessHealthForUser,
+  shouldBlockGoogleAction,
+  toGoogleAccessPublicError,
+} from "@/lib/server/google-access";
 
 function throwSafePropertyResolutionError(error: unknown): never {
   const message = error instanceof Error ? error.message : "Property not found or unauthorized";
@@ -49,6 +54,14 @@ export async function POST(req: Request) {
   try {
     const session = await requireUnrestrictedSession();
     const ownerMembership = await requireTeamOwner(session);
+
+    const health = await getGoogleAccessHealthForUser(session.user.id);
+    if (shouldBlockGoogleAction(health)) {
+      const publicError = toGoogleAccessPublicError(health);
+      if (publicError) {
+        return NextResponse.json(publicError.body, { status: publicError.status });
+      }
+    }
 
     const body = await req.json();
     const { propertyId, dateRangeStart, dateRangeEnd, compareRangeStart, compareRangeEnd } = body;
