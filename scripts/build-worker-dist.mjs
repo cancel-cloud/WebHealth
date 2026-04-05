@@ -63,6 +63,7 @@ await rm(distRoot, { recursive: true, force: true });
 
 await build({
   entryPoints: [workerEntry],
+  absWorkingDir: repoRoot,
   outdir: distRoot,
   outbase: repoRoot,
   bundle: true,
