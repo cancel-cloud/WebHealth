@@ -1,10 +1,10 @@
 import {
   validateDirectDatabaseUrl,
   validateRuntimeDatabaseUrl
-} from "./chunk-6RLW34GO.js";
+} from "./chunk-HZS2OUZK.js";
 import "./chunk-3LHI6BO3.js";
 
-// ../../packages/shared/src/db/worker-db-bootstrap.ts
+// packages/shared/src/db/worker-db-bootstrap.ts
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
