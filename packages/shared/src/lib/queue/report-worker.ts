@@ -11,6 +11,7 @@ import {
   reportDetailAiExpansions,
   reports,
   teamMembers,
+  weeklyReviewRuns,
 } from "@webhealth/shared/db/schema";
 import { crawlWebsite, type CrawlResult } from "@webhealth/shared/lib/crawl";
 import { isEnabled } from "@webhealth/shared/lib/feature-flags";
@@ -69,6 +70,8 @@ import {
 } from "@webhealth/shared/lib/queue/report-worker-policy";
 import { enqueueReportJob } from "@webhealth/shared/lib/queue/report-jobs";
 import { getGoogleAccountTokensForUser } from "@webhealth/shared/lib/provider-tokens";
+import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
+import { buildWeeklyReviewFindings } from "@webhealth/shared/lib/weekly-review";
 import {
   appendReportJobEvent,
   claimNextReportJob,
@@ -509,6 +512,13 @@ function shouldRunXlsxForJob(job: ClaimedReportJob) {
     typeof job.payload === "object" &&
     ((job.payload as Record<string, unknown>).runXlsx as boolean | undefined) !== false
   );
+}
+
+function shouldSkipOpenAiForJob(job: ClaimedReportJob, reportSource?: string | null) {
+  const payload = job.payload && typeof job.payload === "object"
+    ? (job.payload as Record<string, unknown>)
+    : {};
+  return payload.skipOpenAi === true || reportSource === "auto_weekly";
 }
 
 function emptySiteChanges(): NonNullable<AiSeoReport["siteChanges"]> {
@@ -1292,6 +1302,82 @@ async function processGenerateReportJob(job: ClaimedReportJob, workerId: string)
     googleIdToken: teamAuth.googleAccount.idToken,
   });
   const language = languageResolution.language;
+
+  if (shouldSkipOpenAiForJob(job, report.source)) {
+    const weeklyReviewFindings = buildWeeklyReviewFindings({
+      changedPages: siteChanges.changedPages.map((page) => ({ url: page.url })),
+      currentPages: reportData.gsc.current.topPages ?? [],
+      comparePages: reportData.gsc.compare.topPages ?? [],
+    });
+    const markdown = `# Weekly Review\n\n${weeklyReviewFindings.length} changed-page finding${weeklyReviewFindings.length === 1 ? "" : "s"} detected.`;
+    const deterministicFallback = buildFallbackReportFromDeterministic({
+      reportTitle: `Weekly Review ${property.name}`,
+      periodLabel: `${formatDate(report.dateRangeStart)} - ${formatDate(report.dateRangeEnd)}`,
+      language,
+      schemaVersion: settings.schemaVersion,
+      markdown,
+      siteChanges,
+      deterministic,
+    });
+
+    await setJobPhaseWithLog(job, workerId, "store_report");
+    await db
+      .update(reports)
+      .set({
+        status: "complete",
+        aiStatus: "skipped",
+        data: reportData as unknown as Record<string, unknown>,
+        aiReportMarkdown: deterministicFallback.dashboardMarkdown,
+        aiReportJson: deterministicFallback as unknown as Record<string, unknown>,
+        aiUsage: null,
+        aiEstimatedCostUsd: null,
+        siteChanges: siteChanges as unknown as Record<string, unknown>,
+        weeklyReviewFindings: weeklyReviewFindings as unknown as Record<string, unknown>[],
+        xlsxStatus: report.xlsxStatus ?? "pending",
+        openaiResponseId: null,
+        updatedAt: new Date(),
+        error: null,
+      })
+      .where(eq(reports.id, report.id));
+
+    await db
+      .update(weeklyReviewRuns)
+      .set({
+        status: "complete",
+        actionableCount: weeklyReviewFindings.length,
+        completedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(weeklyReviewRuns.reportId, report.id));
+
+    await appendReportJobEvent({
+      jobId: job.id,
+      reportId: report.id,
+      teamId: report.teamId,
+      phase: "store_report",
+      level: "info",
+      message: "Stored automatic weekly review without OpenAI",
+      meta: { actionableCount: weeklyReviewFindings.length },
+    });
+
+    await recordProductEvent({
+      teamId: report.teamId,
+      userId: teamAuth.owner.userId,
+      name: "weekly_auto_report_completed",
+      source: "worker",
+      entityType: "report",
+      entityId: report.id,
+      properties: {
+        propertyId: report.propertyId,
+        actionableCount: weeklyReviewFindings.length,
+      },
+    });
+
+    if (generationPlan.shouldRunXlsxAfterThisPass) {
+      await queueXlsxJobFromReportGeneration(job);
+    }
+    return;
+  }
 
   const promptInputPayload = {
     report: {

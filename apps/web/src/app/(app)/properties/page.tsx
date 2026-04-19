@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { getSyncStatusBadge } from "@/lib/status-badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Globe, Link2, Search } from "lucide-react";
+import { Globe, HelpCircle, Link2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   SyncButton,
@@ -51,7 +52,74 @@ type Property = {
   syncStatus: string;
   lastSyncedAt: string | null;
   ga4PropertyId: string | null;
+  weeklyReviewEnabled?: boolean;
+  weeklyReviewLimit?: number;
+  weeklyReviewWatchedCount?: number;
 };
+
+type WeeklyReviewMeta = {
+  limit: number;
+  watchedCount: number;
+};
+
+function WeeklyReviewInfoTooltip() {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label="What weekly reviews do"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <HelpCircle className="h-3.5 w-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent sideOffset={8} className="max-w-xs">
+        Weekly reviews create an automatic report every Sunday for the latest complete Mon-Sun Search Console week. They count against your monthly report limit.
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function WeeklyReviewToggle({
+  property,
+  weeklyReview,
+  updatingWeeklyReviewId,
+  onToggle,
+}: {
+  property: Property;
+  weeklyReview: WeeklyReviewMeta;
+  updatingWeeklyReviewId: string | null;
+  onToggle: (property: Property) => void;
+}) {
+  const atLimit = !property.weeklyReviewEnabled && weeklyReview.watchedCount >= weeklyReview.limit;
+  const isUpdating = updatingWeeklyReviewId === property.id;
+  const disabled = isUpdating || atLimit;
+  const button = (
+    <Button
+      variant={property.weeklyReviewEnabled ? "default" : "outline"}
+      size="sm"
+      className="h-7 text-xs"
+      onClick={() => onToggle(property)}
+      disabled={disabled}
+    >
+      {property.weeklyReviewEnabled ? "Watching" : "Watch"}
+    </Button>
+  );
+
+  if (!atLimit) return button;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex cursor-not-allowed">{button}</span>
+      </TooltipTrigger>
+      <TooltipContent sideOffset={8} className="max-w-xs">
+        Weekly review limit reached ({weeklyReview.watchedCount}/{weeklyReview.limit}). Disable another watched property or upgrade for more weekly auto reports.
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 
 function LinkGa4Dialog({
@@ -150,16 +218,20 @@ export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAutoSyncing, setIsAutoSyncing] = useState(false);
+  const [weeklyReview, setWeeklyReview] = useState<WeeklyReviewMeta>({ limit: 1, watchedCount: 0 });
+  const [updatingWeeklyReviewId, setUpdatingWeeklyReviewId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const hasAttemptedAutoSync = useRef(false);
   const { issue, hasBlockingIssue, openDialog, refreshHealth } = useGoogleAccessRecovery();
 
   const loadProperties = useCallback(async () => {
     try {
-      const data = await requestJson<{ properties?: Property[] }>("/api/properties");
+      const data = await requestJson<{ properties?: Property[]; weeklyReview?: WeeklyReviewMeta }>("/api/properties");
       setProperties(data?.properties ?? []);
+      setWeeklyReview(data?.weeklyReview ?? { limit: 1, watchedCount: 0 });
     } catch {
       setProperties([]);
+      setWeeklyReview({ limit: 1, watchedCount: 0 });
     } finally {
       setLoading(false);
     }
@@ -221,6 +293,42 @@ export default function PropertiesPage() {
   );
   const recoveryModel = issue ? getGoogleAccessDialogModel(issue) : null;
 
+  const toggleWeeklyReview = async (property: Property) => {
+    const enabled = !property.weeklyReviewEnabled;
+    setUpdatingWeeklyReviewId(property.id);
+    try {
+      const result = await requestJson<{
+        weeklyReviewEnabled: boolean;
+        weeklyReviewLimit: number;
+        weeklyReviewWatchedCount: number;
+      }>(`/api/properties/${encodeURIComponent(property.id)}/weekly-review`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      if (!result) throw new Error("No response from weekly review update");
+
+      setProperties((current) =>
+        current.map((item) => ({
+          ...item,
+          weeklyReviewEnabled:
+            item.id === property.id ? result.weeklyReviewEnabled : item.weeklyReviewEnabled,
+          weeklyReviewLimit: result.weeklyReviewLimit,
+          weeklyReviewWatchedCount: result.weeklyReviewWatchedCount,
+        })),
+      );
+      setWeeklyReview({
+        limit: result.weeklyReviewLimit,
+        watchedCount: result.weeklyReviewWatchedCount,
+      });
+      toast.success(enabled ? "Weekly review enabled" : "Weekly review disabled");
+    } catch (err) {
+      toast.error(getAppErrorMessage(err, "Could not update weekly review"));
+    } finally {
+      setUpdatingWeeklyReviewId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-end">
@@ -278,6 +386,17 @@ export default function PropertiesPage() {
         </div>
       ) : (
         <div className="space-y-3">
+          <div className="flex flex-col gap-1 rounded-lg border border-border/50 bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-medium">Weekly reviews</p>
+              <p className="text-sm text-muted-foreground">
+                Watch GSC properties for automatic Mon-Sun reviews every Sunday.
+              </p>
+            </div>
+            <Badge variant="outline" className="w-fit">
+              {weeklyReview.watchedCount}/{weeklyReview.limit} watched
+            </Badge>
+          </div>
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
@@ -295,6 +414,7 @@ export default function PropertiesPage() {
                 <TableHead className="py-4 font-medium">URL</TableHead>
                 <TableHead className="py-4 font-medium">Type</TableHead>
                 <TableHead className="py-4 font-medium">GA4</TableHead>
+                <TableHead className="py-4 font-medium">Weekly Review</TableHead>
                 <TableHead className="py-4 font-medium">Sync Status</TableHead>
                 <TableHead className="py-4 font-medium text-right">Last Synced</TableHead>
               </TableRow>
@@ -324,6 +444,21 @@ export default function PropertiesPage() {
                           onLinked={loadProperties}
                         />
                       )
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="py-4">
+                    {property.type === "gsc" ? (
+                      <div className="flex items-center gap-1.5">
+                        <WeeklyReviewToggle
+                          property={property}
+                          weeklyReview={weeklyReview}
+                          updatingWeeklyReviewId={updatingWeeklyReviewId}
+                          onToggle={toggleWeeklyReview}
+                        />
+                        <WeeklyReviewInfoTooltip />
+                      </div>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}

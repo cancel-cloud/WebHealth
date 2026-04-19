@@ -7,9 +7,16 @@ function parseDatabaseUrl(name: string, value: string): URL {
 }
 
 function assertSslModeRequire(name: string, parsed: URL) {
+  if (isLocalDatabaseHost(parsed.hostname)) {
+    return;
+  }
   if (parsed.searchParams.get("sslmode") !== "require") {
     throw new Error(`DB_CONFIG_ERROR: ${name} must include sslmode=require.`);
   }
+}
+
+function isLocalDatabaseHost(hostname: string) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 }
 
 export function validateRuntimeDatabaseUrl(url: string) {

@@ -29,6 +29,11 @@ async function main() {
         typeof import("@webhealth/shared/lib/queue/report-worker")["startReportWorkerLoop"]
       >
     | null = null;
+  let weeklyReviewSchedulerControls:
+    | ReturnType<
+        typeof import("@webhealth/shared/lib/weekly-review-scheduler")["startWeeklyReviewScheduler"]
+      >
+    | null = null;
   let closeDb: (() => Promise<void>) | null = null;
   let watchdogTimer: NodeJS.Timeout | null = null;
   let shutdownPromise: Promise<never> | null = null;
@@ -59,6 +64,7 @@ async function main() {
         watchdogTimer = null;
       }
       workerLoopControls?.stop();
+      weeklyReviewSchedulerControls?.stop();
       await Promise.allSettled([
         artifactServer?.stop() ?? Promise.resolve(),
         closeDb?.() ?? Promise.resolve(),
@@ -82,6 +88,9 @@ async function main() {
   const { ensureWorkerDatabaseReady } = await import("@webhealth/shared/db/worker-db-bootstrap");
   const { startReportWorkerLoop, runSingleReportWorkerTick } = await import(
     "@webhealth/shared/lib/queue/report-worker"
+  );
+  const { startWeeklyReviewScheduler } = await import(
+    "@webhealth/shared/lib/weekly-review-scheduler"
   );
   closeDb = sharedDbModule.closeDb;
 
@@ -123,6 +132,7 @@ async function main() {
   workerPhase = "worker-loop";
   markWorkerPhase(runtimeState, "worker-loop");
   console.log("[report-worker][INFO][BOOT] starting worker process");
+  weeklyReviewSchedulerControls = startWeeklyReviewScheduler();
   workerLoopControls = startReportWorkerLoop({
     hooks: {
       onFatalError: ({ error, nowMs }) => markFatalError(runtimeState, error, nowMs),

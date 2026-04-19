@@ -97,7 +97,7 @@ export async function requestJsonWith<T>(
 export function requestJson<T>(input: RequestInfo | URL, init?: RequestInit) {
   return requestJsonWith<T>(
     {
-      fetcher: fetch,
+      fetcher: (requestInput, requestInit) => fetch(requestInput, requestInit),
       reportError: reportClientError,
     },
     input,

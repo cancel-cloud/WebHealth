@@ -15,6 +15,14 @@ test("validateDirectDatabaseUrl accepts non-Neon direct endpoints when sslmode i
   assert.equal(validateDirectDatabaseUrl(directUrl), directUrl);
 });
 
+test("database URL validators allow local Postgres without sslmode for development", () => {
+  const runtimeUrl = "postgresql://postgres@localhost:5432/webhealth";
+  const directUrl = "postgresql://postgres@127.0.0.1:5432/webhealth";
+
+  assert.equal(validateRuntimeDatabaseUrl(runtimeUrl), runtimeUrl);
+  assert.equal(validateDirectDatabaseUrl(directUrl), directUrl);
+});
+
 test("database URL validators still reject connections without sslmode=require", () => {
   const runtimeUrl = "postgresql://runtime:pass@db.webhealth.devbrew.dev:6432/webhealth";
   const directUrl = "postgresql://direct:pass@postgres.internal:5432/webhealth";

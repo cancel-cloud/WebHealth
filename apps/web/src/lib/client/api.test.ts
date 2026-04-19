@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test, { afterEach } from "node:test";
 
 import { AppError } from "./app-error";
-import { requestJsonWith } from "./api";
+import { requestJson, requestJsonWith } from "./api";
 
 const originalFetch = globalThis.fetch;
 
@@ -154,4 +154,15 @@ test("requestJson reports and rethrows network failures", async () => {
   );
 
   assert.deepEqual(reported, [networkError]);
+});
+
+test("requestJson calls global fetch with a valid browser binding", async () => {
+  globalThis.fetch = function (this: unknown) {
+    assert.ok(this === undefined || this === globalThis);
+    return Promise.resolve(createResponse(JSON.stringify({ ok: true }), { status: 200 }));
+  } as typeof fetch;
+
+  const result = await requestJson<{ ok: boolean }>("/api/test");
+
+  assert.deepEqual(result, { ok: true });
 });
