@@ -1,8 +1,9 @@
 "use client";
 
-import { AreaChart, Area, ResponsiveContainer } from "recharts";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import type { KpiTrendRow } from "@webhealth/shared/lib/reports/types";
+import { EchartsChart } from "@/components/echarts-chart";
+import { buildKpiSparklineOption } from "./kpi-chart-options";
 
 type GscMetrics = {
   clicks: number;
@@ -53,31 +54,25 @@ function Sparkline({
   dataKey,
   color,
 }: {
-  data: Record<string, number>[];
-  dataKey: string;
+  data: KpiTrendRow[];
+  dataKey: keyof KpiTrendRow;
   color: string;
 }) {
   if (!data.length) return <div className="h-[60px] text-xs text-muted-foreground flex items-center">No trend</div>;
+  const option = buildKpiSparklineOption({
+    data: data.map((row) => ({
+      date: row.date,
+      value: Number(row[dataKey] ?? 0),
+    })),
+    color,
+  });
+
   return (
-    <ResponsiveContainer width="100%" height={60}>
-      <AreaChart data={data}>
-        <defs>
-          <linearGradient id={`grad-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={color} stopOpacity={0.15} />
-            <stop offset="95%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <Area
-          type="monotone"
-          dataKey={dataKey}
-          stroke={color}
-          fill={`url(#grad-${dataKey})`}
-          strokeWidth={2}
-          dot={false}
-          isAnimationActive={false}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
+    <EchartsChart
+      option={option}
+      className="h-[60px] w-full"
+      ariaLabel={`${String(dataKey)} trend`}
+    />
   );
 }
 
@@ -133,7 +128,7 @@ export function KpiCards({ gscCurrent, gscCompare, ga4Current, ga4Compare, kpiTr
             <Delta current={curr} compare={comp} format={fmt} />
             {trendData.length > 1 && (
               <div className="mt-2">
-                <Sparkline data={trendData as unknown as Record<string, number>[]} dataKey={sparkKey} color={color} />
+                <Sparkline data={trendData} dataKey={sparkKey as keyof KpiTrendRow} color={color} />
               </div>
             )}
           </div>

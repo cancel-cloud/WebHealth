@@ -20,9 +20,11 @@ __export(schema_exports, {
   metricsBackfillJobs: () => metricsBackfillJobs,
   openaiDailyCosts: () => openaiDailyCosts,
   planSettings: () => planSettings,
+  productEvents: () => productEvents,
   properties: () => properties,
   propertyDailyAiSummaries: () => propertyDailyAiSummaries,
   propertyPageRegistry: () => propertyPageRegistry,
+  propertyWeeklyReviews: () => propertyWeeklyReviews,
   reportDetailAiExpansions: () => reportDetailAiExpansions,
   reportJobEvents: () => reportJobEvents,
   reportJobs: () => reportJobs,
@@ -35,7 +37,8 @@ __export(schema_exports, {
   user: () => user,
   userFeatureFlags: () => userFeatureFlags,
   userSettings: () => userSettings,
-  verification: () => verification
+  verification: () => verification,
+  weeklyReviewRuns: () => weeklyReviewRuns
 });
 import {
   pgTable,
@@ -157,6 +160,10 @@ var reports = pgTable("reports", {
   detailsRequestCount: integer("details_request_count").default(0).notNull(),
   openaiRequestIds: jsonb("openai_request_ids"),
   siteChanges: jsonb("site_changes"),
+  source: text("source").default("manual").notNull(),
+  // manual | auto_weekly
+  autoRunKey: text("auto_run_key"),
+  weeklyReviewFindings: jsonb("weekly_review_findings"),
   xlsxStatus: text("xlsx_status").default("pending"),
   xlsxArtifactKey: text("xlsx_artifact_key"),
   xlsxArtifactUrl: text("xlsx_artifact_url"),
@@ -164,6 +171,44 @@ var reports = pgTable("reports", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
+var propertyWeeklyReviews = pgTable("property_weekly_reviews", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  enabled: boolean("enabled").default(true).notNull(),
+  createdByUserId: text("created_by_user_id").references(() => user.id, { onDelete: "set null" }),
+  lastRunAt: timestamp("last_run_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+}, (t) => [
+  unique().on(t.teamId, t.propertyId),
+  index("property_weekly_reviews_team_enabled_idx").on(t.teamId, t.enabled)
+]);
+var weeklyReviewRuns = pgTable("weekly_review_runs", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  reportId: text("report_id").references(() => reports.id, { onDelete: "set null" }),
+  runKey: text("run_key").notNull(),
+  status: text("status").default("queued").notNull(),
+  // queued | processing | complete | skipped | failed
+  skipReason: text("skip_reason"),
+  dateRangeStart: date("date_range_start").notNull(),
+  dateRangeEnd: date("date_range_end").notNull(),
+  compareRangeStart: date("compare_range_start").notNull(),
+  compareRangeEnd: date("compare_range_end").notNull(),
+  actionableCount: integer("actionable_count").default(0).notNull(),
+  notificationSeenAt: timestamp("notification_seen_at"),
+  completedAt: timestamp("completed_at"),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+}, (t) => [
+  unique().on(t.teamId, t.propertyId, t.runKey),
+  index("weekly_review_runs_team_created_idx").on(t.teamId, t.createdAt),
+  index("weekly_review_runs_report_idx").on(t.reportId),
+  index("weekly_review_runs_status_created_idx").on(t.status, t.createdAt)
+]);
 var crawls = pgTable("crawls", {
   id: text("id").primaryKey(),
   reportId: text("report_id").notNull().references(() => reports.id, { onDelete: "cascade" }),
@@ -219,6 +264,21 @@ var systemLogs = pgTable("system_logs", {
   details: jsonb("details"),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
+var productEvents = pgTable("product_events", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+  name: text("name").notNull(),
+  source: text("source").notNull(),
+  entityType: text("entity_type"),
+  entityId: text("entity_id"),
+  properties: jsonb("properties"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (t) => [
+  index("product_events_team_created_idx").on(t.teamId, t.createdAt),
+  index("product_events_name_created_idx").on(t.name, t.createdAt),
+  index("product_events_user_created_idx").on(t.userId, t.createdAt)
+]);
 var adminEmails = pgTable("admin_emails", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
@@ -530,10 +590,13 @@ export {
   teamMembers,
   properties,
   reports,
+  propertyWeeklyReviews,
+  weeklyReviewRuns,
   crawls,
   userSettings,
   feedbackSubmissions,
   systemLogs,
+  productEvents,
   adminEmails,
   metricsBackfillJobs,
   gscDailyRaw,

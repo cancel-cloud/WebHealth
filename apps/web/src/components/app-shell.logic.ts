@@ -172,6 +172,13 @@ export function getAppSidebarModel({
           current: isPathCurrent(pathname, "/admin/feedback"),
         },
         {
+          id: "admin-product-analytics",
+          label: "Product Analytics",
+          href: "/admin/product-analytics",
+          icon: "sparkles",
+          current: isPathCurrent(pathname, "/admin/product-analytics"),
+        },
+        {
           id: "admin-logs",
           label: "System Logs",
           href: "/admin/logs",

@@ -14,9 +14,11 @@ import {
   metricsBackfillJobs,
   openaiDailyCosts,
   planSettings,
+  productEvents,
   properties,
   propertyDailyAiSummaries,
   propertyPageRegistry,
+  propertyWeeklyReviews,
   reportDetailAiExpansions,
   reportJobEvents,
   reportJobs,
@@ -29,8 +31,9 @@ import {
   user,
   userFeatureFlags,
   userSettings,
-  verification
-} from "./chunk-IOIQNMWH.js";
+  verification,
+  weeklyReviewRuns
+} from "./chunk-ZW7KFAV7.js";
 import "./chunk-3LHI6BO3.js";
 export {
   account,
@@ -48,9 +51,11 @@ export {
   metricsBackfillJobs,
   openaiDailyCosts,
   planSettings,
+  productEvents,
   properties,
   propertyDailyAiSummaries,
   propertyPageRegistry,
+  propertyWeeklyReviews,
   reportDetailAiExpansions,
   reportJobEvents,
   reportJobs,
@@ -63,5 +68,6 @@ export {
   user,
   userFeatureFlags,
   userSettings,
-  verification
+  verification,
+  weeklyReviewRuns
 };

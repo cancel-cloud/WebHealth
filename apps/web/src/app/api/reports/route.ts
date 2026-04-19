@@ -6,6 +6,7 @@ import { nanoid } from 'nanoid';
 import { isEnabled } from "@webhealth/shared/lib/feature-flags";
 import { getGoogleAuthClient } from "@webhealth/shared/lib/google/api";
 import { ensureMetricsCoverageForReport, rangeDaysInclusive } from "@webhealth/shared/lib/metrics-cache";
+import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import { enqueueReportJob } from "@webhealth/shared/lib/queue/report-jobs";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { getGoogleAccountTokensForUser } from "@webhealth/shared/lib/provider-tokens";
@@ -134,6 +135,7 @@ export async function POST(req: Request) {
         dateRangeEnd,
         compareRangeStart,
         compareRangeEnd,
+        source: 'manual',
         status: shouldSchedule ? 'scheduled' : 'queued',
       })
       .returning();
@@ -199,6 +201,19 @@ export async function POST(req: Request) {
         teamId,
         scheduled: shouldSchedule,
         metricsPreflight: !shouldSchedule,
+      },
+    }).catch(() => {});
+
+    void recordProductEvent({
+      teamId,
+      userId: session.user.id,
+      name: "manual_report_created",
+      source: "api",
+      entityType: "report",
+      entityId: reportId,
+      properties: {
+        propertyId: canonicalPropertyId,
+        scheduled: shouldSchedule,
       },
     }).catch(() => {});
 

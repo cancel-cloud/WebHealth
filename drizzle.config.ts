@@ -2,6 +2,7 @@ import { defineConfig } from "drizzle-kit";
 import { config } from "dotenv";
 
 config({ path: ".env" });
+config({ path: ".env.local", override: true });
 
 function requireDirectDatabaseUrl() {
   const url = process.env.DIRECT_DATABASE_URL;
@@ -16,7 +17,11 @@ function requireDirectDatabaseUrl() {
     throw new Error("DB_CONFIG_ERROR: DIRECT_DATABASE_URL is not a valid URL.");
   }
 
-  if (parsed.searchParams.get("sslmode") !== "require") {
+  const isLocalDatabase =
+    parsed.hostname === "localhost" ||
+    parsed.hostname === "127.0.0.1" ||
+    parsed.hostname === "::1";
+  if (!isLocalDatabase && parsed.searchParams.get("sslmode") !== "require") {
     throw new Error("DB_CONFIG_ERROR: DIRECT_DATABASE_URL must include sslmode=require.");
   }
 

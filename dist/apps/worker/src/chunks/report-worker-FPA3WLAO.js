@@ -2,8 +2,21 @@ import {
   getArtifactStore
 } from "./chunk-YZNPJFVX.js";
 import {
+  appendReportJobEvent,
+  buildWeeklyReviewFindings,
+  claimNextReportJob,
+  completeReportJob,
+  enqueueReportJob,
+  failReportJob,
+  findLatestJobForReport,
+  heartbeatReportJob,
+  recordProductEvent,
+  requeueJobForRetry,
+  updateReportJobPhase
+} from "./chunk-TP3EEMKS.js";
+import {
   db
-} from "./chunk-SMAQ62OZ.js";
+} from "./chunk-X4E5ED5H.js";
 import {
   aiReportSettings,
   crawlPageSnapshots,
@@ -14,22 +27,21 @@ import {
   metricsBackfillJobs,
   propertyPageRegistry,
   reportDetailAiExpansions,
-  reportJobEvents,
-  reportJobs,
   reports,
   systemLogs,
-  teamMembers
-} from "./chunk-IOIQNMWH.js";
+  teamMembers,
+  weeklyReviewRuns
+} from "./chunk-ZW7KFAV7.js";
 import {
   requireDirectDatabaseUrl
-} from "./chunk-HZS2OUZK.js";
+} from "./chunk-AHMZJEDT.js";
 import "./chunk-3LHI6BO3.js";
 
 // packages/shared/src/lib/queue/report-worker.ts
 import OpenAI from "openai";
-import { nanoid as nanoid4 } from "nanoid";
+import { nanoid as nanoid3 } from "nanoid";
 import postgres from "postgres";
-import { and as and4, eq as eq5, gte, lte, sql as sql2 } from "drizzle-orm";
+import { and as and3, eq as eq4, gte, lte, sql } from "drizzle-orm";
 
 // packages/shared/src/lib/crawl.ts
 import { lookup } from "node:dns/promises";
@@ -289,11 +301,11 @@ async function crawlWebsite(startUrl, maxPages = DEFAULT_MAX_PAGES, options) {
 // packages/shared/src/lib/feature-flags.ts
 async function isEnabled(flagName, userId) {
   const flag = await db.query.featureFlags.findFirst({
-    where: (f, { eq: eq6 }) => eq6(f.name, flagName)
+    where: (f, { eq: eq5 }) => eq5(f.name, flagName)
   });
   if (!flag) return true;
   const override = await db.query.userFeatureFlags.findFirst({
-    where: (uff, { and: and5, eq: eq6 }) => and5(eq6(uff.flagId, flag.id), eq6(uff.userId, userId))
+    where: (uff, { and: and4, eq: eq5 }) => and4(eq5(uff.flagId, flag.id), eq5(uff.userId, userId))
   });
   if (override !== void 0) return override.enabled;
   return flag.enabledGlobally;
@@ -821,30 +833,30 @@ async function createMetricsBackfillJob(input) {
 async function getGscPropertiesForJob(job) {
   if (job.targetPropertyId) {
     return db.query.properties.findMany({
-      where: (p, { and: and5, eq: eq6 }) => and5(eq6(p.teamId, job.teamId), eq6(p.id, job.targetPropertyId), eq6(p.type, "gsc"))
+      where: (p, { and: and4, eq: eq5 }) => and4(eq5(p.teamId, job.teamId), eq5(p.id, job.targetPropertyId), eq5(p.type, "gsc"))
     });
   }
   return db.query.properties.findMany({
-    where: (p, { and: and5, eq: eq6 }) => and5(eq6(p.teamId, job.teamId), eq6(p.type, "gsc"))
+    where: (p, { and: and4, eq: eq5 }) => and4(eq5(p.teamId, job.teamId), eq5(p.type, "gsc"))
   });
 }
 async function existingGscDateSet(propertyId, start, end) {
   const rows = await db.query.gscDailyFacts.findMany({
-    where: (t, { and: and5, eq: eq6, gte: gte2, lte: lte2 }) => and5(eq6(t.propertyId, propertyId), gte2(t.sourceDate, start), lte2(t.sourceDate, end)),
+    where: (t, { and: and4, eq: eq5, gte: gte2, lte: lte2 }) => and4(eq5(t.propertyId, propertyId), gte2(t.sourceDate, start), lte2(t.sourceDate, end)),
     columns: { sourceDate: true }
   });
   return new Set(rows.map((r) => normalizeDateStr(r.sourceDate)));
 }
 async function existingGa4DateSet(ga4PropertyId, start, end) {
   const rows = await db.query.ga4DailyFacts.findMany({
-    where: (t, { and: and5, eq: eq6, gte: gte2, lte: lte2 }) => and5(eq6(t.ga4PropertyId, ga4PropertyId), gte2(t.sourceDate, start), lte2(t.sourceDate, end)),
+    where: (t, { and: and4, eq: eq5, gte: gte2, lte: lte2 }) => and4(eq5(t.ga4PropertyId, ga4PropertyId), gte2(t.sourceDate, start), lte2(t.sourceDate, end)),
     columns: { sourceDate: true }
   });
   return new Set(rows.map((r) => normalizeDateStr(r.sourceDate)));
 }
 async function processMetricsBackfillJob(args) {
   const job = await db.query.metricsBackfillJobs.findFirst({
-    where: (j, { eq: eq6 }) => eq6(j.id, args.jobId)
+    where: (j, { eq: eq5 }) => eq5(j.id, args.jobId)
   });
   if (!job) throw new Error("Metrics backfill job not found");
   const totals = ZERO_TOTALS();
@@ -1008,11 +1020,11 @@ async function getPropertyMetricsCoverage(params) {
   const requiredDates = eachDateInRange(params.dateStart, params.dateEnd);
   const [gscFactRows, gscRawRows] = await Promise.all([
     db.query.gscDailyFacts.findMany({
-      where: (t, { and: and5, eq: eq6, gte: gte2, lte: lte2 }) => and5(eq6(t.propertyId, params.property.id), gte2(t.sourceDate, params.dateStart), lte2(t.sourceDate, params.dateEnd)),
+      where: (t, { and: and4, eq: eq5, gte: gte2, lte: lte2 }) => and4(eq5(t.propertyId, params.property.id), gte2(t.sourceDate, params.dateStart), lte2(t.sourceDate, params.dateEnd)),
       columns: { sourceDate: true }
     }),
     db.query.gscDailyRaw.findMany({
-      where: (t, { and: and5, eq: eq6, gte: gte2, lte: lte2 }) => and5(eq6(t.propertyId, params.property.id), gte2(t.sourceDate, params.dateStart), lte2(t.sourceDate, params.dateEnd)),
+      where: (t, { and: and4, eq: eq5, gte: gte2, lte: lte2 }) => and4(eq5(t.propertyId, params.property.id), gte2(t.sourceDate, params.dateStart), lte2(t.sourceDate, params.dateEnd)),
       columns: { sourceDate: true }
     })
   ]);
@@ -1026,11 +1038,11 @@ async function getPropertyMetricsCoverage(params) {
   if (params.property.ga4PropertyId) {
     const [ga4FactRows, ga4RawRows] = await Promise.all([
       db.query.ga4DailyFacts.findMany({
-        where: (t, { and: and5, eq: eq6, gte: gte2, lte: lte2 }) => and5(eq6(t.ga4PropertyId, params.property.ga4PropertyId), gte2(t.sourceDate, params.dateStart), lte2(t.sourceDate, params.dateEnd)),
+        where: (t, { and: and4, eq: eq5, gte: gte2, lte: lte2 }) => and4(eq5(t.ga4PropertyId, params.property.ga4PropertyId), gte2(t.sourceDate, params.dateStart), lte2(t.sourceDate, params.dateEnd)),
         columns: { sourceDate: true }
       }),
       db.query.ga4DailyRaw.findMany({
-        where: (t, { and: and5, eq: eq6, gte: gte2, lte: lte2 }) => and5(eq6(t.ga4PropertyId, params.property.ga4PropertyId), gte2(t.sourceDate, params.dateStart), lte2(t.sourceDate, params.dateEnd)),
+        where: (t, { and: and4, eq: eq5, gte: gte2, lte: lte2 }) => and4(eq5(t.ga4PropertyId, params.property.ga4PropertyId), gte2(t.sourceDate, params.dateStart), lte2(t.sourceDate, params.dateEnd)),
         columns: { sourceDate: true }
       })
     ]);
@@ -1157,11 +1169,11 @@ function aggregateGa4Summary(factRows) {
 async function loadGscRange(propertyId, start, end) {
   const [factRows, rawRows] = await Promise.all([
     db.query.gscDailyFacts.findMany({
-      where: (t, { and: and5, eq: eq6, gte: gte2, lte: lte2 }) => and5(eq6(t.propertyId, propertyId), gte2(t.sourceDate, start), lte2(t.sourceDate, end)),
+      where: (t, { and: and4, eq: eq5, gte: gte2, lte: lte2 }) => and4(eq5(t.propertyId, propertyId), gte2(t.sourceDate, start), lte2(t.sourceDate, end)),
       orderBy: (t, { asc }) => [asc(t.sourceDate)]
     }),
     db.query.gscDailyRaw.findMany({
-      where: (t, { and: and5, eq: eq6, gte: gte2, lte: lte2 }) => and5(eq6(t.propertyId, propertyId), gte2(t.sourceDate, start), lte2(t.sourceDate, end)),
+      where: (t, { and: and4, eq: eq5, gte: gte2, lte: lte2 }) => and4(eq5(t.propertyId, propertyId), gte2(t.sourceDate, start), lte2(t.sourceDate, end)),
       orderBy: (t, { asc }) => [asc(t.sourceDate)]
     })
   ]);
@@ -1169,7 +1181,7 @@ async function loadGscRange(propertyId, start, end) {
 }
 async function loadGa4Range(ga4PropertyId, start, end) {
   const factRows = await db.query.ga4DailyFacts.findMany({
-    where: (t, { and: and5, eq: eq6, gte: gte2, lte: lte2 }) => and5(eq6(t.ga4PropertyId, ga4PropertyId), gte2(t.sourceDate, start), lte2(t.sourceDate, end)),
+    where: (t, { and: and4, eq: eq5, gte: gte2, lte: lte2 }) => and4(eq5(t.ga4PropertyId, ga4PropertyId), gte2(t.sourceDate, start), lte2(t.sourceDate, end)),
     orderBy: (t, { asc }) => [asc(t.sourceDate)]
   });
   return { factRows };
@@ -2704,7 +2716,7 @@ function extractGoogleLocaleFromIdToken(idToken) {
 }
 async function resolveReportLanguage(params) {
   const settings = await db.query.userSettings.findFirst({
-    where: (s, { eq: eq6 }) => eq6(s.userId, params.userId),
+    where: (s, { eq: eq5 }) => eq5(s.userId, params.userId),
     columns: { reportLanguage: true }
   });
   const userSetting = normalizeLanguageTag(settings?.reportLanguage ?? null);
@@ -2761,11 +2773,11 @@ function buildMachinePageDiff(prev, next) {
 }
 async function computeAndPersistSiteChanges(input) {
   const registryRows = await db.query.propertyPageRegistry.findMany({
-    where: (r, { and: and5, eq: eq6 }) => and5(eq6(r.propertyId, input.propertyId), eq6(r.teamId, input.teamId))
+    where: (r, { and: and4, eq: eq5 }) => and4(eq5(r.propertyId, input.propertyId), eq5(r.teamId, input.teamId))
   });
   const snapshotIds = registryRows.map((row) => row.currentSnapshotId).filter((value) => Boolean(value));
   const previousSnapshots = snapshotIds.length ? await db.query.crawlPageSnapshots.findMany({
-    where: (s, { inArray: inArray3 }) => inArray3(s.id, snapshotIds)
+    where: (s, { inArray: inArray2 }) => inArray2(s.id, snapshotIds)
   }) : [];
   const prevSnapshotById = new Map(previousSnapshots.map((row) => [row.id, row]));
   const registryByCanonical = new Map(registryRows.map((row) => [row.canonicalUrl, row]));
@@ -3296,7 +3308,7 @@ function resolveReportSourcesFromProperties(allProperties, selectedPropertyId) {
 // packages/shared/src/lib/properties/reportable-properties-db.ts
 async function listTeamProperties(teamId) {
   return db.query.properties.findMany({
-    where: (p, { eq: eq6 }) => eq6(p.teamId, teamId)
+    where: (p, { eq: eq5 }) => eq5(p.teamId, teamId)
   });
 }
 async function resolveTeamReportSources(teamId, selectedPropertyId) {
@@ -3338,263 +3350,9 @@ function buildCrawlRefreshGeneratePayload(input) {
   };
 }
 
-// packages/shared/src/lib/queue/report-jobs.ts
-import { nanoid as nanoid3 } from "nanoid";
-import { and as and2, desc, eq as eq3, inArray as inArray2, sql } from "drizzle-orm";
-
-// packages/shared/src/lib/queue/report-job-row-shape.ts
-var snakeToCamelClaimJobKeys = [
-  ["report_id", "reportId"],
-  ["team_id", "teamId"],
-  ["available_at", "availableAt"],
-  ["max_attempts", "maxAttempts"],
-  ["claimed_by", "claimedBy"],
-  ["claimed_at", "claimedAt"],
-  ["claim_expires_at", "claimExpiresAt"],
-  ["heartbeat_at", "heartbeatAt"],
-  ["started_at", "startedAt"],
-  ["finished_at", "finishedAt"],
-  ["last_error", "lastError"],
-  ["created_at", "createdAt"],
-  ["updated_at", "updatedAt"]
-];
-function normalizeClaimedReportJobRow(row) {
-  const normalized = { ...row };
-  for (const [snakeKey, camelKey] of snakeToCamelClaimJobKeys) {
-    if (!(camelKey in normalized) && snakeKey in normalized) {
-      normalized[camelKey] = normalized[snakeKey];
-    }
-  }
-  return normalized;
-}
-
-// packages/shared/src/lib/queue/report-jobs.ts
-function getQueueLeaseConfig() {
-  return {
-    leaseSeconds: parseInt(process.env.REPORT_WORKER_LEASE_SECONDS ?? "45", 10),
-    heartbeatSeconds: parseInt(process.env.REPORT_WORKER_HEARTBEAT_SECONDS ?? "10", 10),
-    maxActiveGlobal: parseInt(process.env.REPORT_WORKER_MAX_ACTIVE_GLOBAL ?? "2", 10),
-    maxActivePerTeam: parseInt(process.env.REPORT_WORKER_MAX_ACTIVE_PER_TEAM ?? "1", 10),
-    maxActiveDetailGlobal: parseInt(process.env.REPORT_WORKER_MAX_ACTIVE_DETAILS_GLOBAL ?? "6", 10),
-    maxActiveDetailPerTeam: parseInt(process.env.REPORT_WORKER_MAX_ACTIVE_DETAILS_PER_TEAM ?? "3", 10)
-  };
-}
-async function enqueueReportJob(input) {
-  const jobId = `rj_${nanoid3(12)}`;
-  const [job] = await db.insert(reportJobs).values({
-    id: jobId,
-    reportId: input.reportId,
-    teamId: input.teamId,
-    kind: input.kind,
-    priority: input.priority ?? 100,
-    payload: input.payload ?? {},
-    phase: "queued",
-    status: "queued"
-  }).returning();
-  await appendReportJobEvent({
-    jobId,
-    reportId: input.reportId,
-    teamId: input.teamId,
-    phase: "queued",
-    level: "info",
-    message: `Job enqueued (${input.kind})`
-  });
-  await db.execute(sql`SELECT pg_notify('job_available', '')`);
-  return job;
-}
-async function appendReportJobEvent(input) {
-  const [event] = await db.insert(reportJobEvents).values({
-    id: `rje_${nanoid3(12)}`,
-    jobId: input.jobId,
-    reportId: input.reportId,
-    teamId: input.teamId,
-    phase: input.phase,
-    level: input.level ?? "info",
-    message: input.message,
-    meta: input.meta ?? null
-  }).returning();
-  return event;
-}
-async function claimNextReportJob(workerId) {
-  const cfg = getQueueLeaseConfig();
-  const rows = await db.transaction(async (tx) => {
-    const result = await tx.execute(sql`
-      with candidate as (
-        select j.id
-        from report_jobs j
-        where (
-          (j.status = 'queued' and j.available_at <= now())
-          or (j.status = 'processing' and j.claim_expires_at < now())
-        )
-        and case
-          when j.kind = 'generate_detail' then (
-            select count(*) from report_jobs g
-            where g.status = 'processing'
-              and g.claim_expires_at > now()
-              and g.kind = 'generate_detail'
-          ) < ${cfg.maxActiveDetailGlobal}
-          else (
-            select count(*) from report_jobs g
-            where g.status = 'processing'
-              and g.claim_expires_at > now()
-              and g.kind <> 'generate_detail'
-          ) < ${cfg.maxActiveGlobal}
-        end
-        and case
-          when j.kind = 'generate_detail' then (
-            select count(*) from report_jobs t
-            where t.status = 'processing'
-              and t.claim_expires_at > now()
-              and t.team_id = j.team_id
-              and t.kind = 'generate_detail'
-          ) < ${cfg.maxActiveDetailPerTeam}
-          else (
-            select count(*) from report_jobs t
-            where t.status = 'processing'
-              and t.claim_expires_at > now()
-              and t.team_id = j.team_id
-              and t.kind <> 'generate_detail'
-          ) < ${cfg.maxActivePerTeam}
-        end
-        order by j.priority asc, j.created_at asc
-        for update skip locked
-        limit 1
-      )
-      update report_jobs j
-      set
-        status = 'processing',
-        claimed_by = ${workerId},
-        claimed_at = now(),
-        heartbeat_at = now(),
-        claim_expires_at = now() + (${cfg.leaseSeconds} || ' seconds')::interval,
-        started_at = coalesce(j.started_at, now()),
-        attempts = j.attempts + 1,
-        updated_at = now()
-      from candidate
-      where j.id = candidate.id
-      returning j.*
-    `);
-    return result;
-  });
-  const rawRow = rows[0] ?? null;
-  const row = rawRow ? normalizeClaimedReportJobRow(rawRow) : null;
-  if (!row) return null;
-  await appendReportJobEvent({
-    jobId: row.id,
-    reportId: row.reportId,
-    teamId: row.teamId,
-    phase: row.phase,
-    level: "info",
-    message: `Job claimed by ${workerId}`,
-    meta: { leaseSeconds: cfg.leaseSeconds }
-  });
-  return row;
-}
-async function heartbeatReportJob(jobId, workerId) {
-  const cfg = getQueueLeaseConfig();
-  const [job] = await db.update(reportJobs).set({
-    heartbeatAt: /* @__PURE__ */ new Date(),
-    claimExpiresAt: sql`now() + (${cfg.leaseSeconds} || ' seconds')::interval`,
-    updatedAt: /* @__PURE__ */ new Date()
-  }).where(
-    and2(eq3(reportJobs.id, jobId), eq3(reportJobs.status, "processing"), eq3(reportJobs.claimedBy, workerId))
-  ).returning();
-  return job ?? null;
-}
-async function updateReportJobPhase(jobId, phase, meta) {
-  const [job] = await db.update(reportJobs).set({ phase, updatedAt: /* @__PURE__ */ new Date() }).where(eq3(reportJobs.id, jobId)).returning();
-  if (job) {
-    await appendReportJobEvent({
-      jobId: job.id,
-      reportId: job.reportId,
-      teamId: job.teamId,
-      phase,
-      level: "info",
-      message: `Phase -> ${phase}`,
-      meta
-    });
-  }
-  return job ?? null;
-}
-async function completeReportJob(jobId, phase = "done") {
-  const [job] = await db.update(reportJobs).set({
-    status: "complete",
-    phase,
-    finishedAt: /* @__PURE__ */ new Date(),
-    claimExpiresAt: null,
-    heartbeatAt: /* @__PURE__ */ new Date(),
-    updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq3(reportJobs.id, jobId)).returning();
-  if (job) {
-    await appendReportJobEvent({
-      jobId: job.id,
-      reportId: job.reportId,
-      teamId: job.teamId,
-      phase,
-      level: "info",
-      message: "Job completed"
-    });
-  }
-  return job ?? null;
-}
-async function requeueJobForRetry(jobId, errorMessage, delaySeconds = 30) {
-  const [job] = await db.update(reportJobs).set({
-    status: "queued",
-    phase: "queued",
-    claimedBy: null,
-    claimedAt: null,
-    claimExpiresAt: null,
-    heartbeatAt: null,
-    finishedAt: null,
-    lastError: errorMessage,
-    availableAt: sql`now() + (${delaySeconds} || ' seconds')::interval`,
-    updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq3(reportJobs.id, jobId)).returning();
-  if (job) {
-    await appendReportJobEvent({
-      jobId: job.id,
-      reportId: job.reportId,
-      teamId: job.teamId,
-      phase: "queued",
-      level: "warn",
-      message: `Job re-queued for retry (attempt ${job.attempts} of ${job.maxAttempts}): ${errorMessage}`
-    });
-  }
-  return job ?? null;
-}
-async function failReportJob(jobId, errorMessage, phase) {
-  const [job] = await db.update(reportJobs).set({
-    status: "failed",
-    lastError: errorMessage,
-    phase: phase ?? "done",
-    finishedAt: /* @__PURE__ */ new Date(),
-    claimExpiresAt: null,
-    updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq3(reportJobs.id, jobId)).returning();
-  if (job) {
-    await appendReportJobEvent({
-      jobId: job.id,
-      reportId: job.reportId,
-      teamId: job.teamId,
-      phase: job.phase,
-      level: "error",
-      message: errorMessage
-    });
-  }
-  return job ?? null;
-}
-async function findLatestJobForReport(reportId, kinds) {
-  const filters = [eq3(reportJobs.reportId, reportId)];
-  if (kinds?.length) filters.push(inArray2(reportJobs.kind, kinds));
-  return db.query.reportJobs.findFirst({
-    where: and2(...filters),
-    orderBy: (j, { desc: desc2 }) => [desc2(j.createdAt)]
-  });
-}
-
 // packages/shared/src/lib/provider-tokens.ts
 import { createCipheriv, createDecipheriv, createHash as createHash2, randomBytes } from "node:crypto";
-import { and as and3, eq as eq4 } from "drizzle-orm";
+import { and as and2, eq as eq3 } from "drizzle-orm";
 var ENCRYPTION_PREFIX = "enc:v1";
 function getEncryptionKey() {
   const raw = process.env.OAUTH_TOKEN_ENCRYPTION_KEY?.trim();
@@ -3641,9 +3399,9 @@ function decryptGoogleAccountTokens(row) {
   };
 }
 async function getGoogleAccountTokensForUser(userId) {
-  const { db: db2 } = await import("./db-RP6IEFW4.js");
+  const { db: db2 } = await import("./db-MQGG776L.js");
   const googleAccount = await db2.query.account.findFirst({
-    where: (table, { and: and5, eq: eq6 }) => and5(eq6(table.userId, userId), eq6(table.providerId, "google"))
+    where: (table, { and: and4, eq: eq5 }) => and4(eq5(table.userId, userId), eq5(table.providerId, "google"))
   });
   if (!googleAccount) return null;
   return decryptGoogleAccountTokens(googleAccount);
@@ -3938,6 +3696,10 @@ function trimPromptPayloadToBudget(input) {
 function shouldRunXlsxForJob(job) {
   return !!job.payload && typeof job.payload === "object" && job.payload.runXlsx !== false;
 }
+function shouldSkipOpenAiForJob(job, reportSource) {
+  const payload = job.payload && typeof job.payload === "object" ? job.payload : {};
+  return payload.skipOpenAi === true || reportSource === "auto_weekly";
+}
 function emptySiteChanges() {
   return { newPages: [], changedPages: [], removedPages: [] };
 }
@@ -3998,7 +3760,7 @@ async function queueCrawlSiteChangesJobFromReportGeneration(job) {
 }
 async function getTeamOwnerGoogleAuth(teamId) {
   const owner = await db.query.teamMembers.findFirst({
-    where: and4(eq5(teamMembers.teamId, teamId), eq5(teamMembers.role, "owner"))
+    where: and3(eq4(teamMembers.teamId, teamId), eq4(teamMembers.role, "owner"))
   });
   if (!owner) throw new Error("No team owner found");
   const googleAccount = await getGoogleAccountTokensForUser(owner.userId);
@@ -4011,7 +3773,7 @@ async function getTeamOwnerGoogleAuth(teamId) {
 }
 async function appendDetailExpansionAttempt(input) {
   await db.insert(reportDetailAiExpansions).values({
-    id: `rdae_${nanoid4(12)}`,
+    id: `rdae_${nanoid3(12)}`,
     reportId: input.reportId,
     teamId: input.teamId,
     requestedByUserId: input.requestedByUserId,
@@ -4038,11 +3800,11 @@ async function processGenerateDetailJob(job, workerId) {
   const rowType = rowTypeValue;
   await setJobPhaseWithLog(job, workerId, "detail", { rowType, rowId });
   const report = await db.query.reports.findFirst({
-    where: and4(eq5(reports.id, job.reportId), eq5(reports.teamId, job.teamId))
+    where: and3(eq4(reports.id, job.reportId), eq4(reports.teamId, job.teamId))
   });
   if (!report) throw new Error("Report not found");
   const property = await db.query.properties.findFirst({
-    where: (table, { eq: eq6 }) => eq6(table.id, report.propertyId)
+    where: (table, { eq: eq5 }) => eq5(table.id, report.propertyId)
   });
   const aiReport = report.aiReportJson;
   if (!aiReport) throw new Error("No AI report data");
@@ -4061,8 +3823,8 @@ async function processGenerateDetailJob(job, workerId) {
     return;
   }
   const [counter] = await db.update(reports).set({
-    detailsRequestCount: sql2`coalesce(${reports.detailsRequestCount}, 0) + 1`
-  }).where(eq5(reports.id, job.reportId)).returning({ requestNumber: reports.detailsRequestCount });
+    detailsRequestCount: sql`coalesce(${reports.detailsRequestCount}, 0) + 1`
+  }).where(eq4(reports.id, job.reportId)).returning({ requestNumber: reports.detailsRequestCount });
   if (!counter) throw new Error("Report not found");
   const requestNumber = counter.requestNumber;
   const xClientRequestId = makeDetailClientRequestId({
@@ -4108,8 +3870,8 @@ async function processGenerateDetailJob(job, workerId) {
     callCost = estimateOpenAICostUsd(DETAIL_MODEL, usageSnapshot);
     if (callCost != null) {
       await db.update(reports).set({
-        detailsCostUsd: sql2`(coalesce(${reports.detailsCostUsd}, 0::numeric) + ${callCost})::numeric(12, 6)`
-      }).where(eq5(reports.id, job.reportId));
+        detailsCostUsd: sql`(coalesce(${reports.detailsCostUsd}, 0::numeric) + ${callCost})::numeric(12, 6)`
+      }).where(eq4(reports.id, job.reportId));
     }
     const content = response.choices[0]?.message?.content;
     if (!content) throw new Error("No response from AI");
@@ -4117,7 +3879,7 @@ async function processGenerateDetailJob(job, workerId) {
     let saved = false;
     for (let attempt = 0; attempt < MAX_DETAIL_WRITE_RETRIES; attempt += 1) {
       const latestReport = attempt === 0 ? report : await db.query.reports.findFirst({
-        where: and4(eq5(reports.id, job.reportId), eq5(reports.teamId, job.teamId))
+        where: and3(eq4(reports.id, job.reportId), eq4(reports.teamId, job.teamId))
       });
       if (!latestReport) {
         throw new Error("Report not found");
@@ -4139,7 +3901,7 @@ async function processGenerateDetailJob(job, workerId) {
       const updated = await db.update(reports).set({
         aiReportJson: patched,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(and4(eq5(reports.id, job.reportId), eq5(reports.updatedAt, latestReport.updatedAt))).returning({ id: reports.id });
+      }).where(and3(eq4(reports.id, job.reportId), eq4(reports.updatedAt, latestReport.updatedAt))).returning({ id: reports.id });
       if (updated.length > 0) {
         saved = true;
         break;
@@ -4203,16 +3965,16 @@ async function processGenerateDetailJob(job, workerId) {
 }
 async function loadDailyTrends(params) {
   const gscRows = await db.query.gscDailyFacts.findMany({
-    where: and4(
-      eq5(gscDailyFacts.propertyId, params.propertyId),
+    where: and3(
+      eq4(gscDailyFacts.propertyId, params.propertyId),
       gte(gscDailyFacts.sourceDate, params.start),
       lte(gscDailyFacts.sourceDate, params.end)
     ),
     orderBy: (t, { asc }) => [asc(t.sourceDate)]
   });
   const ga4Rows = params.ga4PropertyId ? await db.query.ga4DailyFacts.findMany({
-    where: and4(
-      eq5(ga4DailyFacts.ga4PropertyId, params.ga4PropertyId),
+    where: and3(
+      eq4(ga4DailyFacts.ga4PropertyId, params.ga4PropertyId),
       gte(ga4DailyFacts.sourceDate, params.start),
       lte(ga4DailyFacts.sourceDate, params.end)
     ),
@@ -4307,7 +4069,7 @@ function buildFallbackReportFromDeterministic(params) {
 }
 async function buildReportInputs(job) {
   const report = await db.query.reports.findFirst({
-    where: (r, { eq: eq6 }) => eq6(r.id, job.reportId)
+    where: (r, { eq: eq5 }) => eq5(r.id, job.reportId)
   });
   if (!report) throw new Error("Report not found");
   const resolvedSources = await resolveReportSourcesForExistingReport(report);
@@ -4485,7 +4247,7 @@ async function pollUntilFinished(params) {
 }
 async function processGenerateReportJob(job, workerId) {
   const reportBefore = await db.query.reports.findFirst({
-    where: (r, { eq: eq6 }) => eq6(r.id, job.reportId)
+    where: (r, { eq: eq5 }) => eq5(r.id, job.reportId)
   });
   if (!reportBefore) throw new Error("Report not found");
   const payload = job.payload && typeof job.payload === "object" ? job.payload : {};
@@ -4509,7 +4271,7 @@ async function processGenerateReportJob(job, workerId) {
     return;
   }
   await setJobPhaseWithLog(job, workerId, "preprocess");
-  await db.update(reports).set({ status: "processing", aiStatus: "preprocessing", error: null, updatedAt: /* @__PURE__ */ new Date() }).where(eq5(reports.id, job.reportId));
+  await db.update(reports).set({ status: "processing", aiStatus: "preprocessing", error: null, updatedAt: /* @__PURE__ */ new Date() }).where(eq4(reports.id, job.reportId));
   const latestCrawlJob = await findLatestJobForReport(job.reportId, ["crawl_site_changes"]);
   const { report, property, teamAuth, reportData, deterministic, siteChanges, crawlingEnabled } = await buildReportInputs(job);
   const generationPlan = planReportGenerationPass({
@@ -4543,16 +4305,82 @@ async function processGenerateReportJob(job, workerId) {
     data: reportData,
     siteChanges,
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq5(reports.id, job.reportId));
+  }).where(eq4(reports.id, job.reportId));
   const settings = await ensureDefaultAiReportSettings();
   const promptVersion = settings.promptVersionId ? await db.query.aiReportPromptVersions.findFirst({
-    where: (p, { eq: eq6 }) => eq6(p.id, settings.promptVersionId)
+    where: (p, { eq: eq5 }) => eq5(p.id, settings.promptVersionId)
   }) : null;
   const languageResolution = await resolveReportLanguage({
     userId: teamAuth.owner.userId,
     googleIdToken: teamAuth.googleAccount.idToken
   });
   const language = languageResolution.language;
+  if (shouldSkipOpenAiForJob(job, report.source)) {
+    const weeklyReviewFindings = buildWeeklyReviewFindings({
+      changedPages: siteChanges.changedPages.map((page) => ({ url: page.url })),
+      currentPages: reportData.gsc.current.topPages ?? [],
+      comparePages: reportData.gsc.compare.topPages ?? []
+    });
+    const markdown2 = `# Weekly Review
+
+${weeklyReviewFindings.length} changed-page finding${weeklyReviewFindings.length === 1 ? "" : "s"} detected.`;
+    const deterministicFallback = buildFallbackReportFromDeterministic({
+      reportTitle: `Weekly Review ${property.name}`,
+      periodLabel: `${formatDate(report.dateRangeStart)} - ${formatDate(report.dateRangeEnd)}`,
+      language,
+      schemaVersion: settings.schemaVersion,
+      markdown: markdown2,
+      siteChanges,
+      deterministic
+    });
+    await setJobPhaseWithLog(job, workerId, "store_report");
+    await db.update(reports).set({
+      status: "complete",
+      aiStatus: "skipped",
+      data: reportData,
+      aiReportMarkdown: deterministicFallback.dashboardMarkdown,
+      aiReportJson: deterministicFallback,
+      aiUsage: null,
+      aiEstimatedCostUsd: null,
+      siteChanges,
+      weeklyReviewFindings,
+      xlsxStatus: report.xlsxStatus ?? "pending",
+      openaiResponseId: null,
+      updatedAt: /* @__PURE__ */ new Date(),
+      error: null
+    }).where(eq4(reports.id, report.id));
+    await db.update(weeklyReviewRuns).set({
+      status: "complete",
+      actionableCount: weeklyReviewFindings.length,
+      completedAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq4(weeklyReviewRuns.reportId, report.id));
+    await appendReportJobEvent({
+      jobId: job.id,
+      reportId: report.id,
+      teamId: report.teamId,
+      phase: "store_report",
+      level: "info",
+      message: "Stored automatic weekly review without OpenAI",
+      meta: { actionableCount: weeklyReviewFindings.length }
+    });
+    await recordProductEvent({
+      teamId: report.teamId,
+      userId: teamAuth.owner.userId,
+      name: "weekly_auto_report_completed",
+      source: "worker",
+      entityType: "report",
+      entityId: report.id,
+      properties: {
+        propertyId: report.propertyId,
+        actionableCount: weeklyReviewFindings.length
+      }
+    });
+    if (generationPlan.shouldRunXlsxAfterThisPass) {
+      await queueXlsxJobFromReportGeneration(job);
+    }
+    return;
+  }
   const promptInputPayload = {
     report: {
       id: report.id,
@@ -4616,7 +4444,7 @@ async function processGenerateReportJob(job, workerId) {
     aiModel: settings.model,
     aiStatus: "generating",
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq5(reports.id, report.id));
+  }).where(eq4(reports.id, report.id));
   const modelOverride = typeof payload.modelOverride === "string" ? payload.modelOverride : null;
   const selectedModel = modelOverride ?? settings.model;
   const schemaForModel = settings.useStrictSchema ? aiSeoReportJsonSchemaForOpenAI : aiSeoReportJsonSchema;
@@ -4745,7 +4573,7 @@ ${deterministic.executiveSummary.headline}`;
         openaiResponseId: null,
         updatedAt: /* @__PURE__ */ new Date(),
         error: errorMessage
-      }).where(eq5(reports.id, report.id));
+      }).where(eq4(reports.id, report.id));
       await appendReportJobEvent({
         jobId: job.id,
         reportId: report.id,
@@ -4790,7 +4618,7 @@ ${deterministic.executiveSummary.headline}`;
     aiStatus: "generating",
     aiModel: startResult.guardrail.model,
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq5(reports.id, report.id));
+  }).where(eq4(reports.id, report.id));
   await setJobPhaseWithLog(job, workerId, "openai_poll");
   let finalStatus = startResult.status;
   let finalUsage = startResult.usage;
@@ -4823,7 +4651,7 @@ ${deterministic.executiveSummary.headline}`;
     await db.update(reports).set({
       openaiRequestIds: pollTrace,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where(eq5(reports.id, report.id));
+    }).where(eq4(reports.id, report.id));
     finalStatus = polled.status;
     finalUsage = polled.usage;
     finalResponseText = polled.responseText;
@@ -4966,7 +4794,7 @@ ${deterministic.executiveSummary.headline}`;
     openaiResponseId: startResult.responseId,
     updatedAt: /* @__PURE__ */ new Date(),
     error: schemaContractFallbackError
-  }).where(eq5(reports.id, report.id));
+  }).where(eq4(reports.id, report.id));
   await appendReportJobEvent({
     jobId: job.id,
     reportId: report.id,
@@ -4993,7 +4821,7 @@ ${deterministic.executiveSummary.headline}`;
 async function processCrawlSiteChangesJob(job, workerId) {
   await setJobPhaseWithLog(job, workerId, "site_changes");
   const report = await db.query.reports.findFirst({
-    where: (r, { eq: eq6 }) => eq6(r.id, job.reportId)
+    where: (r, { eq: eq5 }) => eq5(r.id, job.reportId)
   });
   if (!report) throw new Error("Report not found");
   const resolvedSources = await resolveReportSourcesForExistingReport(report);
@@ -5027,7 +4855,7 @@ async function processCrawlSiteChangesJob(job, workerId) {
     data: { ...existingData, crawl: crawlData },
     siteChanges,
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq5(reports.id, report.id));
+  }).where(eq4(reports.id, report.id));
   await appendReportJobEvent({
     jobId: job.id,
     reportId: job.reportId,
@@ -5064,14 +4892,14 @@ async function processXlsxRenderJob(job, workerId) {
   await setJobPhaseWithLog(job, workerId, "xlsx");
   logInfo("XLSX", "starting xlsx generation", buildJobLogContext(job, workerId));
   const report = await db.query.reports.findFirst({
-    where: (r, { eq: eq6 }) => eq6(r.id, job.reportId)
+    where: (r, { eq: eq5 }) => eq5(r.id, job.reportId)
   });
   if (!report) throw new Error("Report not found");
   if (!report.aiReportJson) {
     throw new Error("Cannot render XLSX: aiReportJson is missing");
   }
   const aiReport = parseAiSeoReport(report.aiReportJson);
-  await db.update(reports).set({ xlsxStatus: "generating", updatedAt: /* @__PURE__ */ new Date() }).where(eq5(reports.id, job.reportId));
+  await db.update(reports).set({ xlsxStatus: "generating", updatedAt: /* @__PURE__ */ new Date() }).where(eq4(reports.id, job.reportId));
   const buffer = await buildWorkbookBufferFromAiReport(aiReport);
   const store = getArtifactStore();
   const artifact = await store.put({
@@ -5086,7 +4914,7 @@ async function processXlsxRenderJob(job, workerId) {
     xlsxArtifactKey: artifact.key,
     xlsxArtifactUrl: artifact.url,
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq5(reports.id, job.reportId));
+  }).where(eq4(reports.id, job.reportId));
   logInfo("XLSX", "xlsx artifact stored", {
     ...buildJobLogContext(job, workerId),
     artifactKey: artifact.key
@@ -5149,7 +4977,7 @@ async function processClaimedJob(job, workerId, hooks) {
         error
       );
       if (job.kind === "render_xlsx") {
-        await db.update(reports).set({ xlsxStatus: "failed", aiStatus: "partial", error: message, updatedAt: /* @__PURE__ */ new Date() }).where(eq5(reports.id, job.reportId));
+        await db.update(reports).set({ xlsxStatus: "failed", aiStatus: "partial", error: message, updatedAt: /* @__PURE__ */ new Date() }).where(eq4(reports.id, job.reportId));
       } else if (job.kind === "crawl_site_changes") {
         await appendReportJobEvent({
           jobId: job.id,
@@ -5171,7 +4999,7 @@ async function processClaimedJob(job, workerId, hooks) {
           meta: { error: message }
         });
       } else {
-        await db.update(reports).set({ status: "failed", aiStatus: "failed", error: message, updatedAt: /* @__PURE__ */ new Date() }).where(eq5(reports.id, job.reportId));
+        await db.update(reports).set({ status: "failed", aiStatus: "failed", error: message, updatedAt: /* @__PURE__ */ new Date() }).where(eq4(reports.id, job.reportId));
       }
       await failReportJob(job.id, message, job.phase);
     }
@@ -5180,7 +5008,7 @@ async function processClaimedJob(job, workerId, hooks) {
     hooks?.onJobEnd?.({ workerId, jobId: job.id, nowMs: Date.now() });
   }
 }
-async function runSingleReportWorkerTick(workerId = `worker_${nanoid4(8)}`, hooks) {
+async function runSingleReportWorkerTick(workerId = `worker_${nanoid3(8)}`, hooks) {
   const job = await claimNextReportJob(workerId);
   if (!job) return { processed: false };
   logInfo("WORKING", "claimed job", buildJobLogContext(job, workerId));
@@ -5189,7 +5017,7 @@ async function runSingleReportWorkerTick(workerId = `worker_${nanoid4(8)}`, hook
 }
 function startReportWorkerLoop(input) {
   let stopped = false;
-  const workerId = `worker_${nanoid4(8)}`;
+  const workerId = `worker_${nanoid3(8)}`;
   const intervalMs = parseInt(process.env.REPORT_WORKER_POLL_MS ?? "3000", 10);
   const maxPollMs = parseInt(process.env.REPORT_WORKER_MAX_POLL_MS ?? "30000", 10);
   const idlePulseMs = getIdlePulseMs();
@@ -5291,7 +5119,7 @@ function startReportWorkerLoop(input) {
 }
 async function ensureDefaultAiReportSettings() {
   const existing = await db.query.aiReportSettings.findFirst({
-    orderBy: (t, { desc: desc2 }) => [desc2(t.updatedAt)]
+    orderBy: (t, { desc }) => [desc(t.updatedAt)]
   });
   if (existing) return existing;
   const [created] = await db.insert(aiReportSettings).values({

@@ -373,6 +373,7 @@ var workerPhase = "boot";
 async function main() {
   let artifactServer = null;
   let workerLoopControls = null;
+  let weeklyReviewSchedulerControls = null;
   let closeDb = null;
   let watchdogTimer = null;
   let shutdownPromise = null;
@@ -399,6 +400,7 @@ async function main() {
         watchdogTimer = null;
       }
       workerLoopControls?.stop();
+      weeklyReviewSchedulerControls?.stop();
       await Promise.allSettled([
         artifactServer?.stop() ?? Promise.resolve(),
         closeDb?.() ?? Promise.resolve()
@@ -415,9 +417,10 @@ async function main() {
   });
   workerPhase = "imports";
   markWorkerPhase(runtimeState, "imports");
-  const sharedDbModule = await import("./chunks/db-RP6IEFW4.js");
-  const { ensureWorkerDatabaseReady } = await import("./chunks/worker-db-bootstrap-YZKWFQGY.js");
-  const { startReportWorkerLoop, runSingleReportWorkerTick } = await import("./chunks/report-worker-EWOSM5RH.js");
+  const sharedDbModule = await import("./chunks/db-MQGG776L.js");
+  const { ensureWorkerDatabaseReady } = await import("./chunks/worker-db-bootstrap-O6DFN672.js");
+  const { startReportWorkerLoop, runSingleReportWorkerTick } = await import("./chunks/report-worker-FPA3WLAO.js");
+  const { startWeeklyReviewScheduler } = await import("./chunks/weekly-review-scheduler-AKIBFQM4.js");
   closeDb = sharedDbModule.closeDb;
   workerPhase = "database-ready";
   markWorkerPhase(runtimeState, "database-ready");
@@ -453,6 +456,7 @@ async function main() {
   workerPhase = "worker-loop";
   markWorkerPhase(runtimeState, "worker-loop");
   console.log("[report-worker][INFO][BOOT] starting worker process");
+  weeklyReviewSchedulerControls = startWeeklyReviewScheduler();
   workerLoopControls = startReportWorkerLoop({
     hooks: {
       onFatalError: ({ error, nowMs }) => markFatalError(runtimeState, error, nowMs),

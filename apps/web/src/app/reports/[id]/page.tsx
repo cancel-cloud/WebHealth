@@ -4,9 +4,11 @@ import { redirect, notFound } from "next/navigation";
 import { db } from "@webhealth/shared/db";
 import Link from "next/link";
 import { BarChart2, AlertTriangle, Link2 } from "lucide-react";
+import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import { resolveReportSourcesForExistingReport } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { Button } from "@/components/ui/button";
 import type { AiSeoReport } from "@webhealth/shared/lib/reports/types";
+import type { WeeklyReviewFinding } from "@webhealth/shared/lib/weekly-review";
 import {
   getScheduledNoticeState,
   type ReportLiveSnapshot,
@@ -25,6 +27,7 @@ import { ActionBacklog } from "./sections/action-backlog";
 import { SiteChangesSection } from "./sections/site-changes-section";
 import { JobTimeline } from "./sections/job-timeline";
 import { DashboardMarkdown } from "./sections/dashboard-markdown";
+import { WeeklyReviewFindingsSection } from "./sections/weekly-review-findings";
 
 import type { GscMetrics, Ga4Metrics } from "@webhealth/shared/lib/google/api";
 import type { CrawlResult } from "@webhealth/shared/lib/crawl";
@@ -74,6 +77,7 @@ export default async function ReportDetailPage({
 
   const data = report.data as ReportData | null;
   const aiReport = report.aiReportJson as AiSeoReport | null;
+  const weeklyReviewFindings = (report.weeklyReviewFindings ?? []) as WeeklyReviewFinding[];
   const teamHasAnyGa4Properties = !!teamGa4Property;
   let sourceValid = false;
   let hasLinkedGa4Now = false;
@@ -100,6 +104,16 @@ export default async function ReportDetailPage({
     hasAiReportJson: !!aiReport,
     hasXlsxArtifact: !!report.xlsxArtifactUrl,
   };
+
+  void recordProductEvent({
+    teamId: report.teamId,
+    userId: session.user.id,
+    name: report.source === "auto_weekly" ? "weekly_report_opened" : "manual_report_opened",
+    source: "report_detail",
+    entityType: "report",
+    entityId: reportId,
+    properties: { reportSource: report.source, propertyId: report.propertyId },
+  }).catch(() => {});
 
   return (
     <div className="relative overflow-hidden">
@@ -162,6 +176,10 @@ export default async function ReportDetailPage({
         }
         completeContent={data ? (
           <div className="space-y-10">
+            {report.source === "auto_weekly" ? (
+              <WeeklyReviewFindingsSection findings={weeklyReviewFindings} />
+            ) : null}
+
             {/* 1. AI Summary */}
             {aiReport?.dashboardMarkdown ? (
               <div className="p-6 rounded-lg bg-card border border-border/50 shadow-sm">

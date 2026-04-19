@@ -15,6 +15,7 @@ import { FileText, ArrowRight } from "lucide-react";
 import { NewReportDialog } from "../dashboard/new-report-dialog";
 import { propertyIdLabel } from "@/lib/property-label";
 import { requestJson } from "@/lib/client/api";
+import { Badge } from "@/components/ui/badge";
 
 type ReportType = {
   id: string;
@@ -22,6 +23,7 @@ type ReportType = {
   dateRangeStart: string;
   dateRangeEnd: string;
   status: "queued" | "scheduled" | "processing" | "complete" | "failed";
+  source?: "manual" | "auto_weekly";
   createdAt: string;
 };
 
@@ -176,7 +178,14 @@ export default function ReportsPage() {
                   className="cursor-pointer hover:bg-muted/30 border-border/50 transition-colors group"
                   onClick={() => router.push(`/reports/${report.id}`)}
                 >
-                  <TableCell className="font-medium py-4">{propertyIdLabel(report.propertyId)}</TableCell>
+                  <TableCell className="font-medium py-4">
+                    <span className="flex items-center gap-2">
+                      {propertyIdLabel(report.propertyId)}
+                      {report.source === "auto_weekly" ? (
+                        <Badge variant="outline" className="text-xs">Auto</Badge>
+                      ) : null}
+                    </span>
+                  </TableCell>
                   <TableCell className="py-4 text-muted-foreground">
                     {new Date(report.dateRangeStart).toLocaleDateString()} –{" "}
                     {new Date(report.dateRangeEnd).toLocaleDateString()}

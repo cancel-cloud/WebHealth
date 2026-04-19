@@ -8,6 +8,7 @@ import { SyncButton } from "./sync-button";
 import { ReportsTable } from "./reports-table";
 import { OnboardingModal } from "./onboarding-modal";
 import { ReportsGeneratedCard } from "./reports-generated-card";
+import { WeeklyReviewCard } from "./weekly-review-card";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
@@ -51,6 +52,8 @@ export default async function DashboardPage() {
         </div>
         <SyncButton />
       </div>
+
+      <WeeklyReviewCard />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link

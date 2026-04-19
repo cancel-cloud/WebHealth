@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from "@webhealth/shared/db";
+import { getWeeklyReviewLimit } from "@webhealth/shared/lib/weekly-review";
 import { buildCombinedReportableProperties } from "@webhealth/shared/lib/properties/reportable-properties";
 import { requireAnyTeamMembership, requireUnrestrictedSession } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";
@@ -16,6 +17,23 @@ export async function GET() {
     const teamProperties = await db.query.properties.findMany({
       where: (p, { eq }) => eq(p.teamId, teamId),
     });
+    const team = await db.query.teams.findFirst({
+      where: (t, { eq }) => eq(t.id, teamId),
+      columns: { tier: true },
+    });
+    const weeklyReviews = await db.query.propertyWeeklyReviews.findMany({
+      where: (p, { and, eq }) => and(eq(p.teamId, teamId), eq(p.enabled, true)),
+      columns: { propertyId: true },
+    });
+    const watchedPropertyIds = new Set(weeklyReviews.map((review) => review.propertyId));
+    const weeklyReviewLimit = getWeeklyReviewLimit(team?.tier ?? "free");
+    const weeklyReviewWatchedCount = watchedPropertyIds.size;
+    const propertiesWithWeeklyReviews = teamProperties.map((property) => ({
+      ...property,
+      weeklyReviewEnabled: watchedPropertyIds.has(property.id),
+      weeklyReviewLimit,
+      weeklyReviewWatchedCount,
+    }));
 
     const reportableProperties = buildCombinedReportableProperties(teamProperties).map((p) => ({
       id: p.id,
@@ -30,7 +48,14 @@ export async function GET() {
       isLinked: p.isLinked,
     }));
 
-    return NextResponse.json({ properties: teamProperties, reportableProperties });
+    return NextResponse.json({
+      properties: propertiesWithWeeklyReviews,
+      reportableProperties,
+      weeklyReview: {
+        limit: weeklyReviewLimit,
+        watchedCount: weeklyReviewWatchedCount,
+      },
+    });
   } catch (error) {
     return handleRouteError("Error fetching properties", error);
   }

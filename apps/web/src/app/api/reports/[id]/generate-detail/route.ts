@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@webhealth/shared/db";
-import { reports, planSettings, teamUsage } from "@webhealth/shared/db/schema";
+import { reports, teamUsage } from "@webhealth/shared/db/schema";
 import { enqueueReportJob } from "@webhealth/shared/lib/queue/report-jobs";
+import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import { nanoid } from "nanoid";
 import type { AiSeoReport } from "@webhealth/shared/lib/reports/types";
 import { badRequest, notFound } from "@webhealth/shared/lib/http-errors";
@@ -101,6 +102,20 @@ export async function POST(
         requestedByUserId: session.user.id,
       },
     });
+
+    void recordProductEvent({
+      teamId: report.teamId,
+      userId: session.user.id,
+      name: "report_detail_requested",
+      source: "report_detail",
+      entityType: "report",
+      entityId: reportId,
+      properties: {
+        rowType: rowTypeValue,
+        rowId,
+        reportSource: report.source,
+      },
+    }).catch(() => {});
 
     return NextResponse.json({
       ready: false,
