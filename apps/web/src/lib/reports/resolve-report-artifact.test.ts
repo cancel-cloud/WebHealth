@@ -27,14 +27,13 @@ test("returns local artifact bytes when local storage has the file", async () =>
 test("fetches from worker when local artifact is missing", async () => {
   const workerBytes = new TextEncoder().encode("worker-artifact");
   let observedUrl = "";
-  let observedAuth = "";
 
   const result = await resolveReportArtifactBinary({
     artifactKey: "reports/rep_456/456-seo-report.xlsx",
     workerBaseUrl: "http://worker.internal:9100",
     artifactToken: "signed-token",
     readLocalArtifact: async () => null,
-    fetchImpl: async (input, init) => {
+    fetchImpl: async (input) => {
       observedUrl = String(input);
       return new Response(workerBytes.buffer, { status: 200 });
     },

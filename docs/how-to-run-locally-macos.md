@@ -38,10 +38,16 @@ Required rules:
 - runtime uses `DATABASE_URL`
 - migrations and `LISTEN/NOTIFY` use `DIRECT_DATABASE_URL`
 
-## 3) Optional manual migrations
+## 3) Optional manual schema sync
 
 ```bash
-pnpm db:migrate
+pnpm db:push
+```
+
+Reads `DIRECT_DATABASE_URL` from `.env` at the repo root (not `.env.local`). If your local URL is only in `.env.local`, either copy the line into `.env` or run inline:
+
+```bash
+DIRECT_DATABASE_URL="postgresql://...sslmode=require" pnpm db:push
 ```
 
 ## 4) Start web and worker

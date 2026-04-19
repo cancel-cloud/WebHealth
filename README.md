@@ -76,7 +76,7 @@ pnpm db:push
 pnpm db:seed:plan-settings
 ```
 
-Worker startup automatically ensures migrations before entering the job loop.
+Worker startup automatically runs any pending migrations from `drizzle/` via `ensureWorkerDatabaseReady` (auto-baselines `__drizzle_migrations` on first run) before entering the job loop, so production typically does not need a manual sync. Use `pnpm db:push` when you want to force-sync the schema from `packages/shared/src/db/schema.ts` outside the worker boot path (common for local dev).
 
 ## Runbooks
 

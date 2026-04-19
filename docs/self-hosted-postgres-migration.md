@@ -108,10 +108,10 @@ gunzip -c webhealth.sql.gz | psql "$TARGET_DIRECT_DATABASE_URL"
 After restore:
 
 ```bash
-pnpm db:migrate
+pnpm db:push
 ```
 
-This ensures the target schema matches the current repo state even if the dump came from a slightly older production schema.
+This ensures the target schema matches the current repo state even if the dump came from a slightly older production schema. We use `drizzle-kit push` (not `migrate`) because the DB has no `__drizzle_migrations` tracking table.
 
 ## 8) Validate the restored database
 
