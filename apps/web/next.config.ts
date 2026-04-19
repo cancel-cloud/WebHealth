@@ -23,6 +23,7 @@ const allowedDevOrigins = Array.from(
   new Set(
     [
       getConfiguredDevOriginHost(),
+      "webaudit-25.localcan.dev",
       "webaudit-48.localcan.dev",
     ].filter((origin): origin is string => Boolean(origin)),
   ),

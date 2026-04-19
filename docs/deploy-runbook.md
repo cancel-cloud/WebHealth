@@ -28,8 +28,10 @@ For any `apps/worker` or worker-runtime change, treat `pnpm worker:build-dist` a
 If schema changes are pending, apply them manually with:
 
 ```bash
-pnpm db:migrate
+pnpm db:push
 ```
+
+`pnpm db:push` reconciles the live schema to `packages/shared/src/db/schema.ts` directly via `drizzle-kit push`. For production, you normally do **not** need to run this manually — the worker calls `ensureWorkerDatabaseReady` on startup (see [apps/worker/src/main.ts](apps/worker/src/main.ts)), which applies any pending migrations from `drizzle/` via `drizzle-orm` migrator and auto-baselines the `__drizzle_migrations` table on first run. Use `pnpm db:push` when you need to force a schema sync outside the worker boot path.
 
 ## 1) Deploy the DB stack
 

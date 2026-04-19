@@ -1,7 +1,7 @@
 # WebHealth - Project Notes for Claude
 
 ## Dev URL
-**Always use `https://webaudit-48.localcan.dev` — never `http://localhost:3000`.**
+**Always use `https://webaudit-25.localcan.dev` — never `http://localhost:3000`.**
 
 `BETTER_AUTH_URL` is set to the localcan tunnel. Better Auth scopes OAuth state cookies to the request origin, so starting sign-in at a different origin than the callback URL causes a `state_security_mismatch`. Consistently using the tunnel URL keeps the cookie domain aligned across the full OAuth roundtrip.
 
@@ -9,7 +9,7 @@ If the localcan URL changes, update `BETTER_AUTH_URL` in `.env.local` to match.
 
 ## GlitchTip Local Checks
 
-Browser-side GlitchTip/Sentry checks should also use the localcan HTTPS origin so cookies, auth redirects, and browser event delivery stay on the same origin. For local browser tests, set both `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN`, then open the app through `https://webaudit-48.localcan.dev`.
+Browser-side GlitchTip/Sentry checks should also use the localcan HTTPS origin so cookies, auth redirects, and browser event delivery stay on the same origin. For local browser tests, set both `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN`, then open the app through `https://webaudit-25.localcan.dev`.
 
 ## Conventions
 - Shared types: `packages/shared/src/types/`
