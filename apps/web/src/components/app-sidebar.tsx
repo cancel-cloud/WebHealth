@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useTheme } from "next-themes";
 import { authClient } from "@webhealth/shared/lib/auth-client";
 import { cn } from "@webhealth/shared/lib/utils";
 import {
@@ -55,6 +54,7 @@ import {
   Sun,
   Users,
 } from "lucide-react";
+import { useTheme } from "@/components/theme-provider";
 
 type SidebarMeta = {
   teamTier: string;

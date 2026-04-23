@@ -27,6 +27,13 @@ test("contact settings route marks the support group current", () => {
   assert.equal(model.supportGroup.items.find((item) => item.href === "/settings?tab=contact")?.current, true);
 });
 
+test("nested settings routes keep settings current", () => {
+  const model = getAppSidebarModel({ pathname: "/settings/branding", isAdmin: false });
+
+  assert.equal(model.primaryItems.find((item) => item.href === "/settings")?.current, true);
+  assert.equal(model.supportGroup.current, false);
+});
+
 test("admin routes expose admin items and mark the matching entry current", () => {
   const model = getAppSidebarModel({ pathname: "/admin/feedback", isAdmin: true });
 
