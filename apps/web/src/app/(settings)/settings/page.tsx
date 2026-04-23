@@ -46,6 +46,7 @@ import {
   Shield,
   FileText,
   Info,
+  Palette,
 } from "lucide-react";
 
 type ToggleSettingKey =
@@ -378,6 +379,29 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
+          </section>
+
+          <section className="rounded-lg border border-border/70 bg-card/80 p-6 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/35 px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  <Palette className="h-3.5 w-3.5" />
+                  Agency branding
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold font-display tracking-tight">
+                    Manage export branding in one place
+                  </h2>
+                  <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                    Agency name, contact details, logo, icon, and export colors now live on a dedicated page instead of being hidden inside report artifacts.
+                  </p>
+                </div>
+              </div>
+
+              <Button asChild className="rounded-full">
+                <Link href="/settings/branding">Open Branding Page</Link>
+              </Button>
+            </div>
           </section>
 
           <section aria-labelledby="plan-heading" className="space-y-5">

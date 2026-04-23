@@ -57,6 +57,21 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const themeInitScript = `
+    (function() {
+      try {
+        var stored = localStorage.getItem('theme');
+        var theme = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+        var resolved = theme === 'system'
+          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : theme;
+        document.documentElement.classList.remove('light', 'dark');
+        document.documentElement.classList.add(resolved);
+        document.documentElement.style.colorScheme = resolved;
+      } catch (error) {}
+    })();
+  `;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -70,6 +85,10 @@ export default function RootLayout({
           media="(prefers-color-scheme: dark)"
           content="#1a1f2e"
         />
+        <script
+          id="theme-init"
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
         <GoogleConsentDefault />
       </head>
       <body
@@ -82,7 +101,6 @@ export default function RootLayout({
             attribute="class"
             defaultTheme="system"
             enableSystem
-            disableTransitionOnChange
           >
             <TooltipProvider>
               {children}

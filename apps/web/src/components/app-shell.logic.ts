@@ -104,8 +104,8 @@ function isPathCurrent(pathname: string, href: string) {
 }
 
 function isSettingsCurrent(pathname: string, tab: string | null, href: string) {
-  if (pathname !== href) return false;
-  return tab !== "contact";
+  if (!(pathname === href || pathname.startsWith(`${href}/`))) return false;
+  return !(pathname === href && tab === "contact");
 }
 
 export function getAppSidebarModel({
