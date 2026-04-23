@@ -3,17 +3,32 @@ import test from "node:test";
 
 import { sanitizeActionDetailPayload } from "./action-detail";
 
-test("sanitizeActionDetailPayload strips unsafe affected urls", () => {
+test("sanitizeActionDetailPayload trims structured recommendation detail fields", () => {
   assert.deepEqual(
     sanitizeActionDetailPayload({
-      affectedUrls: ["https://example.com/page", "javascript:alert(1)", "data:text/html,hi"],
-      fixSteps: [" Step 1 ", "", "Step 2"],
-      whyItMatters: "  Important. ",
+      observed: [" Fact 1 ", "", "Fact 2"],
+      likelyCauses: [" Cause 1 "],
+      recommendedActions: [" Action 1 ", "Action 2"],
+      whyThisHelps: [" Why "],
+      expectedOutcome: [" Outcome "],
+      evidence: {
+        deterministic: [
+          { label: " Impressions ", value: " 4200 " },
+          { label: "", value: "ignored" },
+        ],
+        inferred: [" Inferred support "],
+      },
     }),
     {
-      affectedUrls: ["https://example.com/page"],
-      fixSteps: ["Step 1", "Step 2"],
-      whyItMatters: "Important.",
+      observed: ["Fact 1", "Fact 2"],
+      likelyCauses: ["Cause 1"],
+      recommendedActions: ["Action 1", "Action 2"],
+      whyThisHelps: ["Why"],
+      expectedOutcome: ["Outcome"],
+      evidence: {
+        deterministic: [{ label: "Impressions", value: "4200" }],
+        inferred: ["Inferred support"],
+      },
     }
   );
 });

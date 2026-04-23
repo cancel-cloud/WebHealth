@@ -109,10 +109,10 @@ function PagesTable({ data }: { data: PageWinnerLoserRow[] }) {
   });
 
   return (
-    <div className="border border-border/50 rounded-lg overflow-hidden bg-card shadow-sm">
+    <div className="overflow-hidden rounded-lg border border-report-separator bg-report-panel shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-muted/30">
+          <thead className="bg-report-subtle">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((header) => (
@@ -130,7 +130,7 @@ function PagesTable({ data }: { data: PageWinnerLoserRow[] }) {
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-t border-border/30 hover:bg-muted/20 transition-colors">
+              <tr key={row.id} className="border-t border-report-separator transition-colors hover:bg-report-subtle">
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="py-3 px-4">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -141,12 +141,12 @@ function PagesTable({ data }: { data: PageWinnerLoserRow[] }) {
           </tbody>
         </table>
       </div>
-      <div className="p-3 border-t border-border/30 flex items-center justify-between text-sm text-muted-foreground">
+      <div className="flex items-center justify-between border-t border-report-separator p-3 text-sm text-muted-foreground">
         <span>{data.length} pages</span>
         <div className="flex items-center gap-2">
-          <button disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()} className="px-2 py-1 rounded border border-border/50 disabled:opacity-30">←</button>
+          <button disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()} className="rounded border border-report-separator px-2 py-1 disabled:opacity-30">←</button>
           <span>Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}</span>
-          <button disabled={!table.getCanNextPage()} onClick={() => table.nextPage()} className="px-2 py-1 rounded border border-border/50 disabled:opacity-30">→</button>
+          <button disabled={!table.getCanNextPage()} onClick={() => table.nextPage()} className="rounded border border-report-separator px-2 py-1 disabled:opacity-30">→</button>
         </div>
       </div>
     </div>

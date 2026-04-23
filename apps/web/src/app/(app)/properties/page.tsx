@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Table,
@@ -422,7 +423,21 @@ export default function PropertiesPage() {
             <TableBody>
               {filteredProperties.map((property) => (
                 <TableRow key={property.id} className="border-border/50 hover:bg-muted/20 transition-colors">
-                  <TableCell className="font-medium py-4">{property.name}</TableCell>
+                  <TableCell className="py-4">
+                    <div className="space-y-1">
+                      <div className="font-medium">{property.name}</div>
+                      {property.type === "gsc" ? (
+                        <Link
+                          href={`/properties/${encodeURIComponent(property.id)}`}
+                          className="inline-flex items-center text-xs font-medium text-primary hover:text-primary/80"
+                        >
+                          Open live dashboard
+                        </Link>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">GA4 rows stay secondary to the website dashboard</span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="py-4 text-muted-foreground text-sm truncate max-w-[200px]">
                     {property.url}
                   </TableCell>

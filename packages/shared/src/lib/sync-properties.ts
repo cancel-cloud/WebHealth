@@ -22,7 +22,13 @@ export async function syncPropertiesForUser({
   accessToken: string;
   refreshToken?: string;
   accessTokenExpiresAt?: Date | null;
-}): Promise<{ gscCount: number; ga4Count: number; autoLinked: number }> {
+}): Promise<{
+  gscCount: number;
+  ga4Count: number;
+  discoveredGscCount: number;
+  discoveredGa4Count: number;
+  autoLinked: number;
+}> {
   const authClient = getGoogleAuthClient(accessToken, refreshToken, accessTokenExpiresAt);
 
   authClient.on("tokens", (tokens) => {
@@ -56,6 +62,9 @@ export async function syncPropertiesForUser({
     }
     throw error;
   }
+
+  const discoveredGscCount = gscSites.filter((site) => !!site.siteUrl).length;
+  const discoveredGa4Count = ga4Props.length;
 
   // --- Store GSC properties ---
   let gscCount = 0;
@@ -165,9 +174,21 @@ export async function syncPropertiesForUser({
       triggeredBy: userId,
       targetUserId: userId,
       status: "success",
-      details: { gscCount, ga4Count, autoLinked },
+      details: {
+        gscCount,
+        ga4Count,
+        discoveredGscCount,
+        discoveredGa4Count,
+        autoLinked,
+      },
     })
     .catch(() => {});
 
-  return { gscCount, ga4Count, autoLinked };
+  return {
+    gscCount,
+    ga4Count,
+    discoveredGscCount,
+    discoveredGa4Count,
+    autoLinked,
+  };
 }

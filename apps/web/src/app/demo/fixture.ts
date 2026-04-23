@@ -1,4 +1,4 @@
-import type { AiSeoReport } from "@webhealth/shared/lib/reports/types";
+import type { AiSeoReport, RecommendationDetail } from "@webhealth/shared/lib/reports/types";
 
 export const DEMO_REPORT_ID = "demo";
 
@@ -27,6 +27,28 @@ export const DEMO_GA4_COMPARE = {
   sessions: 5187,
   users: 4102,
 };
+
+function makeDetail(input: {
+  observed: string[];
+  likelyCauses: string[];
+  recommendedActions: string[];
+  whyThisHelps: string[];
+  expectedOutcome: string[];
+  deterministic?: Array<{ label: string; value: string }>;
+  inferred?: string[];
+}): RecommendationDetail {
+  return {
+    observed: input.observed,
+    likelyCauses: input.likelyCauses,
+    recommendedActions: input.recommendedActions,
+    whyThisHelps: input.whyThisHelps,
+    expectedOutcome: input.expectedOutcome,
+    evidence: {
+      deterministic: input.deterministic ?? [],
+      inferred: input.inferred ?? [],
+    },
+  };
+}
 
 export const DEMO_AI_REPORT: AiSeoReport = {
   metadata: {
@@ -86,8 +108,18 @@ Your site crawl found **8 pages missing meta descriptions** and **3 broken inter
       positionBucket: 5,
       estimatedLostClicks: 572,
       confidence: 0.91,
-      actionDetail:
-        "**Root cause:** Position 5.2 with a 2.1% CTR — well below the 8.9% benchmark for this bucket.\n\n**Recommended fix:** Rewrite the `<title>` tag on `/products/running-shoes` to include a price signal or social proof, e.g. `Buy Running Shoes Online — Free Returns | example-store.com`. This alone could lift CTR to 4–5%.\n\nAlso add FAQ schema markup for common questions (sizing, returns policy) to earn a rich result.",
+      actionDetail: makeDetail({
+        observed: [
+          "Position 5.2 with 2.1% CTR is far below the 8.9% benchmark for this position bucket.",
+        ],
+        likelyCauses: ["The ranking page likely has a weak snippet message for commercial intent."],
+        recommendedActions: [
+          "Rewrite the title to include a stronger commercial signal such as free returns.",
+          "Add FAQ schema if the page supports it.",
+        ],
+        whyThisHelps: ["Better snippet messaging can lift clicks without needing a ranking increase first."],
+        expectedOutcome: ["CTR should improve after recrawl and snippet refresh."],
+      }),
     },
     {
       query: "best trail running shoes 2026",
@@ -97,8 +129,16 @@ Your site crawl found **8 pages missing meta descriptions** and **3 broken inter
       positionBucket: 6,
       estimatedLostClicks: 332,
       confidence: 0.87,
-      actionDetail:
-        "**Root cause:** Position 6.4 with 1.4% CTR. The page lacks the current year in the title, which searchers expect for 'best of' queries.\n\n**Fix:** Update title to `Best Trail Running Shoes 2026 — Tested & Ranked`. Add a table-of-contents with jump links at the top of the page to improve dwell time, which correlates with higher positions for this query class.",
+      actionDetail: makeDetail({
+        observed: ["Position 6.4 with 1.4% CTR underperforms the benchmark for this ranking range."],
+        likelyCauses: ["The page likely looks stale for a year-sensitive 'best of' query."],
+        recommendedActions: [
+          "Update the title to include the current year.",
+          "Add a clearer top-of-page structure for comparison intent.",
+        ],
+        whyThisHelps: ["Freshness-sensitive queries respond to explicit current-year signaling."],
+        expectedOutcome: ["Snippet response should improve before larger ranking movement."],
+      }),
     },
     {
       query: "waterproof hiking boots women",
@@ -108,8 +148,13 @@ Your site crawl found **8 pages missing meta descriptions** and **3 broken inter
       positionBucket: 4,
       estimatedLostClicks: 282,
       confidence: 0.83,
-      actionDetail:
-        "**Root cause:** Position 4.1 but CTR (2.8%) is 70% below benchmark. The meta description is missing on this page, causing Google to auto-generate a snippet that doesn't convert.\n\n**Fix:** Write a compelling meta description: `Shop waterproof hiking boots for women. Gore-Tex lined, free UK delivery, 30-day returns. Sizes 3–11.`",
+      actionDetail: makeDetail({
+        observed: ["Position 4.1 but CTR is 2.8%, well below the bucket benchmark."],
+        likelyCauses: ["The page is likely missing a convincing meta description."],
+        recommendedActions: ["Write a meta description with waterproof, delivery, and returns signals."],
+        whyThisHelps: ["A stronger snippet can convert impressions already earned by the page."],
+        expectedOutcome: ["The first visible win should be CTR lift after recrawl."],
+      }),
     },
   ],
 
@@ -123,8 +168,16 @@ Your site crawl found **8 pages missing meta descriptions** and **3 broken inter
       targetLandingPage: "/products/trail-running-shoes",
       action: "Add 'sale' section to page, update internal links from blog posts",
       estimatedImpact: 145,
-      actionDetail:
-        "This keyword is 1.2 positions from page 1. The page currently has no content about sales or discounts — adding a 'Current Offers' section near the top and linking from 3 high-traffic blog posts could push it onto page 1 within 4–6 weeks.",
+      actionDetail: makeDetail({
+        observed: ["The keyword sits 1.2 positions away from page one with strong impressions."],
+        likelyCauses: ["The ranking page likely under-serves discount intent."],
+        recommendedActions: [
+          "Add sale-focused content to the target page.",
+          "Link to the target from relevant high-traffic blog posts.",
+        ],
+        whyThisHelps: ["Intent alignment plus stronger internal support can help push a near-win term onto page one."],
+        expectedOutcome: ["Ranking movement should appear before click growth."],
+      }),
     },
     {
       keyword: "running shoe width guide",
@@ -135,8 +188,16 @@ Your site crawl found **8 pages missing meta descriptions** and **3 broken inter
       targetLandingPage: "/blog/running-shoe-fit-guide",
       action: "Expand guide with width measurement instructions and comparison table",
       estimatedImpact: 98,
-      actionDetail:
-        "Create a 'How to measure your foot width' section with an infographic. Add a comparison table of narrow/standard/wide last widths. Target 800 additional words. This topic has strong featured snippet potential.",
+      actionDetail: makeDetail({
+        observed: ["The guide ranks on page two for a high-intent informational query."],
+        likelyCauses: ["The page likely lacks enough depth on width-specific intent."],
+        recommendedActions: [
+          "Add width measurement guidance.",
+          "Add a comparison table for fit types.",
+        ],
+        whyThisHelps: ["Specific subtopic coverage helps the page better satisfy the query intent."],
+        expectedOutcome: ["Page-one movement should appear before broad click gains."],
+      }),
     },
     {
       keyword: "merino wool running socks",
@@ -160,8 +221,16 @@ Your site crawl found **8 pages missing meta descriptions** and **3 broken inter
       peakDate: "2025-08",
       estimatedLostClicks: 680,
       severity: "HOCH",
-      actionDetail:
-        "This page peaked in August 2025 and has lost 76% of its traffic. The topic is competitive and the content hasn't been updated since 2024.\n\n**Action plan:**\n1. Add a 2026 update section covering AI-powered email tools\n2. Refresh statistics (cite fresh sources)\n3. Add 3 new FAQ entries targeting long-tail variants\n4. Request backlinks from 2 partner sites that previously linked to this content",
+      actionDetail: makeDetail({
+        observed: ["The page peaked in August 2025 and has since lost most of its traffic."],
+        likelyCauses: ["The topic likely became stale and under-served newer query expectations."],
+        recommendedActions: [
+          "Add a current-year update section.",
+          "Replace outdated stats and add new FAQ coverage.",
+        ],
+        whyThisHelps: ["Refreshing proven content is faster than rebuilding authority on a new page."],
+        expectedOutcome: ["Trend stabilization should appear before full recovery."],
+      }),
     },
     {
       page: "/blog/best-running-shoes-flat-feet",
@@ -183,8 +252,16 @@ Your site crawl found **8 pages missing meta descriptions** and **3 broken inter
       totalImpressions: 8900,
       recommendation:
         "Consolidate intent. Make the product page the primary target by adding a buying guide section. Redirect or noindex the blog post.",
-      actionDetail:
-        "The two pages split clicks 180/132 and confuse Google about which should rank. Merge the best content from the blog post into the product page under an 'Buying Guide' tab. Then 301-redirect the blog post to the product page. Expect consolidated ranking within 6–8 weeks.",
+      actionDetail: makeDetail({
+        observed: ["The query splits clicks across two competing URLs."],
+        likelyCauses: ["Google is receiving mixed primary-page signals for the same term."],
+        recommendedActions: [
+          "Choose one primary page and consolidate overlapping content.",
+          "Redirect or de-optimize the weaker secondary page.",
+        ],
+        whyThisHelps: ["Consolidation helps one page collect the full ranking signal."],
+        expectedOutcome: ["Reduced ranking volatility should appear before full click consolidation."],
+      }),
     },
   ],
 
@@ -196,7 +273,7 @@ Your site crawl found **8 pages missing meta descriptions** and **3 broken inter
 
   pageWinnerLoserRows: [
     { page: "/products/trail-running-shoes", clicksCurrent: 892, clicksCompare: 612, clicksDelta: 280, impressionsCurrent: 18200, impressionsCompare: 14100, impressionsDelta: 4100, status: "winner", isStatisticallySignificant: true, zScore: 3.2, actionDetail: null },
-    { page: "/products/running-socks", clicksCurrent: 312, clicksCompare: 418, clicksDelta: -106, impressionsCurrent: 8900, impressionsCompare: 9400, impressionsDelta: -500, status: "loser", isStatisticallySignificant: true, zScore: -2.8, actionDetail: "This page dropped after the site restructure on Feb 8. Check if internal links from /products were updated. The page has lost 3 backlinks from external sites — investigate if they were redirected incorrectly." },
+    { page: "/products/running-socks", clicksCurrent: 312, clicksCompare: 418, clicksDelta: -106, impressionsCurrent: 8900, impressionsCompare: 9400, impressionsDelta: -500, status: "loser", isStatisticallySignificant: true, zScore: -2.8, actionDetail: makeDetail({ observed: ["The page dropped after the restructure with both clicks and impressions down."], likelyCauses: ["Internal linking or redirect coverage may have weakened after the change."], recommendedActions: ["Check internal links and lost backlinks pointing to this page."], whyThisHelps: ["It validates whether a change introduced the decline."], expectedOutcome: ["The first visible win is restored linking health before traffic recovery."], }) },
     { page: "/blog/running-shoe-fit-guide", clicksCurrent: 234, clicksCompare: 156, clicksDelta: 78, impressionsCurrent: 6200, impressionsCompare: 4800, impressionsDelta: 1400, status: "winner", isStatisticallySignificant: false, zScore: 1.4, actionDetail: null },
     { page: "/products/hiking-boots", clicksCurrent: 189, clicksCompare: 287, clicksDelta: -98, impressionsCurrent: 7100, impressionsCompare: 7800, impressionsDelta: -700, status: "loser", isStatisticallySignificant: true, zScore: -2.4, actionDetail: null },
   ],
@@ -208,8 +285,147 @@ Your site crawl found **8 pages missing meta descriptions** and **3 broken inter
     { issueType: "Duplicate title tags", affectedPages: 4, affectedEstimatedClicks: 210, severity: "MITTEL", recommendation: "4 product category pages share the same title pattern. Differentiate with specific category names and keyword targets." },
   ],
 
+  weeklyActionRows: [
+    {
+      id: "wa-1",
+      rank: 1,
+      area: "technical",
+      title: "Resolve the broken internal links on 3 traffic-carrying pages",
+      whyNow: "This affects 3 pages that already bring in traffic, so fixing it protects existing visits before they slip further.",
+      recommendationClass: "protect",
+      primaryMetric: "crawl_health",
+      expectedDirection: "recover",
+      successWindow: "0-7d",
+      successSignal: "Affected pages validate cleanly with no broken internal-link issue on the next crawl.",
+      timeToValue: "days",
+      firstVisibleWin: "The issue should clear on the next validation crawl.",
+      valueAtStake: { clicksAtRisk: 180, trafficExposure: 180 },
+      confidenceLabel: "high",
+      confidenceScore: 0.92,
+      confidenceBasis: "Three affected pages and the exposed traffic are directly measurable.",
+      owner: "developer",
+      effort: "S",
+      priorityReason: "This is the fastest way to protect existing traffic because the issue is already confirmed and easy to validate.",
+      targetPage: null,
+      supportingQueries: [],
+      detail: makeDetail({
+        observed: ["Three internal links resolve to 404 pages on URLs that already attract traffic."],
+        likelyCauses: ["A previous URL change likely left outdated destinations in navigation or content links."],
+        recommendedActions: ["Create redirects for the broken destinations.", "Update the source links to the correct URLs."],
+        whyThisHelps: ["It removes a direct blocker without waiting for new authority or new content to work."],
+        expectedOutcome: ["The first visible win is a clean crawl and fewer broken user paths."],
+        deterministic: [
+          { label: "Affected pages", value: "3" },
+          { label: "Estimated clicks at risk", value: "180" },
+        ],
+      }),
+    },
+    {
+      id: "wa-2",
+      rank: 2,
+      area: "content",
+      title: "Refresh the email marketing guide before writing anything new",
+      whyNow: "This page already proved it can win traffic, and it is now losing a large share of that baseline.",
+      recommendationClass: "protect",
+      primaryMetric: "clicks",
+      expectedDirection: "recover",
+      successWindow: "14-42d",
+      successSignal: "The target page shows a positive click trend versus the prior 28-day baseline after the refresh is indexed.",
+      timeToValue: "weeks",
+      firstVisibleWin: "The traffic slide should level out before clicks start climbing again.",
+      valueAtStake: { clicksAtRisk: 680, recoveryPotential: 680, trafficExposure: 890 },
+      confidenceLabel: "high",
+      confidenceScore: 0.9,
+      confidenceBasis: "The traffic drop is direct and the page already proved demand in the prior period.",
+      owner: "content",
+      effort: "M",
+      priorityReason: "Recovering proven traffic beats starting fresh on a new article with slower and less certain upside.",
+      targetPage: "/blog/email-marketing-tips",
+      supportingQueries: ["email marketing tips"],
+      detail: makeDetail({
+        observed: ["The page fell from 890 clicks to 210 clicks.", "Traffic has been declining since its August 2025 peak."],
+        likelyCauses: ["The article likely looks stale for a competitive and freshness-sensitive topic."],
+        recommendedActions: ["Add a current-year update section.", "Replace outdated statistics and add new FAQ coverage."],
+        whyThisHelps: ["Refreshing proven content usually yields faster recovery than publishing adjacent new pages from zero."],
+        expectedOutcome: ["The page should stabilize first, then begin recovering clicks over several weeks."],
+        deterministic: [
+          { label: "Peak clicks", value: "890" },
+          { label: "Recent clicks", value: "210" },
+          { label: "Estimated clicks lost", value: "680" },
+        ],
+      }),
+    },
+    {
+      id: "wa-3",
+      rank: 3,
+      area: "onpage",
+      title: "Improve the snippet for “buy running shoes online”",
+      whyNow: "This query already gets strong visibility, so a better title and description can lift clicks without waiting on rankings to move.",
+      recommendationClass: "lift",
+      primaryMetric: "ctr",
+      expectedDirection: "improve",
+      successWindow: "7-21d",
+      successSignal: "CTR improves versus the prior 28-day baseline for the target query after recrawl.",
+      timeToValue: "days",
+      firstVisibleWin: "CTR should start moving after the page is re-crawled with the new snippet.",
+      valueAtStake: { nearWinOpportunity: 572, trafficExposure: 8420 },
+      confidenceLabel: "high",
+      confidenceScore: 0.88,
+      confidenceBasis: "The CTR gap versus the benchmark is large and impression volume is already present.",
+      owner: "seo",
+      effort: "XS",
+      priorityReason: "This is a fast click lift, but it still comes after the work that protects traffic already slipping away.",
+      targetPage: "/products/running-shoes",
+      supportingQueries: ["buy running shoes online"],
+      detail: makeDetail({
+        observed: ["The query sits at position 5.2 with 8,420 impressions and only 2.1% CTR."],
+        likelyCauses: ["The snippet likely undersells the page on a commercial query."],
+        recommendedActions: ["Rewrite the title with a stronger commercial promise.", "Add snippet-worthy trust signals if the page supports them."],
+        whyThisHelps: ["The page already has visibility, so CTR lift can create faster perceived wins than deeper ranking projects."],
+        expectedOutcome: ["The first visible win is a CTR lift before larger click gains accumulate."],
+        deterministic: [
+          { label: "Impressions", value: "8,420" },
+          { label: "Actual CTR", value: "2.1%" },
+          { label: "Benchmark CTR", value: "8.9%" },
+        ],
+      }),
+    },
+  ],
+
+  notRecommendedRows: [
+    {
+      id: "nr-1",
+      area: "content",
+      title: "Hold off on publishing adjacent-topic blog posts",
+      recommendationClass: "expand",
+      primaryMetric: "coverage",
+      expectedDirection: "expand",
+      successWindow: "30-90d",
+      successSignal: "New pages begin earning meaningful impressions on their target topic cluster.",
+      timeToValue: "months",
+      firstVisibleWin: "New pages may index quickly, but they are unlikely to change this week’s results.",
+      valueAtStake: { trafficExposure: 890 },
+      confidenceLabel: "high",
+      confidenceScore: 0.9,
+      confidenceBasis: "A proven high-authority page is already decaying and should be protected first.",
+      owner: "content",
+      effort: "M",
+      priorityReason: "Protecting and recovering proven pages is the better use of this week’s effort.",
+      notRecommendedReason: "Skip net-new content until the proven page that is already losing traffic has been refreshed.",
+      targetPage: null,
+      supportingQueries: [],
+      detail: makeDetail({
+        observed: ["A proven page is already losing meaningful traffic."],
+        likelyCauses: ["Expansion work would delay higher-confidence recovery work."],
+        recommendedActions: ["Refresh the decaying page first, then expand into adjacent topics."],
+        whyThisHelps: ["It keeps weekly effort on the most defensible business outcome."],
+        expectedOutcome: ["The team avoids adding backlog while proven traffic remains exposed."],
+      }),
+    },
+  ],
+
   actionBacklogRows: [
-    { id: "ab-1", area: "technical", task: "Fix 3 broken internal links on /products and /blog", ownerHint: "developer", effort: "S", impactScore: 9.2, why: "Broken links lose PageRank and create poor user experience. These pages have inbound links from top-10 traffic pages.", done: false, actionDetail: "**Broken links found:**\n- `/products/running-shoes` → `/collections/mens-running` (404)\n- `/blog/category/training` → `/blog/training` (404)\n- `/categories/sale` → `/sale` (404)\n\n**Fix:** Create 301 redirects for all three. Then update the source links to use the correct destination URLs." },
+    { id: "ab-1", area: "technical", task: "Fix 3 broken internal links on /products and /blog", ownerHint: "developer", effort: "S", impactScore: 9.2, why: "Broken links lose PageRank and create poor user experience. These pages have inbound links from top-10 traffic pages.", done: false, actionDetail: makeDetail({ observed: ["Three internal links resolve to 404 destinations."], likelyCauses: ["A prior URL change likely left outdated internal links behind."], recommendedActions: ["Create redirects for the broken destinations.", "Update the source links to the correct URLs."], whyThisHelps: ["It removes crawl waste and broken user journeys immediately."], expectedOutcome: ["The blocker should disappear on the next validation crawl."], }) },
     { id: "ab-2", area: "onpage", task: "Write meta descriptions for 8 product pages", ownerHint: "seo", effort: "S", impactScore: 8.8, why: "These pages rank position 6–12 with no meta description. A compelling snippet can lift CTR by 2–3% at these positions.", done: false, actionDetail: null },
     { id: "ab-3", area: "content", task: "Refresh /blog/email-marketing-tips with 2026 content", ownerHint: "content", effort: "M", impactScore: 8.1, why: "76% traffic decay since peak. The topic is still high-volume but competitors have published more recent content.", done: false, actionDetail: null },
     { id: "ab-4", area: "technical", task: "Add structured data (Product schema) to product pages", ownerHint: "developer", effort: "M", impactScore: 7.5, why: "Competitors in positions 1–3 all have Product rich results. Adding price, availability, and review schema can improve CTR significantly.", done: false, actionDetail: null },

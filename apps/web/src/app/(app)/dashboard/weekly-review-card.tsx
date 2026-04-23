@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { EChartsOption } from "echarts";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { EchartsChart } from "@/components/echarts-chart";
+import { EchartsChart, type EChartsOption } from "@/components/echarts-chart";
 import { requestJson } from "@/lib/client/api";
 
 type WeeklyReviewRun = {

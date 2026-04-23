@@ -39,8 +39,8 @@ export function QuickWinsGrid({ reportId, ctrGaps, nearWinKeywords, contentDecay
   const [active, setActive] = useState<Tab>(defaultTab);
 
   return (
-    <div className="rounded-lg bg-card border border-border/50 shadow-sm overflow-hidden">
-      <div className="border-b border-border/50 flex gap-0 overflow-x-auto">
+    <div className="overflow-hidden rounded-lg border border-report-separator bg-report-panel shadow-sm">
+      <div className="flex gap-0 overflow-x-auto border-b border-report-separator">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -53,7 +53,7 @@ export function QuickWinsGrid({ reportId, ctrGaps, nearWinKeywords, contentDecay
           >
             {tab.label}
             {tab.count > 0 && (
-              <span className="text-xs bg-muted rounded-full px-1.5 py-0.5">{tab.count}</span>
+              <span className="rounded-full bg-report-chip px-1.5 py-0.5 text-xs text-report-chip-foreground">{tab.count}</span>
             )}
           </button>
         ))}
@@ -94,7 +94,7 @@ function CtrGapsTab({ reportId, rows }: { reportId: string; rows: LostClickEstim
         </thead>
         <tbody>
           {rows.slice(0, 15).map((row) => (
-            <tr key={row.query} className="border-t border-border/30">
+            <tr key={row.query} className="border-t border-report-separator">
               <td className="py-2 pr-4 font-medium max-w-[250px] truncate">{row.query}</td>
               <td className="py-2 pr-4">{row.impressions.toLocaleString()}</td>
               <td className="py-2 pr-4">{(row.actualCtr * 100).toFixed(2)}%</td>
@@ -134,7 +134,7 @@ function NearWinTab({ reportId, rows }: { reportId: string; rows: NearWinKeyword
         </thead>
         <tbody>
           {rows.slice(0, 15).map((row) => (
-            <tr key={row.keyword} className="border-t border-border/30">
+            <tr key={row.keyword} className="border-t border-report-separator">
               <td className="py-2 pr-4 font-medium max-w-[250px] truncate">{row.keyword}</td>
               <td className="py-2 pr-4">{row.position.toFixed(1)}</td>
               <td className="py-2 pr-4">{row.impressions.toLocaleString()}</td>
@@ -162,7 +162,7 @@ function ContentDecayTab({ reportId, rows }: { reportId: string; rows: ContentDe
   return (
     <div className="space-y-3">
       {rows.slice(0, 10).map((row) => (
-        <div key={row.page} className="p-3 rounded-lg bg-muted/30 border border-border/30">
+        <div key={row.page} className="rounded-lg border border-report-separator bg-report-subtle p-3">
           <div className="flex items-start justify-between gap-2 mb-1">
             <p className="text-sm font-medium truncate max-w-[400px]">{row.page}</p>
             <div className="flex items-center gap-2 shrink-0">
@@ -196,7 +196,7 @@ function CannibalizationTab({ reportId, rows }: { reportId: string; rows: Cannib
   return (
     <div className="space-y-3">
       {rows.slice(0, 10).map((row) => (
-        <div key={row.query} className="p-3 rounded-lg bg-muted/30 border border-border/30">
+        <div key={row.query} className="rounded-lg border border-report-separator bg-report-subtle p-3">
           <div className="flex items-start justify-between gap-2 mb-2">
             <p className="text-sm font-medium">&ldquo;{row.query}&rdquo;</p>
             <GetDetailsButton

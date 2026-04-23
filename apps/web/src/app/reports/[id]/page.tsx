@@ -7,7 +7,11 @@ import { BarChart2, AlertTriangle, Link2 } from "lucide-react";
 import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import { resolveReportSourcesForExistingReport } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { Button } from "@/components/ui/button";
-import type { AiSeoReport } from "@webhealth/shared/lib/reports/types";
+import type {
+  AiSeoReport,
+  RecommendationFeedbackType,
+  RecommendationState,
+} from "@webhealth/shared/lib/reports/types";
 import type { WeeklyReviewFinding } from "@webhealth/shared/lib/weekly-review";
 import {
   getScheduledNoticeState,
@@ -24,10 +28,12 @@ import { DeepDiveQueries } from "./sections/deep-dive-queries";
 import { DeepDivePages } from "./sections/deep-dive-pages";
 import { DeepDiveTechnical } from "./sections/deep-dive-technical";
 import { ActionBacklog } from "./sections/action-backlog";
+import { NotRecommendedSection } from "./sections/not-recommended-section";
 import { SiteChangesSection } from "./sections/site-changes-section";
 import { JobTimeline } from "./sections/job-timeline";
 import { DashboardMarkdown } from "./sections/dashboard-markdown";
 import { WeeklyReviewFindingsSection } from "./sections/weekly-review-findings";
+import { getWeeklyActionSummaryChips } from "./sections/action-surface.logic";
 
 import type { GscMetrics, Ga4Metrics } from "@webhealth/shared/lib/google/api";
 import type { CrawlResult } from "@webhealth/shared/lib/crawl";
@@ -63,7 +69,7 @@ export default async function ReportDetailPage({
     where: (p, { eq }) => eq(p.id, report.propertyId),
   });
 
-  const [recentEvents, teamGa4Property] = await Promise.all([
+  const [recentEvents, teamGa4Property, recommendationStates, recommendationFeedback] = await Promise.all([
     db.query.reportJobEvents.findMany({
       where: (e, { eq }) => eq(e.reportId, reportId),
       orderBy: (e, { desc }) => [desc(e.createdAt)],
@@ -71,6 +77,14 @@ export default async function ReportDetailPage({
     }),
     db.query.properties.findFirst({
       where: (p, { and, eq }) => and(eq(p.teamId, report.teamId), eq(p.type, "ga4")),
+    }),
+    db.query.reportRecommendationStates.findMany({
+      where: (table, { eq }) => eq(table.reportId, reportId),
+      columns: { recommendationId: true, state: true },
+    }),
+    db.query.reportRecommendationFeedback.findMany({
+      where: (table, { eq }) => eq(table.reportId, reportId),
+      columns: { recommendationId: true, feedbackType: true },
     }),
   ]);
   const isAdmin = await isAdminEmail(session.user.email ?? null);
@@ -104,6 +118,13 @@ export default async function ReportDetailPage({
     hasAiReportJson: !!aiReport,
     hasXlsxArtifact: !!report.xlsxArtifactUrl,
   };
+  const recommendationStateById = Object.fromEntries(
+    recommendationStates.map((row) => [row.recommendationId, row.state])
+  ) as Record<string, RecommendationState>;
+  const recommendationFeedbackById = Object.fromEntries(
+    recommendationFeedback.map((row) => [row.recommendationId, row.feedbackType])
+  ) as Record<string, RecommendationFeedbackType>;
+  const summaryChips = getWeeklyActionSummaryChips(aiReport?.weeklyActionRows);
 
   void recordProductEvent({
     teamId: report.teamId,
@@ -127,8 +148,9 @@ export default async function ReportDetailPage({
         isAdmin={isAdmin}
         aiEstimatedCostUsd={report.aiEstimatedCostUsd ?? null}
         detailsCostUsd={report.detailsCostUsd ?? null}
+        summaryChips={summaryChips}
         scheduledContent={
-          <div className="border border-amber-200 rounded-lg p-10 bg-amber-50/70 shadow-sm">
+          <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-10 shadow-sm">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
               <div className="max-w-2xl space-y-3">
                 <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
@@ -154,7 +176,7 @@ export default async function ReportDetailPage({
           </div>
         }
         activeContent={
-          <div className="border border-border/50 rounded-lg p-16 text-center bg-card shadow-sm">
+          <div className="rounded-lg border border-report-separator bg-report-panel p-16 text-center shadow-sm">
             <div className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center mb-6 mx-auto">
               <BarChart2 className="h-8 w-8 text-primary animate-pulse" />
             </div>
@@ -166,7 +188,7 @@ export default async function ReportDetailPage({
           </div>
         }
         failedContent={
-          <div className="border border-red-200 rounded-lg p-16 text-center bg-red-50 dark:bg-red-950/20">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-16 text-center dark:bg-red-950/20">
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-2xl font-semibold mb-3 text-red-700">Report generation failed</h2>
             <p className="text-muted-foreground">
@@ -175,65 +197,73 @@ export default async function ReportDetailPage({
           </div>
         }
         completeContent={data ? (
-          <div className="space-y-10">
+          <div className="space-y-8">
             {report.source === "auto_weekly" ? (
               <WeeklyReviewFindingsSection findings={weeklyReviewFindings} />
             ) : null}
 
-            {/* 1. AI Summary */}
-            {aiReport?.dashboardMarkdown ? (
-              <div className="p-6 rounded-lg bg-card border border-border/50 shadow-sm">
-                <h2 className="text-xl font-bold font-display mb-4">AI Summary</h2>
-                <DashboardMarkdown content={aiReport.dashboardMarkdown} />
-              </div>
-            ) : null}
+            <ActionBacklog
+              reportId={reportId}
+              rows={aiReport?.weeklyActionRows}
+              stateByRecommendationId={recommendationStateById}
+              feedbackByRecommendationId={recommendationFeedbackById}
+            />
 
-            {/* 2. Executive Summary */}
             <ExecutiveSummary
               executiveSummary={aiReport?.executiveSummary}
               alertsAndFlags={aiReport?.alertsAndFlags}
             />
 
-            {/* 3. KPI Cards with Recharts sparklines */}
-            <section>
-              <h2 className="text-xl font-bold font-display mb-4">Search Console Metrics</h2>
-              <KpiCards
-                gscCurrent={data.gsc.current}
-                gscCompare={data.gsc.compare}
-                ga4Current={data.ga4?.current ?? null}
-                ga4Compare={data.ga4?.compare ?? null}
-                kpiTrendRows={aiReport?.kpiTrendRows ?? []}
+            <NotRecommendedSection rows={aiReport?.notRecommendedRows} />
+
+            <section className="space-y-5" data-report-secondary>
+              <div className="space-y-1">
+                <h2 className="text-lg font-semibold font-display">Evidence And Context</h2>
+                <p className="max-w-3xl text-sm text-muted-foreground">
+                  Open these sections when you need the supporting metrics, page movement, technical evidence, or report notes behind this week&apos;s decisions.
+                </p>
+              </div>
+
+              <section>
+                <h3 className="mb-4 text-base font-semibold font-display">Search performance snapshot</h3>
+                <KpiCards
+                  gscCurrent={data.gsc.current}
+                  gscCompare={data.gsc.compare}
+                  ga4Current={data.ga4?.current ?? null}
+                  ga4Compare={data.ga4?.compare ?? null}
+                  kpiTrendRows={aiReport?.kpiTrendRows ?? []}
+                />
+              </section>
+
+              <section>
+                <h3 className="mb-4 text-base font-semibold font-display">Supporting opportunities</h3>
+                <QuickWinsGrid
+                  reportId={reportId}
+                  ctrGaps={aiReport?.lostClickEstimateRows}
+                  nearWinKeywords={aiReport?.nearWinKeywordRows}
+                  contentDecay={aiReport?.contentDecayRows}
+                  cannibalization={aiReport?.cannibalizationRows}
+                />
+              </section>
+
+              <DeepDiveQueries rows={aiReport?.queryOpportunityRows} />
+              <DeepDivePages rows={aiReport?.pageWinnerLoserRows} />
+              <DeepDiveTechnical
+                rows={aiReport?.technicalIssueRows}
+                crawlSummary={data.crawl?.summary as Record<string, number> | null}
               />
+
+              <SiteChangesSection siteChanges={aiReport?.siteChanges} />
+
+              {aiReport?.dashboardMarkdown ? (
+                <div className="rounded-lg border border-report-separator bg-report-panel p-5 shadow-sm">
+                  <h3 className="mb-4 text-base font-semibold font-display">Management summary</h3>
+                  <DashboardMarkdown content={aiReport.dashboardMarkdown} />
+                </div>
+              ) : null}
+
+              <JobTimeline events={recentEvents} />
             </section>
-
-            {/* 4. Quick Wins — 4 tabs */}
-            <section>
-              <h2 className="text-xl font-bold font-display mb-4">Quick Wins</h2>
-              <QuickWinsGrid
-                reportId={reportId}
-                ctrGaps={aiReport?.lostClickEstimateRows}
-                nearWinKeywords={aiReport?.nearWinKeywordRows}
-                contentDecay={aiReport?.contentDecayRows}
-                cannibalization={aiReport?.cannibalizationRows}
-              />
-            </section>
-
-            {/* 5. Deep Dives */}
-            <DeepDiveQueries rows={aiReport?.queryOpportunityRows} />
-            <DeepDivePages rows={aiReport?.pageWinnerLoserRows} />
-            <DeepDiveTechnical
-              rows={aiReport?.technicalIssueRows}
-              crawlSummary={data.crawl?.summary as Record<string, number> | null}
-            />
-
-            {/* 6. Action Backlog */}
-            <ActionBacklog reportId={reportId} rows={aiReport?.actionBacklogRows} />
-
-            {/* 7. Site Changes */}
-            <SiteChangesSection siteChanges={aiReport?.siteChanges} />
-
-            {/* 8. Job Timeline */}
-            <JobTimeline events={recentEvents} />
           </div>
         ) : null}
       />

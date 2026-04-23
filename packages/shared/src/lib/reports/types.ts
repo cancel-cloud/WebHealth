@@ -101,6 +101,93 @@ export type KpiTrendRow = {
   usersCompare?: number;
 };
 
+export type RecommendationClass = "protect" | "lift" | "expand";
+
+export type RecommendationPrimaryMetric =
+  | "clicks"
+  | "ctr"
+  | "rankings"
+  | "crawl_health"
+  | "coverage";
+
+export type RecommendationExpectedDirection =
+  | "recover"
+  | "improve"
+  | "preserve"
+  | "expand";
+
+export type RecommendationSuccessWindow = "0-7d" | "7-21d" | "14-42d" | "30-90d";
+
+export type RecommendationConfidenceLabel = "high" | "medium" | "exploratory";
+
+export type RecommendationOwner =
+  | "seo"
+  | "content"
+  | "developer"
+  | "decision_maker";
+
+export type RecommendationEffort = "XS" | "S" | "M" | "L";
+
+export type RecommendationTimeToValue = "days" | "weeks" | "months";
+
+export type RecommendationState =
+  | "open"
+  | "in_progress"
+  | "done"
+  | "ignored"
+  | "snoozed";
+
+export type RecommendationFeedbackType =
+  | "helpful"
+  | "not_helpful"
+  | "too_generic"
+  | "not_applicable"
+  | "already_done";
+
+export type RecommendationEvidenceFact = {
+  label: string;
+  value: string;
+};
+
+export type RecommendationValueAtStake = {
+  clicksAtRisk?: number | null;
+  recoveryPotential?: number | null;
+  nearWinOpportunity?: number | null;
+  trafficExposure?: number | null;
+  revenueProxy?: number | null;
+};
+
+export type RecommendationDetail = {
+  observed: string[];
+  likelyCauses: string[];
+  recommendedActions: string[];
+  whyThisHelps: string[];
+  expectedOutcome: string[];
+  evidence: {
+    deterministic: RecommendationEvidenceFact[];
+    inferred: string[];
+  };
+};
+
+export type RecommendationSummary = {
+  recommendationClass: RecommendationClass;
+  primaryMetric: RecommendationPrimaryMetric;
+  expectedDirection: RecommendationExpectedDirection;
+  successWindow: RecommendationSuccessWindow;
+  successSignal: string;
+  timeToValue: RecommendationTimeToValue;
+  firstVisibleWin: string;
+  valueAtStake: RecommendationValueAtStake;
+  confidenceLabel: RecommendationConfidenceLabel;
+  confidenceScore?: number | null;
+  confidenceBasis: string;
+  owner: RecommendationOwner;
+  effort: RecommendationEffort;
+  priorityReason: string;
+  targetPage?: string | null;
+  supportingQueries?: string[];
+};
+
 export type QueryOpportunityRow = {
   query: string;
   clicks: number;
@@ -112,7 +199,7 @@ export type QueryOpportunityRow = {
   opportunityScore: number;
   recommendedAction: string;
   confidence?: number | null;
-  actionDetail?: string | null;
+  actionDetail?: RecommendationDetail | null;
 };
 
 export type PageWinnerLoserRow = {
@@ -126,7 +213,7 @@ export type PageWinnerLoserRow = {
   status: "winner" | "loser" | "flat";
   isStatisticallySignificant?: boolean | null;
   zScore?: number | null;
-  actionDetail?: string | null;
+  actionDetail?: RecommendationDetail | null;
 };
 
 export type NearWinKeywordRow = {
@@ -138,7 +225,7 @@ export type NearWinKeywordRow = {
   targetLandingPage?: string;
   action: string;
   estimatedImpact?: number | null;
-  actionDetail?: string | null;
+  actionDetail?: RecommendationDetail | null;
 };
 
 export type CannibalizationRow = {
@@ -147,7 +234,7 @@ export type CannibalizationRow = {
   totalClicks: number;
   totalImpressions: number;
   recommendation: string;
-  actionDetail?: string | null;
+  actionDetail?: RecommendationDetail | null;
 };
 
 export type TechnicalIssueRow = {
@@ -167,7 +254,7 @@ export type ActionBacklogRow = {
   impactScore: number;
   why: string;
   done: boolean;
-  actionDetail?: string | null;
+  actionDetail?: RecommendationDetail | null;
 };
 
 export type ContentDecayRow = {
@@ -178,7 +265,7 @@ export type ContentDecayRow = {
   peakDate: string;
   estimatedLostClicks: number;
   severity: ReportSectionPriority;
-  actionDetail: string | null;
+  actionDetail: RecommendationDetail | null;
 };
 
 export type LostClickEstimateRow = {
@@ -189,7 +276,24 @@ export type LostClickEstimateRow = {
   positionBucket: number;
   estimatedLostClicks: number;
   confidence: number | null;
-  actionDetail: string | null;
+  actionDetail: RecommendationDetail | null;
+};
+
+export type WeeklyActionRow = RecommendationSummary & {
+  id: string;
+  rank: number;
+  area: "technical" | "content" | "onpage" | "analytics";
+  title: string;
+  whyNow: string;
+  detail: RecommendationDetail;
+};
+
+export type NotRecommendedRow = RecommendationSummary & {
+  id: string;
+  area: "technical" | "content" | "onpage" | "analytics";
+  title: string;
+  notRecommendedReason: string;
+  detail: RecommendationDetail;
 };
 
 export type CtrBenchmarkSummary = {
@@ -260,6 +364,8 @@ export type AiSeoReport = {
   nearWinKeywordRows?: NearWinKeywordRow[];
   cannibalizationRows?: CannibalizationRow[];
   technicalIssueRows?: TechnicalIssueRow[];
+  weeklyActionRows?: WeeklyActionRow[];
+  notRecommendedRows?: NotRecommendedRow[];
   actionBacklogRows?: ActionBacklogRow[];
   workbookDataset?: WorkbookDatasetV2;
   contentDecayRows?: ContentDecayRow[] | null;

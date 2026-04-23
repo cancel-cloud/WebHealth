@@ -48,6 +48,8 @@ test("buildDeterministicInsights with minimal input returns all required keys", 
   assert.ok("nearWinKeywordRows" in result);
   assert.ok("cannibalizationRows" in result);
   assert.ok("technicalIssueRows" in result);
+  assert.ok("weeklyActionRows" in result);
+  assert.ok("notRecommendedRows" in result);
   assert.ok("actionBacklogRows" in result);
   assert.ok("workbookDataset" in result);
   assert.ok("executiveSummary" in result);
@@ -281,6 +283,7 @@ test("buildDeterministicInsights: empty arrays when no data provided", () => {
   assert.equal(result.nearWinKeywordRows.length, 0);
   assert.equal(result.cannibalizationRows.length, 0);
   assert.equal(result.technicalIssueRows.length, 0);
+  assert.equal(result.weeklyActionRows.length, 0);
 });
 
 // Phase 2: New computation tests
@@ -377,6 +380,8 @@ test("twoProportionZTest: identical rates returns z=0", () => {
 
 test("buildDeterministicInsights: new fields present in output", () => {
   const result = buildDeterministicInsights(makeInput());
+  assert.ok("weeklyActionRows" in result);
+  assert.ok("notRecommendedRows" in result);
   assert.ok("contentDecayRows" in result);
   assert.ok("lostClickEstimateRows" in result);
   assert.ok("ctrBenchmarkSummary" in result);
@@ -414,4 +419,37 @@ test("buildDeterministicInsights: alertsAndFlags contentDecayDetected is true wh
   // decayRatio = 20/100 = 0.2 < 0.65, compareClicks = 100 > 50 → should detect decay
   assert.equal(result.alertsAndFlags.contentDecayDetected, true);
   assert.equal(result.contentDecayRows.length, 1);
+});
+
+test("buildDeterministicInsights: weekly actions prefer protect work over lift work", () => {
+  const input = makeInput({
+    gscCurrent: {
+      clicks: 500,
+      impressions: 10000,
+      ctr: 0.05,
+      position: 8,
+      topQueries: [
+        { query: "ctr lift", clicks: 20, impressions: 4000, ctr: 0.01, position: 5 },
+        { query: "near win", clicks: 12, impressions: 3000, ctr: 0.01, position: 11 },
+      ],
+      topPages: [{ page: "https://example.com/decaying", clicks: 20, impressions: 1000 }],
+    },
+    gscCompare: {
+      clicks: 400,
+      impressions: 9000,
+      ctr: 0.044,
+      position: 9,
+      topQueries: [],
+      topPages: [{ page: "https://example.com/decaying", clicks: 100, impressions: 2000 }],
+    },
+    crawl: {
+      summary: {},
+      pages: [
+        { url: "https://example.com/decaying", issues: ["Broken internal links"] },
+      ],
+    } as never,
+  });
+  const result = buildDeterministicInsights(input);
+  assert.ok(result.weeklyActionRows.length > 0);
+  assert.equal(result.weeklyActionRows[0]?.recommendationClass, "protect");
 });

@@ -1,0 +1,91 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import type { PropertyRefreshState } from "@webhealth/shared/lib/property-refresh";
+import { requestJson } from "@/lib/client/api";
+
+const POLL_INTERVAL_MS = 4000;
+
+export function PropertyLiveStatus({
+  propertyId,
+  initialRefreshState,
+  payloadVersion,
+  onStateChange,
+}: {
+  propertyId: string;
+  initialRefreshState: PropertyRefreshState | null;
+  payloadVersion: string;
+  onStateChange?: (state: PropertyRefreshState | null) => void;
+}) {
+  const router = useRouter();
+  const [currentState, setCurrentState] = useState(initialRefreshState);
+  const toastId = `property-refresh-${propertyId}`;
+
+  useEffect(() => {
+    setCurrentState(initialRefreshState);
+  }, [initialRefreshState]);
+
+  useEffect(() => {
+    const isActive = currentState?.status === "queued" || currentState?.status === "processing";
+    if (!isActive) {
+      toast.dismiss(toastId);
+      return;
+    }
+
+    toast.loading(currentState?.message ?? "Refreshing property…", {
+      id: toastId,
+      duration: Infinity,
+    });
+
+    const poll = async () => {
+      let data: {
+        refreshState?: PropertyRefreshState | null;
+        hasNewerPayload?: boolean;
+        isActive?: boolean;
+        isTerminal?: boolean;
+      } | null = null;
+
+      try {
+        data = await requestJson(`/api/properties/${encodeURIComponent(propertyId)}/status?currentPayloadVersion=${encodeURIComponent(payloadVersion)}`, {
+          cache: "no-store",
+        });
+      } catch {
+        return;
+      }
+
+      const nextState = data?.refreshState ?? null;
+      setCurrentState(nextState);
+      onStateChange?.(nextState);
+
+      if (nextState?.status === "complete") {
+        toast.success(nextState.message ?? "Technical refresh complete.", { id: toastId });
+        router.refresh();
+        return;
+      }
+
+      if (nextState?.status === "failed") {
+        toast.error(nextState.message ?? "Technical refresh failed. Showing the last valid decision set.", { id: toastId });
+        router.refresh();
+        return;
+      }
+
+      if (data?.hasNewerPayload) {
+        router.refresh();
+      }
+    };
+
+    const interval = window.setInterval(() => {
+      void poll();
+    }, POLL_INTERVAL_MS);
+    void poll();
+
+    return () => {
+      window.clearInterval(interval);
+      toast.dismiss(toastId);
+    };
+  }, [currentState?.message, currentState?.status, onStateChange, payloadVersion, propertyId, router, toastId]);
+
+  return null;
+}

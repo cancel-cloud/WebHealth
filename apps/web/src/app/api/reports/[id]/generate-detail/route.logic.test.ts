@@ -10,7 +10,21 @@ import {
   shouldGenerateDetail,
   type RowType,
 } from "./route.logic";
-import type { AiSeoReport } from "@webhealth/shared/lib/reports/types";
+import type { AiSeoReport, RecommendationDetail } from "@webhealth/shared/lib/reports/types";
+
+function makeDetail(label: string): RecommendationDetail {
+  return {
+    observed: [label],
+    likelyCauses: [],
+    recommendedActions: [],
+    whyThisHelps: [],
+    expectedOutcome: [],
+    evidence: {
+      deterministic: [],
+      inferred: [],
+    },
+  };
+}
 
 function makeReport(): AiSeoReport {
   return {
@@ -71,23 +85,23 @@ function makeReport(): AiSeoReport {
 
 test("patchRowActionDetail preserves existing details while patching another row", () => {
   const base = makeReport();
-  const afterFirst = patchRowActionDetail(base, "nearWin", "kw-1", "detail-1");
-  const afterSecond = patchRowActionDetail(afterFirst, "nearWin", "kw-2", "detail-2");
+  const afterFirst = patchRowActionDetail(base, "nearWin", "kw-1", makeDetail("detail-1"));
+  const afterSecond = patchRowActionDetail(afterFirst, "nearWin", "kw-2", makeDetail("detail-2"));
 
   const rows = afterSecond.nearWinKeywordRows ?? [];
   const first = rows.find((r) => r.keyword === "kw-1");
   const second = rows.find((r) => r.keyword === "kw-2");
 
-  assert.equal(first?.actionDetail, "detail-1");
-  assert.equal(second?.actionDetail, "detail-2");
+  assert.deepEqual(first?.actionDetail, makeDetail("detail-1"));
+  assert.deepEqual(second?.actionDetail, makeDetail("detail-2"));
 });
 
 test("patchRowActionDetail supports each row type mapping", () => {
   const base = makeReport();
   const rowTypes: RowType[] = ["actionBacklog", "nearWin", "ctrGap", "cannibalization", "contentDecay"];
 
-  const next = patchRowActionDetail(base, rowTypes[0], "task-1", "detail-A");
-  assert.equal(next.actionBacklogRows?.[0]?.actionDetail, "detail-A");
+  const next = patchRowActionDetail(base, rowTypes[0], "task-1", makeDetail("detail-A"));
+  assert.deepEqual(next.actionBacklogRows?.[0]?.actionDetail, makeDetail("detail-A"));
 });
 
 test("computeNextDetailsCostUsd accumulates and formats to 6 decimals", () => {
@@ -98,7 +112,7 @@ test("computeNextDetailsCostUsd accumulates and formats to 6 decimals", () => {
 });
 
 test("shouldGenerateDetail skips OpenAI generation when actionDetail is already cached", () => {
-  assert.equal(shouldGenerateDetail({ actionDetail: "{\"x\":1}" }), false);
+  assert.equal(shouldGenerateDetail({ actionDetail: makeDetail("cached") }), false);
   assert.equal(shouldGenerateDetail({ actionDetail: "" }), true);
   assert.equal(shouldGenerateDetail({}), true);
 });
@@ -124,19 +138,31 @@ test("normalizeDetailUsage maps chat-completions usage fields", () => {
 });
 
 test("serializeActionDetail parses JSON string content before sanitizing", () => {
-  assert.equal(
+  assert.deepEqual(
     serializeActionDetail(
       JSON.stringify({
-        affectedUrls: ["https://example.com/page", "javascript:alert(1)"],
-        fixSteps: [" Step 1 ", "Step 2"],
-        whyItMatters: " Important. ",
+        observed: [" Existing fact "],
+        likelyCauses: [" Likely cause "],
+        recommendedActions: [" Action 1 ", "Action 2"],
+        whyThisHelps: [" Why "],
+        expectedOutcome: [" Outcome "],
+        evidence: {
+          deterministic: [{ label: " Impressions ", value: " 4200 " }],
+          inferred: [" Inferred support "],
+        },
       })
     ),
-    JSON.stringify({
-      affectedUrls: ["https://example.com/page"],
-      fixSteps: ["Step 1", "Step 2"],
-      whyItMatters: "Important.",
-    })
+    {
+      observed: ["Existing fact"],
+      likelyCauses: ["Likely cause"],
+      recommendedActions: ["Action 1", "Action 2"],
+      whyThisHelps: ["Why"],
+      expectedOutcome: ["Outcome"],
+      evidence: {
+        deterministic: [{ label: "Impressions", value: "4200" }],
+        inferred: ["Inferred support"],
+      },
+    }
   );
 });
 

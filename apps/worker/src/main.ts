@@ -29,6 +29,11 @@ async function main() {
         typeof import("@webhealth/shared/lib/queue/report-worker")["startReportWorkerLoop"]
       >
     | null = null;
+  let propertyRefreshWorkerControls:
+    | ReturnType<
+        typeof import("@webhealth/shared/lib/property-refresh-worker")["startPropertyRefreshWorkerLoop"]
+      >
+    | null = null;
   let weeklyReviewSchedulerControls:
     | ReturnType<
         typeof import("@webhealth/shared/lib/weekly-review-scheduler")["startWeeklyReviewScheduler"]
@@ -64,6 +69,7 @@ async function main() {
         watchdogTimer = null;
       }
       workerLoopControls?.stop();
+      propertyRefreshWorkerControls?.stop();
       weeklyReviewSchedulerControls?.stop();
       await Promise.allSettled([
         artifactServer?.stop() ?? Promise.resolve(),
@@ -88,6 +94,9 @@ async function main() {
   const { ensureWorkerDatabaseReady } = await import("@webhealth/shared/db/worker-db-bootstrap");
   const { startReportWorkerLoop, runSingleReportWorkerTick } = await import(
     "@webhealth/shared/lib/queue/report-worker"
+  );
+  const { startPropertyRefreshWorkerLoop } = await import(
+    "@webhealth/shared/lib/property-refresh-worker"
   );
   const { startWeeklyReviewScheduler } = await import(
     "@webhealth/shared/lib/weekly-review-scheduler"
@@ -141,6 +150,7 @@ async function main() {
       onLoopTick: ({ nowMs }) => markLoopTick(runtimeState, nowMs),
     },
   });
+  propertyRefreshWorkerControls = startPropertyRefreshWorkerLoop();
 
   watchdogTimer = setInterval(() => {
     if (

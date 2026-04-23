@@ -373,6 +373,7 @@ var workerPhase = "boot";
 async function main() {
   let artifactServer = null;
   let workerLoopControls = null;
+  let propertyRefreshWorkerControls = null;
   let weeklyReviewSchedulerControls = null;
   let closeDb = null;
   let watchdogTimer = null;
@@ -400,6 +401,7 @@ async function main() {
         watchdogTimer = null;
       }
       workerLoopControls?.stop();
+      propertyRefreshWorkerControls?.stop();
       weeklyReviewSchedulerControls?.stop();
       await Promise.allSettled([
         artifactServer?.stop() ?? Promise.resolve(),
@@ -417,10 +419,11 @@ async function main() {
   });
   workerPhase = "imports";
   markWorkerPhase(runtimeState, "imports");
-  const sharedDbModule = await import("./chunks/db-MQGG776L.js");
+  const sharedDbModule = await import("./chunks/db-SO74L5BG.js");
   const { ensureWorkerDatabaseReady } = await import("./chunks/worker-db-bootstrap-O6DFN672.js");
-  const { startReportWorkerLoop, runSingleReportWorkerTick } = await import("./chunks/report-worker-FPA3WLAO.js");
-  const { startWeeklyReviewScheduler } = await import("./chunks/weekly-review-scheduler-AKIBFQM4.js");
+  const { startReportWorkerLoop, runSingleReportWorkerTick } = await import("./chunks/report-worker-I2RPZENN.js");
+  const { startPropertyRefreshWorkerLoop } = await import("./chunks/property-refresh-worker-TFSM3T5F.js");
+  const { startWeeklyReviewScheduler } = await import("./chunks/weekly-review-scheduler-GNIHILXY.js");
   closeDb = sharedDbModule.closeDb;
   workerPhase = "database-ready";
   markWorkerPhase(runtimeState, "database-ready");
@@ -465,6 +468,7 @@ async function main() {
       onLoopTick: ({ nowMs }) => markLoopTick(runtimeState, nowMs)
     }
   });
+  propertyRefreshWorkerControls = startPropertyRefreshWorkerLoop();
   watchdogTimer = setInterval(() => {
     if (shouldForceExitForStuckJob({
       currentJobStartedAtMs: runtimeState.currentJobStartedAtMs,

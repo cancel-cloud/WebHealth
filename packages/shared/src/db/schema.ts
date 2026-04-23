@@ -77,6 +77,28 @@ export const teams = pgTable("teams", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const teamBrandingProfiles = pgTable("team_branding_profiles", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id")
+    .notNull()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  agencyName: text("agency_name"),
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  websiteUrl: text("website_url"),
+  logoUrl: text("logo_url"),
+  iconUrl: text("icon_url"),
+  primaryColor: text("primary_color"),
+  accentColor: text("accent_color"),
+  footerNote: text("footer_note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.teamId),
+  index("team_branding_profiles_team_updated_idx").on(t.teamId, t.updatedAt),
+]);
+
 export const teamMembers = pgTable("team_members", {
   id: text("id").primaryKey(),
   teamId: text("team_id")
@@ -145,6 +167,192 @@ export const reports = pgTable("reports", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const reportRecommendationStates = pgTable("report_recommendation_states", {
+  id: text("id").primaryKey(),
+  reportId: text("report_id")
+    .notNull()
+    .references(() => reports.id, { onDelete: "cascade" }),
+  recommendationId: text("recommendation_id").notNull(),
+  state: text("state").default("open").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.reportId, t.recommendationId),
+  index("report_recommendation_states_report_state_idx").on(t.reportId, t.state, t.updatedAt),
+]);
+
+export const reportRecommendationFeedback = pgTable("report_recommendation_feedback", {
+  id: text("id").primaryKey(),
+  reportId: text("report_id")
+    .notNull()
+    .references(() => reports.id, { onDelete: "cascade" }),
+  recommendationId: text("recommendation_id").notNull(),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+  feedbackType: text("feedback_type").notNull(),
+  note: text("note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.reportId, t.recommendationId),
+  index("report_recommendation_feedback_report_type_idx").on(t.reportId, t.feedbackType, t.updatedAt),
+]);
+
+export const actionItems = pgTable("action_items", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id")
+    .notNull()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  propertyId: text("property_id")
+    .notNull()
+    .references(() => properties.id, { onDelete: "cascade" }),
+  fingerprint: text("fingerprint").notNull(),
+  actionFamily: text("action_family").notNull(),
+  causeFamily: text("cause_family").notNull(),
+  remedyKey: text("remedy_key").notNull(),
+  targetType: text("target_type").notNull(),
+  targetKey: text("target_key").notNull(),
+  title: text("title").notNull(),
+  owner: text("owner"),
+  state: text("state").default("open").notNull(),
+  systemRank: integer("system_rank"),
+  systemScore: integer("system_score"),
+  priorityOverride: text("priority_override").default("none").notNull(),
+  overrideReason: text("override_reason"),
+  overrideUpdatedByUserId: text("override_updated_by_user_id").references(() => user.id, { onDelete: "set null" }),
+  overrideUpdatedAt: timestamp("override_updated_at"),
+  snoozedUntil: date("snoozed_until"),
+  lastEvaluatedAt: timestamp("last_evaluated_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.propertyId, t.fingerprint),
+  index("action_items_property_state_idx").on(t.propertyId, t.state, t.updatedAt),
+  index("action_items_team_property_updated_idx").on(t.teamId, t.propertyId, t.updatedAt),
+  index("action_items_team_rank_idx").on(t.teamId, t.systemRank, t.updatedAt),
+]);
+
+export const actionFeedback = pgTable("action_feedback", {
+  id: text("id").primaryKey(),
+  actionItemId: text("action_item_id")
+    .notNull()
+    .references(() => actionItems.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+  feedbackType: text("feedback_type").notNull(),
+  note: text("note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("action_feedback_item_created_idx").on(t.actionItemId, t.createdAt),
+  index("action_feedback_user_created_idx").on(t.userId, t.createdAt),
+]);
+
+export const analysisWindowCache = pgTable("analysis_window_cache", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id")
+    .notNull()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  propertyId: text("property_id")
+    .notNull()
+    .references(() => properties.id, { onDelete: "cascade" }),
+  preset: text("preset").notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  compareMode: text("compare_mode").notNull(),
+  compareStartDate: date("compare_start_date"),
+  compareEndDate: date("compare_end_date"),
+  requestedEndDate: date("requested_end_date").notNull(),
+  sourceVersionHash: text("source_version_hash").notNull(),
+  freshnessState: text("freshness_state").default("complete").notNull(),
+  freshnessSummary: jsonb("freshness_summary"),
+  resolvedPayload: jsonb("resolved_payload").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(
+    t.propertyId,
+    t.startDate,
+    t.endDate,
+    t.compareMode,
+    t.compareStartDate,
+    t.compareEndDate,
+    t.sourceVersionHash,
+  ),
+  index("analysis_window_cache_property_expiry_idx").on(t.propertyId, t.expiresAt, t.updatedAt),
+  index("analysis_window_cache_team_property_idx").on(t.teamId, t.propertyId, t.updatedAt),
+]);
+
+export const snapshotExports = pgTable("snapshot_exports", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id")
+    .notNull()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  propertyId: text("property_id")
+    .notNull()
+    .references(() => properties.id, { onDelete: "cascade" }),
+  createdByUserId: text("created_by_user_id").references(() => user.id, { onDelete: "set null" }),
+  preset: text("preset").notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  compareMode: text("compare_mode").notNull(),
+  compareStartDate: date("compare_start_date"),
+  compareEndDate: date("compare_end_date"),
+  requestedEndDate: date("requested_end_date").notNull(),
+  freshnessState: text("freshness_state").default("complete").notNull(),
+  freshnessSummary: jsonb("freshness_summary"),
+  brandingSnapshot: jsonb("branding_snapshot"),
+  dashboardPayload: jsonb("dashboard_payload").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("snapshot_exports_property_created_idx").on(t.propertyId, t.createdAt),
+  index("snapshot_exports_team_created_idx").on(t.teamId, t.createdAt),
+]);
+
+export const propertyRefreshJobs = pgTable("property_refresh_jobs", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  triggeredByUserId: text("triggered_by_user_id").references(() => user.id, { onDelete: "set null" }),
+  jobType: text("job_type").notNull(), // crawl_refresh | decision_refresh
+  status: text("status").default("queued").notNull(), // queued | processing | complete | failed | partial
+  phase: text("phase").default("queued").notNull(),
+  message: text("message"),
+  progressMeta: jsonb("progress_meta"),
+  payload: jsonb("payload"),
+  lastError: text("last_error"),
+  availableAt: timestamp("available_at").defaultNow().notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  maxAttempts: integer("max_attempts").default(2).notNull(),
+  claimedBy: text("claimed_by"),
+  claimedAt: timestamp("claimed_at"),
+  claimExpiresAt: timestamp("claim_expires_at"),
+  heartbeatAt: timestamp("heartbeat_at"),
+  startedAt: timestamp("started_at"),
+  finishedAt: timestamp("finished_at"),
+  supersededAt: timestamp("superseded_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("property_refresh_jobs_team_property_idx").on(t.teamId, t.propertyId, t.createdAt),
+  index("property_refresh_jobs_status_available_idx").on(t.status, t.availableAt, t.createdAt),
+  index("property_refresh_jobs_property_status_idx").on(t.propertyId, t.status, t.updatedAt),
+]);
+
+export const propertyCrawlSnapshots = pgTable("property_crawl_snapshots", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  refreshJobId: text("refresh_job_id").references(() => propertyRefreshJobs.id, { onDelete: "set null" }),
+  source: text("source").default("property_refresh").notNull(), // property_refresh | report_fallback
+  crawlData: jsonb("crawl_data").notNull(),
+  pageCount: integer("page_count").default(0).notNull(),
+  fingerprint: text("fingerprint"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("property_crawl_snapshots_property_created_idx").on(t.propertyId, t.createdAt),
+  index("property_crawl_snapshots_refresh_idx").on(t.refreshJobId),
+]);
 
 export const propertyWeeklyReviews = pgTable("property_weekly_reviews", {
   id: text("id").primaryKey(),
