@@ -19,7 +19,7 @@ test("report detail content uses the full authenticated shell width", async () =
   );
   assert.match(
     reportDetailClientViewSource,
-    /className="relative z-10 w-full px-1 py-4 sm:px-2 lg:py-6"/
+    /className="relative z-10 w-full bg-report-canvas px-1 py-4 sm:px-2 lg:py-6"/
   );
 });
 
@@ -29,5 +29,22 @@ test("report detail does not render a top gradient overlay", async () => {
   assert.ok(
     !reportPageSource.includes("bg-gradient-to-b from-primary/6 to-transparent"),
     "report detail should not render the top gradient overlay"
+  );
+});
+
+test("report detail leads with the compact header and weekly action surface", async () => {
+  const reportDetailClientViewSource = await readReportDetailClientViewSource();
+  const reportPageSource = await readReportPageSource();
+
+  assert.match(reportDetailClientViewSource, /data-report-header/);
+  assert.match(reportPageSource, /data-report-secondary/);
+
+  assert.ok(
+    reportPageSource.indexOf("<ActionBacklog") < reportPageSource.indexOf("data-report-secondary"),
+    "weekly actions should appear before the secondary evidence stack"
+  );
+  assert.ok(
+    reportPageSource.indexOf("<NotRecommendedSection") < reportPageSource.indexOf("data-report-secondary"),
+    "not recommended should stay subordinate but still above the evidence stack"
   );
 });

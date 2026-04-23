@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import type { RecommendationDetail } from "@webhealth/shared/lib/reports/types";
 import { Button } from "@/components/ui/button";
 import { getAppErrorMessage, isAppError } from "@/lib/client/app-error";
 import { requestJson } from "@/lib/client/api";
@@ -9,6 +10,7 @@ import { ActionDetailModal } from "./action-detail-modal";
 import { getDetailToastId, getDetailToastState } from "./get-details-button.logic";
 
 type RowType =
+  | "weeklyAction"
   | "actionBacklog"
   | "ctrGap"
   | "nearWin"
@@ -20,11 +22,11 @@ type GetDetailsButtonProps = {
   rowType: RowType;
   rowId: string;
   rowTitle: string;
-  initialDetail?: string | null;
+  initialDetail?: RecommendationDetail | null;
 };
 
-const detailCache = new Map<string, string>();
-const inFlightByKey = new Map<string, Promise<string | null>>();
+const detailCache = new Map<string, RecommendationDetail>();
+const inFlightByKey = new Map<string, Promise<RecommendationDetail | null>>();
 const PENDING_STORAGE_KEY = "webhealth:detail-pending:v1";
 const POLL_INTERVAL_MS = 2500;
 const PENDING_MAX_AGE_MS = 1000 * 60 * 5;
@@ -93,7 +95,7 @@ export function GetDetailsButton({
     [detailKey, rowTitle]
   );
 
-  const [detail, setDetail] = useState<string | null>(() => {
+  const [detail, setDetail] = useState<RecommendationDetail | null>(() => {
     return detailCache.get(detailKey) ?? initialDetail ?? null;
   });
   const [loading, setLoading] = useState(() => inFlightByKey.has(detailKey) || hasFreshPendingPersisted(detailKey));
@@ -121,7 +123,7 @@ export function GetDetailsButton({
     let cancelled = false;
     let intervalId: number | null = null;
 
-    const attachToPending = (request: Promise<string | null>) => {
+    const attachToPending = (request: Promise<RecommendationDetail | null>) => {
       setLoading(true);
       void request
         .then((nextDetail) => {
@@ -154,7 +156,7 @@ export function GetDetailsButton({
         try {
           const data = await requestJson<{
             ready?: boolean;
-            actionDetail?: string | null;
+            actionDetail?: RecommendationDetail | null;
           }>(
             `/api/reports/${reportId}/generate-detail?rowType=${encodeURIComponent(rowType)}&rowId=${encodeURIComponent(rowId)}`,
             { cache: "no-store" }
@@ -213,7 +215,7 @@ export function GetDetailsButton({
 
   async function generateDetail() {
     const data = await requestJson<{
-      actionDetail?: string | null;
+      actionDetail?: RecommendationDetail | null;
     }>(`/api/reports/${reportId}/generate-detail`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

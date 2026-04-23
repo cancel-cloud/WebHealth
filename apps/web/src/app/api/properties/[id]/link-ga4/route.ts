@@ -7,6 +7,7 @@ import { enqueueReportJob } from "@webhealth/shared/queue";
 import { badRequest, notFound } from "@webhealth/shared/lib/http-errors";
 import { handleRouteError } from "@/lib/server/route-security";
 import { requireTeamOwner, requireUnrestrictedSession } from "@/lib/server/authz";
+import { decodeRouteParam } from "@/lib/server/route-params";
 
 // PATCH /api/properties/[id]/link-ga4
 // Body: { ga4PropertyId: string } — numeric ID like "123456789"
@@ -18,7 +19,8 @@ export async function PATCH(
     const session = await requireUnrestrictedSession();
     const ownerMembership = await requireTeamOwner(session);
 
-    const { id: gscPropertyId } = await params;
+    const { id } = await params;
+    const gscPropertyId = decodeRouteParam(id);
     const body = await req.json();
     const { ga4PropertyId } = body;
 

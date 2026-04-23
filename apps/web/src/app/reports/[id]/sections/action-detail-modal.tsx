@@ -1,5 +1,6 @@
 "use client";
 
+import type { RecommendationDetail } from "@webhealth/shared/lib/reports/types";
 import { sanitizeActionDetailPayload } from "@webhealth/shared/lib/action-detail";
 import {
   Dialog,
@@ -8,93 +9,100 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type ActionDetail = {
-  affectedUrls: string[];
-  fixSteps: string[];
-  whyItMatters: string;
-};
-
 type ActionDetailModalProps = {
   open: boolean;
   onClose: () => void;
   title: string;
-  detail: string | null;
+  detail: RecommendationDetail | null;
 };
 
-function isSafeUrl(url: string): boolean {
-  try { return ["http:", "https:"].includes(new URL(url).protocol); }
-  catch { return false; }
+function DetailList({ items }: { items: string[] }) {
+  if (items.length === 0) return null;
+
+  return (
+    <ul className="space-y-1.5 text-foreground/80">
+      {items.map((item) => (
+        <li key={item} className="leading-relaxed">
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function ActionDetailModal({ open, onClose, title, detail }: ActionDetailModalProps) {
-  let parsed: ActionDetail | null = null;
-  let parseError = false;
-
-  if (detail) {
-    try {
-      parsed = sanitizeActionDetailPayload(JSON.parse(detail));
-    } catch {
-      parseError = true;
-    }
-  }
+  const parsed = detail ? sanitizeActionDetailPayload(detail) : null;
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
-      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto rounded-lg">
         <DialogHeader>
           <DialogTitle className="text-base leading-snug">{title}</DialogTitle>
         </DialogHeader>
 
-        {!detail && (
+        {!parsed && (
           <p className="text-sm text-muted-foreground">No details available.</p>
         )}
 
-        {parseError && detail && (
-          <p className="text-sm text-foreground/80">{detail}</p>
-        )}
-
         {parsed && (
-          <div className="space-y-4 text-sm">
-            {parsed.affectedUrls.length > 0 && (
-              <div>
-                <p className="font-semibold mb-1">Affected pages</p>
-                <ul className="space-y-1">
-                  {parsed.affectedUrls.map((url) => (
-                    <li key={url}>
-                      {isSafeUrl(url) ? (
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary underline underline-offset-2 break-all"
+          <div className="space-y-5 text-sm">
+            <section className="space-y-2">
+              <h3 className="font-semibold">Observed</h3>
+              <DetailList items={parsed.observed} />
+            </section>
+
+            <section className="space-y-2">
+              <h3 className="font-semibold">Likely Cause</h3>
+              <DetailList items={parsed.likelyCauses} />
+            </section>
+
+            <section className="space-y-2">
+              <h3 className="font-semibold">Recommended Action</h3>
+              <DetailList items={parsed.recommendedActions} />
+            </section>
+
+            <section className="space-y-2">
+              <h3 className="font-semibold">Why This Helps</h3>
+              <DetailList items={parsed.whyThisHelps} />
+            </section>
+
+            <section className="space-y-2">
+              <h3 className="font-semibold">Expected Outcome</h3>
+              <DetailList items={parsed.expectedOutcome} />
+            </section>
+
+            {(parsed.evidence.deterministic.length > 0 || parsed.evidence.inferred.length > 0) && (
+              <section className="space-y-3 rounded-lg border border-border/50 bg-muted/20 p-4">
+                <h3 className="font-semibold">Why This Was Flagged</h3>
+
+                {parsed.evidence.deterministic.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Deterministic Evidence
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {parsed.evidence.deterministic.map((item) => (
+                        <div
+                          key={`${item.label}:${item.value}`}
+                          className="rounded-lg border border-border/40 bg-background px-3 py-2"
                         >
-                          {url}
-                        </a>
-                      ) : (
-                        <span className="break-all text-muted-foreground">{url}</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                          <p className="text-xs text-muted-foreground">{item.label}</p>
+                          <p className="font-medium">{item.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {parsed.fixSteps.length > 0 && (
-              <div>
-                <p className="font-semibold mb-1">How to fix</p>
-                <div className="space-y-1 text-foreground/80">
-                  {parsed.fixSteps.map((step, i) => (
-                    <p key={i}>{step}</p>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {parsed.whyItMatters && (
-              <div>
-                <p className="font-semibold mb-1">Why it matters</p>
-                <p className="text-foreground/80">{parsed.whyItMatters}</p>
-              </div>
+                {parsed.evidence.inferred.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Inferred Support
+                    </p>
+                    <DetailList items={parsed.evidence.inferred} />
+                  </div>
+                )}
+              </section>
             )}
           </div>
         )}

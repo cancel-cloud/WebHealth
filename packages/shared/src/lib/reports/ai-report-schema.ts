@@ -2,6 +2,14 @@ import { z } from "zod";
 import type { AiSeoReport } from "@webhealth/shared/lib/reports/types";
 
 const priority = z.enum(["KRITISCH", "HOCH", "MITTEL", "NIEDRIG"]);
+const recommendationClass = z.enum(["protect", "lift", "expand"]);
+const recommendationPrimaryMetric = z.enum(["clicks", "ctr", "rankings", "crawl_health", "coverage"]);
+const recommendationExpectedDirection = z.enum(["recover", "improve", "preserve", "expand"]);
+const recommendationSuccessWindow = z.enum(["0-7d", "7-21d", "14-42d", "30-90d"]);
+const recommendationConfidenceLabel = z.enum(["high", "medium", "exploratory"]);
+const recommendationOwner = z.enum(["seo", "content", "developer", "decision_maker"]);
+const recommendationEffort = z.enum(["XS", "S", "M", "L"]);
+const recommendationTimeToValue = z.enum(["days", "weeks", "months"]);
 
 type JsonSchema = Record<string, unknown>;
 
@@ -100,6 +108,53 @@ const kpiTrendRowSchema = z.object({
   usersCompare: z.number().optional(),
 });
 
+const recommendationEvidenceFactSchema = z.object({
+  label: z.string(),
+  value: z.string(),
+});
+
+const recommendationDetailSchema = z.object({
+  observed: z.array(z.string()).default([]),
+  likelyCauses: z.array(z.string()).default([]),
+  recommendedActions: z.array(z.string()).default([]),
+  whyThisHelps: z.array(z.string()).default([]),
+  expectedOutcome: z.array(z.string()).default([]),
+  evidence: z.object({
+    deterministic: z.array(recommendationEvidenceFactSchema).default([]),
+    inferred: z.array(z.string()).default([]),
+  }).default({
+    deterministic: [],
+    inferred: [],
+  }),
+});
+
+const recommendationValueAtStakeSchema = z.object({
+  clicksAtRisk: z.number().nullable().default(null),
+  recoveryPotential: z.number().nullable().default(null),
+  nearWinOpportunity: z.number().nullable().default(null),
+  trafficExposure: z.number().nullable().default(null),
+  revenueProxy: z.number().nullable().default(null),
+});
+
+const recommendationSummarySchema = z.object({
+  recommendationClass,
+  primaryMetric: recommendationPrimaryMetric,
+  expectedDirection: recommendationExpectedDirection,
+  successWindow: recommendationSuccessWindow,
+  successSignal: z.string(),
+  timeToValue: recommendationTimeToValue,
+  firstVisibleWin: z.string(),
+  valueAtStake: recommendationValueAtStakeSchema,
+  confidenceLabel: recommendationConfidenceLabel,
+  confidenceScore: z.number().nullable().default(null),
+  confidenceBasis: z.string(),
+  owner: recommendationOwner,
+  effort: recommendationEffort,
+  priorityReason: z.string(),
+  targetPage: z.string().nullable().default(null),
+  supportingQueries: z.array(z.string()).default([]),
+});
+
 const queryOpportunitySchema = z.object({
   query: z.string(),
   clicks: z.number(),
@@ -111,7 +166,7 @@ const queryOpportunitySchema = z.object({
   opportunityScore: z.number(),
   recommendedAction: z.string(),
   confidence: z.number().nullable().default(null),
-  actionDetail: z.string().nullable().default(null),
+  actionDetail: recommendationDetailSchema.nullable().default(null),
 });
 
 const pageWinnerLoserSchema = z.object({
@@ -125,7 +180,7 @@ const pageWinnerLoserSchema = z.object({
   status: z.enum(["winner", "loser", "flat"]),
   isStatisticallySignificant: z.boolean().nullable().default(null),
   zScore: z.number().nullable().default(null),
-  actionDetail: z.string().nullable().default(null),
+  actionDetail: recommendationDetailSchema.nullable().default(null),
 });
 
 const nearWinKeywordSchema = z.object({
@@ -137,7 +192,7 @@ const nearWinKeywordSchema = z.object({
   targetLandingPage: z.string().nullable().default(null),
   action: z.string(),
   estimatedImpact: z.number().nullable().default(null),
-  actionDetail: z.string().nullable().default(null),
+  actionDetail: recommendationDetailSchema.nullable().default(null),
 });
 
 const cannibalizationSchema = z.object({
@@ -146,7 +201,7 @@ const cannibalizationSchema = z.object({
   totalClicks: z.number(),
   totalImpressions: z.number(),
   recommendation: z.string(),
-  actionDetail: z.string().nullable().default(null),
+  actionDetail: recommendationDetailSchema.nullable().default(null),
 });
 
 const technicalIssueSchema = z.object({
@@ -166,7 +221,24 @@ const actionBacklogSchema = z.object({
   impactScore: z.number(),
   why: z.string(),
   done: z.boolean(),
-  actionDetail: z.string().nullable().default(null),
+  actionDetail: recommendationDetailSchema.nullable().default(null),
+});
+
+const weeklyActionSchema = recommendationSummarySchema.extend({
+  id: z.string(),
+  rank: z.number().int().positive(),
+  area: z.enum(["technical", "content", "onpage", "analytics"]),
+  title: z.string(),
+  whyNow: z.string(),
+  detail: recommendationDetailSchema,
+});
+
+const notRecommendedSchema = recommendationSummarySchema.extend({
+  id: z.string(),
+  area: z.enum(["technical", "content", "onpage", "analytics"]),
+  title: z.string(),
+  notRecommendedReason: z.string(),
+  detail: recommendationDetailSchema,
 });
 
 const contentDecayRowSchema = z.object({
@@ -177,7 +249,7 @@ const contentDecayRowSchema = z.object({
   peakDate: z.string(),
   estimatedLostClicks: z.number(),
   severity: priority,
-  actionDetail: z.string().nullable().default(null),
+  actionDetail: recommendationDetailSchema.nullable().default(null),
 });
 
 const lostClickEstimateRowSchema = z.object({
@@ -188,7 +260,7 @@ const lostClickEstimateRowSchema = z.object({
   positionBucket: z.number(),
   estimatedLostClicks: z.number(),
   confidence: z.number().nullable().default(null),
-  actionDetail: z.string().nullable().default(null),
+  actionDetail: recommendationDetailSchema.nullable().default(null),
 });
 
 const alertsAndFlagsSchema = z.object({
@@ -265,6 +337,8 @@ export const aiSeoReportSchema = z.object({
   nearWinKeywordRows: z.array(nearWinKeywordSchema).default([]),
   cannibalizationRows: z.array(cannibalizationSchema).default([]),
   technicalIssueRows: z.array(technicalIssueSchema).default([]),
+  weeklyActionRows: z.array(weeklyActionSchema).default([]),
+  notRecommendedRows: z.array(notRecommendedSchema).default([]),
   actionBacklogRows: z.array(actionBacklogSchema).default([]),
   contentDecayRows: z.array(contentDecayRowSchema).nullable().default(null),
   lostClickEstimateRows: z.array(lostClickEstimateRowSchema).nullable().default(null),

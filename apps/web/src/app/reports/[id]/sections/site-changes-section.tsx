@@ -13,7 +13,7 @@ export function SiteChangesSection({ siteChanges }: SiteChangesSectionProps) {
   if (!hasChanges) return null;
 
   return (
-    <details className="rounded-lg border border-border/50 bg-card shadow-sm overflow-hidden">
+    <details className="overflow-hidden rounded-lg border border-report-separator bg-report-panel shadow-sm">
       <summary className="px-6 py-4 cursor-pointer text-base font-semibold font-display select-none">
         Site Changes
         <span className="ml-2 text-sm font-normal text-muted-foreground">

@@ -80,19 +80,19 @@ function QueryTable({ data }: { data: QueryOpportunityRow[] }) {
   });
 
   return (
-    <div className="border border-border/50 rounded-lg overflow-hidden bg-card shadow-sm">
-      <div className="p-4 border-b border-border/30">
+    <div className="overflow-hidden rounded-lg border border-report-separator bg-report-panel shadow-sm">
+      <div className="border-b border-report-separator p-4">
         <input
           type="search"
           placeholder="Filter queries…"
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
-          className="w-full max-w-sm text-sm border border-border/50 rounded-lg px-3 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+          className="w-full max-w-sm rounded-lg border border-report-separator bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-muted/30">
+          <thead className="bg-report-subtle">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((header) => (
@@ -110,7 +110,7 @@ function QueryTable({ data }: { data: QueryOpportunityRow[] }) {
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-t border-border/30 hover:bg-muted/20 transition-colors">
+              <tr key={row.id} className="border-t border-report-separator transition-colors hover:bg-report-subtle">
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="py-3 px-4 max-w-[250px] truncate">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -121,7 +121,7 @@ function QueryTable({ data }: { data: QueryOpportunityRow[] }) {
           </tbody>
         </table>
       </div>
-      <div className="p-3 border-t border-border/30 flex items-center justify-between text-sm text-muted-foreground">
+      <div className="flex items-center justify-between border-t border-report-separator p-3 text-sm text-muted-foreground">
         <span>
           {table.getFilteredRowModel().rows.length} queries
         </span>
@@ -129,7 +129,7 @@ function QueryTable({ data }: { data: QueryOpportunityRow[] }) {
           <button
             disabled={!table.getCanPreviousPage()}
             onClick={() => table.previousPage()}
-            className="px-2 py-1 rounded border border-border/50 disabled:opacity-30"
+            className="rounded border border-report-separator px-2 py-1 disabled:opacity-30"
           >
             ←
           </button>
@@ -139,7 +139,7 @@ function QueryTable({ data }: { data: QueryOpportunityRow[] }) {
           <button
             disabled={!table.getCanNextPage()}
             onClick={() => table.nextPage()}
-            className="px-2 py-1 rounded border border-border/50 disabled:opacity-30"
+            className="rounded border border-report-separator px-2 py-1 disabled:opacity-30"
           >
             →
           </button>

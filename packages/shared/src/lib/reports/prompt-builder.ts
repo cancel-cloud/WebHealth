@@ -84,7 +84,7 @@ export function buildAiReportPrompt(input: PromptBuilderInput) {
         `8. contentAuditRows — for EACH row: set actionDetail and refreshStrategy (concrete update tactic).`,
         `9. Pass-through (return exactly as provided, do NOT modify):`,
         `   kpiComparisonRows, kpiTrendRows, pageWinnerLoserRows, lostClickEstimateRows,`,
-        `   technicalIssueRows, actionBacklogRows, technicalQuickWinRows, actionPlanRows,`,
+        `   technicalIssueRows, weeklyActionRows, notRecommendedRows, actionBacklogRows, technicalQuickWinRows, actionPlanRows,`,
         `   siteChanges, workbookDataset.`,
       ].join("\n")
     : "";

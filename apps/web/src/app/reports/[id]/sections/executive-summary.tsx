@@ -13,50 +13,57 @@ export function ExecutiveSummary({ executiveSummary, alertsAndFlags }: Executive
   if (!executiveSummary) return null;
 
   return (
-    <div className="p-6 rounded-lg bg-card border border-border/50 shadow-sm">
-      <h2 className="text-xl font-bold font-display mb-2">Executive Summary</h2>
-      <p className="text-lg font-medium mb-4">{executiveSummary.headline}</p>
+    <section className="rounded-lg border border-report-separator bg-report-panel px-5 py-5 shadow-sm">
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold font-display">Why These Actions Rose To The Top</h2>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            Use this as supporting context after you scan the ranked action list.
+          </p>
+        </div>
 
-      {executiveSummary.topActionAreas.length > 0 && (
-        <div className="mb-4">
-          <p className="text-sm text-muted-foreground mb-2 font-medium">Top Action Areas</p>
-          <ul className="space-y-1">
-            {executiveSummary.topActionAreas.map((area, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm">
-                <span className="mt-0.5 h-4 w-4 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-bold shrink-0">
-                  {i + 1}
+        <p className="max-w-4xl text-sm leading-6 text-foreground/88 sm:text-base">
+          {executiveSummary.headline}
+        </p>
+
+        {executiveSummary.topActionAreas.length > 0 ? (
+          <ul className="grid gap-2 text-sm text-foreground/88 md:grid-cols-2">
+            {executiveSummary.topActionAreas.slice(0, 4).map((area, index) => (
+              <li key={area} className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-report-subtle text-[11px] font-semibold text-foreground">
+                  {index + 1}
                 </span>
-                {area}
+                <span>{area}</span>
               </li>
             ))}
           </ul>
-        </div>
-      )}
+        ) : null}
 
-      {alertsAndFlags && (
-        <div className="flex flex-wrap gap-2 mt-3">
-          {alertsAndFlags.contentDecayDetected && (
-            <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
-              Content Decay Detected
-            </Badge>
-          )}
-          {alertsAndFlags.significantLosers.length > 0 && (
-            <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50">
-              {alertsAndFlags.significantLosers.length} Significant Losers
-            </Badge>
-          )}
-          {alertsAndFlags.cannibalizationCount > 0 && (
-            <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50">
-              {alertsAndFlags.cannibalizationCount} Cannibalization Issues
-            </Badge>
-          )}
-          {alertsAndFlags.criticalTechnicalIssues > 0 && (
-            <Badge variant="outline" className="text-red-700 border-red-300 bg-red-50">
-              {alertsAndFlags.criticalTechnicalIssues} Critical Technical Issues
-            </Badge>
-          )}
-        </div>
-      )}
-    </div>
+        {alertsAndFlags ? (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {alertsAndFlags.criticalTechnicalIssues > 0 ? (
+              <Badge variant="outline" className="border-red-300/70 bg-red-500/8 text-red-700 dark:text-red-200">
+                {alertsAndFlags.criticalTechnicalIssues} critical technical issue{alertsAndFlags.criticalTechnicalIssues === 1 ? "" : "s"}
+              </Badge>
+            ) : null}
+            {alertsAndFlags.contentDecayDetected ? (
+              <Badge variant="outline" className="border-amber-300/70 bg-amber-500/8 text-amber-700 dark:text-amber-200">
+                Content decay detected
+              </Badge>
+            ) : null}
+            {alertsAndFlags.significantLosers.length > 0 ? (
+              <Badge variant="outline" className="border-report-separator bg-report-chip text-report-chip-foreground shadow-none">
+                {alertsAndFlags.significantLosers.length} pages losing traffic
+              </Badge>
+            ) : null}
+            {alertsAndFlags.cannibalizationCount > 0 ? (
+              <Badge variant="outline" className="border-report-separator bg-report-chip text-report-chip-foreground shadow-none">
+                {alertsAndFlags.cannibalizationCount} overlap issue{alertsAndFlags.cannibalizationCount === 1 ? "" : "s"}
+              </Badge>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </section>
   );
 }

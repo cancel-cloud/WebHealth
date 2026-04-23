@@ -25,7 +25,7 @@ export function DeepDiveTechnical({ rows, crawlSummary }: DeepDiveTechnicalProps
       {hasIssues && (
         <div className="grid md:grid-cols-2 gap-4 mb-6">
           {(rows ?? []).slice(0, 8).map((row) => (
-            <div key={row.issueType} className="p-4 rounded-lg bg-card border border-border/50 shadow-sm">
+            <div key={row.issueType} className="rounded-lg border border-report-separator bg-report-panel p-4 shadow-sm">
               <div className="flex items-center justify-between gap-2 mb-1">
                 <p className="font-semibold text-sm">{row.issueType}</p>
                 <Badge variant="outline" className={severityColor[row.severity] ?? ""}>
@@ -47,7 +47,7 @@ export function DeepDiveTechnical({ rows, crawlSummary }: DeepDiveTechnicalProps
             {Object.entries(crawlSummary!).map(([key, val]) => (
               <div
                 key={key}
-                className={`p-4 rounded-lg border ${val > 0 ? "bg-red-50 dark:bg-red-950/20 border-red-200" : "bg-card border-border/50"} shadow-sm text-center`}
+                className={`rounded-lg border p-4 text-center shadow-sm ${val > 0 ? "border-red-200 bg-red-50 dark:bg-red-950/20" : "border-report-separator bg-report-panel"}`}
               >
                 <p className={`text-2xl font-bold font-display ${val > 0 ? "text-red-600" : "text-green-600"}`}>
                   {val}

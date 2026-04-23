@@ -779,7 +779,7 @@ async function processGenerateDetailJob(job: ClaimedReportJob, workerId: string)
       }
 
       if (!shouldGenerateDetail(latestRowData)) {
-        finalSerializedDetail = String(latestRowData.actionDetail ?? finalSerializedDetail);
+        finalSerializedDetail = latestRowData.actionDetail as typeof finalSerializedDetail;
         saved = true;
         break;
       }
@@ -990,6 +990,8 @@ function buildFallbackReportFromDeterministic(params: {
     nearWinKeywordRows: params.deterministic.nearWinKeywordRows,
     cannibalizationRows: params.deterministic.cannibalizationRows,
     technicalIssueRows: params.deterministic.technicalIssueRows,
+    weeklyActionRows: params.deterministic.weeklyActionRows,
+    notRecommendedRows: params.deterministic.notRecommendedRows,
     actionBacklogRows: params.deterministic.actionBacklogRows,
     workbookDataset: params.deterministic.workbookDataset,
   };
@@ -1850,6 +1852,8 @@ async function processGenerateReportJob(job: ClaimedReportJob, workerId: string)
         nearWinKeywordRows: deterministic.nearWinKeywordRows,
         cannibalizationRows: deterministic.cannibalizationRows,
         technicalIssueRows: deterministic.technicalIssueRows,
+        weeklyActionRows: deterministic.weeklyActionRows,
+        notRecommendedRows: deterministic.notRecommendedRows,
         actionBacklogRows: deterministic.actionBacklogRows,
         workbookDataset: deterministic.workbookDataset,
       }

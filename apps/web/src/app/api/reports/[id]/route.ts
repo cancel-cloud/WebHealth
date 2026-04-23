@@ -39,8 +39,10 @@ export async function GET(
       queryOpportunities: Array.isArray(aiJson?.queryOpportunityRows)
         ? (aiJson?.queryOpportunityRows as unknown[]).length
         : 0,
-      actionBacklogItems: Array.isArray(aiJson?.actionBacklogRows)
-        ? (aiJson?.actionBacklogRows as unknown[]).length
+      actionBacklogItems: Array.isArray(aiJson?.weeklyActionRows)
+        ? (aiJson?.weeklyActionRows as unknown[]).length
+        : Array.isArray(aiJson?.actionBacklogRows)
+          ? (aiJson?.actionBacklogRows as unknown[]).length
         : 0,
     };
     return NextResponse.json({ report, jobs, summary });

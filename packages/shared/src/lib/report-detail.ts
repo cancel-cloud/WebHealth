@@ -1,8 +1,13 @@
-import type { AiSeoReport, AiUsageSnapshot } from "@webhealth/shared/lib/reports/types";
+import type {
+  AiSeoReport,
+  AiUsageSnapshot,
+  RecommendationDetail,
+} from "@webhealth/shared/lib/reports/types";
 import { normalizeOpenAIUsage } from "@webhealth/shared/lib/openai/cost-estimator";
 import { sanitizeActionDetailPayload } from "@webhealth/shared/lib/action-detail";
 
 export type RowType =
+  | "weeklyAction"
   | "actionBacklog"
   | "ctrGap"
   | "nearWin"
@@ -10,6 +15,7 @@ export type RowType =
   | "contentDecay";
 
 export const rowTypeToArrayKey: Record<RowType, keyof AiSeoReport> = {
+  weeklyAction: "weeklyActionRows",
   actionBacklog: "actionBacklogRows",
   ctrGap: "lostClickEstimateRows",
   nearWin: "nearWinKeywordRows",
@@ -18,6 +24,7 @@ export const rowTypeToArrayKey: Record<RowType, keyof AiSeoReport> = {
 };
 
 const rowTypeToIdField: Record<RowType, string> = {
+  weeklyAction: "id",
   actionBacklog: "id",
   ctrGap: "query",
   nearWin: "keyword",
@@ -45,7 +52,7 @@ export function patchRowActionDetail(
   aiReport: AiSeoReport,
   rowType: RowType,
   rowId: string,
-  actionDetail: string
+  actionDetail: RecommendationDetail
 ): AiSeoReport {
   const arrayKey = rowTypeToArrayKey[rowType];
   const idField = rowTypeToIdField[rowType];
@@ -74,7 +81,8 @@ export function computeNextDetailsCostUsd(
 }
 
 export function shouldGenerateDetail(rowData: Record<string, unknown>) {
-  return !(typeof rowData.actionDetail === "string" && rowData.actionDetail.length > 0);
+  const actionDetail = rowData.actionDetail;
+  return !(actionDetail && typeof actionDetail === "object");
 }
 
 export function makeDetailClientRequestId(input: {
@@ -114,11 +122,40 @@ export function normalizeDetailUsage(rawUsage: unknown): AiUsageSnapshot | null 
 export const detailSchema = {
   type: "object",
   properties: {
-    affectedUrls: { type: "array", items: { type: "string" } },
-    fixSteps: { type: "array", items: { type: "string" } },
-    whyItMatters: { type: "string" },
+    observed: { type: "array", items: { type: "string" } },
+    likelyCauses: { type: "array", items: { type: "string" } },
+    recommendedActions: { type: "array", items: { type: "string" } },
+    whyThisHelps: { type: "array", items: { type: "string" } },
+    expectedOutcome: { type: "array", items: { type: "string" } },
+    evidence: {
+      type: "object",
+      properties: {
+        deterministic: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string" },
+              value: { type: "string" },
+            },
+            required: ["label", "value"],
+            additionalProperties: false,
+          },
+        },
+        inferred: { type: "array", items: { type: "string" } },
+      },
+      required: ["deterministic", "inferred"],
+      additionalProperties: false,
+    },
   },
-  required: ["affectedUrls", "fixSteps", "whyItMatters"],
+  required: [
+    "observed",
+    "likelyCauses",
+    "recommendedActions",
+    "whyThisHelps",
+    "expectedOutcome",
+    "evidence",
+  ],
   additionalProperties: false,
 };
 
@@ -137,24 +174,17 @@ Issue type: ${input.rowType}
 Issue data: ${JSON.stringify(input.rowData, null, 2)}
 
 Rules:
-- Use actual URLs from the issue data. Do not fabricate URLs.
-- Write fix steps for a non-technical site owner. Be concrete, not generic.
-- Do not give generic SEO advice. Every sentence must reference this specific site or issue.
-- affectedUrls: list only URLs present in the issue data (pages, targetLandingPage, etc.)
-- fixSteps: 3–5 numbered steps, imperative voice, ≤30 words each
-- whyItMatters: 1–2 sentences referencing the actual metric values in the issue data`;
-}
-
-function normalizeActionDetailInput(raw: unknown) {
-  if (typeof raw !== "string") return raw;
-
-  try {
-    return JSON.parse(raw);
-  } catch {
-    throw new Error("Invalid action detail JSON");
-  }
+- Use only facts that can be grounded in the issue data. Do not fabricate URLs, query counts, or competitor claims.
+- Keep the output decision-oriented for a non-expert operator.
+- observed: 2-4 factual bullets grounded in the actual numbers or URLs.
+- likelyCauses: 1-3 inferred explanations. Only include plausible causes supported by the issue data.
+- recommendedActions: 2-4 executable tasks. Be specific, but do not invent section names or exact counts unless present in the issue data.
+- whyThisHelps: 1-3 bullets explaining the mechanism of action.
+- expectedOutcome: 2-3 bullets describing the likely result and earliest believable signal.
+- evidence.deterministic: label/value facts only, each grounded in the issue data.
+- evidence.inferred: 1-3 short inferred bullets.`;
 }
 
 export function serializeActionDetail(raw: unknown) {
-  return JSON.stringify(sanitizeActionDetailPayload(normalizeActionDetailInput(raw)));
+  return sanitizeActionDetailPayload(raw);
 }

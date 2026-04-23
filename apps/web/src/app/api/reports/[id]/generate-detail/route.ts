@@ -165,7 +165,7 @@ export async function GET(
     }
 
     const actionDetail =
-      typeof rowData.actionDetail === "string" && rowData.actionDetail.length > 0
+      rowData.actionDetail && typeof rowData.actionDetail === "object"
         ? rowData.actionDetail
         : null;
 

@@ -4,6 +4,7 @@ import { gscDailyFacts } from "@webhealth/shared/db/schema";
 import { eq, and, min, max } from 'drizzle-orm';
 import { badRequest, notFound } from "@webhealth/shared/lib/http-errors";
 import { requireAnyTeamMembership, requireUnrestrictedSession } from "@/lib/server/authz";
+import { decodeRouteParam } from "@/lib/server/route-params";
 import { handleRouteError } from "@/lib/server/route-security";
 
 // GET /api/properties/[id]/data-range
@@ -14,7 +15,8 @@ export async function GET(
   try {
     const session = await requireUnrestrictedSession();
 
-    const { id: propertyId } = await params;
+    const { id } = await params;
+    const propertyId = decodeRouteParam(id);
 
     const userTeams = await requireAnyTeamMembership(session);
     if (userTeams.length === 0) {

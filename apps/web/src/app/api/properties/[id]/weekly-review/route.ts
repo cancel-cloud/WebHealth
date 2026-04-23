@@ -7,6 +7,7 @@ import { badRequest, notFound } from "@webhealth/shared/lib/http-errors";
 import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import { getWeeklyReviewLimit } from "@webhealth/shared/lib/weekly-review";
 import { requireTeamOwner, requireUnrestrictedSession } from "@/lib/server/authz";
+import { decodeRouteParam } from "@/lib/server/route-params";
 import { handleRouteError } from "@/lib/server/route-security";
 
 export async function PATCH(
@@ -16,7 +17,8 @@ export async function PATCH(
   try {
     const session = await requireUnrestrictedSession();
     const ownerMembership = await requireTeamOwner(session);
-    const { id: propertyId } = await params;
+    const { id } = await params;
+    const propertyId = decodeRouteParam(id);
     const body = await req.json();
     const enabled = Boolean(body.enabled);
     const teamId = ownerMembership.teamId;
