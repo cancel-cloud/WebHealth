@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, lt } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "@webhealth/shared/db";
 import {
@@ -10,6 +10,7 @@ import {
   gscDailyRaw,
   properties,
   propertyPageRegistry,
+  propertyShareLinks,
   snapshotExports,
 } from "@webhealth/shared/db/schema";
 import type { CrawlResult } from "@webhealth/shared/lib/crawl";
@@ -45,7 +46,7 @@ type TrendPoint = {
   users?: number;
 };
 
-type SourceFreshness = {
+export type SourceFreshness = {
   source: "gsc" | "ga4" | "crawl";
   state: FreshnessState;
   safeLatestDate: DateString | null;
@@ -62,6 +63,16 @@ type ActionIdentity = {
   remedyKey: string;
   targetType: string;
   targetKey: string;
+};
+
+export type ActionWorkflowState = {
+  state: RecommendationState;
+  systemRank: number | null;
+  systemScore: number | null;
+  priorityOverride: PriorityOverride;
+  assigneeUserId: string | null;
+  assigneeEmail: string | null;
+  snoozedUntil: string | null;
 };
 
 type CachedDashboardPayload = {
@@ -169,6 +180,9 @@ export type LiveDashboardData = {
     systemRank: number | null;
     systemScore: number | null;
     priorityOverride: PriorityOverride;
+    assigneeUserId: string | null;
+    assigneeEmail: string | null;
+    snoozedUntil: string | null;
   }) | null;
   actions: Array<(WeeklyActionRow & ActionIdentity) & {
     state: RecommendationState;
@@ -177,6 +191,9 @@ export type LiveDashboardData = {
     systemRank: number | null;
     systemScore: number | null;
     priorityOverride: PriorityOverride;
+    assigneeUserId: string | null;
+    assigneeEmail: string | null;
+    snoozedUntil: string | null;
   }>;
   recentSnapshots: LiveDashboardSnapshotSummary[];
 };
@@ -408,7 +425,18 @@ function summarizeSourceFreshness(params: {
   lastAvailableDate: DateString | null;
   safeLatestDate: DateString;
   requestedEndDate: DateString;
+  hasLinkedProperty?: boolean;
 }) {
+  if (params.source === "ga4" && params.hasLinkedProperty === false) {
+    return {
+      source: params.source,
+      state: "unavailable" as const,
+      safeLatestDate: null,
+      lastAvailableDate: null,
+      note: "GA4 is not linked for this property.",
+    };
+  }
+
   if (!params.lastAvailableDate) {
     return {
       source: params.source,
@@ -442,6 +470,7 @@ function summarizeSourceFreshness(params: {
 function summarizeCrawlFreshness(input: {
   crawlCapturedAt: string | null;
   crawl: CrawlResult | null;
+  now?: Date;
 }) {
   if (!input.crawl || !input.crawlCapturedAt) {
     return {
@@ -458,7 +487,7 @@ function summarizeCrawlFreshness(input: {
   const capturedAtDate = new Date(input.crawlCapturedAt);
   const ageInDays = Math.max(
     0,
-    Math.floor((Date.now() - capturedAtDate.getTime()) / 86_400_000),
+    Math.floor(((input.now ?? new Date()).getTime() - capturedAtDate.getTime()) / 86_400_000),
   );
 
   if (ageInDays >= 10) {
@@ -481,6 +510,51 @@ function summarizeCrawlFreshness(input: {
     capturedAt: input.crawlCapturedAt,
     ageInDays,
     note: ageInDays === 0 ? "Technical scan was refreshed today." : `Technical scan is ${ageInDays} day${ageInDays === 1 ? "" : "s"} old.`,
+  };
+}
+
+export function buildFreshnessSources(input: {
+  gscLatestDate: DateString | null;
+  ga4LatestDate: DateString | null;
+  hasGa4Property: boolean;
+  safeLatestDate: DateString;
+  requestedEndDate: DateString;
+  crawlCapturedAt: string | null;
+  crawl: CrawlResult | null;
+  now?: Date;
+}): { state: FreshnessState; safeLatestDate: DateString | null; sources: SourceFreshness[] } {
+  const gscFreshness = summarizeSourceFreshness({
+    source: "gsc",
+    lastAvailableDate: input.gscLatestDate,
+    safeLatestDate: input.safeLatestDate,
+    requestedEndDate: input.requestedEndDate,
+  });
+  const ga4Freshness = summarizeSourceFreshness({
+    source: "ga4",
+    lastAvailableDate: input.ga4LatestDate,
+    safeLatestDate: input.safeLatestDate,
+    requestedEndDate: input.requestedEndDate,
+    hasLinkedProperty: input.hasGa4Property,
+  });
+  const crawlFreshness = summarizeCrawlFreshness({
+    crawlCapturedAt: input.crawlCapturedAt,
+    crawl: input.crawl,
+    now: input.now,
+  });
+  const sources = [gscFreshness, ga4Freshness, crawlFreshness];
+  const state: FreshnessState =
+    gscFreshness.state === "unavailable"
+      ? "unavailable"
+      : sources.some((source) => source.state === "stale")
+        ? "stale"
+        : sources.some((source) => source.state === "partial" || (source.source !== "gsc" && source.state === "unavailable"))
+          ? "partial"
+          : "complete";
+
+  return {
+    state,
+    safeLatestDate: input.safeLatestDate,
+    sources,
   };
 }
 
@@ -918,6 +992,8 @@ async function syncActionsToStore(params: {
         targetKey: action.targetKey,
         title: action.title,
         owner: action.owner ?? null,
+        assigneeUserId: existing?.assigneeUserId ?? null,
+        assigneeEmail: existing?.assigneeEmail ?? null,
         state: (existing?.state as RecommendationState | undefined) ?? "open",
         systemRank: action.rank,
         systemScore: Math.max(1, 100 - action.rank * 10),
@@ -925,6 +1001,7 @@ async function syncActionsToStore(params: {
         overrideReason: existing?.overrideReason ?? null,
         overrideUpdatedByUserId: existing?.overrideUpdatedByUserId ?? null,
         overrideUpdatedAt: existing?.overrideUpdatedAt ?? null,
+        snoozedUntil: normalizeDateString(existing?.snoozedUntil),
         lastEvaluatedAt: now,
         updatedAt: now,
       })
@@ -938,6 +1015,9 @@ async function syncActionsToStore(params: {
           targetKey: action.targetKey,
           title: action.title,
           owner: action.owner ?? null,
+          assigneeUserId: existing?.assigneeUserId ?? null,
+          assigneeEmail: existing?.assigneeEmail ?? null,
+          snoozedUntil: normalizeDateString(existing?.snoozedUntil),
           systemRank: action.rank,
           systemScore: Math.max(1, 100 - action.rank * 10),
           lastEvaluatedAt: now,
@@ -949,16 +1029,15 @@ async function syncActionsToStore(params: {
 
 function withActionState(params: {
   actions: Array<WeeklyActionRow & ActionIdentity>;
-  actionStateByFingerprint: Map<string, {
-    state: RecommendationState;
-    systemRank: number | null;
-    systemScore: number | null;
-    priorityOverride: PriorityOverride;
-  }>;
+  actionStateByFingerprint: Map<string, ActionWorkflowState>;
   gscFreshness: SourceFreshness;
   crawlFreshness: SourceFreshness;
 }) {
   return params.actions.map((action) => {
+    const workflow = mergeActionWorkflowState({
+      generated: action,
+      stored: params.actionStateByFingerprint.get(action.fingerprint) ?? null,
+    });
     const eligibility: FreshnessEligibility =
       params.gscFreshness.state === "unavailable"
         ? "suppressed_due_to_freshness"
@@ -972,7 +1051,7 @@ function withActionState(params: {
 
     return {
       ...action,
-      state: params.actionStateByFingerprint.get(action.fingerprint)?.state ?? "open",
+      state: workflow.state,
       freshnessEligibility: eligibility,
       freshnessNote:
         crawlNote
@@ -983,11 +1062,29 @@ function withActionState(params: {
           : eligibility === "suppressed_due_to_freshness"
             ? "This action is hidden until Search Console data is available."
             : null,
-      systemRank: params.actionStateByFingerprint.get(action.fingerprint)?.systemRank ?? action.rank,
-      systemScore: params.actionStateByFingerprint.get(action.fingerprint)?.systemScore ?? Math.max(1, 100 - action.rank * 10),
-      priorityOverride: params.actionStateByFingerprint.get(action.fingerprint)?.priorityOverride ?? "none",
+      systemRank: workflow.systemRank,
+      systemScore: workflow.systemScore,
+      priorityOverride: workflow.priorityOverride,
+      assigneeUserId: workflow.assigneeUserId,
+      assigneeEmail: workflow.assigneeEmail,
+      snoozedUntil: workflow.snoozedUntil,
     };
   });
+}
+
+export function mergeActionWorkflowState(params: {
+  generated: Pick<WeeklyActionRow, "rank" | "owner">;
+  stored?: Partial<ActionWorkflowState> | null;
+}): ActionWorkflowState {
+  return {
+    state: params.stored?.state ?? "open",
+    systemRank: params.stored?.systemRank ?? params.generated.rank,
+    systemScore: params.stored?.systemScore ?? Math.max(1, 100 - params.generated.rank * 10),
+    priorityOverride: params.stored?.priorityOverride ?? "none",
+    assigneeUserId: params.stored?.assigneeUserId ?? null,
+    assigneeEmail: params.stored?.assigneeEmail ?? null,
+    snoozedUntil: params.stored?.snoozedUntil ?? null,
+  };
 }
 
 export async function getLiveDashboardData(input: LiveDashboardInput): Promise<LiveDashboardData> {
@@ -1008,39 +1105,19 @@ export async function getLiveDashboardData(input: LiveDashboardInput): Promise<L
     getLatestPropertyRefreshState(input.teamId, property.id),
   ]);
 
-  const gscFreshness = summarizeSourceFreshness({
-    source: "gsc",
-    lastAvailableDate: latestDates.gscLatestDate,
+  const freshnessSummary = buildFreshnessSources({
+    gscLatestDate: latestDates.gscLatestDate,
+    ga4LatestDate: latestDates.ga4LatestDate,
+    hasGa4Property: Boolean(property.ga4PropertyId),
     safeLatestDate,
     requestedEndDate: window.requestedEndDate,
-  });
-  const crawlFreshness = summarizeCrawlFreshness({
     crawlCapturedAt: latestCrawl?.createdAt ?? null,
     crawl: latestCrawl?.crawl ?? null,
   });
-  const freshnessSources: SourceFreshness[] = [
-    gscFreshness,
-    ...(property.ga4PropertyId
-      ? [
-          summarizeSourceFreshness({
-            source: "ga4" as const,
-            lastAvailableDate: latestDates.ga4LatestDate,
-            safeLatestDate,
-            requestedEndDate: window.requestedEndDate,
-          }),
-        ]
-      : []),
-    crawlFreshness,
-  ];
-
-  const dashboardFreshnessState: FreshnessState =
-    gscFreshness.state === "unavailable"
-      ? "unavailable"
-      : freshnessSources.some((source) => source.state === "stale")
-        ? "stale"
-        : freshnessSources.some((source) => source.state === "partial" || (source.source !== "gsc" && source.state === "unavailable"))
-          ? "partial"
-          : "complete";
+  const gscFreshness = freshnessSummary.sources.find((source) => source.source === "gsc")!;
+  const crawlFreshness = freshnessSummary.sources.find((source) => source.source === "crawl")!;
+  const freshnessSources = freshnessSummary.sources;
+  const dashboardFreshnessState = freshnessSummary.state;
 
   const recentChanges = await fetchRecentChanges(property.id, window.startDate, window.endDate);
   const sourceVersionHash = buildSourceVersionHash({
@@ -1225,6 +1302,9 @@ export async function getLiveDashboardData(input: LiveDashboardInput): Promise<L
       systemRank: row.systemRank ?? null,
       systemScore: row.systemScore ?? null,
       priorityOverride: (row.priorityOverride as PriorityOverride | null) ?? "none",
+      assigneeUserId: row.assigneeUserId ?? null,
+      assigneeEmail: row.assigneeEmail ?? null,
+      snoozedUntil: normalizeDateString(row.snoozedUntil),
     },
   ] as const));
 
@@ -1277,6 +1357,9 @@ export async function upsertActionItemState(params: {
   priorityOverride?: PriorityOverride;
   overrideReason?: string | null;
   overrideUpdatedByUserId?: string | null;
+  assigneeUserId?: string | null;
+  assigneeEmail?: string | null;
+  snoozedUntil?: string | null;
 }) {
   const existing = await db.query.actionItems.findFirst({
     where: (table, { and: andFn, eq: eqFn }) =>
@@ -1296,6 +1379,8 @@ export async function upsertActionItemState(params: {
       targetKey: params.targetKey,
       title: params.title,
       owner: params.owner ?? null,
+      assigneeUserId: params.assigneeUserId ?? existing?.assigneeUserId ?? null,
+      assigneeEmail: params.assigneeEmail ?? existing?.assigneeEmail ?? null,
       state: params.state ?? (existing?.state as RecommendationState | undefined) ?? "open",
       systemRank: existing?.systemRank ?? null,
       systemScore: existing?.systemScore ?? null,
@@ -1303,6 +1388,7 @@ export async function upsertActionItemState(params: {
       overrideReason: params.overrideReason ?? existing?.overrideReason ?? null,
       overrideUpdatedByUserId: params.priorityOverride ? (params.overrideUpdatedByUserId ?? null) : existing?.overrideUpdatedByUserId ?? null,
       overrideUpdatedAt: params.priorityOverride ? new Date() : existing?.overrideUpdatedAt ?? null,
+      snoozedUntil: normalizeDateString(params.snoozedUntil) ?? normalizeDateString(existing?.snoozedUntil),
       lastEvaluatedAt: new Date(),
       updatedAt: new Date(),
     })
@@ -1316,11 +1402,14 @@ export async function upsertActionItemState(params: {
         targetKey: params.targetKey,
         title: params.title,
         owner: params.owner ?? null,
+        assigneeUserId: params.assigneeUserId ?? existing?.assigneeUserId ?? null,
+        assigneeEmail: params.assigneeEmail ?? existing?.assigneeEmail ?? null,
         state: params.state ?? (existing?.state as RecommendationState | undefined) ?? "open",
         priorityOverride: params.priorityOverride ?? (existing?.priorityOverride as PriorityOverride | undefined) ?? "none",
         overrideReason: params.priorityOverride ? (params.overrideReason ?? null) : existing?.overrideReason ?? null,
         overrideUpdatedByUserId: params.priorityOverride ? (params.overrideUpdatedByUserId ?? null) : existing?.overrideUpdatedByUserId ?? null,
         overrideUpdatedAt: params.priorityOverride ? new Date() : existing?.overrideUpdatedAt ?? null,
+        snoozedUntil: normalizeDateString(params.snoozedUntil) ?? normalizeDateString(existing?.snoozedUntil),
         lastEvaluatedAt: new Date(),
         updatedAt: new Date(),
       },
@@ -1330,6 +1419,9 @@ export async function upsertActionItemState(params: {
       fingerprint: actionItems.fingerprint,
       state: actionItems.state,
       priorityOverride: actionItems.priorityOverride,
+      assigneeUserId: actionItems.assigneeUserId,
+      assigneeEmail: actionItems.assigneeEmail,
+      snoozedUntil: actionItems.snoozedUntil,
     });
 
   return row;
@@ -1536,5 +1628,294 @@ export async function getSnapshotExportDetail(params: {
     freshnessSummary: (row.freshnessSummary as LiveDashboardData["freshness"] | null) ?? null,
     overview,
     actionCount: payloadActions.length,
+  };
+}
+
+export type PropertyShareLinkDetail = {
+  id: string;
+  token: string;
+  shareId: string;
+  propertyId: string;
+  teamId: string;
+  createdAt: string;
+  expiresAt: string | null;
+  brandSnapshot: Awaited<ReturnType<typeof getTeamBrandingProfile>>;
+  payloadSnapshot: LiveDashboardData;
+};
+
+export type ClientReportMovement = {
+  label: string;
+  current: number;
+  previous: number;
+  delta: number;
+};
+
+export type ClientReportCompletedWork = {
+  title: string;
+  firstVisibleWin: string;
+  target: string;
+};
+
+export type ClientReportComparison = {
+  previousCreatedAt: string | null;
+  previousWindow: {
+    startDate: string;
+    endDate: string;
+  } | null;
+  metricDeltas: {
+    clicks: number | null;
+    impressions: number | null;
+    ctr: number | null;
+    position: number | null;
+    sessions: number | null;
+    users: number | null;
+  };
+  pageMovements: ClientReportMovement[];
+  queryMovements: ClientReportMovement[];
+  completedWork: ClientReportCompletedWork[];
+  changedPages: Array<{ url: string; lastChangedAt: string | null }>;
+};
+
+export type PropertyShareReportDetail = PropertyShareLinkDetail & {
+  previousShare: Pick<PropertyShareLinkDetail, "id" | "shareId" | "createdAt" | "payloadSnapshot"> | null;
+  clientReportComparison: ClientReportComparison;
+};
+
+export type PropertyShareCandidate = {
+  id: string;
+  token: string;
+  teamId: string;
+  propertyId: string;
+  createdAt: Date;
+  expiresAt: Date | null;
+  revokedAt: Date | null;
+  brandSnapshot: unknown;
+  payloadSnapshot: unknown;
+};
+
+function mapPropertyShareRow(row: PropertyShareCandidate): PropertyShareLinkDetail {
+  return {
+    id: row.id,
+    shareId: row.id,
+    token: row.token,
+    propertyId: row.propertyId,
+    teamId: row.teamId,
+    createdAt: row.createdAt.toISOString(),
+    expiresAt: row.expiresAt?.toISOString() ?? null,
+    brandSnapshot: row.brandSnapshot as Awaited<ReturnType<typeof getTeamBrandingProfile>>,
+    payloadSnapshot: row.payloadSnapshot as LiveDashboardData,
+  };
+}
+
+function metricDelta(current: number | null | undefined, previous: number | null | undefined) {
+  if (current == null || previous == null) return null;
+  return current - previous;
+}
+
+function topMovements<T extends { [key: string]: unknown }>(params: {
+  currentRows: T[];
+  previousRows: T[];
+  key: keyof T;
+  value: keyof T;
+  limit?: number;
+}): ClientReportMovement[] {
+  const previousByKey = new Map<string, number>();
+  for (const row of params.previousRows) {
+    const label = String(row[params.key] ?? "");
+    const value = Number(row[params.value] ?? 0);
+    if (label) previousByKey.set(label, value);
+  }
+
+  return params.currentRows
+    .map((row) => {
+      const label = String(row[params.key] ?? "");
+      const current = Number(row[params.value] ?? 0);
+      const previous = previousByKey.get(label) ?? 0;
+      return { label, current, previous, delta: current - previous };
+    })
+    .filter((row) => row.label && row.delta !== 0)
+    .sort((left, right) => Math.abs(right.delta) - Math.abs(left.delta))
+    .slice(0, params.limit ?? 5);
+}
+
+export function selectPreviousPropertyShare(
+  rows: PropertyShareCandidate[],
+  now: Date = new Date(),
+): PropertyShareLinkDetail | null {
+  const row = rows
+    .filter((candidate) => !candidate.revokedAt && (!candidate.expiresAt || candidate.expiresAt > now))
+    .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0];
+
+  return row ? mapPropertyShareRow(row) : null;
+}
+
+export function buildClientReportComparison(params: {
+  current: LiveDashboardData;
+  previous?: LiveDashboardData | null;
+  previousCreatedAt?: string | null;
+}): ClientReportComparison {
+  const current = params.current;
+  const previous = params.previous ?? null;
+  const completedWork = current.actions
+    .filter((action) => action.state === "done")
+    .slice(0, 6)
+    .map((action) => ({
+      title: action.title,
+      firstVisibleWin: action.firstVisibleWin,
+      target: action.targetPage ?? action.targetKey ?? action.targetType,
+    }));
+
+  return {
+    previousCreatedAt: previous ? params.previousCreatedAt ?? null : null,
+    previousWindow: previous
+      ? {
+          startDate: previous.analysisWindow.startDate,
+          endDate: previous.analysisWindow.endDate,
+        }
+      : null,
+    metricDeltas: {
+      clicks: previous ? metricDelta(current.overview.clicks, previous.overview.clicks) : null,
+      impressions: previous ? metricDelta(current.overview.impressions, previous.overview.impressions) : null,
+      ctr: previous ? metricDelta(current.overview.ctr, previous.overview.ctr) : null,
+      position: previous ? metricDelta(current.overview.position, previous.overview.position) : null,
+      sessions: previous ? metricDelta(current.overview.sessions, previous.overview.sessions) : null,
+      users: previous ? metricDelta(current.overview.users, previous.overview.users) : null,
+    },
+    pageMovements: previous
+      ? topMovements({
+          currentRows: current.evidence.pageWinnersLosers,
+          previousRows: previous.evidence.pageWinnersLosers,
+          key: "page",
+          value: "clicksCurrent",
+        })
+      : [],
+    queryMovements: previous
+      ? topMovements({
+          currentRows: current.evidence.queryOpportunities,
+          previousRows: previous.evidence.queryOpportunities,
+          key: "query",
+          value: "clicks",
+        })
+      : [],
+    completedWork,
+    changedPages: current.evidence.recentChanges.slice(0, 6),
+  };
+}
+
+export async function createPropertyShareLink(params: {
+  teamId: string;
+  createdByUserId: string;
+  propertyId: string;
+  preset?: string | null;
+  compareMode?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  expiresAt?: Date | null;
+}) {
+  const dashboard = await getLiveDashboardData({
+    teamId: params.teamId,
+    propertyId: params.propertyId,
+    preset: params.preset,
+    compareMode: params.compareMode,
+    startDate: params.startDate,
+    endDate: params.endDate,
+  });
+  const brandSnapshot = await getTeamBrandingProfile(params.teamId);
+  const token = `ps_${nanoid(32)}`;
+
+  const [row] = await db
+    .insert(propertyShareLinks)
+    .values({
+      id: `psl_${nanoid(12)}`,
+      teamId: params.teamId,
+      propertyId: dashboard.property.id,
+      token,
+      createdByUserId: params.createdByUserId,
+      expiresAt: params.expiresAt ?? null,
+      windowPreset: dashboard.analysisWindow.preset,
+      compareMode: dashboard.analysisWindow.compareMode,
+      startDate: dashboard.analysisWindow.startDate,
+      endDate: dashboard.analysisWindow.requestedEndDate,
+      brandSnapshot,
+      payloadSnapshot: dashboard,
+    })
+    .returning({
+      id: propertyShareLinks.id,
+      token: propertyShareLinks.token,
+      expiresAt: propertyShareLinks.expiresAt,
+    });
+
+  return {
+    shareId: row.id,
+    token: row.token,
+    expiresAt: row.expiresAt?.toISOString() ?? null,
+  };
+}
+
+export async function getPropertyShareByToken(token: string): Promise<PropertyShareLinkDetail | null> {
+  const row = await db.query.propertyShareLinks.findFirst({
+    where: (table, { eq: eqFn }) => eqFn(table.token, token),
+  });
+
+  if (!row || row.revokedAt || (row.expiresAt && row.expiresAt <= new Date())) {
+    return null;
+  }
+
+  return mapPropertyShareRow(row);
+}
+
+export async function getPropertyShareReportByToken(token: string): Promise<PropertyShareReportDetail | null> {
+  const currentShare = await getPropertyShareByToken(token);
+  if (!currentShare) return null;
+
+  const currentCreatedAt = new Date(currentShare.createdAt);
+  const previousRows = await db.query.propertyShareLinks.findMany({
+    where: (table, { and: andFn, eq: eqFn }) =>
+      andFn(
+        eqFn(table.teamId, currentShare.teamId),
+        eqFn(table.propertyId, currentShare.propertyId),
+        lt(table.createdAt, currentCreatedAt),
+      ),
+    orderBy: (table, { desc: descOrder }) => [descOrder(table.createdAt)],
+    limit: 10,
+  });
+  const previousShare = selectPreviousPropertyShare(previousRows);
+
+  return {
+    ...currentShare,
+    previousShare: previousShare
+      ? {
+          id: previousShare.id,
+          shareId: previousShare.shareId,
+          createdAt: previousShare.createdAt,
+          payloadSnapshot: previousShare.payloadSnapshot,
+        }
+      : null,
+    clientReportComparison: buildClientReportComparison({
+      current: currentShare.payloadSnapshot,
+      previous: previousShare?.payloadSnapshot ?? null,
+      previousCreatedAt: previousShare?.createdAt ?? null,
+    }),
+  };
+}
+
+export function buildPropertyShareDownloadPayload(params: {
+  dashboard: LiveDashboardData;
+  brandSnapshot: Awaited<ReturnType<typeof getTeamBrandingProfile>>;
+  createdAt?: string;
+}) {
+  return {
+    metadata: {
+      exportType: "dashboard_snapshot_json",
+      createdAt: params.createdAt ?? new Date().toISOString(),
+      propertyId: params.dashboard.property.id,
+      propertyName: params.dashboard.property.name,
+      startDate: params.dashboard.analysisWindow.startDate,
+      endDate: params.dashboard.analysisWindow.requestedEndDate,
+      compareMode: params.dashboard.analysisWindow.compareMode,
+      payloadVersion: params.dashboard.payloadVersion,
+    },
+    brand: params.brandSnapshot,
+    dashboard: params.dashboard,
   };
 }

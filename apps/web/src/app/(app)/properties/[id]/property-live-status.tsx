@@ -55,18 +55,27 @@ export function PropertyLiveStatus({
         return;
       }
 
-      const nextState = data?.refreshState ?? null;
+      const rawNextState = data?.refreshState ?? null;
+      const nextState = data?.hasNewerPayload && (rawNextState?.status === "queued" || rawNextState?.status === "processing")
+        ? null
+        : rawNextState;
       setCurrentState(nextState);
       onStateChange?.(nextState);
 
+      if (!nextState && data?.hasNewerPayload) {
+        toast.success("Rerun complete.", { id: toastId });
+        router.refresh();
+        return;
+      }
+
       if (nextState?.status === "complete") {
-        toast.success(nextState.message ?? "Technical refresh complete.", { id: toastId });
+        toast.success(nextState.message ?? "Rerun complete.", { id: toastId });
         router.refresh();
         return;
       }
 
       if (nextState?.status === "failed") {
-        toast.error(nextState.message ?? "Technical refresh failed. Showing the last valid decision set.", { id: toastId });
+        toast.error(nextState.message ?? "Rerun failed. Showing last valid dashboard.", { id: toastId });
         router.refresh();
         return;
       }

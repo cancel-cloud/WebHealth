@@ -41,6 +41,7 @@ type PageMetric = {
   page: string;
   clicks: number;
   impressions: number;
+  position?: number;
 };
 
 type QueryPagePair = {
@@ -431,18 +432,26 @@ function buildTechnicalIssueRows(crawl: CrawlResult | null, topPages: PageMetric
   if (!crawl) return [];
 
   const pageClicks = new Map(topPages.map((p) => [p.page, p.clicks]));
-  const issueBuckets = new Map<string, { affectedPages: number; affectedEstimatedClicks: number }>();
+  const pageMetrics = new Map(topPages.map((p) => [p.page, p]));
+  const issueBuckets = new Map<string, { affectedPages: number; affectedEstimatedClicks: number; affectedTargets: TechnicalIssueRow["affectedTargets"] }>();
 
   for (const page of crawl.pages ?? []) {
     const estimatedClicks = pageClicks.get(page.url) ?? 0;
     for (const issue of page.issues ?? []) {
       const key = issue.trim();
       if (!issueBuckets.has(key)) {
-        issueBuckets.set(key, { affectedPages: 0, affectedEstimatedClicks: 0 });
+        issueBuckets.set(key, { affectedPages: 0, affectedEstimatedClicks: 0, affectedTargets: [] });
       }
       const bucket = issueBuckets.get(key)!;
+      const metrics = pageMetrics.get(page.url);
       bucket.affectedPages += 1;
       bucket.affectedEstimatedClicks += estimatedClicks;
+      bucket.affectedTargets?.push({
+        url: page.url,
+        clicks: metrics?.clicks ?? estimatedClicks,
+        impressions: metrics?.impressions ?? null,
+        position: metrics?.position ?? null,
+      });
     }
   }
 
@@ -460,6 +469,9 @@ function buildTechnicalIssueRows(crawl: CrawlResult | null, topPages: PageMetric
       issueType,
       affectedPages: bucket.affectedPages,
       affectedEstimatedClicks: bucket.affectedEstimatedClicks,
+      affectedTargets: bucket.affectedTargets
+        ?.sort((a, b) => (b.clicks ?? 0) - (a.clicks ?? 0))
+        .slice(0, 4),
       severity,
       recommendation:
         issueType.toLowerCase().includes("broken")
@@ -579,6 +591,7 @@ function makeTechnicalCandidate(row: TechnicalIssueRow, index: number): WeeklyCa
     effort: row.affectedPages > 10 ? "L" : row.affectedPages > 4 ? "M" : "S",
     targetPage: null,
     supportingQueries: [],
+    affectedTargets: row.affectedTargets ?? [],
     detail: buildDetail({
       observed: [
         `${row.issueType} affects ${row.affectedPages} pages.`,
