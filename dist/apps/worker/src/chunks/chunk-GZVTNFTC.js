@@ -29,6 +29,7 @@ __export(schema_exports, {
   propertyDailyAiSummaries: () => propertyDailyAiSummaries,
   propertyPageRegistry: () => propertyPageRegistry,
   propertyRefreshJobs: () => propertyRefreshJobs,
+  propertyShareLinks: () => propertyShareLinks,
   propertyWeeklyReviews: () => propertyWeeklyReviews,
   reportDetailAiExpansions: () => reportDetailAiExpansions,
   reportJobEvents: () => reportJobEvents,
@@ -235,6 +236,8 @@ var actionItems = pgTable("action_items", {
   targetKey: text("target_key").notNull(),
   title: text("title").notNull(),
   owner: text("owner"),
+  assigneeUserId: text("assignee_user_id").references(() => user.id, { onDelete: "set null" }),
+  assigneeEmail: text("assignee_email"),
   state: text("state").default("open").notNull(),
   systemRank: integer("system_rank"),
   systemScore: integer("system_score"),
@@ -251,6 +254,26 @@ var actionItems = pgTable("action_items", {
   index("action_items_property_state_idx").on(t.propertyId, t.state, t.updatedAt),
   index("action_items_team_property_updated_idx").on(t.teamId, t.propertyId, t.updatedAt),
   index("action_items_team_rank_idx").on(t.teamId, t.systemRank, t.updatedAt)
+]);
+var propertyShareLinks = pgTable("property_share_links", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  createdByUserId: text("created_by_user_id").references(() => user.id, { onDelete: "set null" }),
+  expiresAt: timestamp("expires_at"),
+  revokedAt: timestamp("revoked_at"),
+  windowPreset: text("window_preset").notNull(),
+  compareMode: text("compare_mode").notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  brandSnapshot: jsonb("brand_snapshot").notNull(),
+  payloadSnapshot: jsonb("payload_snapshot").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (t) => [
+  index("property_share_links_token_idx").on(t.token),
+  index("property_share_links_property_created_idx").on(t.propertyId, t.createdAt),
+  index("property_share_links_team_created_idx").on(t.teamId, t.createdAt)
 ]);
 var actionFeedback = pgTable("action_feedback", {
   id: text("id").primaryKey(),
@@ -785,6 +808,7 @@ export {
   reportRecommendationStates,
   reportRecommendationFeedback,
   actionItems,
+  propertyShareLinks,
   actionFeedback,
   analysisWindowCache,
   snapshotExports,

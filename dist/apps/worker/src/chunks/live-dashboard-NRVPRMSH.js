@@ -1,27 +1,28 @@
 import {
   buildDeterministicInsights
-} from "./chunk-IHU6YNCZ.js";
+} from "./chunk-4VCCCQCW.js";
 import {
   getLatestPropertyCrawl,
   getLatestPropertyRefreshState
-} from "./chunk-KRCQEA7B.js";
+} from "./chunk-G42DX7O6.js";
 import {
   resolveTeamReportSources
-} from "./chunk-AJWHQMOS.js";
+} from "./chunk-E7NIPORF.js";
 import {
   db
-} from "./chunk-JRPUP4TA.js";
+} from "./chunk-L7LNIRSY.js";
 import {
   actionItems,
   analysisWindowCache,
+  propertyShareLinks,
   snapshotExports
-} from "./chunk-3VHV6IUD.js";
+} from "./chunk-GZVTNFTC.js";
 import "./chunk-AHMZJEDT.js";
 import "./chunk-3LHI6BO3.js";
 
 // packages/shared/src/lib/live-dashboard.ts
 import { createHash } from "node:crypto";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, lt } from "drizzle-orm";
 import { nanoid as nanoid2 } from "nanoid";
 
 // packages/shared/src/lib/team-branding.ts
@@ -260,6 +261,15 @@ function resolveAnalysisWindow(input) {
   };
 }
 function summarizeSourceFreshness(params) {
+  if (params.source === "ga4" && params.hasLinkedProperty === false) {
+    return {
+      source: params.source,
+      state: "unavailable",
+      safeLatestDate: null,
+      lastAvailableDate: null,
+      note: "GA4 is not linked for this property."
+    };
+  }
   if (!params.lastAvailableDate) {
     return {
       source: params.source,
@@ -302,7 +312,7 @@ function summarizeCrawlFreshness(input) {
   const capturedAtDate = new Date(input.crawlCapturedAt);
   const ageInDays = Math.max(
     0,
-    Math.floor((Date.now() - capturedAtDate.getTime()) / 864e5)
+    Math.floor(((input.now ?? /* @__PURE__ */ new Date()).getTime() - capturedAtDate.getTime()) / 864e5)
   );
   if (ageInDays >= 10) {
     return {
@@ -323,6 +333,33 @@ function summarizeCrawlFreshness(input) {
     capturedAt: input.crawlCapturedAt,
     ageInDays,
     note: ageInDays === 0 ? "Technical scan was refreshed today." : `Technical scan is ${ageInDays} day${ageInDays === 1 ? "" : "s"} old.`
+  };
+}
+function buildFreshnessSources(input) {
+  const gscFreshness = summarizeSourceFreshness({
+    source: "gsc",
+    lastAvailableDate: input.gscLatestDate,
+    safeLatestDate: input.safeLatestDate,
+    requestedEndDate: input.requestedEndDate
+  });
+  const ga4Freshness = summarizeSourceFreshness({
+    source: "ga4",
+    lastAvailableDate: input.ga4LatestDate,
+    safeLatestDate: input.safeLatestDate,
+    requestedEndDate: input.requestedEndDate,
+    hasLinkedProperty: input.hasGa4Property
+  });
+  const crawlFreshness = summarizeCrawlFreshness({
+    crawlCapturedAt: input.crawlCapturedAt,
+    crawl: input.crawl,
+    now: input.now
+  });
+  const sources = [gscFreshness, ga4Freshness, crawlFreshness];
+  const state = gscFreshness.state === "unavailable" ? "unavailable" : sources.some((source) => source.state === "stale") ? "stale" : sources.some((source) => source.state === "partial" || source.source !== "gsc" && source.state === "unavailable") ? "partial" : "complete";
+  return {
+    state,
+    safeLatestDate: input.safeLatestDate,
+    sources
   };
 }
 function buildActionIdentity(row) {
@@ -645,6 +682,8 @@ async function syncActionsToStore(params) {
       targetKey: action.targetKey,
       title: action.title,
       owner: action.owner ?? null,
+      assigneeUserId: existing?.assigneeUserId ?? null,
+      assigneeEmail: existing?.assigneeEmail ?? null,
       state: existing?.state ?? "open",
       systemRank: action.rank,
       systemScore: Math.max(1, 100 - action.rank * 10),
@@ -652,6 +691,7 @@ async function syncActionsToStore(params) {
       overrideReason: existing?.overrideReason ?? null,
       overrideUpdatedByUserId: existing?.overrideUpdatedByUserId ?? null,
       overrideUpdatedAt: existing?.overrideUpdatedAt ?? null,
+      snoozedUntil: normalizeDateString(existing?.snoozedUntil),
       lastEvaluatedAt: now,
       updatedAt: now
     }).onConflictDoUpdate({
@@ -664,6 +704,9 @@ async function syncActionsToStore(params) {
         targetKey: action.targetKey,
         title: action.title,
         owner: action.owner ?? null,
+        assigneeUserId: existing?.assigneeUserId ?? null,
+        assigneeEmail: existing?.assigneeEmail ?? null,
+        snoozedUntil: normalizeDateString(existing?.snoozedUntil),
         systemRank: action.rank,
         systemScore: Math.max(1, 100 - action.rank * 10),
         lastEvaluatedAt: now,
@@ -674,19 +717,37 @@ async function syncActionsToStore(params) {
 }
 function withActionState(params) {
   return params.actions.map((action) => {
+    const workflow = mergeActionWorkflowState({
+      generated: action,
+      stored: params.actionStateByFingerprint.get(action.fingerprint) ?? null
+    });
     const eligibility = params.gscFreshness.state === "unavailable" ? "suppressed_due_to_freshness" : params.gscFreshness.state === "partial" ? "eligible_with_warning" : "eligible";
     const isTechnicalAction = action.id.startsWith("weekly_tech_");
     const crawlNote = isTechnicalAction && params.crawlFreshness.state !== "complete" ? params.crawlFreshness.note : null;
     return {
       ...action,
-      state: params.actionStateByFingerprint.get(action.fingerprint)?.state ?? "open",
+      state: workflow.state,
       freshnessEligibility: eligibility,
       freshnessNote: crawlNote ? crawlNote : eligibility === "eligible_with_warning" ? params.gscFreshness.note : eligibility === "suppressed_due_to_freshness" ? "This action is hidden until Search Console data is available." : null,
-      systemRank: params.actionStateByFingerprint.get(action.fingerprint)?.systemRank ?? action.rank,
-      systemScore: params.actionStateByFingerprint.get(action.fingerprint)?.systemScore ?? Math.max(1, 100 - action.rank * 10),
-      priorityOverride: params.actionStateByFingerprint.get(action.fingerprint)?.priorityOverride ?? "none"
+      systemRank: workflow.systemRank,
+      systemScore: workflow.systemScore,
+      priorityOverride: workflow.priorityOverride,
+      assigneeUserId: workflow.assigneeUserId,
+      assigneeEmail: workflow.assigneeEmail,
+      snoozedUntil: workflow.snoozedUntil
     };
   });
+}
+function mergeActionWorkflowState(params) {
+  return {
+    state: params.stored?.state ?? "open",
+    systemRank: params.stored?.systemRank ?? params.generated.rank,
+    systemScore: params.stored?.systemScore ?? Math.max(1, 100 - params.generated.rank * 10),
+    priorityOverride: params.stored?.priorityOverride ?? "none",
+    assigneeUserId: params.stored?.assigneeUserId ?? null,
+    assigneeEmail: params.stored?.assigneeEmail ?? null,
+    snoozedUntil: params.stored?.snoozedUntil ?? null
+  };
 }
 async function getLiveDashboardData(input) {
   const property = await fetchAuthorizedProperty(input.teamId, input.propertyId);
@@ -704,29 +765,19 @@ async function getLiveDashboardData(input) {
     getLatestPropertyCrawl({ teamId: input.teamId, propertyId: property.id }),
     getLatestPropertyRefreshState(input.teamId, property.id)
   ]);
-  const gscFreshness = summarizeSourceFreshness({
-    source: "gsc",
-    lastAvailableDate: latestDates.gscLatestDate,
+  const freshnessSummary = buildFreshnessSources({
+    gscLatestDate: latestDates.gscLatestDate,
+    ga4LatestDate: latestDates.ga4LatestDate,
+    hasGa4Property: Boolean(property.ga4PropertyId),
     safeLatestDate,
-    requestedEndDate: window.requestedEndDate
-  });
-  const crawlFreshness = summarizeCrawlFreshness({
+    requestedEndDate: window.requestedEndDate,
     crawlCapturedAt: latestCrawl?.createdAt ?? null,
     crawl: latestCrawl?.crawl ?? null
   });
-  const freshnessSources = [
-    gscFreshness,
-    ...property.ga4PropertyId ? [
-      summarizeSourceFreshness({
-        source: "ga4",
-        lastAvailableDate: latestDates.ga4LatestDate,
-        safeLatestDate,
-        requestedEndDate: window.requestedEndDate
-      })
-    ] : [],
-    crawlFreshness
-  ];
-  const dashboardFreshnessState = gscFreshness.state === "unavailable" ? "unavailable" : freshnessSources.some((source) => source.state === "stale") ? "stale" : freshnessSources.some((source) => source.state === "partial" || source.source !== "gsc" && source.state === "unavailable") ? "partial" : "complete";
+  const gscFreshness = freshnessSummary.sources.find((source) => source.source === "gsc");
+  const crawlFreshness = freshnessSummary.sources.find((source) => source.source === "crawl");
+  const freshnessSources = freshnessSummary.sources;
+  const dashboardFreshnessState = freshnessSummary.state;
   const recentChanges = await fetchRecentChanges(property.id, window.startDate, window.endDate);
   const sourceVersionHash = buildSourceVersionHash({
     gscLastFactAt: latestDates.gscLastFactAt,
@@ -893,7 +944,10 @@ async function getLiveDashboardData(input) {
       state: row.state,
       systemRank: row.systemRank ?? null,
       systemScore: row.systemScore ?? null,
-      priorityOverride: row.priorityOverride ?? "none"
+      priorityOverride: row.priorityOverride ?? "none",
+      assigneeUserId: row.assigneeUserId ?? null,
+      assigneeEmail: row.assigneeEmail ?? null,
+      snoozedUntil: normalizeDateString(row.snoozedUntil)
     }
   ]));
   const hydratedActions = withActionState({
@@ -944,6 +998,8 @@ async function upsertActionItemState(params) {
     targetKey: params.targetKey,
     title: params.title,
     owner: params.owner ?? null,
+    assigneeUserId: params.assigneeUserId ?? existing?.assigneeUserId ?? null,
+    assigneeEmail: params.assigneeEmail ?? existing?.assigneeEmail ?? null,
     state: params.state ?? existing?.state ?? "open",
     systemRank: existing?.systemRank ?? null,
     systemScore: existing?.systemScore ?? null,
@@ -951,6 +1007,7 @@ async function upsertActionItemState(params) {
     overrideReason: params.overrideReason ?? existing?.overrideReason ?? null,
     overrideUpdatedByUserId: params.priorityOverride ? params.overrideUpdatedByUserId ?? null : existing?.overrideUpdatedByUserId ?? null,
     overrideUpdatedAt: params.priorityOverride ? /* @__PURE__ */ new Date() : existing?.overrideUpdatedAt ?? null,
+    snoozedUntil: normalizeDateString(params.snoozedUntil) ?? normalizeDateString(existing?.snoozedUntil),
     lastEvaluatedAt: /* @__PURE__ */ new Date(),
     updatedAt: /* @__PURE__ */ new Date()
   }).onConflictDoUpdate({
@@ -963,11 +1020,14 @@ async function upsertActionItemState(params) {
       targetKey: params.targetKey,
       title: params.title,
       owner: params.owner ?? null,
+      assigneeUserId: params.assigneeUserId ?? existing?.assigneeUserId ?? null,
+      assigneeEmail: params.assigneeEmail ?? existing?.assigneeEmail ?? null,
       state: params.state ?? existing?.state ?? "open",
       priorityOverride: params.priorityOverride ?? existing?.priorityOverride ?? "none",
       overrideReason: params.priorityOverride ? params.overrideReason ?? null : existing?.overrideReason ?? null,
       overrideUpdatedByUserId: params.priorityOverride ? params.overrideUpdatedByUserId ?? null : existing?.overrideUpdatedByUserId ?? null,
       overrideUpdatedAt: params.priorityOverride ? /* @__PURE__ */ new Date() : existing?.overrideUpdatedAt ?? null,
+      snoozedUntil: normalizeDateString(params.snoozedUntil) ?? normalizeDateString(existing?.snoozedUntil),
       lastEvaluatedAt: /* @__PURE__ */ new Date(),
       updatedAt: /* @__PURE__ */ new Date()
     }
@@ -975,7 +1035,10 @@ async function upsertActionItemState(params) {
     id: actionItems.id,
     fingerprint: actionItems.fingerprint,
     state: actionItems.state,
-    priorityOverride: actionItems.priorityOverride
+    priorityOverride: actionItems.priorityOverride,
+    assigneeUserId: actionItems.assigneeUserId,
+    assigneeEmail: actionItems.assigneeEmail,
+    snoozedUntil: actionItems.snoozedUntil
   });
   return row;
 }
@@ -1139,12 +1202,182 @@ async function getSnapshotExportDetail(params) {
     actionCount: payloadActions.length
   };
 }
+function mapPropertyShareRow(row) {
+  return {
+    id: row.id,
+    shareId: row.id,
+    token: row.token,
+    propertyId: row.propertyId,
+    teamId: row.teamId,
+    createdAt: row.createdAt.toISOString(),
+    expiresAt: row.expiresAt?.toISOString() ?? null,
+    brandSnapshot: row.brandSnapshot,
+    payloadSnapshot: row.payloadSnapshot
+  };
+}
+function metricDelta(current, previous) {
+  if (current == null || previous == null) return null;
+  return current - previous;
+}
+function topMovements(params) {
+  const previousByKey = /* @__PURE__ */ new Map();
+  for (const row of params.previousRows) {
+    const label = String(row[params.key] ?? "");
+    const value = Number(row[params.value] ?? 0);
+    if (label) previousByKey.set(label, value);
+  }
+  return params.currentRows.map((row) => {
+    const label = String(row[params.key] ?? "");
+    const current = Number(row[params.value] ?? 0);
+    const previous = previousByKey.get(label) ?? 0;
+    return { label, current, previous, delta: current - previous };
+  }).filter((row) => row.label && row.delta !== 0).sort((left, right) => Math.abs(right.delta) - Math.abs(left.delta)).slice(0, params.limit ?? 5);
+}
+function selectPreviousPropertyShare(rows, now = /* @__PURE__ */ new Date()) {
+  const row = rows.filter((candidate) => !candidate.revokedAt && (!candidate.expiresAt || candidate.expiresAt > now)).sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0];
+  return row ? mapPropertyShareRow(row) : null;
+}
+function buildClientReportComparison(params) {
+  const current = params.current;
+  const previous = params.previous ?? null;
+  const completedWork = current.actions.filter((action) => action.state === "done").slice(0, 6).map((action) => ({
+    title: action.title,
+    firstVisibleWin: action.firstVisibleWin,
+    target: action.targetPage ?? action.targetKey ?? action.targetType
+  }));
+  return {
+    previousCreatedAt: previous ? params.previousCreatedAt ?? null : null,
+    previousWindow: previous ? {
+      startDate: previous.analysisWindow.startDate,
+      endDate: previous.analysisWindow.endDate
+    } : null,
+    metricDeltas: {
+      clicks: previous ? metricDelta(current.overview.clicks, previous.overview.clicks) : null,
+      impressions: previous ? metricDelta(current.overview.impressions, previous.overview.impressions) : null,
+      ctr: previous ? metricDelta(current.overview.ctr, previous.overview.ctr) : null,
+      position: previous ? metricDelta(current.overview.position, previous.overview.position) : null,
+      sessions: previous ? metricDelta(current.overview.sessions, previous.overview.sessions) : null,
+      users: previous ? metricDelta(current.overview.users, previous.overview.users) : null
+    },
+    pageMovements: previous ? topMovements({
+      currentRows: current.evidence.pageWinnersLosers,
+      previousRows: previous.evidence.pageWinnersLosers,
+      key: "page",
+      value: "clicksCurrent"
+    }) : [],
+    queryMovements: previous ? topMovements({
+      currentRows: current.evidence.queryOpportunities,
+      previousRows: previous.evidence.queryOpportunities,
+      key: "query",
+      value: "clicks"
+    }) : [],
+    completedWork,
+    changedPages: current.evidence.recentChanges.slice(0, 6)
+  };
+}
+async function createPropertyShareLink(params) {
+  const dashboard = await getLiveDashboardData({
+    teamId: params.teamId,
+    propertyId: params.propertyId,
+    preset: params.preset,
+    compareMode: params.compareMode,
+    startDate: params.startDate,
+    endDate: params.endDate
+  });
+  const brandSnapshot = await getTeamBrandingProfile(params.teamId);
+  const token = `ps_${nanoid2(32)}`;
+  const [row] = await db.insert(propertyShareLinks).values({
+    id: `psl_${nanoid2(12)}`,
+    teamId: params.teamId,
+    propertyId: dashboard.property.id,
+    token,
+    createdByUserId: params.createdByUserId,
+    expiresAt: params.expiresAt ?? null,
+    windowPreset: dashboard.analysisWindow.preset,
+    compareMode: dashboard.analysisWindow.compareMode,
+    startDate: dashboard.analysisWindow.startDate,
+    endDate: dashboard.analysisWindow.requestedEndDate,
+    brandSnapshot,
+    payloadSnapshot: dashboard
+  }).returning({
+    id: propertyShareLinks.id,
+    token: propertyShareLinks.token,
+    expiresAt: propertyShareLinks.expiresAt
+  });
+  return {
+    shareId: row.id,
+    token: row.token,
+    expiresAt: row.expiresAt?.toISOString() ?? null
+  };
+}
+async function getPropertyShareByToken(token) {
+  const row = await db.query.propertyShareLinks.findFirst({
+    where: (table, { eq: eqFn }) => eqFn(table.token, token)
+  });
+  if (!row || row.revokedAt || row.expiresAt && row.expiresAt <= /* @__PURE__ */ new Date()) {
+    return null;
+  }
+  return mapPropertyShareRow(row);
+}
+async function getPropertyShareReportByToken(token) {
+  const currentShare = await getPropertyShareByToken(token);
+  if (!currentShare) return null;
+  const currentCreatedAt = new Date(currentShare.createdAt);
+  const previousRows = await db.query.propertyShareLinks.findMany({
+    where: (table, { and: andFn, eq: eqFn }) => andFn(
+      eqFn(table.teamId, currentShare.teamId),
+      eqFn(table.propertyId, currentShare.propertyId),
+      lt(table.createdAt, currentCreatedAt)
+    ),
+    orderBy: (table, { desc: descOrder }) => [descOrder(table.createdAt)],
+    limit: 10
+  });
+  const previousShare = selectPreviousPropertyShare(previousRows);
+  return {
+    ...currentShare,
+    previousShare: previousShare ? {
+      id: previousShare.id,
+      shareId: previousShare.shareId,
+      createdAt: previousShare.createdAt,
+      payloadSnapshot: previousShare.payloadSnapshot
+    } : null,
+    clientReportComparison: buildClientReportComparison({
+      current: currentShare.payloadSnapshot,
+      previous: previousShare?.payloadSnapshot ?? null,
+      previousCreatedAt: previousShare?.createdAt ?? null
+    })
+  };
+}
+function buildPropertyShareDownloadPayload(params) {
+  return {
+    metadata: {
+      exportType: "dashboard_snapshot_json",
+      createdAt: params.createdAt ?? (/* @__PURE__ */ new Date()).toISOString(),
+      propertyId: params.dashboard.property.id,
+      propertyName: params.dashboard.property.name,
+      startDate: params.dashboard.analysisWindow.startDate,
+      endDate: params.dashboard.analysisWindow.requestedEndDate,
+      compareMode: params.dashboard.analysisWindow.compareMode,
+      payloadVersion: params.dashboard.payloadVersion
+    },
+    brand: params.brandSnapshot,
+    dashboard: params.dashboard
+  };
+}
 export {
+  buildClientReportComparison,
+  buildFreshnessSources,
+  buildPropertyShareDownloadPayload,
+  createPropertyShareLink,
   createSnapshotExport,
   getLatestDashboardPayloadVersion,
   getLiveDashboardData,
+  getPropertyShareByToken,
+  getPropertyShareReportByToken,
   getSnapshotExportDetail,
   getWorkspaceActionBoard,
+  mergeActionWorkflowState,
   resolveAnalysisWindow,
+  selectPreviousPropertyShare,
   upsertActionItemState
 };

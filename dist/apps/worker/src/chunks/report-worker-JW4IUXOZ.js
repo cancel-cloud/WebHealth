@@ -3,13 +3,13 @@ import {
 } from "./chunk-YZNPJFVX.js";
 import {
   buildDeterministicInsights
-} from "./chunk-IHU6YNCZ.js";
+} from "./chunk-4VCCCQCW.js";
 import {
   crawlWebsite
 } from "./chunk-LZU3ZATR.js";
 import {
   resolveReportSourcesForExistingReport
-} from "./chunk-AJWHQMOS.js";
+} from "./chunk-E7NIPORF.js";
 import {
   appendReportJobEvent,
   buildWeeklyReviewFindings,
@@ -22,10 +22,10 @@ import {
   recordProductEvent,
   requeueJobForRetry,
   updateReportJobPhase
-} from "./chunk-3LY36M6B.js";
+} from "./chunk-OBLEH6Y6.js";
 import {
   db
-} from "./chunk-JRPUP4TA.js";
+} from "./chunk-L7LNIRSY.js";
 import {
   aiReportSettings,
   crawlPageSnapshots,
@@ -40,7 +40,7 @@ import {
   systemLogs,
   teamMembers,
   weeklyReviewRuns
-} from "./chunk-3VHV6IUD.js";
+} from "./chunk-GZVTNFTC.js";
 import {
   requireDirectDatabaseUrl
 } from "./chunk-AHMZJEDT.js";
@@ -1381,6 +1381,12 @@ var recommendationValueAtStakeSchema = z.object({
   trafficExposure: z.number().nullable().default(null),
   revenueProxy: z.number().nullable().default(null)
 });
+var recommendationAffectedTargetSchema = z.object({
+  url: z.string(),
+  clicks: z.number().nullable().default(null),
+  impressions: z.number().nullable().default(null),
+  position: z.number().nullable().default(null)
+});
 var recommendationSummarySchema = z.object({
   recommendationClass,
   primaryMetric: recommendationPrimaryMetric,
@@ -1397,7 +1403,8 @@ var recommendationSummarySchema = z.object({
   effort: recommendationEffort,
   priorityReason: z.string(),
   targetPage: z.string().nullable().default(null),
-  supportingQueries: z.array(z.string()).default([])
+  supportingQueries: z.array(z.string()).default([]),
+  affectedTargets: z.array(recommendationAffectedTargetSchema).default([])
 });
 var queryOpportunitySchema = z.object({
   query: z.string(),
@@ -1448,6 +1455,7 @@ var technicalIssueSchema = z.object({
   issueType: z.string(),
   affectedPages: z.number(),
   affectedEstimatedClicks: z.number(),
+  affectedTargets: z.array(recommendationAffectedTargetSchema).default([]),
   severity: priority,
   recommendation: z.string()
 });
@@ -2656,7 +2664,7 @@ function decryptGoogleAccountTokens(row) {
   };
 }
 async function getGoogleAccountTokensForUser(userId) {
-  const { db: db2 } = await import("./db-SO74L5BG.js");
+  const { db: db2 } = await import("./db-722F7QOZ.js");
   const googleAccount = await db2.query.account.findFirst({
     where: (table, { and: and4, eq: eq5 }) => and4(eq5(table.userId, userId), eq5(table.providerId, "google"))
   });

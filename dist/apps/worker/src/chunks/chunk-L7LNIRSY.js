@@ -1,6 +1,6 @@
 import {
   schema_exports
-} from "./chunk-3VHV6IUD.js";
+} from "./chunk-GZVTNFTC.js";
 import {
   requireRuntimeDatabaseUrl
 } from "./chunk-AHMZJEDT.js";

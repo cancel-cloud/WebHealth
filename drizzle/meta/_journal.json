@@ -29,6 +29,13 @@
       "when": 1774022400000,
       "tag": "0003_live_decision_engine_unification",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774108800000,
+      "tag": "0004_property_share_links",
+      "breakpoints": true
     }
   ]
 }

@@ -271,17 +271,25 @@ function buildCannibalization(rows) {
 function buildTechnicalIssueRows(crawl, topPages) {
   if (!crawl) return [];
   const pageClicks = new Map(topPages.map((p) => [p.page, p.clicks]));
+  const pageMetrics = new Map(topPages.map((p) => [p.page, p]));
   const issueBuckets = /* @__PURE__ */ new Map();
   for (const page of crawl.pages ?? []) {
     const estimatedClicks = pageClicks.get(page.url) ?? 0;
     for (const issue of page.issues ?? []) {
       const key = issue.trim();
       if (!issueBuckets.has(key)) {
-        issueBuckets.set(key, { affectedPages: 0, affectedEstimatedClicks: 0 });
+        issueBuckets.set(key, { affectedPages: 0, affectedEstimatedClicks: 0, affectedTargets: [] });
       }
       const bucket = issueBuckets.get(key);
+      const metrics = pageMetrics.get(page.url);
       bucket.affectedPages += 1;
       bucket.affectedEstimatedClicks += estimatedClicks;
+      bucket.affectedTargets?.push({
+        url: page.url,
+        clicks: metrics?.clicks ?? estimatedClicks,
+        impressions: metrics?.impressions ?? null,
+        position: metrics?.position ?? null
+      });
     }
   }
   const rows = [...issueBuckets.entries()].map(([issueType, bucket]) => {
@@ -290,6 +298,7 @@ function buildTechnicalIssueRows(crawl, topPages) {
       issueType,
       affectedPages: bucket.affectedPages,
       affectedEstimatedClicks: bucket.affectedEstimatedClicks,
+      affectedTargets: bucket.affectedTargets?.sort((a, b) => (b.clicks ?? 0) - (a.clicks ?? 0)).slice(0, 4),
       severity,
       recommendation: issueType.toLowerCase().includes("broken") ? "Fix the broken-link pattern on the affected pages before spending time on net-new SEO work." : "Fix the template or component pattern behind this issue before page-by-page edits."
     };
@@ -366,6 +375,7 @@ function makeTechnicalCandidate(row, index) {
     effort: row.affectedPages > 10 ? "L" : row.affectedPages > 4 ? "M" : "S",
     targetPage: null,
     supportingQueries: [],
+    affectedTargets: row.affectedTargets ?? [],
     detail: buildDetail({
       observed: [
         `${row.issueType} affects ${row.affectedPages} pages.`,
