@@ -157,6 +157,13 @@ export type RecommendationValueAtStake = {
   revenueProxy?: number | null;
 };
 
+export type RecommendationAffectedTarget = {
+  url: string;
+  clicks?: number | null;
+  impressions?: number | null;
+  position?: number | null;
+};
+
 export type RecommendationDetail = {
   observed: string[];
   likelyCauses: string[];
@@ -186,6 +193,7 @@ export type RecommendationSummary = {
   priorityReason: string;
   targetPage?: string | null;
   supportingQueries?: string[];
+  affectedTargets?: RecommendationAffectedTarget[];
 };
 
 export type QueryOpportunityRow = {
@@ -241,6 +249,7 @@ export type TechnicalIssueRow = {
   issueType: string;
   affectedPages: number;
   affectedEstimatedClicks: number;
+  affectedTargets?: RecommendationAffectedTarget[];
   severity: "KRITISCH" | "HOCH" | "MITTEL" | "NIEDRIG";
   recommendation: string;
 };

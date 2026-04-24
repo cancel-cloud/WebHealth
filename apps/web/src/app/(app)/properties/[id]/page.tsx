@@ -48,6 +48,10 @@ export default async function PropertyDashboardPage({
   return (
     <PropertyDashboardClient
       dashboard={dashboard}
+      currentUser={{
+        id: session.user.id,
+        email: session.user.email,
+      }}
       brandColors={{
         primary: branding.primaryColor,
         accent: branding.accentColor,

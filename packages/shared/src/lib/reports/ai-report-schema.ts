@@ -136,6 +136,13 @@ const recommendationValueAtStakeSchema = z.object({
   revenueProxy: z.number().nullable().default(null),
 });
 
+const recommendationAffectedTargetSchema = z.object({
+  url: z.string(),
+  clicks: z.number().nullable().default(null),
+  impressions: z.number().nullable().default(null),
+  position: z.number().nullable().default(null),
+});
+
 const recommendationSummarySchema = z.object({
   recommendationClass,
   primaryMetric: recommendationPrimaryMetric,
@@ -153,6 +160,7 @@ const recommendationSummarySchema = z.object({
   priorityReason: z.string(),
   targetPage: z.string().nullable().default(null),
   supportingQueries: z.array(z.string()).default([]),
+  affectedTargets: z.array(recommendationAffectedTargetSchema).default([]),
 });
 
 const queryOpportunitySchema = z.object({
@@ -208,6 +216,7 @@ const technicalIssueSchema = z.object({
   issueType: z.string(),
   affectedPages: z.number(),
   affectedEstimatedClicks: z.number(),
+  affectedTargets: z.array(recommendationAffectedTargetSchema).default([]),
   severity: priority,
   recommendation: z.string(),
 });
