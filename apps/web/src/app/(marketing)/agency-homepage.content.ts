@@ -831,7 +831,7 @@ export const AGENCY_INTEGRATIONS: IntegrationItem[] = [
   {
     icon: "looker",
     availability: "planned",
-    title: { en: "Looker Studio packaging", de: "Looker-Studio-Paket" },
+    title: { en: "Looker Studio Export", de: "Looker-Studio-Export" },
     description: {
       en: "Looker export is part of the agency roadmap presented here. It is intentionally labeled as planned until the product surface exists.",
       de: "Der Looker-Export ist Teil der hier gezeigten Agentur-Roadmap. Er ist bewusst als geplant markiert, bis die Produktoberfläche existiert.",

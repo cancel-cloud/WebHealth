@@ -44,10 +44,8 @@ import {
   BarChart2,
   Check,
   ChevronDown,
-  Globe2,
   LayoutGrid,
   Palette,
-  Search,
   ShieldCheck,
   Sparkles,
   TrendingDown,
@@ -106,17 +104,24 @@ function AvailabilityBadge({
   );
 }
 
-function IntegrationIcon({ icon }: Pick<IntegrationItem, "icon">) {
+function IntegrationLogo({ icon }: Pick<IntegrationItem, "icon">) {
   if (icon === "gsc") {
-    return <Search className="h-5 w-5" aria-hidden="true" />;
+    return (
+      <span className="font-display text-3xl font-black leading-none tracking-[-0.08em]" aria-hidden="true">
+        <span className="text-blue-500">G</span>
+      </span>
+    );
   }
+
   if (icon === "ga4") {
-    return <BarChart2 className="h-5 w-5" aria-hidden="true" />;
+    return <BarChart2 className="h-8 w-8 text-amber-500" aria-hidden="true" />;
   }
+
   if (icon === "looker") {
-    return <Globe2 className="h-5 w-5" aria-hidden="true" />;
+    return <BarChart2 className="h-8 w-8 text-blue-500" aria-hidden="true" />;
   }
-  return <Sparkles className="h-5 w-5" aria-hidden="true" />;
+
+  return <Sparkles className="h-8 w-8 text-indigo-500" aria-hidden="true" />;
 }
 
 function FeatureIcon({ icon }: { icon: (typeof AGENCY_FEATURES)[number]["icon"] }) {
@@ -1160,36 +1165,36 @@ export function AgencyHomepageClient() {
             </div>
           </section>
 
-          <section id="integrations" className="scroll-mt-24 px-6 py-24">
+          <section id="integrations" className="scroll-mt-24 bg-[oklch(0.992_0.002_250)] px-6 py-20">
             <div className="mx-auto max-w-7xl">
-              <div className="mx-auto max-w-3xl text-center">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              <div className="mx-auto max-w-4xl text-center">
+                <p className="text-sm font-bold uppercase tracking-[0.24em] text-indigo-500">
                   {getLocalizedValue(AGENCY_HOME_COPY.integrations.eyebrow, language)}
                 </p>
-                <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl">
+                <h2 className="mt-5 font-display text-4xl font-black leading-[1.02] tracking-[-0.04em] text-foreground text-balance sm:text-6xl">
                   {getLocalizedValue(AGENCY_HOME_COPY.integrations.title, language)}
                 </h2>
-                <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
+                <p className="mx-auto mt-6 max-w-3xl text-xl leading-8 text-muted-foreground sm:text-2xl">
                   {getLocalizedValue(AGENCY_HOME_COPY.integrations.lead, language)}
                 </p>
               </div>
 
-              <div className="mt-12 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-                <div className="grid gap-4">
+              <div className="mt-16 grid items-center gap-12 lg:grid-cols-[minmax(0,0.98fr)_minmax(420px,1fr)]">
+                <div className="grid gap-3">
                   {AGENCY_INTEGRATIONS.map((integration) => (
                     <article
                       key={integration.title.en}
-                      className="flex flex-col gap-4 rounded-2xl border border-border bg-[oklch(0.995_0.002_250)] p-5 shadow-sm sm:flex-row sm:items-start sm:justify-between"
+                      className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-[0_18px_44px_-34px_rgba(15,23,42,0.34)] sm:flex-row sm:items-start sm:justify-between"
                     >
                       <div className="flex gap-4">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/8 text-primary">
-                          <IntegrationIcon icon={integration.icon} />
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-primary">
+                          <IntegrationLogo icon={integration.icon} />
                         </div>
                         <div>
-                          <h3 className="font-display text-xl font-semibold">
+                          <h3 className="font-display text-2xl font-black tracking-[-0.02em]">
                             {getLocalizedValue(integration.title, language)}
                           </h3>
-                          <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                          <p className="mt-1.5 max-w-2xl text-base leading-7 text-muted-foreground">
                             {getLocalizedValue(integration.description, language)}
                           </p>
                         </div>
@@ -1202,27 +1207,22 @@ export function AgencyHomepageClient() {
                   ))}
                 </div>
 
-                <div className="relative overflow-hidden rounded-[28px] border border-border bg-[oklch(0.975_0.004_250)] p-8 shadow-sm">
-                  <div
-                    aria-hidden="true"
-                    className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.12),_transparent_52%)]"
-                  />
-                  <div className="relative flex min-h-[360px] items-center justify-center">
-                    <div className="absolute flex h-24 w-24 items-center justify-center rounded-full border border-primary/20 bg-white text-primary shadow-sm">
-                      <Sparkles className="h-7 w-7" aria-hidden="true" />
-                    </div>
-                    <div className="absolute left-4 top-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-white text-primary shadow-sm">
-                      <Search className="h-6 w-6" aria-hidden="true" />
-                    </div>
-                    <div className="absolute right-6 top-12 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-white text-amber-500 shadow-sm">
-                      <BarChart2 className="h-6 w-6" aria-hidden="true" />
-                    </div>
-                    <div className="absolute bottom-10 left-10 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-white text-sky-600 shadow-sm">
-                      <Globe2 className="h-6 w-6" aria-hidden="true" />
-                    </div>
-                    <div className="absolute bottom-4 right-12 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-white text-emerald-600 shadow-sm">
-                      <Sparkles className="h-6 w-6" aria-hidden="true" />
-                    </div>
+                <div className="relative min-h-[500px] overflow-hidden">
+                  <div className="absolute left-1/2 top-1/2 flex h-40 w-40 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[2rem] bg-[linear-gradient(135deg,#3154f4,#1597e5)] shadow-[0_34px_80px_-28px_rgba(49,84,244,0.65)]">
+                    <div className="h-16 w-16 rounded-full bg-[oklch(0.992_0.002_250)]" />
+                  </div>
+
+                  <div className="absolute left-[58%] top-8 flex h-24 w-24 items-center justify-center rounded-[1.5rem] border border-slate-200 bg-white text-blue-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)]">
+                    <IntegrationLogo icon="gsc" />
+                  </div>
+                  <div className="absolute right-2 top-[44%] flex h-24 w-24 items-center justify-center rounded-[1.5rem] border border-slate-200 bg-white text-amber-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)]">
+                    <IntegrationLogo icon="ga4" />
+                  </div>
+                  <div className="absolute bottom-8 left-[58%] flex h-24 w-24 items-center justify-center rounded-[1.5rem] border border-slate-200 bg-white text-blue-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)]">
+                    <IntegrationLogo icon="looker" />
+                  </div>
+                  <div className="absolute bottom-[37%] left-[22%] flex h-24 w-24 items-center justify-center rounded-[1.5rem] border border-slate-200 bg-white text-indigo-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)]">
+                    <IntegrationLogo icon="crawl" />
                   </div>
                 </div>
               </div>
