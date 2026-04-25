@@ -30,6 +30,18 @@ type PropertyRefreshPayload = {
   endDate?: string | null;
 };
 
+export function matchesPropertyRefreshPayload(
+  candidate: Record<string, unknown> | null | undefined,
+  target: PropertyRefreshPayload | null | undefined,
+) {
+  const normalize = (value: unknown) => (typeof value === "string" && value.length ? value : null);
+
+  return normalize(candidate?.preset) === normalize(target?.preset)
+    && normalize(candidate?.compareMode) === normalize(target?.compareMode)
+    && normalize(candidate?.startDate) === normalize(target?.startDate)
+    && normalize(candidate?.endDate) === normalize(target?.endDate);
+}
+
 function normalizePropertyRefreshRow(row: typeof propertyRefreshJobs.$inferSelect): PropertyRefreshState {
   return {
     id: row.id,
@@ -256,16 +268,50 @@ export async function failPropertyRefreshJob(jobId: string, errorMessage: string
 }
 
 export async function getLatestPropertyRefreshState(teamId: string, propertyId: string): Promise<PropertyRefreshState | null> {
+  return getLatestPropertyRefreshStateForWindow({ teamId, propertyId });
+}
+
+export async function getLatestPropertyRefreshStateForWindow(params: {
+  teamId: string;
+  propertyId: string;
+  payload?: PropertyRefreshPayload | null;
+}): Promise<PropertyRefreshState | null> {
   const row = await db.query.propertyRefreshJobs.findFirst({
     where: and(
-      eq(propertyRefreshJobs.teamId, teamId),
-      eq(propertyRefreshJobs.propertyId, propertyId),
+      eq(propertyRefreshJobs.teamId, params.teamId),
+      eq(propertyRefreshJobs.propertyId, params.propertyId),
       isNull(propertyRefreshJobs.supersededAt),
     ),
-    orderBy: (table, { desc: descOrder }) => [descOrder(table.updatedAt)],
+    orderBy: (table, { desc: descOrder, asc: ascOrder, sql: sqlOrder }) => [
+      sqlOrder<number>`case when ${table.status} in ('queued', 'processing') then 0 else 1 end`,
+      descOrder(table.updatedAt),
+      ascOrder(table.createdAt),
+    ],
   });
 
-  return row ? normalizePropertyRefreshRow(row) : null;
+  if (!row) return null;
+  if (!params.payload) return normalizePropertyRefreshRow(row);
+
+  const matchingRows = await db.query.propertyRefreshJobs.findMany({
+    where: and(
+      eq(propertyRefreshJobs.teamId, params.teamId),
+      eq(propertyRefreshJobs.propertyId, params.propertyId),
+      isNull(propertyRefreshJobs.supersededAt),
+    ),
+    orderBy: (table, { desc: descOrder, asc: ascOrder, sql: sqlOrder }) => [
+      sqlOrder<number>`case when ${table.status} in ('queued', 'processing') then 0 else 1 end`,
+      descOrder(table.updatedAt),
+      ascOrder(table.createdAt),
+    ],
+  });
+
+  const matchingRow = matchingRows.find((candidate) =>
+    matchesPropertyRefreshPayload(
+      (candidate.payload as Record<string, unknown> | null | undefined) ?? null,
+      params.payload,
+    ));
+
+  return matchingRow ? normalizePropertyRefreshRow(matchingRow) : null;
 }
 
 export async function getLatestPropertyRefreshJob(teamId: string, propertyId: string) {

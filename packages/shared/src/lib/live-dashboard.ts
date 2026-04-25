@@ -17,6 +17,7 @@ import type { CrawlResult } from "@webhealth/shared/lib/crawl";
 import {
   getLatestPropertyCrawl,
   getLatestPropertyRefreshState,
+  getLatestPropertyRefreshStateForWindow,
   type PropertyRefreshState,
 } from "@webhealth/shared/lib/property-refresh";
 import { buildDeterministicInsights } from "@webhealth/shared/lib/reports/deterministic-insights";
@@ -684,7 +685,7 @@ function summarizeOperatingContext(params: {
   };
 }
 
-function buildDegradedStates(params: {
+export function buildDegradedStates(params: {
   actions: Array<WeeklyActionRow & ActionIdentity>;
   crawlFreshness: SourceFreshness;
   dashboardFreshnessState: FreshnessState;
@@ -1102,7 +1103,16 @@ export async function getLiveDashboardData(input: LiveDashboardInput): Promise<L
   const [latestDates, latestCrawl, refreshState] = await Promise.all([
     fetchLatestDateForSource({ property }),
     getLatestPropertyCrawl({ teamId: input.teamId, propertyId: property.id }),
-    getLatestPropertyRefreshState(input.teamId, property.id),
+    getLatestPropertyRefreshStateForWindow({
+      teamId: input.teamId,
+      propertyId: property.id,
+      payload: {
+        preset: window.preset,
+        compareMode: window.compareMode,
+        startDate: window.startDate,
+        endDate: window.requestedEndDate,
+      },
+    }),
   ]);
 
   const freshnessSummary = buildFreshnessSources({

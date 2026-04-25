@@ -12,11 +12,19 @@ export function PropertyLiveStatus({
   propertyId,
   initialRefreshState,
   payloadVersion,
+  preset,
+  compareMode,
+  startDate,
+  endDate,
   onStateChange,
 }: {
   propertyId: string;
   initialRefreshState: PropertyRefreshState | null;
   payloadVersion: string;
+  preset: string;
+  compareMode: string;
+  startDate: string;
+  endDate: string;
   onStateChange?: (state: PropertyRefreshState | null) => void;
 }) {
   const router = useRouter();
@@ -48,7 +56,14 @@ export function PropertyLiveStatus({
       } | null = null;
 
       try {
-        data = await requestJson(`/api/properties/${encodeURIComponent(propertyId)}/status?currentPayloadVersion=${encodeURIComponent(payloadVersion)}`, {
+        const params = new URLSearchParams({
+          currentPayloadVersion: payloadVersion,
+          preset,
+          compare: compareMode,
+          start: startDate,
+          end: endDate,
+        });
+        data = await requestJson(`/api/properties/${encodeURIComponent(propertyId)}/status?${params.toString()}`, {
           cache: "no-store",
         });
       } catch {
@@ -94,7 +109,7 @@ export function PropertyLiveStatus({
       window.clearInterval(interval);
       toast.dismiss(toastId);
     };
-  }, [currentState?.message, currentState?.status, onStateChange, payloadVersion, propertyId, router, toastId]);
+  }, [compareMode, currentState?.message, currentState?.status, endDate, onStateChange, payloadVersion, preset, propertyId, router, startDate, toastId]);
 
   return null;
 }
