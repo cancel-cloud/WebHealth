@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildDegradedStates,
   buildClientReportComparison,
   buildFreshnessSources,
   mergeActionWorkflowState,
@@ -126,6 +127,60 @@ test("mergeActionWorkflowState preserves user workflow fields across recomputati
   });
 });
 
+test("buildDegradedStates ignores completed refresh jobs", () => {
+  const degradedStates = buildDegradedStates({
+    actions: dashboardFixture().actions,
+    crawlFreshness: {
+      source: "crawl",
+      state: "complete",
+      lastAvailableDate: null,
+      safeLatestDate: null,
+      note: "",
+    },
+    dashboardFreshnessState: "complete",
+    refreshState: {
+      id: "prj_complete",
+      jobType: "decision_refresh",
+      status: "complete",
+      phase: "done",
+      message: "Decision refresh complete",
+      progressMeta: null,
+      startedAt: "2026-04-25T10:00:00.000Z",
+      finishedAt: "2026-04-25T10:01:00.000Z",
+      updatedAt: "2026-04-25T10:01:00.000Z",
+    },
+  });
+
+  assert.equal(degradedStates.some((state) => state.code === "refresh_in_progress"), false);
+});
+
+test("buildDegradedStates keeps showing active refresh jobs", () => {
+  const degradedStates = buildDegradedStates({
+    actions: [],
+    crawlFreshness: {
+      source: "crawl",
+      state: "complete",
+      lastAvailableDate: null,
+      safeLatestDate: null,
+      note: "",
+    },
+    dashboardFreshnessState: "complete",
+    refreshState: {
+      id: "prj_processing",
+      jobType: "crawl_refresh",
+      status: "processing",
+      phase: "analysis",
+      message: "Recomputing ranked actions…",
+      progressMeta: null,
+      startedAt: "2026-04-25T10:00:00.000Z",
+      finishedAt: null,
+      updatedAt: "2026-04-25T10:00:30.000Z",
+    },
+  });
+
+  assert.equal(degradedStates.some((state) => state.code === "refresh_in_progress"), true);
+});
+
 function dashboardFixture(overrides?: Partial<LiveDashboardData>): LiveDashboardData {
   return {
     property: {
@@ -189,6 +244,7 @@ function dashboardFixture(overrides?: Partial<LiveDashboardData>): LiveDashboard
     topAction: null,
     actions: [
       {
+        id: "weekly_tech_action_1",
         fingerprint: "action_1",
         actionFamily: "technical",
         causeFamily: "technical",
@@ -201,11 +257,27 @@ function dashboardFixture(overrides?: Partial<LiveDashboardData>): LiveDashboard
         title: "Improve service page title",
         whyNow: "Search visibility improved after title cleanup.",
         firstVisibleWin: "The service page is easier to understand in search results.",
+        primaryMetric: "clicks",
+        expectedDirection: "increase",
+        successWindow: "7 days",
+        successSignal: "Higher CTR on the service page",
+        timeToValue: "fast",
+        scopeLabel: "Page",
+        targetLabel: "/services",
         expectedSuccessWindow: "days",
         recommendationClass: "crawl",
         effort: "S",
+        detail: {
+          headline: "Tighten the title to better match search intent.",
+          summary: "The service page title is underperforming in search.",
+          deterministic: [],
+          likelyCause: [],
+          recommendedActions: [],
+          expectedOutcome: [],
+        },
         confidenceLabel: "medium",
         confidenceBasis: "Observed page changed.",
+        priorityReason: "Title mismatch is suppressing clicks on a key page.",
         valueAtStake: {},
         state: "done",
         freshnessEligibility: "eligible",
@@ -216,7 +288,7 @@ function dashboardFixture(overrides?: Partial<LiveDashboardData>): LiveDashboard
         assigneeUserId: null,
         assigneeEmail: null,
         snoozedUntil: null,
-      } as LiveDashboardData["actions"][number],
+      } as unknown as LiveDashboardData["actions"][number],
     ],
     recentSnapshots: [],
     ...overrides,
@@ -291,7 +363,16 @@ test("buildClientReportComparison derives report-to-report movement and complete
         { query: "brand", clicks: 12, impressions: 200, ctr: 0.06, position: 3 } as LiveDashboardData["evidence"]["queryOpportunities"][number],
       ],
       pageWinnersLosers: [
-        { page: "/services", clicksCurrent: 10, clicksCompare: 8, status: "stable" } as LiveDashboardData["evidence"]["pageWinnersLosers"][number],
+        {
+          page: "/services",
+          clicksCurrent: 10,
+          clicksCompare: 8,
+          clicksDelta: 2,
+          impressionsCurrent: 100,
+          impressionsCompare: 90,
+          impressionsDelta: 10,
+          status: "flat",
+        } as unknown as LiveDashboardData["evidence"]["pageWinnersLosers"][number],
       ],
     },
     actions: [],

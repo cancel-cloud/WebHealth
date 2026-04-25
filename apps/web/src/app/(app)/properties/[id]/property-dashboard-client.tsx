@@ -1055,6 +1055,10 @@ export function PropertyDashboardClient({
         propertyId={dashboard.property.id}
         initialRefreshState={dashboard.propertyUpdateState}
         payloadVersion={dashboard.payloadVersion}
+        preset={dashboard.analysisWindow.preset}
+        compareMode={dashboard.analysisWindow.compareMode}
+        startDate={dashboard.analysisWindow.startDate}
+        endDate={dashboard.analysisWindow.requestedEndDate}
         onStateChange={setCurrentRefreshState}
       />
       <div className="space-y-5">

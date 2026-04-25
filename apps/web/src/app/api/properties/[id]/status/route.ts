@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getLatestDashboardPayloadVersion,
 } from "@webhealth/shared/lib/live-dashboard";
-import { getLatestPropertyRefreshState } from "@webhealth/shared/lib/property-refresh";
+import { getLatestPropertyRefreshStateForWindow } from "@webhealth/shared/lib/property-refresh";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import {
   requirePrimaryTeamMembership,
@@ -20,12 +20,22 @@ export async function GET(
     const membership = await requirePrimaryTeamMembership(session);
     const { id } = await context.params as { id: string };
     const propertyId = decodeRouteParam(id);
-    const currentPayloadVersion = new URL(req.url).searchParams.get("currentPayloadVersion");
+    const requestUrl = new URL(req.url);
+    const currentPayloadVersion = requestUrl.searchParams.get("currentPayloadVersion");
 
     const resolved = await resolveTeamReportSources(membership.teamId, propertyId);
     const canonicalPropertyId = resolved.canonicalGscProperty.id;
     const [refreshState, latestPayloadVersion] = await Promise.all([
-      getLatestPropertyRefreshState(membership.teamId, canonicalPropertyId),
+      getLatestPropertyRefreshStateForWindow({
+        teamId: membership.teamId,
+        propertyId: canonicalPropertyId,
+        payload: {
+          preset: requestUrl.searchParams.get("preset"),
+          compareMode: requestUrl.searchParams.get("compare"),
+          startDate: requestUrl.searchParams.get("start"),
+          endDate: requestUrl.searchParams.get("end"),
+        },
+      }),
       getLatestDashboardPayloadVersion({
         teamId: membership.teamId,
         propertyId: canonicalPropertyId,
