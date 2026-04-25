@@ -6,6 +6,12 @@ import { authClient } from "@webhealth/shared/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { CookieSettingsButton } from "@/components/cookie-consent";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   buildLegalHref,
   LEGAL_DOCUMENT_IDS,
   LEGAL_NAV_LABELS,
@@ -54,6 +60,7 @@ import {
   X,
   Zap,
   CalendarCheck2,
+  Menu,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -217,17 +224,17 @@ export function AgencyHomepageClient() {
 
       <div className="min-h-screen bg-[oklch(0.99_0_0)] text-[oklch(0.12_0.01_250)]">
         <header className="sticky top-0 z-50 border-b border-primary/20 bg-primary/10 backdrop-blur-md">
-          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6">
             <Link
               href="/"
-              className="flex items-center gap-2 font-display text-lg font-extrabold tracking-tight sm:text-xl"
+              className="flex min-w-0 items-center gap-2 font-display text-lg font-extrabold tracking-tight sm:text-xl"
             >
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-sky-500 shadow-lg shadow-primary/20">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-sky-500 shadow-lg shadow-primary/20">
                 <span className="h-2.5 w-2.5 rounded-full bg-white" />
               </span>
-              <span>
+              <span className="min-w-0 truncate">
                 Webhealth{" "}
-                <span className="text-sm font-medium text-muted-foreground">
+                <span className="hidden text-sm font-medium text-muted-foreground sm:inline">
                   {getLocalizedValue(AGENCY_HOME_COPY.brandSuffix, language)}
                 </span>
               </span>
@@ -248,7 +255,7 @@ export function AgencyHomepageClient() {
               ))}
             </nav>
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <div
                 className="inline-flex rounded-full border border-border bg-white/75 p-1"
                 role="group"
@@ -259,7 +266,7 @@ export function AgencyHomepageClient() {
                     key={nextLanguage}
                     type="button"
                     onClick={() => setLanguage(nextLanguage)}
-                    className={`rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest transition-colors ${
+                    className={`rounded-full px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-widest transition-colors sm:px-3 ${
                       nextLanguage === language
                         ? "bg-white text-foreground shadow-sm"
                         : "text-muted-foreground"
@@ -273,28 +280,59 @@ export function AgencyHomepageClient() {
               {isPending ? (
                 <div className="h-9 w-24 animate-pulse rounded-full bg-muted" />
               ) : session ? (
-                <div className="flex items-center gap-2">
-                  <Button asChild variant="ghost" className="rounded-full">
-                    <Link href="/dashboard">
-                      {getLocalizedValue(AGENCY_HOME_COPY.nav.dashboard, language)}
-                    </Link>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-full"
-                    onClick={handleSignOut}
-                  >
-                    {getLocalizedValue(AGENCY_HOME_COPY.nav.signOut, language)}
-                  </Button>
-                </div>
+                <>
+                  <div className="hidden items-center gap-2 sm:flex">
+                    <Button asChild variant="ghost" className="rounded-full">
+                      <Link href="/dashboard">
+                        {getLocalizedValue(AGENCY_HOME_COPY.nav.dashboard, language)}
+                      </Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-full"
+                      onClick={handleSignOut}
+                    >
+                      {getLocalizedValue(AGENCY_HOME_COPY.nav.signOut, language)}
+                    </Button>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full sm:hidden"
+                        aria-label="Open account menu"
+                      >
+                        <Menu className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard">
+                          {getLocalizedValue(AGENCY_HOME_COPY.nav.dashboard, language)}
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={handleSignOut}>
+                        {getLocalizedValue(AGENCY_HOME_COPY.nav.signOut, language)}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
               ) : (
                 <Button
                   type="button"
                   onClick={handleGoogleSignIn}
-                  className="rounded-full px-5 shadow-sm shadow-primary/20"
+                  className="rounded-full px-3 shadow-sm shadow-primary/20 sm:px-5"
+                  aria-label={getLocalizedValue(AGENCY_HOME_COPY.nav.signIn, language)}
                 >
-                  {getLocalizedValue(AGENCY_HOME_COPY.nav.signIn, language)}
+                  <span className="sm:hidden">
+                    {language === "de" ? "Anmelden" : "Sign in"}
+                  </span>
+                  <span className="hidden sm:inline">
+                    {getLocalizedValue(AGENCY_HOME_COPY.nav.signIn, language)}
+                  </span>
                 </Button>
               )}
             </div>
@@ -312,14 +350,14 @@ export function AgencyHomepageClient() {
                 backgroundSize: "40px 40px",
               }}
             />
-            <div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.02fr_1fr]">
+            <div className="relative mx-auto grid max-w-7xl items-center gap-14 xl:grid-cols-[1.02fr_1fr]">
               <div className="max-w-2xl">
                 <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-4 py-2 text-xs font-semibold text-primary">
                   <span className="h-2 w-2 rounded-full bg-primary" />
                   {getLocalizedValue(AGENCY_HOME_COPY.hero.pill, language)}
                 </div>
 
-                <h1 className="max-w-3xl font-display text-5xl font-extrabold tracking-tight text-balance sm:text-6xl lg:text-7xl">
+                <h1 className="max-w-3xl font-display text-5xl font-extrabold tracking-tight text-balance sm:text-6xl lg:text-6xl xl:text-7xl">
                   {heroTitle[0]}
                   <span className="bg-gradient-to-r from-primary to-sky-500 bg-clip-text text-transparent">
                     {heroTitle[1]}
@@ -978,7 +1016,7 @@ export function AgencyHomepageClient() {
           >
             <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[1fr_0.95fr] lg:items-center">
               <div className="relative">
-                <div className="rounded-[28px] border border-border bg-white p-8 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.22)]">
+                <div className="rounded-[28px] border border-border bg-white p-5 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.22)] sm:p-8">
                   <span className="inline-flex rounded-full bg-primary/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-primary">
                     {getLocalizedValue(
                       AGENCY_HOME_COPY.whiteLabel.internalLabel,
@@ -1006,26 +1044,26 @@ export function AgencyHomepageClient() {
                     </div>
                   </div>
 
-                  <h3 className="mt-5 font-display text-[2.1rem] font-bold leading-tight text-balance">
+                  <h3 className="mt-5 font-display text-2xl font-bold leading-tight text-balance sm:text-[2.1rem]">
                     {getLocalizedValue(
                       AGENCY_HOME_COPY.whiteLabel.internalTitle,
                       language,
                     )}
                   </h3>
-                  <p className="mt-2 text-lg text-muted-foreground">
+                  <p className="mt-2 text-base text-muted-foreground sm:text-lg">
                     {getLocalizedValue(
                       AGENCY_HOME_COPY.whiteLabel.internalSummary,
                       language,
                     )}
                   </p>
 
-                  <div className="mt-6 grid grid-cols-3 gap-6">
+                  <div className="mt-6 grid grid-cols-3 gap-3 sm:gap-6">
                     {WHITE_LABEL_KPIS.map((kpi) => (
                       <div key={kpi.label.en}>
-                        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                        <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
                           {getLocalizedValue(kpi.label, language)}
                         </p>
-                        <p className="mt-1 font-display text-[2.15rem] font-bold leading-none">
+                        <p className="mt-1 font-display text-2xl font-bold leading-none sm:text-[2.15rem]">
                           {kpi.value}
                         </p>
                         <div className="mt-1">
@@ -1053,7 +1091,7 @@ export function AgencyHomepageClient() {
                   </div>
                 </div>
 
-                <div className="relative -mt-10 ml-8 rounded-[28px] border border-border bg-white p-8 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.22)] sm:ml-14 lg:ml-10">
+                <div className="relative -mt-6 ml-4 rounded-[28px] border border-border bg-white p-5 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.22)] sm:-mt-10 sm:ml-14 sm:p-8 lg:ml-10">
                   <span className="inline-flex rounded-full bg-emerald-100 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-emerald-700">
                     {getLocalizedValue(
                       AGENCY_HOME_COPY.whiteLabel.clientLabel,
@@ -1081,26 +1119,26 @@ export function AgencyHomepageClient() {
                     </div>
                   </div>
 
-                  <h3 className="mt-5 font-display text-[2.1rem] font-bold leading-tight text-balance">
+                  <h3 className="mt-5 font-display text-2xl font-bold leading-tight text-balance sm:text-[2.1rem]">
                     {getLocalizedValue(
                       AGENCY_HOME_COPY.whiteLabel.clientTitle,
                       language,
                     )}
                   </h3>
-                  <p className="mt-2 text-lg text-muted-foreground">
+                  <p className="mt-2 text-base text-muted-foreground sm:text-lg">
                     {getLocalizedValue(
                       AGENCY_HOME_COPY.whiteLabel.clientSummary,
                       language,
                     )}
                   </p>
 
-                  <div className="mt-6 grid grid-cols-3 gap-6">
+                  <div className="mt-6 grid grid-cols-3 gap-3 sm:gap-6">
                     {WHITE_LABEL_KPIS.map((kpi) => (
                       <div key={`client-${kpi.label.en}`}>
-                        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                        <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">
                           {getLocalizedValue(kpi.label, language)}
                         </p>
-                        <p className="mt-1 font-display text-[2.15rem] font-bold leading-none">
+                        <p className="mt-1 font-display text-2xl font-bold leading-none sm:text-[2.15rem]">
                           {kpi.value}
                         </p>
                         <div className="mt-1">
@@ -1179,7 +1217,7 @@ export function AgencyHomepageClient() {
                 </p>
               </div>
 
-              <div className="mt-16 grid items-center gap-12 lg:grid-cols-[minmax(0,0.98fr)_minmax(420px,1fr)]">
+              <div className="mt-12 grid items-center gap-8 sm:mt-16 sm:gap-12 lg:grid-cols-[minmax(0,0.98fr)_minmax(420px,1fr)]">
                 <div className="grid gap-3">
                   {AGENCY_INTEGRATIONS.map((integration) => (
                     <article
@@ -1207,21 +1245,21 @@ export function AgencyHomepageClient() {
                   ))}
                 </div>
 
-                <div className="relative min-h-[500px] overflow-hidden">
-                  <div className="absolute left-1/2 top-1/2 flex h-40 w-40 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[2rem] bg-[linear-gradient(135deg,#3154f4,#1597e5)] shadow-[0_34px_80px_-28px_rgba(49,84,244,0.65)]">
-                    <div className="h-16 w-16 rounded-full bg-[oklch(0.992_0.002_250)]" />
+                <div className="relative min-h-[260px] overflow-hidden sm:min-h-[360px] lg:min-h-[500px]">
+                  <div className="absolute left-1/2 top-1/2 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[1.5rem] bg-[linear-gradient(135deg,#3154f4,#1597e5)] shadow-[0_34px_80px_-28px_rgba(49,84,244,0.65)] sm:h-36 sm:w-36 sm:rounded-[2rem] lg:h-40 lg:w-40">
+                    <div className="h-11 w-11 rounded-full bg-[oklch(0.992_0.002_250)] sm:h-14 sm:w-14 lg:h-16 lg:w-16" />
                   </div>
 
-                  <div className="absolute left-[58%] top-8 flex h-24 w-24 items-center justify-center rounded-[1.5rem] border border-slate-200 bg-white text-blue-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)]">
+                  <div className="absolute left-[58%] top-3 flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-slate-200 bg-white text-blue-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:top-6 sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:top-8 lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
                     <IntegrationLogo icon="gsc" />
                   </div>
-                  <div className="absolute right-2 top-[44%] flex h-24 w-24 items-center justify-center rounded-[1.5rem] border border-slate-200 bg-white text-amber-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)]">
+                  <div className="absolute right-1 top-[43%] flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-slate-200 bg-white text-amber-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:right-2 sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
                     <IntegrationLogo icon="ga4" />
                   </div>
-                  <div className="absolute bottom-8 left-[58%] flex h-24 w-24 items-center justify-center rounded-[1.5rem] border border-slate-200 bg-white text-blue-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)]">
+                  <div className="absolute bottom-3 left-[58%] flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-slate-200 bg-white text-blue-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:bottom-6 sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:bottom-8 lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
                     <IntegrationLogo icon="looker" />
                   </div>
-                  <div className="absolute bottom-[37%] left-[22%] flex h-24 w-24 items-center justify-center rounded-[1.5rem] border border-slate-200 bg-white text-indigo-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)]">
+                  <div className="absolute bottom-[36%] left-[18%] flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-slate-200 bg-white text-indigo-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:left-[22%] sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
                     <IntegrationLogo icon="crawl" />
                   </div>
                 </div>
@@ -1243,7 +1281,52 @@ export function AgencyHomepageClient() {
                 </p>
               </div>
 
-              <div className="mt-12 overflow-hidden rounded-[28px] border border-[oklch(0.89_0.02_250)] bg-white shadow-[0_10px_30px_-18px_rgba(15,23,42,0.18)]">
+              <div className="mt-12 grid gap-4 sm:hidden">
+                {AGENCY_COMPARISON_ROWS.map((row) => (
+                  <article
+                    key={row.label.en}
+                    className="rounded-[24px] border border-[oklch(0.89_0.02_250)] bg-white p-5 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.18)]"
+                  >
+                    <h3 className="font-display text-base font-bold leading-6 text-foreground">
+                      {getLocalizedValue(row.label, language)}
+                    </h3>
+                    <div className="mt-4 grid gap-3">
+                      <div className="rounded-lg bg-muted/45 p-4">
+                        <p className="font-display text-sm font-medium text-muted-foreground">
+                          {getLocalizedValue(
+                            AGENCY_HOME_COPY.comparison.manualLabel,
+                            language,
+                          )}
+                        </p>
+                        <span className="mt-2 inline-flex items-start gap-3 text-sm font-medium leading-6 text-muted-foreground">
+                          <X
+                            className="mt-1 h-[18px] w-[18px] shrink-0 text-[oklch(0.55_0.02_250)]"
+                            aria-hidden="true"
+                          />
+                          <span>{getLocalizedValue(row.manual, language)}</span>
+                        </span>
+                      </div>
+                      <div className="rounded-lg border border-primary/15 bg-primary/8 p-4">
+                        <p className="font-display text-sm font-bold text-primary">
+                          {getLocalizedValue(
+                            AGENCY_HOME_COPY.comparison.webhealthLabel,
+                            language,
+                          )}
+                        </p>
+                        <span className="mt-2 inline-flex items-start gap-3 text-sm font-semibold leading-6 text-foreground">
+                          <Check
+                            className="mt-1 h-[18px] w-[18px] shrink-0 text-foreground"
+                            aria-hidden="true"
+                          />
+                          <span>{getLocalizedValue(row.webhealth, language)}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <div className="mt-12 hidden overflow-hidden rounded-[28px] border border-[oklch(0.89_0.02_250)] bg-white shadow-[0_10px_30px_-18px_rgba(15,23,42,0.18)] sm:block">
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
@@ -1313,11 +1396,11 @@ export function AgencyHomepageClient() {
                 </p>
               </div>
 
-              <div className="mt-12 grid items-stretch justify-items-center gap-5 md:grid-cols-2 xl:grid-cols-4 xl:justify-items-stretch">
+              <div className="mt-12 grid items-start justify-items-center gap-5 md:grid-cols-2 xl:grid-cols-4 xl:justify-items-stretch 2xl:items-stretch">
                 {AGENCY_PRICING_PLANS.map((plan) => (
                   <article
                     key={plan.tier}
-                    className={`flex h-full w-full max-w-[29rem] self-stretch flex-col rounded-[28px] border bg-white p-6 shadow-sm md:max-w-[23.5rem] xl:max-w-none ${
+                    className={`flex w-full max-w-[29rem] flex-col rounded-[28px] border bg-white p-6 shadow-sm md:max-w-[23.5rem] xl:max-w-none 2xl:h-full 2xl:self-stretch ${
                       plan.highlight
                         ? "border-primary shadow-[0_16px_50px_-28px_rgba(99,102,241,0.35)]"
                         : "border-border"
@@ -1417,19 +1500,19 @@ export function AgencyHomepageClient() {
                     </ul>
 
                     {plan.tier === "agency" ? (
-                      <Button asChild variant="outline" className="mt-auto rounded-full">
+                      <Button asChild variant="outline" className="mt-6 rounded-full 2xl:mt-auto">
                         <a href="mailto:kontakt@devbrew.dev?subject=Webhealth%20Agency%20Interest">
                           {getLocalizedValue(plan.cta, language)}
                         </a>
                       </Button>
                     ) : session ? (
-                      <Button asChild className="mt-auto rounded-full">
+                      <Button asChild className="mt-6 rounded-full 2xl:mt-auto">
                         <Link href="/dashboard">{getLocalizedValue(plan.cta, language)}</Link>
                       </Button>
                     ) : (
                       <Button
                         type="button"
-                        className="mt-auto rounded-full"
+                        className="mt-6 rounded-full 2xl:mt-auto"
                         onClick={handleGoogleSignIn}
                       >
                         {getLocalizedValue(plan.cta, language)}
