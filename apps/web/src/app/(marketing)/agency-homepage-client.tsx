@@ -5,12 +5,7 @@ import { useReducer, useState } from "react";
 import { authClient } from "@webhealth/shared/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { CookieSettingsButton } from "@/components/cookie-consent";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   buildLegalHref,
   LEGAL_DOCUMENT_IDS,
@@ -60,7 +55,6 @@ import {
   X,
   Zap,
   CalendarCheck2,
-  Menu,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -203,26 +197,16 @@ export function AgencyHomepageClient() {
     });
   };
 
-  const handleSignOut = async () => {
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          window.location.href = "/";
-        },
-      },
-    });
-  };
-
   return (
     <>
       <a
         href="#main-content"
-        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-4 focus-visible:left-4 focus-visible:z-[70] focus-visible:rounded-lg focus-visible:bg-white focus-visible:px-4 focus-visible:py-2 focus-visible:font-medium focus-visible:shadow-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-4 focus-visible:left-4 focus-visible:z-[70] focus-visible:rounded-lg focus-visible:bg-background focus-visible:px-4 focus-visible:py-2 focus-visible:font-medium focus-visible:shadow-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
       >
         Skip to main content
       </a>
 
-      <div className="min-h-screen bg-[oklch(0.99_0_0)] text-[oklch(0.12_0.01_250)]">
+      <div className="min-h-screen bg-background text-foreground">
         <header className="sticky top-0 z-50 border-b border-primary/20 bg-primary/10 backdrop-blur-md">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6">
             <Link
@@ -257,7 +241,7 @@ export function AgencyHomepageClient() {
 
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <div
-                className="inline-flex rounded-full border border-border bg-white/75 p-1"
+                className="inline-flex rounded-full border border-border bg-card/75 p-1"
                 role="group"
                 aria-label="Language toggle"
               >
@@ -268,7 +252,7 @@ export function AgencyHomepageClient() {
                     onClick={() => setLanguage(nextLanguage)}
                     className={`rounded-full px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-widest transition-colors sm:px-3 ${
                       nextLanguage === language
-                        ? "bg-white text-foreground shadow-sm"
+                        ? "bg-background text-foreground shadow-sm"
                         : "text-muted-foreground"
                     }`}
                   >
@@ -280,46 +264,11 @@ export function AgencyHomepageClient() {
               {isPending ? (
                 <div className="h-9 w-24 animate-pulse rounded-full bg-muted" />
               ) : session ? (
-                <>
-                  <div className="hidden items-center gap-2 sm:flex">
-                    <Button asChild variant="ghost" className="rounded-full">
-                      <Link href="/dashboard">
-                        {getLocalizedValue(AGENCY_HOME_COPY.nav.dashboard, language)}
-                      </Link>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="rounded-full"
-                      onClick={handleSignOut}
-                    >
-                      {getLocalizedValue(AGENCY_HOME_COPY.nav.signOut, language)}
-                    </Button>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="rounded-full sm:hidden"
-                        aria-label="Open account menu"
-                      >
-                        <Menu className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
-                      <DropdownMenuItem asChild>
-                        <Link href="/dashboard">
-                          {getLocalizedValue(AGENCY_HOME_COPY.nav.dashboard, language)}
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={handleSignOut}>
-                        {getLocalizedValue(AGENCY_HOME_COPY.nav.signOut, language)}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </>
+                <Button asChild variant="ghost" className="rounded-full">
+                  <Link href="/dashboard">
+                    {getLocalizedValue(AGENCY_HOME_COPY.nav.dashboard, language)}
+                  </Link>
+                </Button>
               ) : (
                 <Button
                   type="button"
@@ -335,6 +284,7 @@ export function AgencyHomepageClient() {
                   </span>
                 </Button>
               )}
+              <ThemeToggle />
             </div>
           </div>
         </header>
@@ -365,7 +315,7 @@ export function AgencyHomepageClient() {
                   {heroTitle[2] ?? ""}
                 </h1>
 
-                <p className="mt-6 max-w-2xl text-lg leading-8 text-[oklch(0.45_0.02_250)] sm:text-xl">
+                <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
                   {getLocalizedValue(AGENCY_HOME_COPY.hero.lead, language)}
                 </p>
 
@@ -419,7 +369,7 @@ export function AgencyHomepageClient() {
                   className="absolute inset-x-10 top-10 h-40 rounded-full blur-3xl"
                   style={{ backgroundColor: "#6366f11f" }}
                 />
-                <div className="relative rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_30px_80px_-28px_rgba(15,23,42,0.28)] backdrop-blur">
+                <div className="relative rounded-[28px] border border-border bg-card/90 p-5 shadow-[0_30px_80px_-28px_rgba(15,23,42,0.28)] backdrop-blur">
                   <div className="mb-5 flex items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-foreground">
@@ -439,7 +389,7 @@ export function AgencyHomepageClient() {
                     {AGENCY_WORKSPACE_CLIENTS.map((client) => (
                       <article
                         key={client.domain}
-                        className="rounded-2xl border border-border bg-[oklch(0.995_0.002_250)] p-4 shadow-sm"
+                        className="rounded-2xl border border-border bg-card p-4 shadow-sm"
                       >
                         <div className="flex items-center gap-3">
                           <div
@@ -549,7 +499,7 @@ export function AgencyHomepageClient() {
                     <h3 className="mt-5 font-display text-xl font-semibold text-balance">
                       {getLocalizedValue(feature.title, language)}
                     </h3>
-                    <p className="mt-3 text-sm leading-7 text-[oklch(0.45_0.02_250)]">
+                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
                       {getLocalizedValue(feature.description, language)}
                     </p>
                   </article>
@@ -560,7 +510,7 @@ export function AgencyHomepageClient() {
 
           <section
             id="workspace"
-            className="scroll-mt-24 border-y border-border bg-[oklch(0.975_0.003_250)] px-6 py-24"
+            className="scroll-mt-24 border-y border-border bg-muted/30 px-6 py-24"
           >
             <div className="mx-auto max-w-7xl">
               <div className="max-w-3xl">
@@ -578,7 +528,7 @@ export function AgencyHomepageClient() {
                 </p>
               </div>
 
-              <div className="mt-12 overflow-hidden rounded-[28px] border border-border bg-white shadow-[0_24px_60px_-32px_rgba(15,23,42,0.26)]">
+              <div className="mt-12 overflow-hidden rounded-[28px] border border-border bg-card shadow-[0_24px_60px_-32px_rgba(15,23,42,0.26)]">
                 <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4">
                   <div className="flex items-center gap-3">
                     <div className="flex gap-2">
@@ -596,7 +546,7 @@ export function AgencyHomepageClient() {
                 </div>
 
                 <div className="grid gap-0 lg:grid-cols-[280px_1fr]">
-                  <aside className="border-r border-border bg-[oklch(0.982_0.003_250)] p-4">
+                  <aside className="border-r border-border bg-muted/30 p-4">
                     <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                       {getLocalizedValue(
                         AGENCY_HOME_COPY.workspace.clientsLabel,
@@ -718,7 +668,7 @@ export function AgencyHomepageClient() {
                               onClick={() =>
                                 dispatchWorkspace({ type: "show_client", index })
                               }
-                              className="rounded-2xl border border-border bg-[oklch(0.995_0.002_250)] p-5 text-left shadow-sm transition-transform hover:-translate-y-0.5"
+                              className="rounded-2xl border border-border bg-card p-5 text-left shadow-sm transition-transform hover:-translate-y-0.5"
                             >
                               <div className="flex items-start justify-between gap-4">
                                 <div className="flex items-center gap-3">
@@ -899,7 +849,7 @@ export function AgencyHomepageClient() {
                               ))}
                             </div>
 
-                            <div className="mt-6 rounded-2xl border border-border bg-[oklch(0.995_0.002_250)] p-5 shadow-sm">
+                            <div className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-sm">
                               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
                                 <h4 className="font-display text-xl font-semibold">
                                   {getLocalizedValue(
@@ -986,7 +936,7 @@ export function AgencyHomepageClient() {
                 {AGENCY_STEPS.map((step) => (
                   <li
                     key={step.number}
-                    className="rounded-2xl border border-border bg-[oklch(0.995_0.002_250)] p-6 text-center shadow-sm"
+                    className="rounded-2xl border border-border bg-card p-6 text-center shadow-sm"
                   >
                     <div
                       className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border text-2xl font-display font-bold"
@@ -1012,11 +962,11 @@ export function AgencyHomepageClient() {
 
           <section
             id="whitelabel"
-            className="scroll-mt-24 border-y border-border bg-[oklch(0.975_0.003_250)] px-6 py-24"
+            className="scroll-mt-24 border-y border-border bg-muted/30 px-6 py-24"
           >
             <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[1fr_0.95fr] lg:items-center">
               <div className="relative">
-                <div className="rounded-[28px] border border-border bg-white p-5 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.22)] sm:p-8">
+                <div className="rounded-[28px] border border-border bg-card p-5 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.22)] sm:p-8">
                   <span className="inline-flex rounded-full bg-primary/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-primary">
                     {getLocalizedValue(
                       AGENCY_HOME_COPY.whiteLabel.internalLabel,
@@ -1091,7 +1041,7 @@ export function AgencyHomepageClient() {
                   </div>
                 </div>
 
-                <div className="relative -mt-6 ml-4 rounded-[28px] border border-border bg-white p-5 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.22)] sm:-mt-10 sm:ml-14 sm:p-8 lg:ml-10">
+                <div className="relative -mt-6 ml-4 rounded-[28px] border border-border bg-card p-5 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.22)] sm:-mt-10 sm:ml-14 sm:p-8 lg:ml-10">
                   <span className="inline-flex rounded-full bg-emerald-100 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-emerald-700">
                     {getLocalizedValue(
                       AGENCY_HOME_COPY.whiteLabel.clientLabel,
@@ -1203,7 +1153,7 @@ export function AgencyHomepageClient() {
             </div>
           </section>
 
-          <section id="integrations" className="scroll-mt-24 bg-[oklch(0.992_0.002_250)] px-6 py-20">
+          <section id="integrations" className="scroll-mt-24 bg-background px-6 py-20">
             <div className="mx-auto max-w-7xl">
               <div className="mx-auto max-w-4xl text-center">
                 <p className="text-sm font-bold uppercase tracking-[0.24em] text-indigo-500">
@@ -1222,10 +1172,10 @@ export function AgencyHomepageClient() {
                   {AGENCY_INTEGRATIONS.map((integration) => (
                     <article
                       key={integration.title.en}
-                      className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-[0_18px_44px_-34px_rgba(15,23,42,0.34)] sm:flex-row sm:items-start sm:justify-between"
+                      className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 shadow-[0_18px_44px_-34px_rgba(15,23,42,0.34)] sm:flex-row sm:items-start sm:justify-between"
                     >
                       <div className="flex gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-primary">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
                           <IntegrationLogo icon={integration.icon} />
                         </div>
                         <div>
@@ -1247,19 +1197,19 @@ export function AgencyHomepageClient() {
 
                 <div className="relative min-h-[260px] overflow-hidden sm:min-h-[360px] lg:min-h-[500px]">
                   <div className="absolute left-1/2 top-1/2 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[1.5rem] bg-[linear-gradient(135deg,#3154f4,#1597e5)] shadow-[0_34px_80px_-28px_rgba(49,84,244,0.65)] sm:h-36 sm:w-36 sm:rounded-[2rem] lg:h-40 lg:w-40">
-                    <div className="h-11 w-11 rounded-full bg-[oklch(0.992_0.002_250)] sm:h-14 sm:w-14 lg:h-16 lg:w-16" />
+                    <div className="h-11 w-11 rounded-full bg-background sm:h-14 sm:w-14 lg:h-16 lg:w-16" />
                   </div>
 
-                  <div className="absolute left-[58%] top-3 flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-slate-200 bg-white text-blue-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:top-6 sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:top-8 lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
+                  <div className="absolute left-[58%] top-3 flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-border bg-card text-blue-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:top-6 sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:top-8 lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
                     <IntegrationLogo icon="gsc" />
                   </div>
-                  <div className="absolute right-1 top-[43%] flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-slate-200 bg-white text-amber-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:right-2 sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
+                  <div className="absolute right-1 top-[43%] flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-border bg-card text-amber-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:right-2 sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
                     <IntegrationLogo icon="ga4" />
                   </div>
-                  <div className="absolute bottom-3 left-[58%] flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-slate-200 bg-white text-blue-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:bottom-6 sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:bottom-8 lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
+                  <div className="absolute bottom-3 left-[58%] flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-border bg-card text-blue-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:bottom-6 sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:bottom-8 lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
                     <IntegrationLogo icon="looker" />
                   </div>
-                  <div className="absolute bottom-[36%] left-[18%] flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-slate-200 bg-white text-indigo-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:left-[22%] sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
+                  <div className="absolute bottom-[36%] left-[18%] flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-border bg-card text-indigo-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:left-[22%] sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
                     <IntegrationLogo icon="crawl" />
                   </div>
                 </div>
@@ -1267,7 +1217,7 @@ export function AgencyHomepageClient() {
             </div>
           </section>
 
-          <section className="border-y border-border bg-[oklch(0.975_0.003_250)] px-6 py-24">
+          <section className="border-y border-border bg-muted/30 px-6 py-24">
             <div className="mx-auto max-w-7xl">
               <div className="mx-auto max-w-3xl text-center">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
@@ -1285,7 +1235,7 @@ export function AgencyHomepageClient() {
                 {AGENCY_COMPARISON_ROWS.map((row) => (
                   <article
                     key={row.label.en}
-                    className="rounded-[24px] border border-[oklch(0.89_0.02_250)] bg-white p-5 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.18)]"
+                    className="rounded-[24px] border border-border bg-card p-5 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.18)]"
                   >
                     <h3 className="font-display text-base font-bold leading-6 text-foreground">
                       {getLocalizedValue(row.label, language)}
@@ -1326,11 +1276,11 @@ export function AgencyHomepageClient() {
                 ))}
               </div>
 
-              <div className="mt-12 hidden overflow-hidden rounded-[28px] border border-[oklch(0.89_0.02_250)] bg-white shadow-[0_10px_30px_-18px_rgba(15,23,42,0.18)] sm:block">
+              <div className="mt-12 hidden overflow-hidden rounded-[28px] border border-border bg-card shadow-[0_10px_30px_-18px_rgba(15,23,42,0.18)] sm:block">
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
-                      <tr className="border-b border-border bg-[oklch(0.97_0.005_250)]">
+                      <tr className="border-b border-border bg-muted/45">
                         <th className="w-[28%] px-6 py-5 text-left" />
                         <th className="px-6 py-5 text-left font-display text-[15px] font-medium text-muted-foreground">
                           {getLocalizedValue(
@@ -1400,7 +1350,7 @@ export function AgencyHomepageClient() {
                 {AGENCY_PRICING_PLANS.map((plan) => (
                   <article
                     key={plan.tier}
-                    className={`flex w-full max-w-[29rem] flex-col rounded-[28px] border bg-white p-6 shadow-sm md:max-w-[23.5rem] xl:max-w-none 2xl:h-full 2xl:self-stretch ${
+                    className={`flex w-full max-w-[29rem] flex-col rounded-[28px] border bg-card p-6 shadow-sm md:max-w-[23.5rem] xl:max-w-none 2xl:h-full 2xl:self-stretch ${
                       plan.highlight
                         ? "border-primary shadow-[0_16px_50px_-28px_rgba(99,102,241,0.35)]"
                         : "border-border"
@@ -1530,7 +1480,7 @@ export function AgencyHomepageClient() {
 
           <section
             id="faq"
-            className="scroll-mt-24 border-y border-border bg-[oklch(0.975_0.003_250)] px-6 py-24"
+            className="scroll-mt-24 border-y border-border bg-muted/30 px-6 py-24"
           >
             <div className="mx-auto max-w-5xl">
               <div className="mx-auto max-w-3xl text-center">
@@ -1546,7 +1496,7 @@ export function AgencyHomepageClient() {
                 {AGENCY_FAQ_ITEMS.map((item, index) => (
                   <details
                     key={item.question.en}
-                    className="group rounded-2xl border border-border bg-white px-5 py-4 shadow-sm"
+                    className="group rounded-2xl border border-border bg-card px-5 py-4 shadow-sm"
                     open={index === 0}
                   >
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left font-display text-xl font-semibold">
@@ -1624,7 +1574,7 @@ export function AgencyHomepageClient() {
           </section>
         </main>
 
-        <footer className="border-t border-border bg-[oklch(0.975_0.003_250)] px-6 py-8">
+        <footer className="border-t border-border bg-muted/30 px-6 py-8">
           <div className="mx-auto flex max-w-7xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span className="font-display font-bold text-foreground">Webhealth</span>
