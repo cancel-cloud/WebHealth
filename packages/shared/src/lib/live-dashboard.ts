@@ -1463,7 +1463,7 @@ export async function getWorkspaceActionBoard(teamId: string) {
       limit: 30,
     }),
     db.query.properties.findMany({
-      where: (table, { and: andFn, eq: eqFn }) => andFn(eqFn(table.teamId, teamId), eqFn(table.type, "gsc")),
+      where: (table, { and: andFn, eq: eqFn }) => andFn(eqFn(table.teamId, teamId), eqFn(table.type, "gsc"), eqFn(table.active, true)),
       columns: {
         id: true,
         name: true,
@@ -1490,8 +1490,9 @@ export async function getWorkspaceActionBoard(teamId: string) {
     });
   }));
   const propertyById = new Map(refreshRows.map((row) => [row.id, row] as const));
+  const visibleRows = rows.filter((row) => propertyById.has(row.propertyId));
 
-  const actions = rows.map((row) => ({
+  const actions = visibleRows.map((row) => ({
     id: row.id,
     propertyId: row.propertyId,
     propertyName: propertyById.get(row.propertyId)?.name ?? row.propertyId,
@@ -1515,10 +1516,10 @@ export async function getWorkspaceActionBoard(teamId: string) {
 
   return {
     counts: {
-      open: rows.filter((row) => row.state === "open").length,
-      inProgress: rows.filter((row) => row.state === "in_progress").length,
-      snoozed: rows.filter((row) => row.state === "snoozed").length,
-      blocked: rows.filter((row) => row.priorityOverride === "pin" || row.systemRank === 1).length,
+      open: visibleRows.filter((row) => row.state === "open").length,
+      inProgress: visibleRows.filter((row) => row.state === "in_progress").length,
+      snoozed: visibleRows.filter((row) => row.state === "snoozed").length,
+      blocked: visibleRows.filter((row) => row.priorityOverride === "pin" || row.systemRank === 1).length,
       refreshing: [...refreshStateByProperty.values()].filter((row) => row?.status === "queued" || row?.status === "processing").length,
     },
     actions,

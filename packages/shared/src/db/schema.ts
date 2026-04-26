@@ -395,6 +395,18 @@ export const propertyWeeklyReviews = pgTable("property_weekly_reviews", {
   index("property_weekly_reviews_team_enabled_idx").on(t.teamId, t.enabled),
 ]);
 
+export const propertySetupDismissals = pgTable("property_setup_dismissals", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  dismissedAt: timestamp("dismissed_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.userId, t.propertyId),
+  index("property_setup_dismissals_team_property_idx").on(t.teamId, t.propertyId),
+]);
+
 export const weeklyReviewRuns = pgTable("weekly_review_runs", {
   id: text("id").primaryKey(),
   teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),

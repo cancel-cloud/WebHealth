@@ -8,20 +8,29 @@ import {
   heartbeatPropertyRefreshJob,
   storePropertyCrawlSnapshot,
   updatePropertyRefreshJobProgress
-} from "./chunk-G42DX7O6.js";
+} from "./chunk-MYDIS32O.js";
 import {
   resolveTeamReportSources
-} from "./chunk-E7NIPORF.js";
-import "./chunk-L7LNIRSY.js";
-import "./chunk-GZVTNFTC.js";
+} from "./chunk-QFCM3L6C.js";
+import {
+  db
+} from "./chunk-DG7CE5Z4.js";
+import "./chunk-NLKMMEGJ.js";
 import "./chunk-AHMZJEDT.js";
 import "./chunk-3LHI6BO3.js";
 
 // packages/shared/src/lib/property-refresh-worker.ts
 import { nanoid } from "nanoid";
+async function isRefreshPropertyActive(job) {
+  const property = await db.query.properties.findFirst({
+    where: (table, { and, eq: eqFn }) => and(eqFn(table.id, job.propertyId), eqFn(table.teamId, job.teamId), eqFn(table.active, true)),
+    columns: { id: true }
+  });
+  return Boolean(property);
+}
 async function warmDashboardFromPayload(job) {
   const payload = job.payload ?? {};
-  const { getLiveDashboardData } = await import("./live-dashboard-NRVPRMSH.js");
+  const { getLiveDashboardData } = await import("./live-dashboard-BTZGQTUT.js");
   await getLiveDashboardData({
     teamId: job.teamId,
     propertyId: job.propertyId,
@@ -67,6 +76,10 @@ async function processClaimedJob(job, workerId) {
     heartbeatTimer = setInterval(() => {
       void heartbeatPropertyRefreshJob(job.id, workerId);
     }, 1e4);
+    if (!await isRefreshPropertyActive(job)) {
+      await completePropertyRefreshJob(job.id, "Property is inactive; refresh skipped");
+      return;
+    }
     if (job.jobType === "crawl_refresh") {
       await processCrawlRefreshJob(job);
       return;

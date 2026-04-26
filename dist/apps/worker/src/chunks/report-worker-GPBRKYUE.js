@@ -9,7 +9,7 @@ import {
 } from "./chunk-LZU3ZATR.js";
 import {
   resolveReportSourcesForExistingReport
-} from "./chunk-E7NIPORF.js";
+} from "./chunk-QFCM3L6C.js";
 import {
   appendReportJobEvent,
   buildWeeklyReviewFindings,
@@ -22,10 +22,10 @@ import {
   recordProductEvent,
   requeueJobForRetry,
   updateReportJobPhase
-} from "./chunk-OBLEH6Y6.js";
+} from "./chunk-WLWOQ7DG.js";
 import {
   db
-} from "./chunk-L7LNIRSY.js";
+} from "./chunk-DG7CE5Z4.js";
 import {
   aiReportSettings,
   crawlPageSnapshots,
@@ -40,7 +40,7 @@ import {
   systemLogs,
   teamMembers,
   weeklyReviewRuns
-} from "./chunk-GZVTNFTC.js";
+} from "./chunk-NLKMMEGJ.js";
 import {
   requireDirectDatabaseUrl
 } from "./chunk-AHMZJEDT.js";
@@ -587,11 +587,11 @@ async function createMetricsBackfillJob(input) {
 async function getGscPropertiesForJob(job) {
   if (job.targetPropertyId) {
     return db.query.properties.findMany({
-      where: (p, { and: and4, eq: eq5 }) => and4(eq5(p.teamId, job.teamId), eq5(p.id, job.targetPropertyId), eq5(p.type, "gsc"))
+      where: (p, { and: and4, eq: eq5 }) => and4(eq5(p.teamId, job.teamId), eq5(p.id, job.targetPropertyId), eq5(p.type, "gsc"), eq5(p.active, true))
     });
   }
   return db.query.properties.findMany({
-    where: (p, { and: and4, eq: eq5 }) => and4(eq5(p.teamId, job.teamId), eq5(p.type, "gsc"))
+    where: (p, { and: and4, eq: eq5 }) => and4(eq5(p.teamId, job.teamId), eq5(p.type, "gsc"), eq5(p.active, true))
   });
 }
 async function existingGscDateSet(propertyId, start, end) {
@@ -2664,7 +2664,7 @@ function decryptGoogleAccountTokens(row) {
   };
 }
 async function getGoogleAccountTokensForUser(userId) {
-  const { db: db2 } = await import("./db-722F7QOZ.js");
+  const { db: db2 } = await import("./db-HVTMHZPE.js");
   const googleAccount = await db2.query.account.findFirst({
     where: (table, { and: and4, eq: eq5 }) => and4(eq5(table.userId, userId), eq5(table.providerId, "google"))
   });

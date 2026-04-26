@@ -1,4 +1,5 @@
 # TODO — Placeholder / Dummy Data Tracker
+- Dashboard/product direction: remove remaining report-centric UI over time; snapshots and the live dashboard view are the primary product surface now.
 - Upgrade to pro get 5x the value!
 - 
 - YT-Short testing?

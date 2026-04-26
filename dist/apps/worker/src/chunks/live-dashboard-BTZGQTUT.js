@@ -3,20 +3,21 @@ import {
 } from "./chunk-4VCCCQCW.js";
 import {
   getLatestPropertyCrawl,
-  getLatestPropertyRefreshState
-} from "./chunk-G42DX7O6.js";
+  getLatestPropertyRefreshState,
+  getLatestPropertyRefreshStateForWindow
+} from "./chunk-MYDIS32O.js";
 import {
   resolveTeamReportSources
-} from "./chunk-E7NIPORF.js";
+} from "./chunk-QFCM3L6C.js";
 import {
   db
-} from "./chunk-L7LNIRSY.js";
+} from "./chunk-DG7CE5Z4.js";
 import {
   actionItems,
   analysisWindowCache,
   propertyShareLinks,
   snapshotExports
-} from "./chunk-GZVTNFTC.js";
+} from "./chunk-NLKMMEGJ.js";
 import "./chunk-AHMZJEDT.js";
 import "./chunk-3LHI6BO3.js";
 
@@ -763,7 +764,16 @@ async function getLiveDashboardData(input) {
   const [latestDates, latestCrawl, refreshState] = await Promise.all([
     fetchLatestDateForSource({ property }),
     getLatestPropertyCrawl({ teamId: input.teamId, propertyId: property.id }),
-    getLatestPropertyRefreshState(input.teamId, property.id)
+    getLatestPropertyRefreshStateForWindow({
+      teamId: input.teamId,
+      propertyId: property.id,
+      payload: {
+        preset: window.preset,
+        compareMode: window.compareMode,
+        startDate: window.startDate,
+        endDate: window.requestedEndDate
+      }
+    })
   ]);
   const freshnessSummary = buildFreshnessSources({
     gscLatestDate: latestDates.gscLatestDate,
@@ -1063,7 +1073,7 @@ async function getWorkspaceActionBoard(teamId) {
       limit: 30
     }),
     db.query.properties.findMany({
-      where: (table, { and: andFn, eq: eqFn }) => andFn(eqFn(table.teamId, teamId), eqFn(table.type, "gsc")),
+      where: (table, { and: andFn, eq: eqFn }) => andFn(eqFn(table.teamId, teamId), eqFn(table.type, "gsc"), eqFn(table.active, true)),
       columns: {
         id: true,
         name: true,
@@ -1089,7 +1099,8 @@ async function getWorkspaceActionBoard(teamId) {
     });
   }));
   const propertyById = new Map(refreshRows.map((row) => [row.id, row]));
-  const actions = rows.map((row) => ({
+  const visibleRows = rows.filter((row) => propertyById.has(row.propertyId));
+  const actions = visibleRows.map((row) => ({
     id: row.id,
     propertyId: row.propertyId,
     propertyName: propertyById.get(row.propertyId)?.name ?? row.propertyId,
@@ -1112,10 +1123,10 @@ async function getWorkspaceActionBoard(teamId) {
   }));
   return {
     counts: {
-      open: rows.filter((row) => row.state === "open").length,
-      inProgress: rows.filter((row) => row.state === "in_progress").length,
-      snoozed: rows.filter((row) => row.state === "snoozed").length,
-      blocked: rows.filter((row) => row.priorityOverride === "pin" || row.systemRank === 1).length,
+      open: visibleRows.filter((row) => row.state === "open").length,
+      inProgress: visibleRows.filter((row) => row.state === "in_progress").length,
+      snoozed: visibleRows.filter((row) => row.state === "snoozed").length,
+      blocked: visibleRows.filter((row) => row.priorityOverride === "pin" || row.systemRank === 1).length,
       refreshing: [...refreshStateByProperty.values()].filter((row) => row?.status === "queued" || row?.status === "processing").length
     },
     actions,
@@ -1366,6 +1377,7 @@ function buildPropertyShareDownloadPayload(params) {
 }
 export {
   buildClientReportComparison,
+  buildDegradedStates,
   buildFreshnessSources,
   buildPropertyShareDownloadPayload,
   createPropertyShareLink,

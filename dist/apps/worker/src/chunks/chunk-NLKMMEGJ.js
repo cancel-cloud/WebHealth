@@ -29,6 +29,7 @@ __export(schema_exports, {
   propertyDailyAiSummaries: () => propertyDailyAiSummaries,
   propertyPageRegistry: () => propertyPageRegistry,
   propertyRefreshJobs: () => propertyRefreshJobs,
+  propertySetupDismissals: () => propertySetupDismissals,
   propertyShareLinks: () => propertyShareLinks,
   propertyWeeklyReviews: () => propertyWeeklyReviews,
   reportDetailAiExpansions: () => reportDetailAiExpansions,
@@ -397,6 +398,17 @@ var propertyWeeklyReviews = pgTable("property_weekly_reviews", {
 }, (t) => [
   unique().on(t.teamId, t.propertyId),
   index("property_weekly_reviews_team_enabled_idx").on(t.teamId, t.enabled)
+]);
+var propertySetupDismissals = pgTable("property_setup_dismissals", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  dismissedAt: timestamp("dismissed_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (t) => [
+  unique().on(t.userId, t.propertyId),
+  index("property_setup_dismissals_team_property_idx").on(t.teamId, t.propertyId)
 ]);
 var weeklyReviewRuns = pgTable("weekly_review_runs", {
   id: text("id").primaryKey(),
@@ -815,6 +827,7 @@ export {
   propertyRefreshJobs,
   propertyCrawlSnapshots,
   propertyWeeklyReviews,
+  propertySetupDismissals,
   weeklyReviewRuns,
   crawls,
   userSettings,

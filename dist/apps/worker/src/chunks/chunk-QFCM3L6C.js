@@ -1,6 +1,6 @@
 import {
   db
-} from "./chunk-L7LNIRSY.js";
+} from "./chunk-DG7CE5Z4.js";
 
 // packages/shared/src/lib/properties/reportable-properties.ts
 function isGscProperty(property) {
@@ -29,12 +29,16 @@ function preferGscCandidate(next, current) {
   if (nextRank !== currentRank) return nextRank > currentRank;
   return next.id < current.id;
 }
-function resolveReportSourcesFromProperties(allProperties, selectedPropertyId) {
-  const selectedProperty = allProperties.find((p) => p.id === selectedPropertyId);
+function isActive(property) {
+  return property.active !== false;
+}
+function resolveReportSourcesFromProperties(allProperties, selectedPropertyId, options = {}) {
+  const properties = options.includeInactive ? allProperties : allProperties.filter(isActive);
+  const selectedProperty = properties.find((p) => p.id === selectedPropertyId);
   if (!selectedProperty) {
     throw new Error("Property not found");
   }
-  const sameTeam = allProperties.filter((p) => p.teamId === selectedProperty.teamId);
+  const sameTeam = properties.filter((p) => p.teamId === selectedProperty.teamId);
   const ga4ById = new Map(sameTeam.filter(isGa4Property).map((p) => [p.id, p]));
   const gscRows = sameTeam.filter(isGscProperty);
   if (isGscProperty(selectedProperty)) {
@@ -83,7 +87,13 @@ async function resolveTeamReportSources(teamId, selectedPropertyId) {
   return resolveReportSourcesFromProperties(teamProperties, selectedPropertyId);
 }
 async function resolveReportSourcesForExistingReport(report) {
-  return resolveTeamReportSources(report.teamId, report.propertyId);
+  const teamProperties = await listTeamProperties(report.teamId);
+  if (!teamProperties.some((p) => p.id === report.propertyId)) {
+    throw new Error("Property not found or unauthorized");
+  }
+  return resolveReportSourcesFromProperties(teamProperties, report.propertyId, {
+    includeInactive: true
+  });
 }
 
 export {

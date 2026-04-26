@@ -1,14 +1,18 @@
 import {
   db
-} from "./chunk-L7LNIRSY.js";
+} from "./chunk-DG7CE5Z4.js";
 import {
   propertyCrawlSnapshots,
   propertyRefreshJobs
-} from "./chunk-GZVTNFTC.js";
+} from "./chunk-NLKMMEGJ.js";
 
 // packages/shared/src/lib/property-refresh.ts
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
+function matchesPropertyRefreshPayload(candidate, target) {
+  const normalize = (value) => typeof value === "string" && value.length ? value : null;
+  return normalize(candidate?.preset) === normalize(target?.preset) && normalize(candidate?.compareMode) === normalize(target?.compareMode) && normalize(candidate?.startDate) === normalize(target?.startDate) && normalize(candidate?.endDate) === normalize(target?.endDate);
+}
 function normalizePropertyRefreshRow(row) {
   return {
     id: row.id,
@@ -150,15 +154,40 @@ async function failPropertyRefreshJob(jobId, errorMessage, phase = "failed", pro
   return job ?? null;
 }
 async function getLatestPropertyRefreshState(teamId, propertyId) {
+  return getLatestPropertyRefreshStateForWindow({ teamId, propertyId });
+}
+async function getLatestPropertyRefreshStateForWindow(params) {
   const row = await db.query.propertyRefreshJobs.findFirst({
     where: and(
-      eq(propertyRefreshJobs.teamId, teamId),
-      eq(propertyRefreshJobs.propertyId, propertyId),
+      eq(propertyRefreshJobs.teamId, params.teamId),
+      eq(propertyRefreshJobs.propertyId, params.propertyId),
       isNull(propertyRefreshJobs.supersededAt)
     ),
-    orderBy: (table, { desc: descOrder }) => [descOrder(table.updatedAt)]
+    orderBy: (table, { desc: descOrder, asc: ascOrder, sql: sqlOrder }) => [
+      sqlOrder`case when ${table.status} in ('queued', 'processing') then 0 else 1 end`,
+      descOrder(table.updatedAt),
+      ascOrder(table.createdAt)
+    ]
   });
-  return row ? normalizePropertyRefreshRow(row) : null;
+  if (!row) return null;
+  if (!params.payload) return normalizePropertyRefreshRow(row);
+  const matchingRows = await db.query.propertyRefreshJobs.findMany({
+    where: and(
+      eq(propertyRefreshJobs.teamId, params.teamId),
+      eq(propertyRefreshJobs.propertyId, params.propertyId),
+      isNull(propertyRefreshJobs.supersededAt)
+    ),
+    orderBy: (table, { desc: descOrder, asc: ascOrder, sql: sqlOrder }) => [
+      sqlOrder`case when ${table.status} in ('queued', 'processing') then 0 else 1 end`,
+      descOrder(table.updatedAt),
+      ascOrder(table.createdAt)
+    ]
+  });
+  const matchingRow = matchingRows.find((candidate) => matchesPropertyRefreshPayload(
+    candidate.payload ?? null,
+    params.payload
+  ));
+  return matchingRow ? normalizePropertyRefreshRow(matchingRow) : null;
 }
 async function storePropertyCrawlSnapshot(params) {
   const serialized = JSON.stringify(params.crawlData);
@@ -220,6 +249,7 @@ export {
   completePropertyRefreshJob,
   failPropertyRefreshJob,
   getLatestPropertyRefreshState,
+  getLatestPropertyRefreshStateForWindow,
   storePropertyCrawlSnapshot,
   getLatestPropertyCrawl
 };

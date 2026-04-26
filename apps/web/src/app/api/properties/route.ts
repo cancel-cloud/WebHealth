@@ -25,7 +25,8 @@ export async function GET() {
       where: (p, { and, eq }) => and(eq(p.teamId, teamId), eq(p.enabled, true)),
       columns: { propertyId: true },
     });
-    const watchedPropertyIds = new Set(weeklyReviews.map((review) => review.propertyId));
+    const activePropertyIds = new Set(teamProperties.filter((property) => property.active).map((property) => property.id));
+    const watchedPropertyIds = new Set(weeklyReviews.filter((review) => activePropertyIds.has(review.propertyId)).map((review) => review.propertyId));
     const weeklyReviewLimit = getWeeklyReviewLimit(team?.tier ?? "free");
     const weeklyReviewWatchedCount = watchedPropertyIds.size;
     const propertiesWithWeeklyReviews = teamProperties.map((property) => ({
@@ -35,18 +36,22 @@ export async function GET() {
       weeklyReviewWatchedCount,
     }));
 
-    const reportableProperties = buildCombinedReportableProperties(teamProperties).map((p) => ({
-      id: p.id,
-      teamId: p.teamId,
-      label: p.label,
-      gscPropertyId: p.gscPropertyId,
-      gscName: p.gscName,
-      gscUrl: p.gscUrl,
-      ga4PropertyId: p.ga4PropertyId,
-      ga4DbId: p.ga4DbId,
-      ga4Name: p.ga4Name,
-      isLinked: p.isLinked,
-    }));
+    const reportableProperties = buildCombinedReportableProperties(teamProperties)
+      .filter((p) => p.gscPropertyId !== null)
+      .map((p) => ({
+        id: p.id,
+        teamId: p.teamId,
+        label: p.label,
+        gscPropertyId: p.gscPropertyId!,
+        gscName: p.gscName!,
+        gscUrl: p.gscUrl!,
+        ga4PropertyId: p.ga4PropertyId,
+        ga4DbId: p.ga4DbId,
+        ga4Name: p.ga4Name,
+        isLinked: p.isLinked,
+        sourceCoverage: p.sourceCoverage,
+        active: p.active,
+      }));
 
     return NextResponse.json({
       properties: propertiesWithWeeklyReviews,
@@ -55,6 +60,7 @@ export async function GET() {
         limit: weeklyReviewLimit,
         watchedCount: weeklyReviewWatchedCount,
       },
+      activePropertiesCount: activePropertyIds.size,
     });
   } catch (error) {
     return handleRouteError("Error fetching properties", error);

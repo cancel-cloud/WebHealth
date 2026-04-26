@@ -25,7 +25,7 @@ export async function PATCH(
 
     const property = await db.query.properties.findFirst({
       where: (p, { and, eq }) =>
-        and(eq(p.id, propertyId), eq(p.teamId, teamId), eq(p.type, "gsc")),
+        and(eq(p.id, propertyId), eq(p.teamId, teamId), eq(p.type, "gsc"), eq(p.active, true)),
       columns: { id: true, name: true },
     });
     if (!property) {

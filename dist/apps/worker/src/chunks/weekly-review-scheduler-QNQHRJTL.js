@@ -4,16 +4,16 @@ import {
   getWeeklyReviewWindow,
   recordProductEvent,
   shouldRunWeeklyScheduler
-} from "./chunk-OBLEH6Y6.js";
+} from "./chunk-WLWOQ7DG.js";
 import {
   db
-} from "./chunk-L7LNIRSY.js";
+} from "./chunk-DG7CE5Z4.js";
 import {
   gscDailyFacts,
   propertyWeeklyReviews,
   reports,
   weeklyReviewRuns
-} from "./chunk-GZVTNFTC.js";
+} from "./chunk-NLKMMEGJ.js";
 import "./chunk-AHMZJEDT.js";
 import "./chunk-3LHI6BO3.js";
 
@@ -43,7 +43,7 @@ async function enqueueWeeklyReviewReports(input = {}) {
   let skipped = 0;
   for (const watch of watched) {
     const property = await db.query.properties.findFirst({
-      where: (p, { and: and2, eq: eq2 }) => and2(eq2(p.id, watch.propertyId), eq2(p.teamId, watch.teamId), eq2(p.type, "gsc"))
+      where: (p, { and: and2, eq: eq2 }) => and2(eq2(p.id, watch.propertyId), eq2(p.teamId, watch.teamId), eq2(p.type, "gsc"), eq2(p.active, true))
     });
     if (!property) continue;
     const latestDate = await getLatestGscDate(watch.teamId, watch.propertyId);

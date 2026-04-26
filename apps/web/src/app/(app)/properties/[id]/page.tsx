@@ -1,4 +1,6 @@
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import { db } from "@webhealth/shared/db";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { getLiveDashboardData } from "@webhealth/shared/lib/live-dashboard";
 import { getTeamBrandingProfile } from "@webhealth/shared/lib/team-branding";
@@ -8,6 +10,7 @@ import {
 } from "@/lib/server/authz";
 import { decodeRouteParam } from "@/lib/server/route-params";
 import { PropertyDashboardClient } from "./property-dashboard-client";
+import { SetupDismissButton } from "../../dashboard/setup-dismiss-button";
 
 export default async function PropertyDashboardPage({
   params,
@@ -26,6 +29,31 @@ export default async function PropertyDashboardPage({
   try {
     resolved = await resolveTeamReportSources(membership.teamId, propertyId);
   } catch {
+    const property = await db.query.properties.findFirst({
+      where: (table, { and, eq }) =>
+        and(eq(table.id, propertyId), eq(table.teamId, membership.teamId), eq(table.active, true)),
+    });
+    if (property?.type === "ga4") {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">{property.name}</h1>
+            <p className="mt-1 max-w-2xl text-muted-foreground">
+              This Analytics property is active, but it is not linked to Search Console yet.
+            </p>
+          </div>
+          <div className="rounded-lg border border-amber-200/70 bg-amber-50/70 p-5 text-amber-950">
+            <h2 className="text-lg font-semibold">Limited dashboard</h2>
+            <p className="mt-2 text-sm">
+              Ranked actions need both GA4 and Search Console. Link this GA4 source to a matching Search Console property on the Properties page to unlock the live decision surface.
+            </p>
+            <Link className="mt-4 inline-flex text-sm font-semibold text-primary" href="/properties">
+              Open Properties
+            </Link>
+          </div>
+        </div>
+      );
+    }
     notFound();
   }
 
@@ -33,7 +61,7 @@ export default async function PropertyDashboardPage({
     redirect(`/properties/${encodeURIComponent(resolved.canonicalGscProperty.id)}`);
   }
 
-  const [dashboard, branding] = await Promise.all([
+  const [dashboard, branding, setupDismissal] = await Promise.all([
     getLiveDashboardData({
       teamId: membership.teamId,
       propertyId: resolved.canonicalGscProperty.id,
@@ -43,19 +71,40 @@ export default async function PropertyDashboardPage({
       endDate: typeof query.end === "string" ? query.end : null,
     }),
     getTeamBrandingProfile(membership.teamId),
+    db.query.propertySetupDismissals.findFirst({
+      where: (table, { and, eq }) =>
+        and(eq(table.teamId, membership.teamId), eq(table.userId, session.user.id), eq(table.propertyId, resolved.canonicalGscProperty.id)),
+      columns: { id: true },
+    }),
   ]);
 
   return (
-    <PropertyDashboardClient
-      dashboard={dashboard}
-      currentUser={{
-        id: session.user.id,
-        email: session.user.email,
-      }}
-      brandColors={{
-        primary: branding.primaryColor,
-        accent: branding.accentColor,
-      }}
-    />
+    <div className="space-y-4">
+      {!resolved.linkedGa4Property && !setupDismissal ? (
+        <div className="flex items-start justify-between gap-4 rounded-lg border border-amber-200/70 bg-amber-50/70 p-4 text-amber-950">
+          <div>
+            <h2 className="text-sm font-semibold">Analytics setup is incomplete</h2>
+            <p className="mt-1 text-sm">
+              Ranked actions are limited without a linked GA4 property. Open Properties to connect the matching Analytics source.
+            </p>
+            <Link className="mt-2 inline-flex text-sm font-semibold text-primary" href="/properties">
+              Open Properties
+            </Link>
+          </div>
+          <SetupDismissButton propertyId={resolved.canonicalGscProperty.id} />
+        </div>
+      ) : null}
+      <PropertyDashboardClient
+        dashboard={dashboard}
+        currentUser={{
+          id: session.user.id,
+          email: session.user.email,
+        }}
+        brandColors={{
+          primary: branding.primaryColor,
+          accent: branding.accentColor,
+        }}
+      />
+    </div>
   );
 }
