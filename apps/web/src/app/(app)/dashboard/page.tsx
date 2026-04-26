@@ -3,15 +3,15 @@ import { headers } from "next/headers";
 import { ArrowRight, Globe2 } from "lucide-react";
 import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
-import { count, eq } from "drizzle-orm";
-import { properties as propertiesSchema, reports as reportsSchema } from "@webhealth/shared/db/schema";
+import { eq } from "drizzle-orm";
+import { properties as propertiesSchema } from "@webhealth/shared/db/schema";
 import { getWorkspaceActionBoard } from "@webhealth/shared/lib/live-dashboard";
 import { listTeamCombinedReportableProperties } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { SyncButton } from "./sync-button";
-import { ReportsTable } from "./reports-table";
 import { OnboardingModal } from "./onboarding-modal";
-import { WeeklyReviewCard } from "./weekly-review-card";
 import { WorkspaceActionBoard } from "./workspace-action-board";
+import { ManagePropertiesDialog } from "./manage-properties-dialog";
+import { SetupDismissButton } from "./setup-dismiss-button";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
@@ -23,9 +23,17 @@ export default async function DashboardPage() {
   });
 
   let propertyCount = 0;
-  let reportCount = 0;
   let hasProperties = false;
   let websites: Awaited<ReturnType<typeof listTeamCombinedReportableProperties>> = [];
+  let allProperties: Array<{
+    id: string;
+    name: string;
+    url: string;
+    type: string;
+    active: boolean;
+    ga4PropertyId: string | null;
+  }> = [];
+  let dismissedSetupPropertyIds = new Set<string>();
   let workspaceBoard: Awaited<ReturnType<typeof getWorkspaceActionBoard>> | null = null;
 
   if (userTeams.length > 0) {
@@ -33,14 +41,23 @@ export default async function DashboardPage() {
     const userProperties = await db.query.properties.findMany({
       where: eq(propertiesSchema.teamId, targetTeamId),
     });
-    const [reportCountRow] = await db
-      .select({ count: count(reportsSchema.id) })
-      .from(reportsSchema)
-      .where(eq(reportsSchema.teamId, targetTeamId));
+    const setupDismissals = await db.query.propertySetupDismissals.findMany({
+      where: (table, { and, eq: eqFn }) =>
+        and(eqFn(table.teamId, targetTeamId), eqFn(table.userId, session!.user.id)),
+      columns: { propertyId: true },
+    });
 
-    propertyCount = userProperties.length;
-    reportCount = reportCountRow?.count ?? 0;
+    allProperties = userProperties.map((property) => ({
+      id: property.id,
+      name: property.name,
+      url: property.url,
+      type: property.type,
+      active: property.active,
+      ga4PropertyId: property.ga4PropertyId,
+    }));
+    propertyCount = userProperties.filter((property) => property.active).length;
     hasProperties = userProperties.length > 0;
+    dismissedSetupPropertyIds = new Set(setupDismissals.map((dismissal) => dismissal.propertyId));
     [websites, workspaceBoard] = await Promise.all([
       listTeamCombinedReportableProperties(targetTeamId),
       getWorkspaceActionBoard(targetTeamId),
@@ -55,27 +72,48 @@ export default async function DashboardPage() {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Open a live website dashboard</h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">
-            Use this page as a launcher. Website analysis now lives at the property level, while reports stay secondary history artifacts.
+            Use this page as a launcher. Website analysis now lives at the property level, with snapshots as historical context.
           </p>
         </div>
         <SyncButton />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-[24px] border border-border/70 bg-card/90 p-5 shadow-sm">
-          <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Properties</div>
-          <div className="mt-2 text-3xl font-semibold tracking-tight">{propertyCount}</div>
-          <p className="mt-2 text-sm text-muted-foreground">Connected sources across Search Console and Analytics.</p>
+      <section className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight">Portfolio Websites overview</h2>
+            <p className="text-sm text-muted-foreground">Pick a site to open its live decision surface.</p>
+          </div>
+          <ManagePropertiesDialog properties={allProperties} />
         </div>
-        <div className="rounded-[24px] border border-border/70 bg-card/90 p-5 shadow-sm">
+
+        {websites.length ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {websites.map((website) => (
+              <WebsiteLauncherCard
+                key={website.id}
+                website={website}
+                setupDismissed={dismissedSetupPropertyIds.has(website.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-border/70 bg-card/90 p-8 text-center text-muted-foreground shadow-sm">
+            Activate a synced property first. The live dashboard is created from your active website sources.
+          </div>
+        )}
+      </section>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-lg border border-border/70 bg-card/90 p-4 shadow-sm">
+          <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Active sources</div>
+          <div className="mt-1 text-2xl font-semibold tracking-tight">{propertyCount}</div>
+          <p className="mt-1 text-xs text-muted-foreground">Synced sources enabled for dashboard work.</p>
+        </div>
+        <div className="rounded-lg border border-border/70 bg-card/90 p-4 shadow-sm">
           <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Live dashboards</div>
-          <div className="mt-2 text-3xl font-semibold tracking-tight">{websites.length}</div>
-          <p className="mt-2 text-sm text-muted-foreground">Canonical website surfaces ready for decision-making.</p>
-        </div>
-        <div className="rounded-[24px] border border-border/70 bg-card/90 p-5 shadow-sm">
-          <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Reports</div>
-          <div className="mt-2 text-3xl font-semibold tracking-tight">{reportCount}</div>
-          <p className="mt-2 text-sm text-muted-foreground">Snapshot history remains available, but it no longer owns the product.</p>
+          <div className="mt-1 text-2xl font-semibold tracking-tight">{websites.length}</div>
+          <p className="mt-1 text-xs text-muted-foreground">Active website surfaces ready for decisions.</p>
         </div>
       </div>
 
@@ -97,7 +135,7 @@ export default async function DashboardPage() {
           </div>
 
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
-            <div className="rounded-[24px] border border-border/70 bg-card/90 p-5 shadow-sm">
+            <div className="rounded-lg border border-border/70 bg-card/90 p-5 shadow-sm">
               <div className="mb-4">
                 <h3 className="text-lg font-semibold tracking-tight">Open actions across websites</h3>
                 <p className="text-sm text-muted-foreground">System rank stays primary. Property status stays visible.</p>
@@ -105,7 +143,7 @@ export default async function DashboardPage() {
               <WorkspaceActionBoard board={workspaceBoard} />
             </div>
 
-            <div className="rounded-[24px] border border-border/70 bg-card/90 p-5 shadow-sm">
+            <div className="rounded-lg border border-border/70 bg-card/90 p-5 shadow-sm">
               <div className="mb-4">
                 <h3 className="text-lg font-semibold tracking-tight">Properties needing attention</h3>
                 <p className="text-sm text-muted-foreground">Refresh failures and active background work stay visible here.</p>
@@ -115,7 +153,7 @@ export default async function DashboardPage() {
                   <Link
                     key={property.propertyId}
                     href={`/properties/${encodeURIComponent(property.propertyId)}`}
-                    className="block rounded-[18px] border border-border/70 px-4 py-3 transition-colors hover:border-primary/30 hover:bg-primary/[0.04]"
+                    className="block rounded-lg border border-border/70 px-4 py-3 transition-colors hover:border-primary/30 hover:bg-primary/[0.04]"
                   >
                     <div className="text-sm font-medium">{property.propertyName}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
@@ -128,7 +166,7 @@ export default async function DashboardPage() {
                     </div>
                   </Link>
                 )) : (
-                  <div className="rounded-[18px] border border-border/70 px-4 py-6 text-sm text-muted-foreground">No properties are currently refreshing or failed.</div>
+                  <div className="rounded-lg border border-border/70 px-4 py-6 text-sm text-muted-foreground">No properties are currently refreshing or failed.</div>
                 )}
               </div>
             </div>
@@ -136,39 +174,6 @@ export default async function DashboardPage() {
         </section>
       ) : null}
 
-      <section className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold tracking-tight">Portfolio Websites overview</h2>
-            <p className="text-sm text-muted-foreground">Pick a site to open its live decision surface.</p>
-          </div>
-          <Link href="/properties" className="text-sm font-medium text-primary hover:text-primary/80">
-            Manage properties
-          </Link>
-        </div>
-
-        {websites.length ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {websites.map((website) => (
-              <WebsiteLauncherCard key={website.id} website={website} />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-[24px] border border-border/70 bg-card/90 p-8 text-center text-muted-foreground shadow-sm">
-            Add and sync a property first. The live dashboard is created from your connected website sources.
-          </div>
-        )}
-      </section>
-
-      <WeeklyReviewCard />
-
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">Snapshot history</h2>
-          <p className="text-sm text-muted-foreground">Generated reports remain available as historical artifacts.</p>
-        </div>
-        <ReportsTable limit={5} showViewAll />
-      </section>
     </div>
   );
 }
@@ -183,7 +188,7 @@ function SummaryTile({
   description: string;
 }) {
   return (
-    <div className="rounded-[24px] border border-border/70 bg-card/90 p-5 shadow-sm">
+    <div className="rounded-lg border border-border/70 bg-card/90 p-4 shadow-sm">
       <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
       <div className="mt-2 text-3xl font-semibold tracking-tight">{value}</div>
       <p className="mt-2 text-sm text-muted-foreground">{description}</p>
@@ -195,20 +200,20 @@ type WebsiteLauncherCardProps = {
   website: Awaited<ReturnType<typeof listTeamCombinedReportableProperties>>[number];
 };
 
-function WebsiteLauncherCard({ website }: WebsiteLauncherCardProps) {
-  const statusLabel = website.isLinked ? "Linked" : "Setup needed";
+function WebsiteLauncherCard({ website, setupDismissed }: WebsiteLauncherCardProps & { setupDismissed: boolean }) {
+  const statusLabel = website.isLinked ? "Linked" : website.sourceCoverage === "ga4_only" ? "GA4 only" : "GSC only";
   const statusClassName = website.isLinked
     ? "border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300"
     : "border-amber-200/80 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300";
   const sourceCount = website.isLinked ? "2" : "1";
-  const sourceMix = website.isLinked ? "GSC + GA4" : "GSC only";
-  const setupSummary = website.isLinked ? "Ready now" : "Add GA4";
+  const sourceMix = website.isLinked ? "GSC + GA4" : website.sourceCoverage === "ga4_only" ? "GA4 only" : "GSC only";
+  const setupSummary = website.isLinked ? "Ready now" : "Limited";
+  const setupMessage = website.sourceCoverage === "ga4_only"
+    ? "Link Search Console on the Properties page to unlock ranked actions."
+    : "Link GA4 on the Properties page to complete traffic context.";
 
   return (
-    <Link
-      href={`/properties/${encodeURIComponent(website.id)}`}
-      className="group overflow-hidden rounded-[24px] border border-border/70 bg-card/95 p-5 shadow-sm transition-colors hover:border-primary/35 hover:bg-card"
-    >
+    <div className="group overflow-hidden rounded-lg border border-border/70 bg-card/95 p-5 shadow-sm transition-colors hover:border-primary/35 hover:bg-card">
       <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-center gap-4">
           <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-400 text-primary-foreground shadow-sm">
@@ -222,6 +227,13 @@ function WebsiteLauncherCard({ website }: WebsiteLauncherCardProps) {
           {statusLabel}
         </span>
       </div>
+
+      {!website.isLinked && !setupDismissed ? (
+        <div className="mt-4 flex items-start justify-between gap-3 rounded-lg border border-amber-200/70 bg-amber-50/70 p-3 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/25 dark:text-amber-100">
+          <p>{setupMessage}</p>
+          <SetupDismissButton propertyId={website.id} />
+        </div>
+      ) : null}
 
       <div className="mt-6 grid grid-cols-2 gap-6">
         <div>
@@ -240,15 +252,18 @@ function WebsiteLauncherCard({ website }: WebsiteLauncherCardProps) {
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 text-sm text-muted-foreground">
             Source setup:{" "}
-            <span className="font-semibold text-foreground">{website.isLinked ? "GSC + GA4 linked" : "Search Console first"}</span>
+            <span className="font-semibold text-foreground">{website.isLinked ? "GSC + GA4 linked" : setupMessage}</span>
           </div>
-          <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary transition-transform group-hover:translate-x-0.5">
+          <Link
+            href={`/properties/${encodeURIComponent(website.id)}`}
+            className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary transition-transform group-hover:translate-x-0.5"
+          >
             Open dashboard
             <ArrowRight className="h-4 w-4" />
-          </span>
+          </Link>
         </div>
-        <p className="mt-2 truncate text-sm text-muted-foreground">{website.gscUrl}</p>
+        <p className="mt-2 truncate text-sm text-muted-foreground">{website.gscUrl ?? website.ga4Name ?? website.id}</p>
       </div>
-    </Link>
+    </div>
   );
 }

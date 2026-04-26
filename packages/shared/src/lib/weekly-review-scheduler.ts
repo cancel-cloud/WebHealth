@@ -55,7 +55,7 @@ export async function enqueueWeeklyReviewReports(input: {
   for (const watch of watched) {
     const property = await db.query.properties.findFirst({
       where: (p, { and, eq }) =>
-        and(eq(p.id, watch.propertyId), eq(p.teamId, watch.teamId), eq(p.type, "gsc")),
+        and(eq(p.id, watch.propertyId), eq(p.teamId, watch.teamId), eq(p.type, "gsc"), eq(p.active, true)),
     });
     if (!property) continue;
 

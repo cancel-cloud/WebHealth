@@ -14,18 +14,21 @@ export default async function AiReportDebugPage() {
         name: properties.name,
         url: properties.url,
         ga4PropertyId: properties.ga4PropertyId,
+        active: properties.active,
       })
       .from(properties),
   ]);
-  const reportableProperties = buildCombinedReportableProperties(propertyRows).map((p) => ({
-    id: p.id,
-    teamId: p.teamId,
-    label: p.label,
-    gscPropertyId: p.gscPropertyId,
-    ga4DbId: p.ga4DbId,
-    ga4PropertyId: p.ga4PropertyId,
-    isLinked: p.isLinked,
-  }));
+  const reportableProperties = buildCombinedReportableProperties(propertyRows)
+    .filter((p) => p.gscPropertyId !== null)
+    .map((p) => ({
+      id: p.id,
+      teamId: p.teamId,
+      label: p.label,
+      gscPropertyId: p.gscPropertyId!,
+      ga4DbId: p.ga4DbId,
+      ga4PropertyId: p.ga4PropertyId,
+      isLinked: p.isLinked,
+    }));
 
   return (
     <div className="space-y-6">

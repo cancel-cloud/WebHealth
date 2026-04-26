@@ -281,12 +281,12 @@ async function getGscPropertiesForJob(job: MetricsBackfillJob) {
   if (job.targetPropertyId) {
     return db.query.properties.findMany({
       where: (p, { and, eq }) =>
-        and(eq(p.teamId, job.teamId), eq(p.id, job.targetPropertyId!), eq(p.type, "gsc")),
+        and(eq(p.teamId, job.teamId), eq(p.id, job.targetPropertyId!), eq(p.type, "gsc"), eq(p.active, true)),
     });
   }
 
   return db.query.properties.findMany({
-    where: (p, { and, eq }) => and(eq(p.teamId, job.teamId), eq(p.type, "gsc")),
+    where: (p, { and, eq }) => and(eq(p.teamId, job.teamId), eq(p.type, "gsc"), eq(p.active, true)),
   });
 }
 

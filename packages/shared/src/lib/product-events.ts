@@ -9,6 +9,8 @@ export const PRODUCT_EVENT_NAMES = [
   "manual_report_created",
   "manual_report_opened",
   "report_detail_requested",
+  "property_activated",
+  "property_deactivated",
 ] as const;
 
 export type ProductEventName = (typeof PRODUCT_EVENT_NAMES)[number];

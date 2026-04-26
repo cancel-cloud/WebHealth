@@ -5,21 +5,26 @@ export type PropertyRecordLike = {
   name: string;
   url: string;
   ga4PropertyId: string | null;
+  active?: boolean;
 };
 
+export type PropertySourceCoverage = "linked" | "gsc_only" | "ga4_only";
+
 export type CombinedReportableProperty<T extends PropertyRecordLike = PropertyRecordLike> = {
-  id: string; // canonical selection ID (always GSC property ID)
+  id: string; // canonical selection ID, GSC when available, otherwise GA4
   teamId: string;
   label: string; // prefers linked GA4 display name
-  gscPropertyId: string;
-  gscName: string;
-  gscUrl: string;
+  gscPropertyId: string | null;
+  gscName: string | null;
+  gscUrl: string | null;
   ga4PropertyId: string | null; // numeric GA4 property ID (no ga4_ prefix)
   ga4DbId: string | null; // DB row ID, e.g. ga4_123
   ga4Name: string | null;
   isLinked: boolean;
+  sourceCoverage: PropertySourceCoverage;
+  active: boolean;
   source: {
-    gscProperty: T;
+    gscProperty: T | null;
     ga4Property: T | null;
   };
 };
@@ -96,17 +101,27 @@ function displayLabel(gscProperty: PropertyRecordLike, ga4Property: PropertyReco
   return gscProperty.url.replace(/^sc-domain:/, "") || gscProperty.id;
 }
 
+function displayGa4Label(ga4Property: PropertyRecordLike) {
+  return ga4Property.name?.trim() || ga4Property.url?.trim() || ga4Property.id;
+}
+
+function isActive(property: PropertyRecordLike) {
+  return property.active !== false;
+}
+
 export function buildCombinedReportableProperties<T extends PropertyRecordLike>(
   allProperties: T[],
 ): Array<CombinedReportableProperty<T>> {
+  const activeProperties = allProperties.filter(isActive);
   const ga4ById = new Map<string, T>();
-  for (const property of allProperties) {
+  for (const property of activeProperties) {
     if (isGa4Property(property)) ga4ById.set(property.id, property);
   }
 
   const grouped = new Map<string, { gscProperty: T; ga4Property: T | null }>();
+  const usedGa4DbIds = new Set<string>();
 
-  for (const property of allProperties) {
+  for (const property of activeProperties) {
     if (!isGscProperty(property)) continue;
 
     const ga4Property = property.ga4PropertyId ? ga4ById.get(ga4DbIdFromNumericId(property.ga4PropertyId)) ?? null : null;
@@ -120,8 +135,10 @@ export function buildCombinedReportableProperties<T extends PropertyRecordLike>(
     }
   }
 
-  return [...grouped.values()]
-    .map(({ gscProperty, ga4Property }) => ({
+  const combined: Array<CombinedReportableProperty<T>> = [...grouped.values()]
+    .map(({ gscProperty, ga4Property }) => {
+      if (ga4Property) usedGa4DbIds.add(ga4Property.id);
+      return {
       id: gscProperty.id,
       teamId: gscProperty.teamId,
       label: displayLabel(gscProperty, ga4Property),
@@ -132,11 +149,38 @@ export function buildCombinedReportableProperties<T extends PropertyRecordLike>(
       ga4DbId: gscProperty.ga4PropertyId ? ga4DbIdFromNumericId(gscProperty.ga4PropertyId) : null,
       ga4Name: ga4Property?.name ?? null,
       isLinked: !!(gscProperty.ga4PropertyId && ga4Property),
+      sourceCoverage: gscProperty.ga4PropertyId && ga4Property ? "linked" : "gsc_only",
+      active: true,
       source: {
         gscProperty,
         ga4Property,
       },
-    }))
+      };
+    });
+
+  for (const property of activeProperties) {
+    if (!isGa4Property(property) || usedGa4DbIds.has(property.id)) continue;
+    combined.push({
+      id: property.id,
+      teamId: property.teamId,
+      label: displayGa4Label(property),
+      gscPropertyId: null,
+      gscName: null,
+      gscUrl: null,
+      ga4PropertyId: ga4NumericIdFromDbId(property.id),
+      ga4DbId: property.id,
+      ga4Name: property.name,
+      isLinked: false,
+      sourceCoverage: "ga4_only",
+      active: true,
+      source: {
+        gscProperty: null,
+        ga4Property: property,
+      },
+    });
+  }
+
+  return combined
     .sort((a, b) => {
       if (a.teamId !== b.teamId) return a.teamId.localeCompare(b.teamId);
       return a.label.localeCompare(b.label);
@@ -146,13 +190,15 @@ export function buildCombinedReportableProperties<T extends PropertyRecordLike>(
 export function resolveReportSourcesFromProperties<T extends PropertyRecordLike>(
   allProperties: T[],
   selectedPropertyId: string,
+  options: { includeInactive?: boolean } = {},
 ): ResolvedReportSources<T> {
-  const selectedProperty = allProperties.find((p) => p.id === selectedPropertyId);
+  const properties = options.includeInactive ? allProperties : allProperties.filter(isActive);
+  const selectedProperty = properties.find((p) => p.id === selectedPropertyId);
   if (!selectedProperty) {
     throw new Error("Property not found");
   }
 
-  const sameTeam = allProperties.filter((p) => p.teamId === selectedProperty.teamId);
+  const sameTeam = properties.filter((p) => p.teamId === selectedProperty.teamId);
   const ga4ById = new Map(sameTeam.filter(isGa4Property).map((p) => [p.id, p] as const));
   const gscRows = sameTeam.filter(isGscProperty);
 

@@ -15,6 +15,7 @@ function makeProperty(overrides: Partial<PropertyRecordLike> & Pick<PropertyReco
     name: overrides.name ?? overrides.id,
     url: overrides.url ?? overrides.id,
     ga4PropertyId: overrides.ga4PropertyId ?? null,
+    active: overrides.active ?? true,
   };
 }
 
@@ -96,4 +97,50 @@ test("resolveReportSourcesFromProperties throws when GA4 property has no linked 
     () => resolveReportSourcesFromProperties(rows, "ga4_123"),
     /not linked to a Google Search Console property/,
   );
+});
+
+test("buildCombinedReportableProperties includes standalone GA4 properties as limited dashboards", () => {
+  const rows: PropertyRecordLike[] = [
+    makeProperty({
+      id: "ga4_123",
+      teamId: "team_1",
+      type: "ga4",
+      name: "Analytics Only",
+      url: "Analytics Only",
+    }),
+  ];
+
+  const combined = buildCombinedReportableProperties(rows);
+
+  assert.equal(combined.length, 1);
+  assert.equal(combined[0].id, "ga4_123");
+  assert.equal(combined[0].sourceCoverage, "ga4_only");
+  assert.equal(combined[0].gscPropertyId, null);
+  assert.equal(combined[0].ga4DbId, "ga4_123");
+  assert.equal(combined[0].isLinked, false);
+});
+
+test("buildCombinedReportableProperties excludes inactive properties by default", () => {
+  const rows: PropertyRecordLike[] = [
+    makeProperty({
+      id: "gsc_sc-domain:active.example",
+      teamId: "team_1",
+      type: "gsc",
+      name: "active.example",
+      url: "sc-domain:active.example",
+      active: true,
+    }),
+    makeProperty({
+      id: "gsc_sc-domain:inactive.example",
+      teamId: "team_1",
+      type: "gsc",
+      name: "inactive.example",
+      url: "sc-domain:inactive.example",
+      active: false,
+    }),
+  ];
+
+  const combined = buildCombinedReportableProperties(rows);
+
+  assert.deepEqual(combined.map((property) => property.id), ["gsc_sc-domain:active.example"]);
 });

@@ -39,6 +39,7 @@ export function UsageCard({
   if (!hasAnyLimit) return null;
 
   const isCompact = variant === "compact";
+  if (isCompact) return null;
 
   return (
     <div className={

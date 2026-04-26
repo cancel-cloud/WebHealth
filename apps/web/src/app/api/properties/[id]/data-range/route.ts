@@ -25,7 +25,7 @@ export async function GET(
     const teamId = userTeams[0].teamId;
 
     const prop = await db.query.properties.findFirst({
-      where: (p, { and, eq }) => and(eq(p.id, propertyId), eq(p.teamId, teamId)),
+      where: (p, { and, eq }) => and(eq(p.id, propertyId), eq(p.teamId, teamId), eq(p.active, true)),
     });
     if (!prop) {
       throw notFound("Property not found or unauthorized", "PROPERTY_NOT_FOUND");

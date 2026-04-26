@@ -53,6 +53,7 @@ type Property = {
   syncStatus: string;
   lastSyncedAt: string | null;
   ga4PropertyId: string | null;
+  active: boolean;
   weeklyReviewEnabled?: boolean;
   weeklyReviewLimit?: number;
   weeklyReviewWatchedCount?: number;
@@ -426,13 +427,18 @@ export default function PropertiesPage() {
                   <TableCell className="py-4">
                     <div className="space-y-1">
                       <div className="font-medium">{property.name}</div>
-                      {property.type === "gsc" ? (
+                      {!property.active ? (
+                        <Badge variant="outline" className="border-amber-200 text-amber-700">Inactive</Badge>
+                      ) : null}
+                      {property.type === "gsc" && property.active ? (
                         <Link
                           href={`/properties/${encodeURIComponent(property.id)}`}
                           className="inline-flex items-center text-xs font-medium text-primary hover:text-primary/80"
                         >
                           Open live dashboard
                         </Link>
+                      ) : property.type === "gsc" ? (
+                        <span className="text-xs text-muted-foreground">Activate from dashboard to open live view</span>
                       ) : (
                         <span className="text-xs text-muted-foreground">GA4 rows stay secondary to the website dashboard</span>
                       )}

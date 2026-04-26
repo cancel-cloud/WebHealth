@@ -23,6 +23,7 @@ import {
   propertyDailyAiSummaries,
   propertyPageRegistry,
   propertyRefreshJobs,
+  propertySetupDismissals,
   propertyShareLinks,
   propertyWeeklyReviews,
   reportDetailAiExpansions,
@@ -43,7 +44,7 @@ import {
   userSettings,
   verification,
   weeklyReviewRuns
-} from "./chunk-GZVTNFTC.js";
+} from "./chunk-NLKMMEGJ.js";
 import "./chunk-3LHI6BO3.js";
 export {
   account,
@@ -70,6 +71,7 @@ export {
   propertyDailyAiSummaries,
   propertyPageRegistry,
   propertyRefreshJobs,
+  propertySetupDismissals,
   propertyShareLinks,
   propertyWeeklyReviews,
   reportDetailAiExpansions,

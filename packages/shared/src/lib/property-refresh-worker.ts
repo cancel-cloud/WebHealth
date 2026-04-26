@@ -1,4 +1,5 @@
 import { nanoid } from "nanoid";
+import { db } from "@webhealth/shared/db";
 import { crawlWebsite } from "@webhealth/shared/lib/crawl";
 import {
   claimNextPropertyRefreshJob,
@@ -10,6 +11,15 @@ import {
   type ClaimedPropertyRefreshJob,
 } from "@webhealth/shared/lib/property-refresh";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
+
+async function isRefreshPropertyActive(job: ClaimedPropertyRefreshJob) {
+  const property = await db.query.properties.findFirst({
+    where: (table, { and, eq: eqFn }) =>
+      and(eqFn(table.id, job.propertyId), eqFn(table.teamId, job.teamId), eqFn(table.active, true)),
+    columns: { id: true },
+  });
+  return Boolean(property);
+}
 
 async function warmDashboardFromPayload(job: ClaimedPropertyRefreshJob) {
   const payload = (job.payload ?? {}) as Record<string, unknown>;
@@ -65,6 +75,11 @@ async function processClaimedJob(job: ClaimedPropertyRefreshJob, workerId: strin
     heartbeatTimer = setInterval(() => {
       void heartbeatPropertyRefreshJob(job.id, workerId);
     }, 10_000);
+
+    if (!(await isRefreshPropertyActive(job))) {
+      await completePropertyRefreshJob(job.id, "Property is inactive; refresh skipped");
+      return;
+    }
 
     if (job.jobType === "crawl_refresh") {
       await processCrawlRefreshJob(job);

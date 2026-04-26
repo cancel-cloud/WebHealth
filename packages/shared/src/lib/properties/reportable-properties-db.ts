@@ -32,5 +32,13 @@ export async function resolveReportSourcesForExistingReport(report: {
   teamId: string;
   propertyId: string;
 }) {
-  return resolveTeamReportSources(report.teamId, report.propertyId);
+  const teamProperties = await listTeamProperties(report.teamId);
+
+  if (!teamProperties.some((p) => p.id === report.propertyId)) {
+    throw new Error("Property not found or unauthorized");
+  }
+
+  return resolveReportSourcesFromProperties(teamProperties, report.propertyId, {
+    includeInactive: true,
+  });
 }
