@@ -439,16 +439,29 @@ export function AppSidebar({
               <p className="px-3 text-xs font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/45">
                 Admin
               </p>
-              <div className="space-y-1">
-                {model.adminItems.map((item) => (
-                  <SidebarLink
-                    key={item.id}
-                    item={item}
-                    onNavigate={onNavigate}
-                    onFeatureRequest={onFeatureRequest}
-                  />
-                ))}
-              </div>
+              <Collapsible
+                key={model.adminItems.some((item) => item.current) ? "admin-current" : "admin-default"}
+                defaultOpen={model.adminItems.some((item) => item.current)}
+              >
+                <CollapsibleTrigger asChild>
+                  <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground/78 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 focus-visible:outline-none">
+                    <Settings className="h-4 w-4 shrink-0 text-sidebar-foreground/60" />
+                    <span className="flex-1 truncate">Admin tools</span>
+                    <ChevronDown className="h-4 w-4 shrink-0 text-sidebar-foreground/55 transition-transform data-[state=open]:rotate-180" />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 space-y-1 border-l border-sidebar-border/70 pl-4 ml-5">
+                  {model.adminItems.map((item) => (
+                    <SidebarLink
+                      key={item.id}
+                      item={item}
+                      onNavigate={onNavigate}
+                      onFeatureRequest={onFeatureRequest}
+                      nested
+                    />
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
             </section>
           ) : null}
 
