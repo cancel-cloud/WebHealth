@@ -158,7 +158,7 @@ var properties = pgTable("properties", {
   syncStatus: text("sync_status").default("pending").notNull(),
   // pending, syncing, complete, failed
   lastSyncedAt: timestamp("last_synced_at"),
-  active: boolean("active").default(true).notNull(),
+  active: boolean("active").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 var reports = pgTable("reports", {

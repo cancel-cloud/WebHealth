@@ -419,11 +419,11 @@ async function main() {
   });
   workerPhase = "imports";
   markWorkerPhase(runtimeState, "imports");
-  const sharedDbModule = await import("./chunks/db-HVTMHZPE.js");
+  const sharedDbModule = await import("./chunks/db-6AL5MFXH.js");
   const { ensureWorkerDatabaseReady } = await import("./chunks/worker-db-bootstrap-O6DFN672.js");
-  const { startReportWorkerLoop, runSingleReportWorkerTick } = await import("./chunks/report-worker-GPBRKYUE.js");
-  const { startPropertyRefreshWorkerLoop } = await import("./chunks/property-refresh-worker-AI6CT45N.js");
-  const { startWeeklyReviewScheduler } = await import("./chunks/weekly-review-scheduler-QNQHRJTL.js");
+  const { startReportWorkerLoop, runSingleReportWorkerTick } = await import("./chunks/report-worker-PRMUOUA2.js");
+  const { startPropertyRefreshWorkerLoop } = await import("./chunks/property-refresh-worker-2IR2KSP6.js");
+  const { startWeeklyReviewScheduler } = await import("./chunks/weekly-review-scheduler-J5XPBF4P.js");
   closeDb = sharedDbModule.closeDb;
   workerPhase = "database-ready";
   markWorkerPhase(runtimeState, "database-ready");
