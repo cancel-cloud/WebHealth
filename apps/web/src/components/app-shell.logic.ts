@@ -112,18 +112,28 @@ export function getAppSidebarModel({
   pathname,
   isAdmin,
   tab = null,
+  view = null,
 }: {
   pathname: string;
   isAdmin: boolean;
   tab?: string | null;
+  view?: string | null;
 }): AppSidebarModel {
+  const aiInsightsCurrent = pathname === "/dashboard" && view === "ai-insights";
   const primaryItems: AppSidebarItem[] = [
     {
       id: "dashboard",
-      label: "Dashboard",
+      label: "Overview",
       href: "/dashboard",
       icon: "dashboard",
-      current: isPathCurrent(pathname, "/dashboard"),
+      current: isPathCurrent(pathname, "/dashboard") && !aiInsightsCurrent,
+    },
+    {
+      id: "properties",
+      label: "Properties",
+      href: "/properties",
+      icon: "properties",
+      current: isPathCurrent(pathname, "/properties"),
     },
     {
       id: "reports",
@@ -133,11 +143,11 @@ export function getAppSidebarModel({
       current: isPathCurrent(pathname, "/reports"),
     },
     {
-      id: "properties",
-      label: "Properties",
-      href: "/properties",
-      icon: "properties",
-      current: isPathCurrent(pathname, "/properties"),
+      id: "ai-insights",
+      label: "AI Insights",
+      href: "/dashboard?view=ai-insights",
+      icon: "bot",
+      current: aiInsightsCurrent,
     },
     {
       id: "settings",
