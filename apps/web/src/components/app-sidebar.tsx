@@ -174,6 +174,21 @@ function getSidebarPropertyInitial(label: string) {
   return label.trim().charAt(0).toUpperCase() || "W";
 }
 
+function getSidebarPropertySiteUrl(rawUrl: string | null) {
+  if (!rawUrl) return null;
+  if (rawUrl.startsWith("sc-domain:")) {
+    return `https://${rawUrl.replace(/^sc-domain:/, "")}`;
+  }
+  if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+  return `https://${rawUrl}`;
+}
+
+function getSidebarPropertyFaviconUrl(rawUrl: string | null) {
+  const siteUrl = getSidebarPropertySiteUrl(rawUrl);
+  if (!siteUrl) return null;
+  return `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(siteUrl)}&sz=128`;
+}
+
 function getSidebarPropertyStatusClasses(
   sourceCoverage: SidebarProperty["sourceCoverage"],
 ) {
@@ -214,6 +229,7 @@ function SidebarPropertyLink({
 }) {
   const current = isSidebarPropertyCurrent(pathname, property.id);
   const href = `/properties/${encodeURIComponent(property.id)}`;
+  const faviconUrl = getSidebarPropertyFaviconUrl(property.gscUrl);
 
   return (
     <Link
@@ -226,8 +242,15 @@ function SidebarPropertyLink({
           : "text-sidebar-foreground/86 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
       )}
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-sky-500 text-sm font-bold text-white shadow-sm">
+      <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500 to-sky-500 text-sm font-bold text-white shadow-sm">
         {getSidebarPropertyInitial(property.label)}
+        {faviconUrl ? (
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 bg-white bg-contain bg-center bg-no-repeat p-1.5"
+            style={{ backgroundImage: `url("${faviconUrl}")` }}
+          />
+        ) : null}
       </span>
       <span className="min-w-0 flex-1 truncate">{property.label}</span>
       <span
