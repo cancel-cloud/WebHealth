@@ -11,6 +11,13 @@ import {
 test("settings route marks settings current and keeps support links grouped", () => {
   const model = getAppSidebarModel({ pathname: "/settings", isAdmin: false });
 
+  assert.deepEqual(model.primaryItems.map((item) => item.label), [
+    "Overview",
+    "Properties",
+    "Reports",
+    "AI Insights",
+    "Settings",
+  ]);
   assert.equal(model.primaryItems.find((item) => item.href === "/settings")?.current, true);
   assert.equal(model.supportGroup.label, "Support");
   assert.deepEqual(model.supportGroup.items.map((item) => item.label), ["Contact Support", "Feature Requests"]);
@@ -32,6 +39,18 @@ test("nested settings routes keep settings current", () => {
 
   assert.equal(model.primaryItems.find((item) => item.href === "/settings")?.current, true);
   assert.equal(model.supportGroup.current, false);
+});
+
+test("ai insights view gets a dedicated public sidebar item", () => {
+  const model = getAppSidebarModel({
+    pathname: "/dashboard",
+    isAdmin: false,
+    view: "ai-insights",
+  });
+
+  assert.equal(model.primaryItems.find((item) => item.id === "dashboard")?.current, false);
+  assert.equal(model.primaryItems.find((item) => item.id === "ai-insights")?.current, true);
+  assert.equal(model.primaryItems.find((item) => item.id === "ai-insights")?.href, "/dashboard?view=ai-insights");
 });
 
 test("admin routes expose admin items and mark the matching entry current", () => {
