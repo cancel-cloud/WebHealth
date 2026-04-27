@@ -7,7 +7,6 @@ import { eq } from "drizzle-orm";
 import { properties as propertiesSchema } from "@webhealth/shared/db/schema";
 import { getWorkspaceActionBoard } from "@webhealth/shared/lib/live-dashboard";
 import { listTeamCombinedReportableProperties } from "@webhealth/shared/lib/properties/reportable-properties-db";
-import { SyncButton } from "./sync-button";
 import { OnboardingModal } from "./onboarding-modal";
 import { WorkspaceActionBoard } from "./workspace-action-board";
 import { ManagePropertiesDialog } from "./manage-properties-dialog";
@@ -68,14 +67,13 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       <OnboardingModal hasProperties={hasProperties} />
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Open a live website dashboard</h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">
             Use this page as a launcher. Website analysis now lives at the property level, with snapshots as historical context.
           </p>
         </div>
-        <SyncButton />
       </div>
 
       <section className="space-y-4">

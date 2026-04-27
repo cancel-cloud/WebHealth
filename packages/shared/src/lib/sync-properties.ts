@@ -84,6 +84,7 @@ export async function syncPropertiesForUser({
         url: site.siteUrl,
         syncStatus: "complete",
         lastSyncedAt: new Date(),
+        active: false,
       });
       gscCount++;
     }
@@ -109,6 +110,7 @@ export async function syncPropertiesForUser({
         url: ga4.displayName,
         syncStatus: "complete",
         lastSyncedAt: new Date(),
+        active: false,
       });
       ga4Count++;
     }
