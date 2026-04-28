@@ -1,260 +1,4 @@
-import {
-  getArtifactStore
-} from "./chunks/chunk-YZNPJFVX.js";
 import "./chunks/chunk-3LHI6BO3.js";
-
-// apps/worker/src/artifact-server.ts
-import { createServer } from "node:http";
-import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
-
-// packages/shared/src/lib/artifact-token.ts
-import { createHmac, timingSafeEqual } from "node:crypto";
-function getArtifactTokenSecret() {
-  const secret = process.env.ARTIFACT_TOKEN_SECRET?.trim();
-  if (!secret) {
-    throw new Error("ARTIFACT_TOKEN_SECRET is required");
-  }
-  return secret;
-}
-function signSegment(encodedPayload) {
-  return createHmac("sha256", getArtifactTokenSecret()).update(encodedPayload).digest("base64url");
-}
-function verifyArtifactDownloadToken(token) {
-  const [encodedPayload, signature] = token.split(".");
-  if (!encodedPayload || !signature) return null;
-  const expected = signSegment(encodedPayload);
-  const provided = Buffer.from(signature);
-  const expectedBuffer = Buffer.from(expected);
-  if (provided.length !== expectedBuffer.length) return null;
-  if (!timingSafeEqual(provided, expectedBuffer)) return null;
-  try {
-    const parsed = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8"));
-    if (!parsed?.artifactKey || !parsed?.reportId || typeof parsed?.exp !== "number") {
-      return null;
-    }
-    if (parsed.exp < Math.floor(Date.now() / 1e3)) {
-      return null;
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-// apps/worker/src/runtime-state.ts
-function createWorkerRuntimeState(input) {
-  return {
-    artifactServerExpected: input?.artifactServerExpected ?? false,
-    phase: "boot",
-    databaseReadyAtMs: null,
-    artifactServerListeningAtMs: null,
-    loopStartedAtMs: null,
-    lastLoopTickAtMs: null,
-    shuttingDownAtMs: null,
-    fatalErrorAtMs: null,
-    fatalErrorMessage: null,
-    currentJobId: null,
-    currentJobStartedAtMs: null
-  };
-}
-function markWorkerPhase(state, phase, nowMs = Date.now()) {
-  state.phase = phase;
-  if (phase === "shutdown" && state.shuttingDownAtMs == null) {
-    state.shuttingDownAtMs = nowMs;
-  }
-}
-function markDatabaseReady(state, nowMs = Date.now()) {
-  state.databaseReadyAtMs = nowMs;
-}
-function markArtifactServerListening(state, nowMs = Date.now()) {
-  state.artifactServerListeningAtMs = nowMs;
-}
-function markLoopTick(state, nowMs = Date.now()) {
-  if (state.loopStartedAtMs == null) {
-    state.loopStartedAtMs = nowMs;
-  }
-  state.lastLoopTickAtMs = nowMs;
-}
-function markShutdownRequested(state, nowMs = Date.now()) {
-  state.shuttingDownAtMs = nowMs;
-  state.phase = "shutdown";
-}
-function markFatalError(state, error, nowMs = Date.now()) {
-  state.fatalErrorAtMs = nowMs;
-  state.fatalErrorMessage = error instanceof Error ? error.message : String(error);
-}
-function markJobStart(state, input) {
-  state.currentJobId = input.jobId;
-  state.currentJobStartedAtMs = input.nowMs ?? Date.now();
-}
-function markJobEnd(state) {
-  state.currentJobId = null;
-  state.currentJobStartedAtMs = null;
-}
-function buildWorkerReadinessSnapshot(state, input) {
-  const nowMs = input?.nowMs ?? Date.now();
-  const staleAfterMs = input?.staleAfterMs ?? 6e4;
-  let reason = null;
-  if (state.fatalErrorAtMs != null) {
-    reason = "fatal_error";
-  } else if (state.shuttingDownAtMs != null) {
-    reason = "shutting_down";
-  } else if (state.lastLoopTickAtMs == null) {
-    reason = "worker_loop_not_started";
-  } else if (state.artifactServerExpected && state.artifactServerListeningAtMs == null) {
-    reason = "artifact_server_not_ready";
-  } else if (nowMs - state.lastLoopTickAtMs > staleAfterMs) {
-    reason = "worker_loop_stale";
-  }
-  return {
-    ok: reason == null,
-    phase: state.phase,
-    reason,
-    databaseReadyAtMs: state.databaseReadyAtMs,
-    artifactServerExpected: state.artifactServerExpected,
-    artifactServerListeningAtMs: state.artifactServerListeningAtMs,
-    lastLoopTickAtMs: state.lastLoopTickAtMs,
-    currentJobId: state.currentJobId,
-    currentJobStartedAtMs: state.currentJobStartedAtMs
-  };
-}
-
-// apps/worker/src/artifact-server.ts
-var PORT = parseInt(process.env.WORKER_HTTP_PORT ?? "9100", 10);
-function isValidArtifactKey(key) {
-  if (!key || key.includes("..") || key.startsWith("/") || key.includes("\\")) {
-    return false;
-  }
-  return /^reports\/[a-zA-Z0-9_-]+\/\d+-[a-zA-Z0-9._-]+$/.test(key);
-}
-function extractReportIdFromArtifactKey(key) {
-  const match = key.match(/^reports\/([a-zA-Z0-9_-]+)\//);
-  return match?.[1] ?? null;
-}
-function buildWorkerHealthResponse(state, input) {
-  const readiness = buildWorkerReadinessSnapshot(state, input);
-  return {
-    statusCode: readiness.reason === "fatal_error" || readiness.reason === "shutting_down" ? 503 : 200,
-    body: {
-      ok: readiness.reason !== "fatal_error" && readiness.reason !== "shutting_down",
-      ready: readiness.ok,
-      phase: readiness.phase,
-      reason: readiness.reason,
-      currentJobId: readiness.currentJobId
-    }
-  };
-}
-function buildWorkerReadyResponse(state, input) {
-  const readiness = buildWorkerReadinessSnapshot(state, input);
-  return {
-    statusCode: readiness.ok ? 200 : 503,
-    body: readiness
-  };
-}
-async function startArtifactServer(input) {
-  const server = createServer(async (req, res) => {
-    const url = new URL(req.url ?? "/", `http://localhost:${PORT}`);
-    if (req.method === "GET" && url.pathname === "/health") {
-      if (input?.getRuntimeState) {
-        const response = buildWorkerHealthResponse(input.getRuntimeState(), {
-          staleAfterMs: input.staleAfterMs
-        });
-        res.writeHead(response.statusCode, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(response.body));
-        return;
-      }
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ok: true }));
-      return;
-    }
-    if (req.method === "GET" && url.pathname === "/ready") {
-      if (!input?.getRuntimeState) {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ ok: true, ready: true }));
-        return;
-      }
-      const response = buildWorkerReadyResponse(input.getRuntimeState(), {
-        staleAfterMs: input.staleAfterMs
-      });
-      res.writeHead(response.statusCode, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(response.body));
-      return;
-    }
-    if (req.method !== "GET" || url.pathname !== "/artifacts") {
-      res.writeHead(405);
-      res.end("Method Not Allowed");
-      return;
-    }
-    const token = url.searchParams.get("token");
-    const verified = token ? verifyArtifactDownloadToken(token) : null;
-    if (!verified) {
-      console.warn("[artifact-server][WARN][AUTH] unauthorized artifact request");
-      res.writeHead(401);
-      res.end("Unauthorized");
-      return;
-    }
-    const key = verified.artifactKey;
-    if (!key || !isValidArtifactKey(key)) {
-      console.warn(`[artifact-server][WARN][REQUEST] invalid artifact key key=${key ?? "missing"}`);
-      res.writeHead(400);
-      res.end("Invalid artifact key");
-      return;
-    }
-    const reportId = extractReportIdFromArtifactKey(key) ?? "unknown";
-    if (reportId !== verified.reportId) {
-      res.writeHead(403);
-      res.end("Forbidden");
-      return;
-    }
-    console.log(`[artifact-server][INFO][REQUEST] download requested reportId=${reportId} key=${key}`);
-    try {
-      const ref = await getArtifactStore().getDownloadRef(key);
-      if (!ref.path) {
-        console.warn(`[artifact-server][WARN][NOT_FOUND] reportId=${reportId} key=${key}`);
-        res.writeHead(404);
-        res.end("Artifact not found");
-        return;
-      }
-      const fileStat = await stat(ref.path);
-      console.log(
-        `[artifact-server][INFO][STREAM] reportId=${reportId} key=${key} bytes=${fileStat.size}`
-      );
-      res.writeHead(200, {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Length": fileStat.size
-      });
-      createReadStream(ref.path).pipe(res);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "unknown-error";
-      console.warn(
-        `[artifact-server][WARN][ERROR] reportId=${reportId} key=${key} error=${message}`
-      );
-      res.writeHead(404);
-      res.end("Artifact not found");
-    }
-  });
-  await new Promise((resolve, reject) => {
-    server.listen(PORT, () => {
-      console.log(`[artifact-server] listening on port ${PORT}`);
-      resolve();
-    });
-    server.on("error", reject);
-  });
-  return {
-    async stop() {
-      await new Promise((resolve, reject) => {
-        server.close((error) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-          resolve();
-        });
-      });
-    }
-  };
-}
 
 // apps/worker/src/load-env.ts
 import { existsSync } from "node:fs";
@@ -357,6 +101,38 @@ async function reportWorkerFatalError(error, context, env = process.env) {
   await Sentry.close(2e3);
 }
 
+// apps/worker/src/runtime-state.ts
+function createWorkerRuntimeState() {
+  return {
+    phase: "boot",
+    databaseReadyAtMs: null,
+    loopStartedAtMs: null,
+    lastLoopTickAtMs: null,
+    shuttingDownAtMs: null,
+    fatalErrorAtMs: null,
+    fatalErrorMessage: null,
+    currentJobId: null,
+    currentJobStartedAtMs: null
+  };
+}
+function markWorkerPhase(state, phase, nowMs = Date.now()) {
+  state.phase = phase;
+  if (phase === "shutdown" && state.shuttingDownAtMs == null) {
+    state.shuttingDownAtMs = nowMs;
+  }
+}
+function markDatabaseReady(state, nowMs = Date.now()) {
+  state.databaseReadyAtMs = nowMs;
+}
+function markShutdownRequested(state, nowMs = Date.now()) {
+  state.shuttingDownAtMs = nowMs;
+  state.phase = "shutdown";
+}
+function markFatalError(state, error, nowMs = Date.now()) {
+  state.fatalErrorAtMs = nowMs;
+  state.fatalErrorMessage = error instanceof Error ? error.message : String(error);
+}
+
 // apps/worker/src/runtime-watchdog.ts
 function shouldForceExitForStuckJob(input) {
   if (input.currentJobStartedAtMs == null) return false;
@@ -366,45 +142,36 @@ function shouldForceExitForStuckJob(input) {
 // apps/worker/src/main.ts
 loadWorkerEnv();
 initWorkerMonitoring();
-var runtimeState = createWorkerRuntimeState({
-  artifactServerExpected: !!process.env.ARTIFACT_TOKEN_SECRET
-});
+var runtimeState = createWorkerRuntimeState();
 var workerPhase = "boot";
 async function main() {
-  let artifactServer = null;
-  let workerLoopControls = null;
   let propertyRefreshWorkerControls = null;
-  let weeklyReviewSchedulerControls = null;
+  let automatedPropertyRefreshWorkerControls = null;
+  let metricsBackfillWorkerControls = null;
+  let activePropertyAutomationSchedulerControls = null;
   let closeDb = null;
   let watchdogTimer = null;
   let shutdownPromise = null;
   const once = process.argv.includes("--once");
-  const readinessStaleAfterMs = parseInt(
-    process.env.WORKER_READY_STALE_AFTER_MS ?? "45000",
-    10
-  );
-  const maxJobRuntimeMs = parseInt(
-    process.env.REPORT_WORKER_MAX_JOB_RUNTIME_MS ?? "900000",
-    10
-  );
+  const maxJobRuntimeMs = parseInt(process.env.WORKER_MAX_JOB_RUNTIME_MS ?? "900000", 10);
   const watchdogIntervalMs = parseInt(
-    process.env.REPORT_WORKER_WATCHDOG_INTERVAL_MS ?? "5000",
+    process.env.WORKER_WATCHDOG_INTERVAL_MS ?? "5000",
     10
   );
   const requestShutdown = async (exitCode, reason) => {
     if (shutdownPromise) return shutdownPromise;
     markShutdownRequested(runtimeState);
-    console.warn(`[report-worker][WARN][SHUTDOWN] stopping worker reason=${reason}`);
+    console.warn(`[worker][WARN][SHUTDOWN] stopping worker reason=${reason}`);
     shutdownPromise = (async () => {
       if (watchdogTimer) {
         clearInterval(watchdogTimer);
         watchdogTimer = null;
       }
-      workerLoopControls?.stop();
       propertyRefreshWorkerControls?.stop();
-      weeklyReviewSchedulerControls?.stop();
+      automatedPropertyRefreshWorkerControls?.stop();
+      metricsBackfillWorkerControls?.stop();
+      activePropertyAutomationSchedulerControls?.stop();
       await Promise.allSettled([
-        artifactServer?.stop() ?? Promise.resolve(),
         closeDb?.() ?? Promise.resolve()
       ]);
       process.exit(exitCode);
@@ -419,56 +186,43 @@ async function main() {
   });
   workerPhase = "imports";
   markWorkerPhase(runtimeState, "imports");
-  const sharedDbModule = await import("./chunks/db-6AL5MFXH.js");
-  const { ensureWorkerDatabaseReady } = await import("./chunks/worker-db-bootstrap-O6DFN672.js");
-  const { startReportWorkerLoop, runSingleReportWorkerTick } = await import("./chunks/report-worker-PRMUOUA2.js");
-  const { startPropertyRefreshWorkerLoop } = await import("./chunks/property-refresh-worker-2IR2KSP6.js");
-  const { startWeeklyReviewScheduler } = await import("./chunks/weekly-review-scheduler-J5XPBF4P.js");
+  const sharedDbModule = await import("./chunks/db-CO5BENFV.js");
+  const { ensureWorkerDatabaseReady } = await import("./chunks/worker-db-bootstrap-KWVAEAVL.js");
+  const { startPropertyRefreshWorkerLoop, runSinglePropertyRefreshWorkerTick } = await import("./chunks/property-refresh-worker-P6JQWELI.js");
+  const { startMetricsBackfillWorkerLoop, runSingleMetricsBackfillWorkerTick } = await import("./chunks/metrics-cache-SZRLAQX5.js");
+  const { startActivePropertyAutomationScheduler } = await import("./chunks/active-property-automation-CZM2VZJ6.js");
   closeDb = sharedDbModule.closeDb;
   workerPhase = "database-ready";
   markWorkerPhase(runtimeState, "database-ready");
   await ensureWorkerDatabaseReady();
   markDatabaseReady(runtimeState);
-  if (!once && process.env.ARTIFACT_TOKEN_SECRET) {
-    workerPhase = "artifact-server";
-    markWorkerPhase(runtimeState, "artifact-server");
-    artifactServer = await startArtifactServer({
-      getRuntimeState: () => runtimeState,
-      staleAfterMs: readinessStaleAfterMs
-    });
-    markArtifactServerListening(runtimeState);
-  } else if (!once) {
-    console.warn("[report-worker][WARN][BOOT] ARTIFACT_TOKEN_SECRET not set; artifact HTTP server disabled");
-  }
   if (once) {
     workerPhase = "single-tick";
     markWorkerPhase(runtimeState, "single-tick");
-    const result = await runSingleReportWorkerTick(void 0, {
-      onFatalError: ({ error, nowMs }) => markFatalError(runtimeState, error, nowMs),
-      onJobEnd: () => markJobEnd(runtimeState),
-      onJobStart: ({ jobId, nowMs }) => markJobStart(runtimeState, { jobId, nowMs }),
-      onLoopTick: ({ nowMs }) => markLoopTick(runtimeState, nowMs)
-    });
-    if (result.processed) {
-      console.log(`[report-worker][INFO][WORKING] single tick processed job jobId=${result.jobId}`);
+    const propertyResult = await runSinglePropertyRefreshWorkerTick();
+    const metricsResult = propertyResult.processed ? { processed: false } : await runSingleMetricsBackfillWorkerTick();
+    if (propertyResult.processed || metricsResult.processed) {
+      console.log("[worker][INFO][WORKING] single tick processed a job");
     } else {
-      console.log("[report-worker][INFO][IDLE] single tick found no claimable jobs");
+      console.log("[worker][INFO][IDLE] single tick found no claimable jobs");
     }
     await requestShutdown(0, "once-complete");
   }
   workerPhase = "worker-loop";
   markWorkerPhase(runtimeState, "worker-loop");
-  console.log("[report-worker][INFO][BOOT] starting worker process");
-  weeklyReviewSchedulerControls = startWeeklyReviewScheduler();
-  workerLoopControls = startReportWorkerLoop({
-    hooks: {
-      onFatalError: ({ error, nowMs }) => markFatalError(runtimeState, error, nowMs),
-      onJobEnd: () => markJobEnd(runtimeState),
-      onJobStart: ({ jobId, nowMs }) => markJobStart(runtimeState, { jobId, nowMs }),
-      onLoopTick: ({ nowMs }) => markLoopTick(runtimeState, nowMs)
-    }
+  console.log("[worker][INFO][BOOT] starting worker process");
+  activePropertyAutomationSchedulerControls = startActivePropertyAutomationScheduler();
+  metricsBackfillWorkerControls = startMetricsBackfillWorkerLoop();
+  propertyRefreshWorkerControls = startPropertyRefreshWorkerLoop({
+    lane: "manual",
+    workerName: "pref"
   });
-  propertyRefreshWorkerControls = startPropertyRefreshWorkerLoop();
+  automatedPropertyRefreshWorkerControls = startPropertyRefreshWorkerLoop({
+    lane: "automation",
+    workerName: "apref",
+    intervalMs: parseInt(process.env.AUTOMATED_PROPERTY_REFRESH_WORKER_POLL_MS ?? "6000", 10),
+    maxPollMs: parseInt(process.env.AUTOMATED_PROPERTY_REFRESH_WORKER_MAX_POLL_MS ?? "45000", 10)
+  });
   watchdogTimer = setInterval(() => {
     if (shouldForceExitForStuckJob({
       currentJobStartedAtMs: runtimeState.currentJobStartedAtMs,
@@ -479,7 +233,7 @@ async function main() {
         `Worker job exceeded max runtime of ${maxJobRuntimeMs}ms and will be restarted`
       );
       markFatalError(runtimeState, error);
-      console.error("[report-worker][FATAL][FATAL] stuck job watchdog triggered", error);
+      console.error("[worker][FATAL][FATAL] stuck job watchdog triggered", error);
       void requestShutdown(1, "stuck-job-watchdog");
     }
   }, watchdogIntervalMs);
@@ -490,6 +244,6 @@ main().catch(async (error) => {
     phase: workerPhase,
     target: workerPhase === "database-ready" ? "direct-database" : "worker-process"
   });
-  console.error("[report-worker][FATAL][FATAL] worker process crashed", error);
+  console.error("[worker][FATAL][FATAL] worker process crashed", error);
   process.exit(1);
 });

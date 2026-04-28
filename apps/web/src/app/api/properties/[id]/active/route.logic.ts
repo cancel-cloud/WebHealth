@@ -1,6 +1,5 @@
 export function buildPropertyActiveUpdate(input: {
   enabled: boolean;
-  weeklyReviewEnabled: boolean;
   activePropertiesBefore: number;
   propertyWasActive?: boolean;
 }) {
@@ -9,7 +8,6 @@ export function buildPropertyActiveUpdate(input: {
 
   return {
     nextActive: input.enabled,
-    shouldDisableWeeklyReview: !input.enabled && input.weeklyReviewEnabled,
     activePropertiesAfter: Math.max(0, input.activePropertiesBefore + delta),
   };
 }

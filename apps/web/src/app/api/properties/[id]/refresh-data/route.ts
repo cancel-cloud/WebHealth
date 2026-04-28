@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { badRequest } from "@webhealth/shared/lib/http-errors";
-import { getGoogleAuthClient } from "@webhealth/shared/lib/google/api";
-import { createMetricsBackfillJob, processMetricsBackfillJob } from "@webhealth/shared/lib/metrics-cache";
+import { createMetricsBackfillJob } from "@webhealth/shared/lib/metrics-cache";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { getGoogleAccountTokensForUser } from "@webhealth/shared/lib/provider-tokens";
 import {
@@ -50,15 +49,10 @@ export async function POST(
       ? earlierDate(body.compareStartDate, body.startDate)
       : body.startDate;
 
-    const authClient = getGoogleAuthClient(
-      googleAccount.accessToken,
-      googleAccount.refreshToken ?? undefined,
-      googleAccount.accessTokenExpiresAt ?? null,
-    );
-
     const job = await createMetricsBackfillJob({
       teamId: membership.teamId,
       triggeredByUserId: session.user.id,
+      targetUserId: session.user.id,
       targetPropertyId: resolved.canonicalGscProperty.id,
       includeGsc: true,
       includeGa4: Boolean(resolved.canonicalGscProperty.ga4PropertyId),
@@ -67,19 +61,14 @@ export async function POST(
       reason: "manual_backfill",
       timeframeMode: "custom",
       refreshRecentDays: 14,
-    });
-
-    const result = await processMetricsBackfillJob({
-      jobId: job.id,
-      authClient,
+      triggerSource: "manual",
     });
 
     return NextResponse.json({
       jobId: job.id,
-      status: result.status,
+      status: job.status,
       dateStart: refreshStart,
       dateEnd: body.endDate,
-      totals: result.totals,
     });
   } catch (error) {
     return handleRouteError("POST /api/properties/[id]/refresh-data error", error);

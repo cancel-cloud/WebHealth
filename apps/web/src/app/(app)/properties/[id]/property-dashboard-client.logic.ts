@@ -125,7 +125,7 @@ export function getSeverityValue(input: {
   systemScore?: number | null;
 }) {
   if (typeof input.systemScore === "number" && Number.isFinite(input.systemScore)) {
-    return Math.max(1, Math.min(5, Math.ceil(input.systemScore * 5)));
+    return Math.max(1, Math.min(5, Math.ceil((input.systemScore / 100) * 5)));
   }
 
   const rank = input.rank ?? 99;

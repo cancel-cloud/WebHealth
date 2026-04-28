@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { createMetricsBackfillJob, processMetricsBackfillJob } from "@webhealth/shared/lib/metrics-cache";
+import { createMetricsBackfillJob } from "@webhealth/shared/lib/metrics-cache";
 import { enqueuePropertyRefreshJob } from "@webhealth/shared/lib/property-refresh";
-import { getGoogleAuthClient } from "@webhealth/shared/lib/google/api";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { getGoogleAccountTokensForUser } from "@webhealth/shared/lib/provider-tokens";
 import {
@@ -39,14 +38,10 @@ export async function POST(
         throw new Error("Google account not linked. Reconnect Google to refresh GA4 and Search Console.");
       }
 
-      const authClient = getGoogleAuthClient(
-        googleAccount.accessToken,
-        googleAccount.refreshToken ?? undefined,
-        googleAccount.accessTokenExpiresAt ?? null,
-      );
       const job = await createMetricsBackfillJob({
         teamId: membership.teamId,
         triggeredByUserId: session.user.id,
+        targetUserId: session.user.id,
         targetPropertyId: canonicalProperty.id,
         includeGsc: true,
         includeGa4: Boolean(canonicalProperty.ga4PropertyId),
@@ -55,15 +50,12 @@ export async function POST(
         reason: "manual_backfill",
         timeframeMode: "custom",
         refreshRecentDays: 14,
-      });
-      const result = await processMetricsBackfillJob({
-        jobId: job.id,
-        authClient,
+        triggerSource: "manual",
       });
       dataRefresh = {
-        status: result.status === "failed" ? "failed" : "complete",
+        status: "queued",
         jobId: job.id,
-        message: result.status === "failed" ? "Source data refresh failed." : "GA4 and Search Console refreshed.",
+        message: "GA4 and Search Console refresh queued.",
       };
     } catch (error) {
       dataRefresh = {
@@ -83,6 +75,7 @@ export async function POST(
       propertyId: canonicalProperty.id,
       triggeredByUserId: session.user.id,
       jobType: "crawl_refresh",
+      triggerSource: "manual",
       payload: refreshPayload,
     });
     const decisionJob = await enqueuePropertyRefreshJob({
@@ -90,6 +83,7 @@ export async function POST(
       propertyId: canonicalProperty.id,
       triggeredByUserId: session.user.id,
       jobType: "decision_refresh",
+      triggerSource: "manual",
       payload: refreshPayload,
     });
 

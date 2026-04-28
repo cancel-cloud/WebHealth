@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import { db } from "@webhealth/shared/db";
-import { teams } from "@webhealth/shared/db/schema";
-import { eq } from "drizzle-orm";
 import { getStripe } from "@/lib/server/stripe";
 import { requireUnrestrictedSession, requireTeamOwner } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";

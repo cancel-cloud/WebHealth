@@ -4,6 +4,7 @@ import {
   getSnapshotExportDetail,
 } from "@webhealth/shared/lib/live-dashboard";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
+import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import {
   requirePrimaryTeamMembership,
   requireUnrestrictedSession,
@@ -75,6 +76,20 @@ export async function POST(
       startDate: body.startDate,
       endDate: body.endDate,
     });
+
+    void recordProductEvent({
+      teamId: membership.teamId,
+      userId: session.user.id,
+      name: "snapshot_captured",
+      source: "snapshot",
+      entityType: "snapshot",
+      entityId: snapshot.id,
+      properties: {
+        propertyId: resolved.canonicalGscProperty.id,
+        preset: body.preset,
+        compareMode: body.compareMode,
+      },
+    }).catch(() => {});
 
     return NextResponse.json({ snapshot });
   } catch (error) {

@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEFAULT_MIGRATIONS_DIR = path.resolve(__dirname, "../../../../drizzle");
 const DB_MIGRATION_LOCK_NAME = "webhealth_worker_db_migrations";
-const CRITICAL_TABLES = ["verification", "report_jobs"] as const;
+const CRITICAL_TABLES = ["verification", "property_refresh_jobs", "metrics_backfill_jobs"] as const;
 const DRIFT_TOLERATED_ERROR_CODES = new Set(["42P07", "42710", "42P06", "42701"]);
 
 export type WorkerMigrationConfig = {
@@ -167,11 +167,11 @@ async function runWorkerDatabaseMigrations() {
 
   if (config.derivedFromRuntime) {
     console.warn(
-      "[report-worker] DIRECT_DATABASE_URL not set; derived direct migration host from DATABASE_URL.",
+      "[worker] DIRECT_DATABASE_URL not set; derived direct migration host from DATABASE_URL.",
     );
   }
 
-  console.log(`[report-worker] ensuring DB schema via migrations in ${config.migrationsFolder}`);
+  console.log(`[worker] ensuring DB schema via migrations in ${config.migrationsFolder}`);
 
   const migrationClient = postgres(config.migrationDatabaseUrl, {
     max: 1,
@@ -196,7 +196,7 @@ async function runWorkerDatabaseMigrations() {
       }
 
       console.warn(
-        `[report-worker] migration failed with code ${errorCode ?? "unknown"} (journal rows: ${journalCount}); repairing drizzle journal and retrying.`,
+        `[worker] migration failed with code ${errorCode ?? "unknown"} (journal rows: ${journalCount}); repairing drizzle journal and retrying.`,
       );
       await reconcileSchemaLeniently(migrationClient, config.migrationsFolder);
       await baselineMigrationJournal(migrationClient, config.migrationsFolder);
@@ -213,7 +213,7 @@ async function runWorkerDatabaseMigrations() {
     const missingCriticalTables = await getMissingCriticalTables(migrationClient);
     if (missingCriticalTables.length > 0) {
       console.warn(
-        `[report-worker] missing critical tables after migration (${missingCriticalTables.join(", ")}); reconciling schema from migration SQL.`,
+        `[worker] missing critical tables after migration (${missingCriticalTables.join(", ")}); reconciling schema from migration SQL.`,
       );
       await reconcileSchemaLeniently(migrationClient, config.migrationsFolder);
       await baselineMigrationJournal(migrationClient, config.migrationsFolder);
@@ -231,7 +231,7 @@ async function runWorkerDatabaseMigrations() {
     try {
       await migrationClient`select pg_advisory_unlock(hashtext(${DB_MIGRATION_LOCK_NAME}))`;
     } catch (unlockError) {
-      console.warn("[report-worker] could not release DB migration advisory lock", unlockError);
+      console.warn("[worker] could not release DB migration advisory lock", unlockError);
     }
 
     await migrationClient.end({ timeout: 10 });

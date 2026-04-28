@@ -34,7 +34,7 @@ function useNavLinks() {
 export function Navbar() {
   const { data: session, isPending } = authClient.useSession();
   const pathname = usePathname();
-  const isApp = pathname.startsWith("/dashboard") || pathname.startsWith("/reports");
+  const isApp = pathname.startsWith("/dashboard");
   const navLinks = useNavLinks();
 
   const handleSignIn = async () => {

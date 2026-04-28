@@ -100,7 +100,7 @@ export function AppShell({
                   Webhealth
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
-                  SEO reporting cockpit
+                  SEO operations cockpit
                 </span>
               </span>
             </Link>

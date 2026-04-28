@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { db } from "@webhealth/shared/db";
-import { getWeeklyReviewLimit } from "@webhealth/shared/lib/weekly-review";
 import { buildCombinedReportableProperties } from "@webhealth/shared/lib/properties/reportable-properties";
 import { requireAnyTeamMembership, requireUnrestrictedSession } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";
@@ -17,24 +16,7 @@ export async function GET() {
     const teamProperties = await db.query.properties.findMany({
       where: (p, { eq }) => eq(p.teamId, teamId),
     });
-    const team = await db.query.teams.findFirst({
-      where: (t, { eq }) => eq(t.id, teamId),
-      columns: { tier: true },
-    });
-    const weeklyReviews = await db.query.propertyWeeklyReviews.findMany({
-      where: (p, { and, eq }) => and(eq(p.teamId, teamId), eq(p.enabled, true)),
-      columns: { propertyId: true },
-    });
     const activePropertyIds = new Set(teamProperties.filter((property) => property.active).map((property) => property.id));
-    const watchedPropertyIds = new Set(weeklyReviews.filter((review) => activePropertyIds.has(review.propertyId)).map((review) => review.propertyId));
-    const weeklyReviewLimit = getWeeklyReviewLimit(team?.tier ?? "free");
-    const weeklyReviewWatchedCount = watchedPropertyIds.size;
-    const propertiesWithWeeklyReviews = teamProperties.map((property) => ({
-      ...property,
-      weeklyReviewEnabled: watchedPropertyIds.has(property.id),
-      weeklyReviewLimit,
-      weeklyReviewWatchedCount,
-    }));
 
     const reportableProperties = buildCombinedReportableProperties(teamProperties)
       .filter((p) => p.gscPropertyId !== null)
@@ -54,12 +36,8 @@ export async function GET() {
       }));
 
     return NextResponse.json({
-      properties: propertiesWithWeeklyReviews,
+      properties: teamProperties,
       reportableProperties,
-      weeklyReview: {
-        limit: weeklyReviewLimit,
-        watchedCount: weeklyReviewWatchedCount,
-      },
       activePropertiesCount: activePropertyIds.size,
     });
   } catch (error) {

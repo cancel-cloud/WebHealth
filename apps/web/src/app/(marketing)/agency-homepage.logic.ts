@@ -1,3 +1,11 @@
+import {
+  clampAgencySites as clampPublicAgencySites,
+  DEFAULT_AGENCY_SITE_COUNT,
+  getAgencyPrice as getPublicAgencyPrice,
+  MAX_AGENCY_SITES,
+  MIN_AGENCY_SITES,
+} from "@/lib/pricing";
+
 export type AgencyLandingLanguage = "en" | "de";
 export type AgencyLandingHeadline = "time";
 export type AgencyLandingHeroVisual = "grid";
@@ -15,10 +23,11 @@ export const DEFAULT_AGENCY_LANGUAGE: AgencyLandingLanguage = "en";
 export const DEFAULT_AGENCY_HEADLINE: AgencyLandingHeadline = "time";
 export const DEFAULT_AGENCY_HERO_VISUAL: AgencyLandingHeroVisual = "grid";
 export const DEFAULT_AGENCY_DENSITY: AgencyLandingDensity = "spacious";
-
-export const MIN_AGENCY_SITES = 26;
-export const MAX_AGENCY_SITES = 200;
-export const DEFAULT_AGENCY_SITE_COUNT = 50;
+export {
+  DEFAULT_AGENCY_SITE_COUNT,
+  MAX_AGENCY_SITES,
+  MIN_AGENCY_SITES,
+};
 
 export function getLocalizedValue<T>(
   value: Record<AgencyLandingLanguage, T>,
@@ -28,13 +37,11 @@ export function getLocalizedValue<T>(
 }
 
 export function getAgencyPrice(siteCount: number) {
-  const clampedSiteCount = Math.min(MAX_AGENCY_SITES, Math.max(0, siteCount));
-  if (clampedSiteCount <= 25) return 149;
-  return 149 + (clampedSiteCount - 25) * 6;
+  return getPublicAgencyPrice(siteCount);
 }
 
 export function clampAgencySites(siteCount: number) {
-  return Math.min(MAX_AGENCY_SITES, Math.max(MIN_AGENCY_SITES, siteCount));
+  return clampPublicAgencySites(siteCount);
 }
 
 export function getDefaultWorkspaceSelection(): WorkspaceSelection {

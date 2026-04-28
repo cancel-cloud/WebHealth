@@ -128,8 +128,8 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
                   },
                   {
                     n: "②",
-                    title: "Reports",
-                    desc: "Create a new report for any property",
+                    title: "Snapshots",
+                    desc: "Open a property dashboard and export a snapshot",
                   },
                   {
                     n: "③",

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@webhealth/shared/db";
-import { user, teamMembers, teams, properties, reports, session, planSettings, teamUsage } from "@webhealth/shared/db/schema";
-import { eq, count, max, gte, sql } from "drizzle-orm";
+import { user, teamMembers, teams, properties, session, planSettings } from "@webhealth/shared/db/schema";
+import { eq, count, max } from "drizzle-orm";
 import { requireAdminSession } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";
 import { mapAdminUsers } from "./route.logic";
@@ -43,42 +43,6 @@ export async function GET() {
       )
       .orderBy(user.createdAt);
 
-    // Fetch all-time report counts per team
-    const reportCounts = await db
-      .select({ teamId: reports.teamId, reportsCount: count(reports.id) })
-      .from(reports)
-      .groupBy(reports.teamId);
-    const reportCountMap = new Map(reportCounts.map((r) => [r.teamId, r.reportsCount]));
-
-    // Fetch reports in last 30 days per team
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const reportsRecent = await db
-      .select({ teamId: reports.teamId, count: count(reports.id) })
-      .from(reports)
-      .where(gte(reports.createdAt, thirtyDaysAgo))
-      .groupBy(reports.teamId);
-    const reportsRecentMap = new Map(reportsRecent.map((r) => [r.teamId, r.count]));
-
-    const deepDivesTotal = await db
-      .select({
-        teamId: reports.teamId,
-        deepDivesTotal: sql<number>`coalesce(sum(${reports.detailsRequestCount}), 0)::int`,
-      })
-      .from(reports)
-      .groupBy(reports.teamId);
-    const deepDivesTotalMap = new Map(
-      deepDivesTotal.map((row) => [row.teamId, row.deepDivesTotal]),
-    );
-
-    const yearMonth = new Date().toISOString().slice(0, 7);
-    const deepDivesThisMonth = await db
-      .select({ teamId: teamUsage.teamId, detailsCount: teamUsage.detailsCount })
-      .from(teamUsage)
-      .where(eq(teamUsage.yearMonth, yearMonth));
-    const deepDivesThisMonthMap = new Map(
-      deepDivesThisMonth.map((row) => [row.teamId, row.detailsCount]),
-    );
-
     // Fetch last sign-in per user (max session.createdAt)
     const lastSignIns = await db
       .select({ userId: session.userId, lastSignedInAt: max(session.createdAt) })
@@ -92,10 +56,6 @@ export async function GET() {
 
     const result = mapAdminUsers({
       users,
-      reportCountByTeamId: reportCountMap,
-      reportsLast30DaysByTeamId: reportsRecentMap,
-      deepDivesTotalByTeamId: deepDivesTotalMap,
-      deepDivesThisMonthByTeamId: deepDivesThisMonthMap,
       lastSignInByUserId: lastSignInMap,
       planSettingsByTier: planSettingsMap,
     });

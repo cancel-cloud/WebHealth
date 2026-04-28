@@ -9,6 +9,7 @@ import {
   storePropertyCrawlSnapshot,
   updatePropertyRefreshJobProgress,
   type ClaimedPropertyRefreshJob,
+  type PropertyRefreshClaimLane,
 } from "@webhealth/shared/lib/property-refresh";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 
@@ -39,7 +40,9 @@ async function processCrawlRefreshJob(job: ClaimedPropertyRefreshJob) {
   await updatePropertyRefreshJobProgress({
     jobId: job.id,
     phase: "crawl",
-    message: "Refreshing technical scan…",
+      message: job.payload && typeof job.payload === "object" && (job.payload as Record<string, unknown>).triggerSource === "automation"
+        ? "Background technical scan refresh running…"
+        : "Refreshing technical scan…",
   });
 
   const resolved = await resolveTeamReportSources(job.teamId, job.propertyId);
@@ -111,20 +114,29 @@ async function processClaimedJob(job: ClaimedPropertyRefreshJob, workerId: strin
   }
 }
 
-export async function runSinglePropertyRefreshWorkerTick(workerId = `pref_${nanoid(8)}`) {
-  const job = await claimNextPropertyRefreshJob(workerId);
+export async function runSinglePropertyRefreshWorkerTick(
+  workerId = `pref_${nanoid(8)}`,
+  options: { lane?: PropertyRefreshClaimLane } = {},
+) {
+  const job = await claimNextPropertyRefreshJob(workerId, { lane: options.lane ?? "manual" });
   if (!job) return { processed: false as const };
   await processClaimedJob(job, workerId);
   return { processed: true as const, jobId: job.id };
 }
 
-export function startPropertyRefreshWorkerLoop() {
+export function startPropertyRefreshWorkerLoop(input: {
+  lane?: PropertyRefreshClaimLane;
+  workerName?: string;
+  intervalMs?: number;
+  maxPollMs?: number;
+} = {}) {
   let stopped = false;
   let isRunning = false;
   let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
-  const workerId = `pref_${nanoid(8)}`;
-  const intervalMs = parseInt(process.env.PROPERTY_REFRESH_WORKER_POLL_MS ?? "4000", 10);
-  const maxPollMs = parseInt(process.env.PROPERTY_REFRESH_WORKER_MAX_POLL_MS ?? "30000", 10);
+  const lane = input.lane ?? "manual";
+  const workerId = `${input.workerName ?? "pref"}_${nanoid(8)}`;
+  const intervalMs = input.intervalMs ?? parseInt(process.env.PROPERTY_REFRESH_WORKER_POLL_MS ?? "4000", 10);
+  const maxPollMs = input.maxPollMs ?? parseInt(process.env.PROPERTY_REFRESH_WORKER_MAX_POLL_MS ?? "30000", 10);
   let idleCount = 0;
 
   const loop = async () => {
@@ -132,7 +144,7 @@ export function startPropertyRefreshWorkerLoop() {
     isRunning = true;
     let processed = false;
     try {
-      const result = await runSinglePropertyRefreshWorkerTick(workerId);
+      const result = await runSinglePropertyRefreshWorkerTick(workerId, { lane });
       processed = result.processed;
       if (processed) {
         console.log(`[property-refresh][INFO] processed job worker=${workerId} job=${result.jobId}`);
@@ -147,7 +159,7 @@ export function startPropertyRefreshWorkerLoop() {
     }
   };
 
-  console.log(`[property-refresh][INFO] loop started worker=${workerId} pollMs=${intervalMs} maxPollMs=${maxPollMs}`);
+  console.log(`[property-refresh][INFO] loop started worker=${workerId} lane=${lane} pollMs=${intervalMs} maxPollMs=${maxPollMs}`);
   void loop();
 
   return {

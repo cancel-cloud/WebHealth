@@ -2,13 +2,35 @@ import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "@webhealth/shared/db";
 import {
+  propertyPageRegistry,
   propertyCrawlSnapshots,
   propertyRefreshJobs,
-  reports,
 } from "@webhealth/shared/db/schema";
 import type { CrawlResult } from "@webhealth/shared/lib/crawl";
+import {
+  buildPropertyPageRegistryChanges,
+  getPropertyRefreshTriggerSource,
+  matchesPropertyRefreshPayload,
+  shouldSupersedePropertyRefreshJob,
+  type PropertyPageRegistryInput,
+  type PropertyRefreshClaimLane,
+  type PropertyRefreshPayload,
+  type PropertyRefreshTriggerSource,
+} from "@webhealth/shared/lib/property-refresh-policy";
 
-export type PropertyRefreshJobType = "crawl_refresh" | "decision_refresh";
+export {
+  buildPropertyPageRegistryChanges,
+  getPropertyRefreshClaimFilter,
+  getPropertyRefreshTriggerSource,
+  matchesPropertyRefreshPayload,
+  shouldSupersedePropertyRefreshJob,
+  type PropertyPageRegistryInput,
+  type PropertyRefreshClaimLane,
+  type PropertyRefreshPayload,
+  type PropertyRefreshTriggerSource,
+} from "@webhealth/shared/lib/property-refresh-policy";
+
+export type PropertyRefreshJobType = "crawl_refresh" | "decision_refresh" | "metrics_refresh";
 export type PropertyRefreshJobStatus = "queued" | "processing" | "complete" | "failed" | "partial";
 
 export type PropertyRefreshState = {
@@ -22,25 +44,6 @@ export type PropertyRefreshState = {
   finishedAt: string | null;
   updatedAt: string;
 };
-
-type PropertyRefreshPayload = {
-  preset?: string | null;
-  compareMode?: string | null;
-  startDate?: string | null;
-  endDate?: string | null;
-};
-
-export function matchesPropertyRefreshPayload(
-  candidate: Record<string, unknown> | null | undefined,
-  target: PropertyRefreshPayload | null | undefined,
-) {
-  const normalize = (value: unknown) => (typeof value === "string" && value.length ? value : null);
-
-  return normalize(candidate?.preset) === normalize(target?.preset)
-    && normalize(candidate?.compareMode) === normalize(target?.compareMode)
-    && normalize(candidate?.startDate) === normalize(target?.startDate)
-    && normalize(candidate?.endDate) === normalize(target?.endDate);
-}
 
 function normalizePropertyRefreshRow(row: typeof propertyRefreshJobs.$inferSelect): PropertyRefreshState {
   return {
@@ -56,41 +59,43 @@ function normalizePropertyRefreshRow(row: typeof propertyRefreshJobs.$inferSelec
   };
 }
 
-function readStoredCrawlData(value: unknown): CrawlResult | null {
-  if (!value || typeof value !== "object") return null;
-  const data = value as Record<string, unknown>;
-  const crawl = data.crawl;
-  if (!crawl || typeof crawl !== "object") return null;
-  const parsed = crawl as CrawlResult;
-  if (!Array.isArray(parsed.pages) || !parsed.summary || typeof parsed.summary !== "object") {
-    return null;
-  }
-  return parsed;
-}
-
 export async function enqueuePropertyRefreshJob(input: {
   teamId: string;
   propertyId: string;
   triggeredByUserId?: string | null;
   jobType: PropertyRefreshJobType;
   payload?: PropertyRefreshPayload;
+  triggerSource?: PropertyRefreshTriggerSource;
 }) {
+  const triggerSource = input.triggerSource ?? getPropertyRefreshTriggerSource(input.payload);
   const supersededAt = new Date();
-  await db
-    .update(propertyRefreshJobs)
-    .set({
-      supersededAt,
-      updatedAt: supersededAt,
-    })
-    .where(
-      and(
+  const activeJobs = await db.query.propertyRefreshJobs.findMany({
+    where: and(
         eq(propertyRefreshJobs.teamId, input.teamId),
         eq(propertyRefreshJobs.propertyId, input.propertyId),
         eq(propertyRefreshJobs.jobType, input.jobType),
         isNull(propertyRefreshJobs.supersededAt),
         inArray(propertyRefreshJobs.status, ["queued", "processing"]),
-      ),
-    );
+    ),
+    columns: { id: true, payload: true },
+  });
+  const supersededIds = activeJobs
+    .filter((job) =>
+      shouldSupersedePropertyRefreshJob({
+        incomingSource: triggerSource,
+        existingSource: getPropertyRefreshTriggerSource((job.payload as Record<string, unknown> | null | undefined) ?? null),
+      }))
+    .map((job) => job.id);
+
+  if (supersededIds.length > 0) {
+    await db
+      .update(propertyRefreshJobs)
+      .set({
+        supersededAt,
+        updatedAt: supersededAt,
+      })
+      .where(inArray(propertyRefreshJobs.id, supersededIds));
+  }
 
   const [job] = await db
     .insert(propertyRefreshJobs)
@@ -102,8 +107,13 @@ export async function enqueuePropertyRefreshJob(input: {
       jobType: input.jobType,
       status: "queued",
       phase: "queued",
-      message: input.jobType === "crawl_refresh" ? "Technical refresh queued" : "Decision refresh queued",
-      payload: input.payload ?? null,
+      message: input.jobType === "crawl_refresh"
+        ? triggerSource === "automation" ? "Background technical refresh queued" : "Technical refresh queued"
+        : triggerSource === "automation" ? "Background decision refresh queued" : "Decision refresh queued",
+      payload: {
+        ...(input.payload ?? {}),
+        triggerSource,
+      },
       updatedAt: new Date(),
     })
     .returning();
@@ -158,19 +168,41 @@ function normalizeClaimedPropertyRefreshJobRow(
   };
 }
 
-export async function claimNextPropertyRefreshJob(workerId: string): Promise<ClaimedPropertyRefreshJob | null> {
+function buildPropertyRefreshClaimLaneSql(lane: PropertyRefreshClaimLane) {
+  if (lane === "manual") {
+    return sql`coalesce(j.payload->>'triggerSource', 'manual') not in ('automation', 'scheduler')`;
+  }
+  if (lane === "automation") {
+    return sql`j.payload->>'triggerSource' in ('automation', 'scheduler')`;
+  }
+  return sql`true`;
+}
+
+function buildPropertyRefreshClaimOrderSql(lane: PropertyRefreshClaimLane) {
+  if (lane !== "all") return sql`j.created_at asc`;
+  return sql`case when coalesce(j.payload->>'triggerSource', 'manual') in ('automation', 'scheduler') then 1 else 0 end asc, j.created_at asc`;
+}
+
+export async function claimNextPropertyRefreshJob(
+  workerId: string,
+  options: { lane?: PropertyRefreshClaimLane } = {},
+): Promise<ClaimedPropertyRefreshJob | null> {
   const leaseSeconds = parseInt(process.env.PROPERTY_REFRESH_WORKER_LEASE_SECONDS ?? "45", 10);
+  const lane = options.lane ?? "manual";
+  const laneSql = buildPropertyRefreshClaimLaneSql(lane);
+  const orderSql = buildPropertyRefreshClaimOrderSql(lane);
 
   const rows = await db.execute(sql`
     with candidate as (
       select j.id
       from property_refresh_jobs j
       where j.superseded_at is null
+        and ${laneSql}
         and (
           (j.status = 'queued' and j.available_at <= now())
           or (j.status = 'processing' and j.claim_expires_at < now())
         )
-      order by j.created_at asc
+      order by ${orderSql}
       for update skip locked
       limit 1
     )
@@ -346,6 +378,64 @@ export async function storePropertyCrawlSnapshot(params: {
       fingerprint: serialized,
     })
     .returning();
+
+  const registryRows = await db.query.propertyPageRegistry.findMany({
+    where: and(
+      eq(propertyPageRegistry.teamId, params.teamId),
+      eq(propertyPageRegistry.propertyId, params.propertyId),
+    ),
+    columns: {
+      id: true,
+      canonicalUrl: true,
+      currentFingerprintHash: true,
+      isActive: true,
+      lastChangedAt: true,
+    },
+  });
+  const registryChanges = buildPropertyPageRegistryChanges({
+    existing: registryRows,
+    pages: params.crawlData.pages,
+  });
+  const now = new Date();
+
+  for (const change of registryChanges.upserts) {
+    if (!change.registryId) {
+      await db.insert(propertyPageRegistry).values({
+        id: `ppr_${nanoid(12)}`,
+        propertyId: params.propertyId,
+        teamId: params.teamId,
+        canonicalUrl: change.canonicalUrl,
+        currentFingerprintHash: change.currentFingerprintHash,
+        currentSnapshotId: row.id,
+        firstSeenAt: now,
+        lastSeenAt: now,
+        lastChangedAt: now,
+        isActive: true,
+        updatedAt: now,
+      });
+      continue;
+    }
+
+    await db
+      .update(propertyPageRegistry)
+      .set({
+        currentFingerprintHash: change.currentFingerprintHash,
+        currentSnapshotId: row.id,
+        lastSeenAt: now,
+        lastChangedAt: change.isChanged || change.isNew ? now : undefined,
+        isActive: true,
+        updatedAt: now,
+      })
+      .where(eq(propertyPageRegistry.id, change.registryId));
+  }
+
+  if (registryChanges.removedIds.length > 0) {
+    await db
+      .update(propertyPageRegistry)
+      .set({ isActive: false, updatedAt: now })
+      .where(inArray(propertyPageRegistry.id, registryChanges.removedIds));
+  }
+
   return row;
 }
 
@@ -355,7 +445,7 @@ export async function getLatestPropertyCrawl(params: {
 }): Promise<{
   crawl: CrawlResult | null;
   createdAt: string | null;
-  source: "property_refresh" | "report_fallback" | null;
+  source: "property_refresh" | null;
   fingerprint: string | null;
 } | null> {
   const snapshot = await db.query.propertyCrawlSnapshots.findFirst({
@@ -370,26 +460,8 @@ export async function getLatestPropertyCrawl(params: {
     return {
       crawl: snapshot.crawlData as CrawlResult,
       createdAt: snapshot.createdAt.toISOString(),
-      source: snapshot.source as "property_refresh" | "report_fallback",
+      source: "property_refresh",
       fingerprint: snapshot.fingerprint ?? null,
-    };
-  }
-
-  const fallbackReports = await db.query.reports.findMany({
-    where: (table, { and: andFn, eq: eqFn }) =>
-      andFn(eqFn(table.teamId, params.teamId), eqFn(table.propertyId, params.propertyId)),
-    orderBy: (table, { desc: descOrder }) => [descOrder(table.updatedAt), descOrder(table.createdAt)],
-    limit: 10,
-  });
-
-  for (const report of fallbackReports) {
-    const crawl = readStoredCrawlData(report.data);
-    if (!crawl) continue;
-    return {
-      crawl,
-      createdAt: report.updatedAt.toISOString(),
-      source: "report_fallback",
-      fingerprint: JSON.stringify(crawl),
     };
   }
 

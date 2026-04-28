@@ -1,6 +1,5 @@
 export type AppSidebarIconKey =
   | "dashboard"
-  | "reports"
   | "properties"
   | "settings"
   | "support"
@@ -136,13 +135,6 @@ export function getAppSidebarModel({
       current: isPathCurrent(pathname, "/properties"),
     },
     {
-      id: "reports",
-      label: "Reports",
-      href: "/reports",
-      icon: "reports",
-      current: isPathCurrent(pathname, "/reports"),
-    },
-    {
       id: "ai-insights",
       label: "AI Insights",
       href: "/dashboard?view=ai-insights",
@@ -210,15 +202,8 @@ export function getAppSidebarModel({
           current: isPathCurrent(pathname, "/admin/global-settings"),
         },
         {
-          id: "admin-ai-report-settings",
-          label: "AI Report Settings",
-          href: "/admin/ai-report-settings",
-          icon: "bot",
-          current: isPathCurrent(pathname, "/admin/ai-report-settings"),
-        },
-        {
           id: "admin-ai-report-debug",
-          label: "AI Debug Console",
+          label: "Ops Debug Console",
           href: "/admin/ai-report-debug",
           icon: "bug",
           current: isPathCurrent(pathname, "/admin/ai-report-debug"),

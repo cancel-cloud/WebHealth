@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getLatestDashboardPayloadVersion,
 } from "@webhealth/shared/lib/live-dashboard";
+import { getLatestMetricsBackfillState } from "@webhealth/shared/lib/metrics-cache";
 import { getLatestPropertyRefreshStateForWindow } from "@webhealth/shared/lib/property-refresh";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import {
@@ -25,7 +26,7 @@ export async function GET(
 
     const resolved = await resolveTeamReportSources(membership.teamId, propertyId);
     const canonicalPropertyId = resolved.canonicalGscProperty.id;
-    const [refreshState, latestPayloadVersion] = await Promise.all([
+    const [propertyRefreshState, metricsRefreshState, latestPayloadVersion] = await Promise.all([
       getLatestPropertyRefreshStateForWindow({
         teamId: membership.teamId,
         propertyId: canonicalPropertyId,
@@ -36,11 +37,18 @@ export async function GET(
           endDate: requestUrl.searchParams.get("end"),
         },
       }),
+      getLatestMetricsBackfillState({
+        teamId: membership.teamId,
+        propertyId: canonicalPropertyId,
+      }),
       getLatestDashboardPayloadVersion({
         teamId: membership.teamId,
         propertyId: canonicalPropertyId,
       }),
     ]);
+    const propertyRefreshActive = propertyRefreshState?.status === "queued" || propertyRefreshState?.status === "processing";
+    const metricsRefreshActive = metricsRefreshState?.status === "queued" || metricsRefreshState?.status === "processing";
+    const refreshState = propertyRefreshActive || !metricsRefreshActive ? propertyRefreshState : metricsRefreshState;
 
     return NextResponse.json({
       refreshState,

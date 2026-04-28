@@ -23,7 +23,7 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Webhealth | SEO & Analytics Monitoring",
   description:
-    "Connect GSC + GA4, run a live crawl, and get an AI-ranked fix list in 3 minutes. Automated SEO reporting for developers and freelancers.",
+    "Connect GSC + GA4, run a live crawl, and get a ranked fix list in 3 minutes. Live SEO snapshots for developers and freelancers.",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL ?? "https://webhealth.devbrew.dev",
   ),
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     type: "website",
     title: "Webhealth - GSC + GA4 data. Ranked fixes in 3 min.",
     description:
-      "Connect GSC + GA4, run a live crawl, and get an AI-ranked fix list with affected URLs and impact scores. Free to start.",
+      "Connect GSC + GA4, run a live crawl, and get a ranked fix list with affected URLs and impact scores. Free to start.",
     url: process.env.NEXT_PUBLIC_APP_URL ?? "https://webhealth.devbrew.dev",
     siteName: "Webhealth",
     images: [
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Webhealth — Automated SEO Reporting",
+        alt: "Webhealth — Live SEO Snapshots",
       },
     ],
   },
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Webhealth - GSC + GA4 data. Ranked fixes in 3 min.",
     description:
-      "Connect GSC + GA4, run a live crawl, and get an AI-ranked fix list in 3 minutes. Free to start.",
+      "Connect GSC + GA4, run a live crawl, and get a ranked fix list in 3 minutes. Free to start.",
     images: ["/og-image.png"],
   },
 };

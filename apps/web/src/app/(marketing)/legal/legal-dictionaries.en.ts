@@ -32,7 +32,7 @@ export const legalDictionaryEn = {
       description: "How Webhealth collects, uses, stores, and protects personal data.",
       lastUpdatedLabel: "Last updated: March 2026",
       intro: [
-        `${legalProfile.productName} is operated by ${getOperatorDisplayName("en")}. This notice explains how we process personal data when you visit the site, sign in with Google, connect data sources, generate reports, contact support, or use paid features.`,
+        `${legalProfile.productName} is operated by ${getOperatorDisplayName("en")}. This notice explains how we process personal data when you visit the site, sign in with Google, connect data sources, generate snapshots, contact support, or use paid features.`,
         "This document is written to work for both business and consumer users. Mandatory statutory rights remain unaffected.",
       ],
       sections: [
@@ -49,9 +49,9 @@ export const legalDictionaryEn = {
             "Account and identity data such as name, email address, profile image, Google account identifiers, and session details.",
             "Encrypted Google provider tokens, token expiry data, and Google locale information needed to keep Search Console and Analytics access working.",
             "Google Search Console metrics such as clicks, impressions, CTR, position, queries, and page-level performance.",
-            "Google Analytics 4 metrics such as sessions, users, new users, traffic-source breakdowns, landing pages, and other report inputs connected to the selected property.",
+            "Google Analytics 4 metrics such as sessions, users, new users, traffic-source breakdowns, landing pages, and other snapshot inputs connected to the selected property.",
             "Crawl and website-audit data from publicly accessible pages, including broken links, missing metadata, and other technical findings.",
-            "Workspace settings, report history, billing status, feature flags, and plan usage records.",
+            "Workspace settings, snapshot history, billing status, feature flags, and plan usage records.",
             "Support and feedback data, including message contents and the account details attached to the submission.",
             "Security and audit data such as IP address, user agent, admin/system log entries, and operational error details.",
             "Browser/device storage data, including authentication cookies, UI-state cookies, and local storage entries used for onboarding or pending actions.",
@@ -60,10 +60,10 @@ export const legalDictionaryEn = {
         {
           title: "Purposes and legal bases",
           bullets: [
-            "Provide the service, authenticate users, and generate requested reports: performance of a contract or steps taken before entering a contract.",
+            "Provide the service, authenticate users, and create requested snapshots: performance of a contract or steps taken before entering a contract.",
             "Automatically sync available Google properties after sign-in so the workspace can be configured: performance of a contract and our legitimate interest in reducing setup friction.",
             "Process subscriptions, receipts, cancellations, and plan enforcement: performance of a contract and legal obligations for tax/accounting records.",
-            "Operate the report pipeline, including AI-assisted analysis of report context: performance of a contract.",
+            "Operate snapshot exports, live dashboards, source-data refreshes, and property refreshes: performance of a contract.",
             "Handle support requests, feedback, and account communications: performance of a contract and our legitimate interest in user support.",
             "Prevent abuse, secure the service, investigate incidents, and maintain audit trails: legitimate interests in security, fraud prevention, and reliable operations.",
             "Measure website usage with Google Analytics 4 after you accept analytics cookies: consent.",
@@ -73,8 +73,8 @@ export const legalDictionaryEn = {
           title: "Google API access and service behavior",
           paragraphs: [
             "When you sign in with Google, we request read-only access for Google Search Console and Google Analytics 4 plus basic identity scopes. We do not request write access to your Google account.",
-            "After the first Google sign-in, the app may automatically sync accessible Search Console and GA4 properties into your workspace. Report generation then uses the selected connected property and any related data needed to produce the report.",
-            "We use Google-derived data only to provide, secure, and improve the requested reporting features. We do not sell Google user data or use it for unrelated advertising purposes.",
+            "After the first Google sign-in, the app may automatically sync accessible Search Console and GA4 properties into your workspace. Snapshot generation then uses the selected connected property and any related data needed to produce the snapshot.",
+            "We use Google-derived data only to provide, secure, and improve the requested snapshot and dashboard features. We do not sell Google user data or use it for unrelated advertising purposes.",
           ],
         },
         {
@@ -95,7 +95,7 @@ export const legalDictionaryEn = {
           title: "Recipients and processors",
           bullets: [
             "Google, for OAuth sign-in, as the connected data source for Search Console and GA4, and as the provider of Google Analytics 4 website analytics after consent.",
-            "OpenAI, to process selected report context, URLs, metrics, and structured audit data in order to generate AI-assisted report output.",
+            "OpenAI, to process imported OpenAI billing data where configured in order to generate admin billing and usage summaries.",
             "Stripe, to create customer records, process subscriptions, and manage the billing portal.",
             "Vercel, to host and serve the web application.",
             "Hetzner/PostgreSQL, to host the application database and worker infrastructure in the EU.",
@@ -126,8 +126,8 @@ export const legalDictionaryEn = {
           title: "Retention",
           bullets: [
             "Account profile and workspace records are retained for as long as the account remains active, unless a longer retention period is legally required.",
-            "Reports, generated insights, and related metrics remain available while the account is active, subject to deletion requests and operational retention windows.",
-            "If you disconnect a Google data source or revoke access, the associated tokens are deleted promptly. If you delete your account, all stored Google user data — including tokens, synced properties, and report data — is deleted.",
+            "Snapshots, generated insights, and related metrics remain available while the account is active, subject to deletion requests and operational retention windows.",
+            "If you disconnect a Google data source or revoke access, the associated tokens are deleted promptly. If you delete your account, all stored Google user data — including tokens, synced properties, and snapshot data — is deleted.",
             "Feedback submissions, audit logs, and security events are retained for as long as needed for support, abuse prevention, and accountability, then deleted or anonymized in line with operational retention rules.",
             "Billing and accounting records may be retained longer where tax or commercial law requires it.",
           ],
@@ -135,7 +135,7 @@ export const legalDictionaryEn = {
         {
           title: "Required data and automated decision-making",
           paragraphs: [
-            "Certain data is required to create an account, connect Google data sources, purchase a paid plan, or generate reports. If you do not provide the required data for those steps, we may be unable to provide the relevant part of the service.",
+            "Certain data is required to create an account, connect Google data sources, purchase a paid plan, or generate snapshots. If you do not provide the required data for those steps, we may be unable to provide the relevant part of the service.",
             "We do not use solely automated decision-making, including profiling, that produces legal effects or similarly significant effects within the meaning of Article 22 GDPR.",
           ],
         },
@@ -180,7 +180,7 @@ export const legalDictionaryEn = {
         {
           title: "Service description",
           paragraphs: [
-            "Webhealth connects to Google Search Console and Google Analytics 4, performs website crawls, and generates SEO and analytics reporting with AI-assisted summaries and action items.",
+            "Webhealth connects to Google Search Console and Google Analytics 4, performs website crawls, and provides SEO and analytics live dashboards, snapshot exports, and deterministic action items.",
             "The service is intended to help users review website performance. It does not replace legal, tax, financial, or professional consulting advice.",
           ],
         },
@@ -202,10 +202,10 @@ export const legalDictionaryEn = {
           ],
         },
         {
-          title: "AI-assisted output",
+          title: "Snapshot output",
           paragraphs: [
-            "Reports may include AI-assisted analysis generated from connected metrics, crawl findings, and report context. AI output can be incomplete or inaccurate and should be reviewed before you act on it.",
-            "You remain responsible for decisions you make based on the report output.",
+            "Snapshots and dashboards are generated from connected metrics, crawl findings, and deterministic ranking logic. Review the underlying data before you act on it.",
+            "You remain responsible for decisions you make based on the snapshot output.",
           ],
         },
         {
@@ -218,7 +218,7 @@ export const legalDictionaryEn = {
         {
           title: "Intellectual property",
           paragraphs: [
-            "We retain all rights in the service, software, branding, and our original materials. You retain rights in the data and report inputs you provide.",
+            "We retain all rights in the service, software, branding, and our original materials. You retain rights in the data and snapshot inputs you provide.",
             "You receive a limited, non-exclusive, non-transferable right to use the service in accordance with these terms.",
           ],
         },

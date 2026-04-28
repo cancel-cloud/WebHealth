@@ -93,18 +93,18 @@ function DeltaPill({
 
 function getRecapSentence(comparison: ClientReportComparison) {
   if (!comparison.previousCreatedAt) {
-    return "This is the baseline report. Future shared reports will show how performance changed from this point.";
+    return "This is the baseline snapshot. Future shared snapshots will show how performance changed from this point.";
   }
 
   const clicksDelta = comparison.metricDeltas.clicks;
   const impressionsDelta = comparison.metricDeltas.impressions;
   if ((clicksDelta ?? 0) > 0 && (impressionsDelta ?? 0) >= 0) {
-    return "Traffic and visibility improved compared with the last shared report.";
+    return "Traffic and visibility improved compared with the last shared snapshot.";
   }
   if ((clicksDelta ?? 0) < 0 || (impressionsDelta ?? 0) < 0) {
-    return "Some visibility softened compared with the last shared report. The tables below show which pages and queries moved most.";
+    return "Some visibility softened compared with the last shared snapshot. The tables below show which pages and queries moved most.";
   }
-  return "Performance is broadly stable compared with the last shared report.";
+  return "Performance is broadly stable compared with the last shared snapshot.";
 }
 
 export default async function PropertySharePage({
@@ -197,7 +197,7 @@ export default async function PropertySharePage({
                   ) : null}
                   <span className="text-sm font-medium text-slate-500">{brand.agencyName || "WebHealth"}</span>
                 </div>
-                <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Website performance report</p>
+                <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Website performance snapshot</p>
                 <h1 className="mt-2 font-display text-3xl font-bold tracking-tight md:text-5xl">
                   {dashboard.property.name}
                 </h1>
@@ -208,7 +208,7 @@ export default async function PropertySharePage({
               </div>
               <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 lg:min-w-[340px]">
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Report period</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Snapshot period</div>
                   <div className="mt-1 font-medium text-slate-950">
                     {formatFullDate(dashboard.analysisWindow.startDate)} to {formatFullDate(dashboard.analysisWindow.endDate)}
                   </div>
@@ -244,10 +244,10 @@ export default async function PropertySharePage({
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h2 className="font-display text-2xl font-bold tracking-tight">What changed since the last report</h2>
+              <h2 className="font-display text-2xl font-bold tracking-tight">What changed since the last snapshot</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{getRecapSentence(comparison)}</p>
               {comparison.previousCreatedAt ? (
-                <p className="mt-1 text-xs text-slate-500">Previous shared report: {formatDateTime(comparison.previousCreatedAt)}</p>
+                <p className="mt-1 text-xs text-slate-500">Previous shared snapshot: {formatDateTime(comparison.previousCreatedAt)}</p>
               ) : null}
             </div>
           </div>
@@ -297,10 +297,10 @@ export default async function PropertySharePage({
                 )) : comparison.changedPages.length ? comparison.changedPages.slice(0, 3).map((item) => (
                   <div key={item.url} className="text-sm">
                     <div className="truncate font-medium">{item.url}</div>
-                    <div className="text-slate-500">Page content changed during this report period.</div>
+                    <div className="text-slate-500">Page content changed during this snapshot period.</div>
                   </div>
                 )) : (
-                  <p className="text-sm text-slate-500">No completed changes were recorded for this report period.</p>
+                  <p className="text-sm text-slate-500">No completed changes were recorded for this snapshot period.</p>
                 )}
               </div>
             </div>
@@ -312,7 +312,7 @@ export default async function PropertySharePage({
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-1">
             <h2 className="font-display text-2xl font-bold tracking-tight">Top pages</h2>
-            <p className="text-sm text-slate-500">Pages that contributed most to traffic in this report period.</p>
+            <p className="text-sm text-slate-500">Pages that contributed most to traffic in this snapshot period.</p>
           </div>
           <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full min-w-[720px] text-sm">
@@ -348,7 +348,7 @@ export default async function PropertySharePage({
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-1">
             <h2 className="font-display text-2xl font-bold tracking-tight">Top queries</h2>
-            <p className="text-sm text-slate-500">Search terms that brought visibility and clicks during this report period.</p>
+            <p className="text-sm text-slate-500">Search terms that brought visibility and clicks during this snapshot period.</p>
           </div>
           <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full min-w-[720px] text-sm">
