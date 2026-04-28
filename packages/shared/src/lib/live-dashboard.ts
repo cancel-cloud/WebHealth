@@ -20,11 +20,12 @@ import {
   getLatestPropertyRefreshStateForWindow,
   type PropertyRefreshState,
 } from "@webhealth/shared/lib/property-refresh";
-import { buildDeterministicInsights } from "@webhealth/shared/lib/reports/deterministic-insights";
+import { getLatestMetricsBackfillState } from "@webhealth/shared/lib/metrics-cache";
+import { buildDeterministicInsights } from "@webhealth/shared/lib/deterministic-insights";
 import type {
   RecommendationState,
   WeeklyActionRow,
-} from "@webhealth/shared/lib/reports/types";
+} from "@webhealth/shared/lib/action-types";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { getTeamBrandingProfile } from "@webhealth/shared/lib/team-branding";
 
@@ -743,6 +744,16 @@ export function buildDegradedStates(params: {
   return rows;
 }
 
+function chooseVisibleRefreshState(
+  propertyRefreshState: PropertyRefreshState | null,
+  metricsRefreshState: PropertyRefreshState | null,
+) {
+  const propertyActive = propertyRefreshState?.status === "queued" || propertyRefreshState?.status === "processing";
+  const metricsActive = metricsRefreshState?.status === "queued" || metricsRefreshState?.status === "processing";
+  if (propertyActive || !metricsActive) return propertyRefreshState;
+  return metricsRefreshState;
+}
+
 async function fetchAuthorizedProperty(teamId: string, propertyId: string) {
   const resolved = await resolveTeamReportSources(teamId, propertyId);
   return resolved.canonicalGscProperty;
@@ -1100,7 +1111,7 @@ export async function getLiveDashboardData(input: LiveDashboardInput): Promise<L
     safeLatestDate,
   });
 
-  const [latestDates, latestCrawl, refreshState] = await Promise.all([
+  const [latestDates, latestCrawl, propertyRefreshState, metricsRefreshState] = await Promise.all([
     fetchLatestDateForSource({ property }),
     getLatestPropertyCrawl({ teamId: input.teamId, propertyId: property.id }),
     getLatestPropertyRefreshStateForWindow({
@@ -1113,7 +1124,12 @@ export async function getLiveDashboardData(input: LiveDashboardInput): Promise<L
         endDate: window.requestedEndDate,
       },
     }),
+    getLatestMetricsBackfillState({
+      teamId: input.teamId,
+      propertyId: property.id,
+    }),
   ]);
+  const refreshState = chooseVisibleRefreshState(propertyRefreshState, metricsRefreshState);
 
   const freshnessSummary = buildFreshnessSources({
     gscLatestDate: latestDates.gscLatestDate,
@@ -1398,7 +1414,7 @@ export async function upsertActionItemState(params: {
       overrideReason: params.overrideReason ?? existing?.overrideReason ?? null,
       overrideUpdatedByUserId: params.priorityOverride ? (params.overrideUpdatedByUserId ?? null) : existing?.overrideUpdatedByUserId ?? null,
       overrideUpdatedAt: params.priorityOverride ? new Date() : existing?.overrideUpdatedAt ?? null,
-      snoozedUntil: normalizeDateString(params.snoozedUntil) ?? normalizeDateString(existing?.snoozedUntil),
+      snoozedUntil: params.snoozedUntil === undefined ? normalizeDateString(existing?.snoozedUntil) : normalizeDateString(params.snoozedUntil),
       lastEvaluatedAt: new Date(),
       updatedAt: new Date(),
     })
@@ -1419,7 +1435,7 @@ export async function upsertActionItemState(params: {
         overrideReason: params.priorityOverride ? (params.overrideReason ?? null) : existing?.overrideReason ?? null,
         overrideUpdatedByUserId: params.priorityOverride ? (params.overrideUpdatedByUserId ?? null) : existing?.overrideUpdatedByUserId ?? null,
         overrideUpdatedAt: params.priorityOverride ? new Date() : existing?.overrideUpdatedAt ?? null,
-        snoozedUntil: normalizeDateString(params.snoozedUntil) ?? normalizeDateString(existing?.snoozedUntil),
+        snoozedUntil: params.snoozedUntil === undefined ? normalizeDateString(existing?.snoozedUntil) : normalizeDateString(params.snoozedUntil),
         lastEvaluatedAt: new Date(),
         updatedAt: new Date(),
       },
@@ -1475,10 +1491,12 @@ export async function getWorkspaceActionBoard(teamId: string) {
   const refreshStateByProperty = new Map<string, PropertyRefreshState | null>();
   const crawlStateByProperty = new Map<string, { missing: boolean; stale: boolean }>();
   await Promise.all(refreshRows.map(async (property) => {
-    const [state, crawl] = await Promise.all([
+    const [propertyRefreshState, metricsRefreshState, crawl] = await Promise.all([
       getLatestPropertyRefreshState(teamId, property.id),
+      getLatestMetricsBackfillState({ teamId, propertyId: property.id }),
       getLatestPropertyCrawl({ teamId, propertyId: property.id }),
     ]);
+    const state = chooseVisibleRefreshState(propertyRefreshState, metricsRefreshState);
     refreshStateByProperty.set(property.id, state);
     const crawlFreshness = summarizeCrawlFreshness({
       crawlCapturedAt: crawl?.createdAt ?? null,

@@ -32,9 +32,7 @@ export async function PATCH(req: Request) {
 
     const body = await req.json() as {
       tier: string;
-      reportsPerMonth: number | null;
       maxProperties: number | null;
-      detailsPerMonth: number | null;
     };
 
     if (!body.tier) {
@@ -44,9 +42,7 @@ export async function PATCH(req: Request) {
     await db
       .update(planSettings)
       .set({
-        reportsPerMonth: body.reportsPerMonth ?? null,
         maxProperties: body.maxProperties ?? null,
-        detailsPerMonth: body.detailsPerMonth ?? null,
         updatedAt: new Date(),
       })
       .where(eq(planSettings.tier, body.tier));

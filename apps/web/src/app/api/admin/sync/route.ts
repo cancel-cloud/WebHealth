@@ -7,7 +7,6 @@ import {
   fetchGscProperties,
   fetchGa4Properties,
 } from "@webhealth/shared/lib/google/api";
-import { headers } from "next/headers";
 import { nanoid } from "nanoid";
 import {
   createMetricsBackfillJob,
@@ -175,7 +174,7 @@ export async function POST(req: Request) {
         }
       }
 
-      // Metrics sync + validation (no report creation): persist daily raw/fact rows for the test window.
+      // Metrics sync + validation: persist daily raw/fact rows for the test window.
       const days = TIMEFRAME_DAYS[timeframePreset];
       const end = new Date();
       end.setHours(0, 0, 0, 0);

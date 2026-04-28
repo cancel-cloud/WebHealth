@@ -47,10 +47,6 @@ function fmtDate(d: string | null | undefined) {
   return new Date(d).toLocaleString();
 }
 
-function fmtLimit(n: number | null | undefined) {
-  return n == null ? "Unlimited" : String(n);
-}
-
 export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -134,22 +130,6 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
                     <span className="font-medium">{fmtDate(user.lastSignedInAt)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Reports (last 30d)</span>
-                    <span className="font-medium">{user.reportsLast30Days}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Reports (total)</span>
-                    <span className="font-medium">{user.reportsCount}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Deep dives (this month)</span>
-                    <span className="font-medium">{user.deepDivesThisMonth}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Deep dives (total)</span>
-                    <span className="font-medium">{user.deepDivesTotal}</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Properties</span>
                     <span className="font-medium">{user.propertiesCount}</span>
                   </div>
@@ -173,21 +153,11 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
                     <Badge variant="outline">{user.tier ?? "free"}</Badge>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Reports / month</span>
-                    <span className="font-medium">
-                      {fmtLimit(user.planLimits?.reportsPerMonth)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Max properties</span>
                     <span className="font-medium">
-                      {fmtLimit(user.planLimits?.maxProperties)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Deep dives / month</span>
-                    <span className="font-medium">
-                      {fmtLimit(user.planLimits?.detailsPerMonth)}
+                      {user.planLimits?.maxProperties == null
+                        ? "Unlimited"
+                        : String(user.planLimits.maxProperties)}
                     </span>
                   </div>
                 </div>
@@ -291,7 +261,7 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {user?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the user, their team, all properties, and all reports.
+              This will permanently delete the user, their team, and all properties.
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

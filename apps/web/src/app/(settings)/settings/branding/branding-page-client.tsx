@@ -117,7 +117,7 @@ export function BrandingPageClient() {
           </h1>
           <p className="max-w-3xl text-sm text-muted-foreground">
             This is the dedicated source for your agency name, contact details, icon, logo, and export color accents.
-            Snapshot exports should read from here instead of burying branding inside report objects.
+            Snapshot exports should read from here instead of burying branding inside generated artifacts.
           </p>
         </div>
       </div>
@@ -129,7 +129,7 @@ export function BrandingPageClient() {
               <div className="space-y-1">
                 <h2 className="text-xl font-semibold tracking-tight">Identity</h2>
                 <p className="text-sm text-muted-foreground">
-                  Use stable branding values here. This is not per-report copy.
+                  Use stable branding values here. This is not per-snapshot copy.
                 </p>
               </div>
               <div className="grid gap-4 md:grid-cols-2">

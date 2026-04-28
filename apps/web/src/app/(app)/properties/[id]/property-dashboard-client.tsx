@@ -1783,7 +1783,11 @@ export function PropertyDashboardClient({
               </Badge>
               {currentRefreshState && (currentRefreshState.status === "queued" || currentRefreshState.status === "processing") ? (
                 <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-3 py-1 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-                  {currentRefreshState.phase === "analysis" ? "Recomputing ranked actions" : "Refreshing technical scan"}
+                  {currentRefreshState.phase === "analysis"
+                    ? "Recomputing ranked actions"
+                    : currentRefreshState.phase.startsWith("source_data")
+                      ? "Refreshing source data"
+                      : "Refreshing technical scan"}
                 </Badge>
               ) : null}
             </div>

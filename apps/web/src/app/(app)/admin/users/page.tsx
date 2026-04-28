@@ -17,7 +17,7 @@ export default async function AdminUsersPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
         <p className="text-muted-foreground text-sm">
-          All registered users with their team, property, and report counts.
+          All registered users with their team and property usage.
         </p>
       </div>
       <UsersTable users={users} />

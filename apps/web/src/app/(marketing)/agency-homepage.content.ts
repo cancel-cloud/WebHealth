@@ -1,4 +1,5 @@
 import type { AgencyLandingLanguage } from "./agency-homepage.logic";
+import { PUBLIC_PRICING_PLANS } from "@/lib/pricing";
 
 type LocalizedText = Record<AgencyLandingLanguage, string>;
 type LocalizedTextList = Record<AgencyLandingLanguage, readonly string[]>;
@@ -44,7 +45,7 @@ export interface WorkspaceClientCard {
   positionDelta: string;
   positionTrend: "up" | "down";
   openFixes: number;
-  reportLabel: LocalizedText;
+  snapshotLabel: LocalizedText;
   fixList: WorkspaceFixItem[];
 }
 
@@ -87,19 +88,6 @@ export interface ComparisonRow {
   webhealth: LocalizedText;
 }
 
-export interface PricingPlan {
-  tier: "solo" | "starter" | "studio" | "agency";
-  highlight: boolean;
-  badge?: LocalizedText;
-  name: LocalizedText;
-  description: LocalizedText;
-  price: LocalizedText;
-  period: LocalizedText;
-  cta: LocalizedText;
-  features: LocalizedText[];
-  note?: LocalizedText;
-}
-
 export interface FaqItem {
   question: LocalizedText;
   answer: LocalizedText;
@@ -126,8 +114,8 @@ export const AGENCY_HOME_COPY = {
       de: "Agentur-Beta · Kostenlos für eine Website",
     },
     title: {
-      en: ["Stop rebuilding the ", "same monthly report", "."],
-      de: ["Baue nicht jeden Monat wieder ", "denselben Report", "."],
+      en: ["Stop rebuilding the ", "same monthly snapshot", "."],
+      de: ["Baue nicht jeden Monat wieder ", "denselben Snapshot", "."],
     } satisfies LocalizedSegments,
     lead: {
       en: "Connect one agency Google login and review every client from a single workspace. Webhealth combines GSC, GA4, and crawl data into ranked next steps, while planned agency delivery features stay clearly marked as preview.",
@@ -154,8 +142,8 @@ export const AGENCY_HOME_COPY = {
       de: "12 Kunden",
     },
     sparkPrimary: {
-      en: "AI-ranked fixes",
-      de: "KI-priorisierte Fixes",
+      en: "Ranked fixes",
+      de: "Priorisierte Fixes",
     },
     sparkSecondary: {
       en: "Agency-ready workspace",
@@ -169,8 +157,8 @@ export const AGENCY_HOME_COPY = {
       de: "Alles, was ein Agentur-Workflow braucht.",
     },
     lead: {
-      en: "Built for the reporting work you would rather not rebuild by hand, and honest about which agency extras are still in preview.",
-      de: "Gebaut für Reporting-Arbeit, die du nicht mehr per Hand zusammenbauen willst, und ehrlich darüber, welche Agentur-Extras noch Preview sind.",
+      en: "Built for the snapshot workflow you would rather not rebuild by hand, and honest about which agency extras are still in preview.",
+      de: "Gebaut für Snapshot-Arbeit, die du nicht mehr per Hand zusammenbauen willst, und ehrlich darüber, welche Agentur-Extras noch Preview sind.",
     },
   },
   workspace: {
@@ -208,7 +196,7 @@ export const AGENCY_HOME_COPY = {
       en: "Est. clicks/mo",
       de: "Gesch. Klicks/Mon.",
     },
-    reportPreviewLabel: {
+    snapshotPreviewLabel: {
       en: "Marketing preview data",
       de: "Marketing-Preview-Daten",
     },
@@ -225,14 +213,14 @@ export const AGENCY_HOME_COPY = {
     },
   },
   whiteLabel: {
-    eyebrow: { en: "White-label reports", de: "White-Label-Reports" },
+    eyebrow: { en: "White-label snapshots", de: "White-Label-Snapshots" },
     title: {
-      en: "Two reports from one run.",
-      de: "Zwei Reports aus einem Lauf.",
+      en: "Two snapshots from one export.",
+      de: "Zwei Snapshots aus einem Export.",
     },
     lead: {
-      en: "Every report generates twice. One internal copy for your team — with raw data, AI dev notes, and crawl details. One branded copy for your client — your logo, your colors, plain-language recommendations.",
-      de: "Jeder Report wird doppelt erstellt. Eine interne Version für dein Team — mit Rohdaten, KI-Dev-Notizen und Crawl-Details. Eine gebrandete Version für deinen Kunden — dein Logo, deine Farben, klare Sprache.",
+      en: "Every snapshot export can carry your branding and the live-dashboard context your client needs: metrics, crawl findings, and plain-language recommendations.",
+      de: "Jeder Snapshot-Export kann dein Branding und den Live-Dashboard-Kontext enthalten, den dein Kunde braucht: Kennzahlen, Crawl-Befunde und klare Empfehlungen.",
     },
     internalLabel: { en: "Internal", de: "Intern" },
     clientLabel: { en: "Client deliverable", de: "Kunden-Deliverable" },
@@ -243,8 +231,8 @@ export const AGENCY_HOME_COPY = {
       de: "Agentur-Arbeitskopie",
     },
     clientSubtitle: {
-      en: "Monthly SEO report",
-      de: "Monatlicher SEO-Report",
+      en: "Monthly SEO snapshot",
+      de: "Monatlicher SEO-Snapshot",
     },
     internalTitle: {
       en: "acme-bakery.de — October review",
@@ -284,14 +272,14 @@ export const AGENCY_HOME_COPY = {
       de: "Vor Webhealth vs. nachher",
     },
     title: {
-      en: "The honest math on monthly reporting.",
-      de: "Die ehrliche Rechnung für Monatsreporting.",
+      en: "The honest math on monthly snapshot work.",
+      de: "Die ehrliche Rechnung für Monatssnapshoting.",
     },
     lead: {
       en: 'What a 10-client agency usually spends on exports, formatting, and "what should we do next?" calls.',
       de: 'Was eine 10-Kunden-Agentur typischerweise für Exporte, Formatierung und "Was machen wir als Nächstes?"-Calls bezahlt.',
     },
-    manualLabel: { en: "Manual reporting", de: "Manuelles Reporting" },
+    manualLabel: { en: "Manual snapshot work", de: "Manuelle Snapshot-Arbeit" },
     webhealthLabel: { en: "With Webhealth", de: "Mit Webhealth" },
   },
   pricing: {
@@ -372,8 +360,8 @@ export const AGENCY_FEATURES: AgencyFeatureItem[] = [
     color: "#0ea5e9",
     availability: "live",
     title: {
-      en: "Comparison reports on autopilot.",
-      de: "Vergleichsreports auf Autopilot.",
+      en: "Comparison snapshots on autopilot.",
+      de: "Vergleichssnapshots auf Autopilot.",
     },
     description: {
       en: "Pick two date ranges per client. Clicks, impressions, CTR, position, sessions, and users stay side-by-side with signed deltas.",
@@ -385,12 +373,12 @@ export const AGENCY_FEATURES: AgencyFeatureItem[] = [
     color: "#f59e0b",
     availability: "live",
     title: {
-      en: "AI-ranked fixes with URLs and impact.",
-      de: "KI-priorisierte Fixes mit URLs und Impact.",
+      en: "Ranked fixes with URLs and impact.",
+      de: "Priorisierte Fixes mit URLs und Impact.",
     },
     description: {
-      en: "The live reporting core already ranks opportunities per page using the connected inputs you saw above.",
-      de: "Der Live-Reporting-Kern priorisiert Chancen bereits pro Seite anhand der verbundenen Eingaben von oben.",
+      en: "The live dashboard core already ranks opportunities per page using the connected inputs you saw above.",
+      de: "Der Live-Dashboard-Kern priorisiert Chancen bereits pro Seite anhand der verbundenen Eingaben von oben.",
     },
   },
   {
@@ -455,9 +443,9 @@ export const AGENCY_WORKSPACE_CLIENTS: WorkspaceClientCard[] = [
     positionDelta: "-1.2",
     positionTrend: "down",
     openFixes: 5,
-    reportLabel: {
-      en: "Last report · 2h ago",
-      de: "Letzter Report · vor 2h",
+    snapshotLabel: {
+      en: "Last snapshot · 2h ago",
+      de: "Letzter Snapshot · vor 2h",
     },
     fixList: [
       {
@@ -509,9 +497,9 @@ export const AGENCY_WORKSPACE_CLIENTS: WorkspaceClientCard[] = [
     positionDelta: "+2.4",
     positionTrend: "up",
     openFixes: 3,
-    reportLabel: {
-      en: "Last report · today",
-      de: "Letzter Report · heute",
+    snapshotLabel: {
+      en: "Last snapshot · today",
+      de: "Letzter Snapshot · heute",
     },
     fixList: [
       {
@@ -563,9 +551,9 @@ export const AGENCY_WORKSPACE_CLIENTS: WorkspaceClientCard[] = [
     positionDelta: "-3.1",
     positionTrend: "down",
     openFixes: 7,
-    reportLabel: {
-      en: "Last report · yesterday",
-      de: "Letzter Report · gestern",
+    snapshotLabel: {
+      en: "Last snapshot · yesterday",
+      de: "Letzter Snapshot · gestern",
     },
     fixList: [
       {
@@ -617,9 +605,9 @@ export const AGENCY_WORKSPACE_CLIENTS: WorkspaceClientCard[] = [
     positionDelta: "+0.4",
     positionTrend: "up",
     openFixes: 4,
-    reportLabel: {
-      en: "Last report · 3d ago",
-      de: "Letzter Report · vor 3 T.",
+    snapshotLabel: {
+      en: "Last snapshot · 3d ago",
+      de: "Letzter Snapshot · vor 3 T.",
     },
     fixList: [
       {
@@ -700,8 +688,8 @@ export const AGENCY_WHITE_LABEL_CHECKS: WhiteLabelCheck[] = [
       de: "Dein Logo, deine Farben, deine Domain.",
     },
     description: {
-      en: "Upload a logo, pick an accent, set a report subdomain (reports.youragency.com).",
-      de: "Lade ein Logo hoch, wähle einen Akzent, setze eine Report-Subdomain (reports.deineagentur.de).",
+      en: "Upload a logo, pick an accent, set a snapshot subdomain (snapshots.youragency.com).",
+      de: "Lade ein Logo hoch, wähle einen Akzent, setze eine Snapshot-Subdomain (snapshots.deineagentur.de).",
     },
   },
   {
@@ -824,8 +812,8 @@ export const AGENCY_INTEGRATIONS: IntegrationItem[] = [
     availability: "live",
     title: { en: "Google Analytics 4", de: "Google Analytics 4" },
     description: {
-      en: "Sessions and users layered onto the same report so traffic changes map back to commercial pages and supporting content.",
-      de: "Sessions und Nutzer im selben Report, damit Traffic-Veränderungen auf kommerzielle Seiten und unterstützende Inhalte zurückgeführt werden können.",
+      en: "Sessions and users layered onto the same snapshot so traffic changes map back to commercial pages and supporting content.",
+      de: "Sessions und Nutzer im selben Snapshot, damit Traffic-Veränderungen auf kommerzielle Seiten und unterstützende Inhalte zurückgeführt werden können.",
     },
   },
   {
@@ -842,8 +830,8 @@ export const AGENCY_INTEGRATIONS: IntegrationItem[] = [
     availability: "live",
     title: { en: "Live site crawl", de: "Live-Site-Crawl" },
     description: {
-      en: "Fresh crawl input on every report: broken H1s, 4xx links, missing meta, and other technical issues fed into the ranked list.",
-      de: "Frische Crawl-Eingaben in jedem Report: kaputte H1s, 4xx-Links, fehlende Meta-Daten und andere technische Probleme fließen in die priorisierte Liste ein.",
+      en: "Fresh crawl input on every snapshot: broken H1s, 4xx links, missing meta, and other technical issues fed into the ranked list.",
+      de: "Frische Crawl-Eingaben in jedem Snapshot: kaputte H1s, 4xx-Links, fehlende Meta-Daten und andere technische Probleme fließen in die priorisierte Liste ein.",
     },
   },
 ];
@@ -887,8 +875,8 @@ export const AGENCY_COMPARISON_ROWS: ComparisonRow[] = [
       de: "Aus dem Gedächtnis nach jedem Call",
     },
     webhealth: {
-      en: "AI-ranked P1/P2/P3 with URLs and impact",
-      de: "KI-priorisiert P1/P2/P3 mit URLs und Impact",
+      en: "Prioritized P1/P2/P3 with URLs and impact",
+      de: "Priorisiert P1/P2/P3 mit URLs und Impact",
     },
   },
   {
@@ -935,99 +923,7 @@ export const AGENCY_COMPARISON_ROWS: ComparisonRow[] = [
   },
 ];
 
-export const AGENCY_PRICING_PLANS: PricingPlan[] = [
-  {
-    tier: "solo",
-    highlight: false,
-    name: { en: "Solo", de: "Solo" },
-    description: {
-      en: "For freelancers shipping their own site.",
-      de: "Für Freelancer mit der eigenen Website.",
-    },
-    price: { en: "€0", de: "€0" },
-    period: { en: "forever", de: "für immer" },
-    cta: { en: "Start free", de: "Kostenlos starten" },
-    features: [
-      { en: "1 property (your own site)", de: "1 Property (deine Website)" },
-      { en: "5 reports per month", de: "5 Reports pro Monat" },
-      { en: "AI-ranked fix list", de: "KI-priorisierte Fix-Liste" },
-      { en: "White-label off", de: "White-Label aus" },
-      { en: "Community support", de: "Community-Support" },
-    ],
-  },
-  {
-    tier: "starter",
-    highlight: false,
-    name: { en: "Starter", de: "Starter" },
-    description: {
-      en: "For freelancers with a handful of clients.",
-      de: "Für Freelancer mit einigen Kunden.",
-    },
-    price: { en: "€29", de: "€29" },
-    period: { en: "/ mo", de: "/ Mon." },
-    cta: { en: "Start Starter", de: "Starter starten" },
-    features: [
-      { en: "Up to 5 client sites", de: "Bis zu 5 Kunden-Sites" },
-      { en: "Unlimited reports", de: "Unbegrenzte Reports" },
-      { en: "White-label on (preview)", de: "White-Label an (Preview)" },
-      { en: "2 team seats", de: "2 Team-Plätze" },
-      { en: "Email support", de: "E-Mail-Support" },
-    ],
-  },
-  {
-    tier: "studio",
-    highlight: true,
-    badge: { en: "Most popular", de: "Am beliebtesten" },
-    name: { en: "Studio", de: "Studio" },
-    description: {
-      en: "For small agencies running SEO monthly.",
-      de: "Für kleine Agenturen mit monatlichem SEO.",
-    },
-    price: { en: "€79", de: "€79" },
-    period: { en: "/ mo", de: "/ Mon." },
-    cta: { en: "Start Studio", de: "Studio starten" },
-    features: [
-      { en: "Up to 20 client sites", de: "Bis zu 20 Kunden-Sites" },
-      { en: "Unlimited reports", de: "Unbegrenzte Reports" },
-      {
-        en: "White-label + custom domain (preview)",
-        de: "White-Label + Custom Domain (Preview)",
-      },
-      { en: "5 team seats", de: "5 Team-Plätze" },
-      {
-        en: "Looker Studio export (planned)",
-        de: "Looker-Studio-Export (geplant)",
-      },
-      { en: "Priority support", de: "Priority-Support" },
-    ],
-  },
-  {
-    tier: "agency",
-    highlight: false,
-    name: { en: "Agency", de: "Agency" },
-    description: {
-      en: "For agencies at scale. Pay by client count.",
-      de: "Für Agenturen in größerem Maßstab. Bezahle nach Kundenanzahl.",
-    },
-    price: { en: "€149", de: "€149" },
-    period: { en: "base / mo", de: "Basis / Mon." },
-    cta: { en: "Configure Agency", de: "Agency konfigurieren" },
-    note: {
-      en: "Up to 25 sites included, then +€6/site",
-      de: "Bis zu 25 Sites inklusive, dann +6 €/Site",
-    },
-    features: [
-      { en: "Unlimited team seats", de: "Unbegrenzte Team-Plätze" },
-      {
-        en: "Per-client access controls (planned)",
-        de: "Kundenspezifische Rechte (geplant)",
-      },
-      { en: "SSO (SAML) planned", de: "SSO (SAML) geplant" },
-      { en: "SLA & dedicated support", de: "SLA & dedizierter Support" },
-      { en: "Custom onboarding", de: "Custom-Onboarding" },
-    ],
-  },
-];
+export const AGENCY_PRICING_PLANS = PUBLIC_PRICING_PLANS;
 
 export const AGENCY_FAQ_ITEMS: FaqItem[] = [
   {

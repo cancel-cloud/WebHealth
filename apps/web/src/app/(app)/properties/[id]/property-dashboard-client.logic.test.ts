@@ -129,8 +129,8 @@ test("getActionCategoryModel derives reference-style source chips", () => {
 test("getSeverityValue derives display severity from rank or system score", () => {
   assert.equal(getSeverityValue({ rank: 1, systemScore: null }), 5);
   assert.equal(getSeverityValue({ rank: 4, systemScore: null }), 3);
-  assert.equal(getSeverityValue({ rank: 12, systemScore: 0.92 }), 5);
-  assert.equal(getSeverityValue({ rank: null, systemScore: 0.15 }), 1);
+  assert.equal(getSeverityValue({ rank: 12, systemScore: 90 }), 5);
+  assert.equal(getSeverityValue({ rank: null, systemScore: 10 }), 1);
 });
 
 test("buildSparklinePath only renders from real multi-point series", () => {

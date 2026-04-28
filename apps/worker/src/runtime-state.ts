@@ -2,23 +2,19 @@ export type WorkerPhase =
   | "boot"
   | "imports"
   | "database-ready"
-  | "artifact-server"
   | "single-tick"
   | "worker-loop"
   | "shutdown";
 
 export type WorkerReadinessReason =
   | "worker_loop_not_started"
-  | "artifact_server_not_ready"
   | "worker_loop_stale"
   | "shutting_down"
   | "fatal_error";
 
 export type WorkerRuntimeState = {
-  artifactServerExpected: boolean;
   phase: WorkerPhase;
   databaseReadyAtMs: number | null;
-  artifactServerListeningAtMs: number | null;
   loopStartedAtMs: number | null;
   lastLoopTickAtMs: number | null;
   shuttingDownAtMs: number | null;
@@ -33,21 +29,15 @@ export type WorkerReadinessSnapshot = {
   phase: WorkerPhase;
   reason: WorkerReadinessReason | null;
   databaseReadyAtMs: number | null;
-  artifactServerExpected: boolean;
-  artifactServerListeningAtMs: number | null;
   lastLoopTickAtMs: number | null;
   currentJobId: string | null;
   currentJobStartedAtMs: number | null;
 };
 
-export function createWorkerRuntimeState(input?: {
-  artifactServerExpected?: boolean;
-}): WorkerRuntimeState {
+export function createWorkerRuntimeState(): WorkerRuntimeState {
   return {
-    artifactServerExpected: input?.artifactServerExpected ?? false,
     phase: "boot",
     databaseReadyAtMs: null,
-    artifactServerListeningAtMs: null,
     loopStartedAtMs: null,
     lastLoopTickAtMs: null,
     shuttingDownAtMs: null,
@@ -71,10 +61,6 @@ export function markWorkerPhase(
 
 export function markDatabaseReady(state: WorkerRuntimeState, nowMs = Date.now()) {
   state.databaseReadyAtMs = nowMs;
-}
-
-export function markArtifactServerListening(state: WorkerRuntimeState, nowMs = Date.now()) {
-  state.artifactServerListeningAtMs = nowMs;
 }
 
 export function markLoopTick(state: WorkerRuntimeState, nowMs = Date.now()) {
@@ -125,11 +111,6 @@ export function buildWorkerReadinessSnapshot(
     reason = "shutting_down";
   } else if (state.lastLoopTickAtMs == null) {
     reason = "worker_loop_not_started";
-  } else if (
-    state.artifactServerExpected &&
-    state.artifactServerListeningAtMs == null
-  ) {
-    reason = "artifact_server_not_ready";
   } else if (nowMs - state.lastLoopTickAtMs > staleAfterMs) {
     reason = "worker_loop_stale";
   }
@@ -139,8 +120,6 @@ export function buildWorkerReadinessSnapshot(
     phase: state.phase,
     reason,
     databaseReadyAtMs: state.databaseReadyAtMs,
-    artifactServerExpected: state.artifactServerExpected,
-    artifactServerListeningAtMs: state.artifactServerListeningAtMs,
     lastLoopTickAtMs: state.lastLoopTickAtMs,
     currentJobId: state.currentJobId,
     currentJobStartedAtMs: state.currentJobStartedAtMs,

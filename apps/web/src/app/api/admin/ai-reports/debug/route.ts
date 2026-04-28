@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@webhealth/shared/db";
-import { openaiDailyCosts, reportDetailAiExpansions, reports, teams, user as users } from "@webhealth/shared/db/schema";
-import { getReportQueueStats, listRecentReportJobs } from "@webhealth/shared/lib/queue/report-jobs";
-import { desc, eq, inArray, sql } from "drizzle-orm";
-import { mapDetailRequestRows } from "./route.logic";
+import {
+  metricsBackfillJobs,
+  openaiDailyCosts,
+  propertyRefreshJobs,
+} from "@webhealth/shared/db/schema";
+import { desc, sql } from "drizzle-orm";
+import { buildUnifiedJobActivity } from "./route.logic";
 import { requireAdminSession } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";
 
@@ -11,31 +14,7 @@ export async function GET() {
   try {
     await requireAdminSession();
 
-    const [stats, jobs] = await Promise.all([getReportQueueStats(), listRecentReportJobs(50)]);
-    const reportIds = [...new Set(jobs.map((j) => j.reportId))];
-    const relatedReports = reportIds.length
-      ? await db
-          .select({
-            id: reports.id,
-            propertyId: reports.propertyId,
-            status: reports.status,
-            aiStatus: reports.aiStatus,
-            xlsxStatus: reports.xlsxStatus,
-            aiEstimatedCostUsd: reports.aiEstimatedCostUsd,
-            aiUsage: reports.aiUsage,
-            openaiRequestIds: reports.openaiRequestIds,
-          })
-          .from(reports)
-          .where(inArray(reports.id, reportIds))
-      : [];
-
-    const reportMap = new Map(relatedReports.map((r) => [r.id, r]));
-    const jobsWithReports = jobs.map((job) => ({
-      ...job,
-      report: reportMap.get(job.reportId) ?? null,
-    }));
-
-    const [dailyCosts, detailRequests] = await Promise.all([
+    const [dailyCosts, metricsJobs, propertyRefreshJobRows] = await Promise.all([
       db
         .select({
           sourceDate: openaiDailyCosts.sourceDate,
@@ -47,35 +26,73 @@ export async function GET() {
         .limit(14),
       db
         .select({
-          id: reportDetailAiExpansions.id,
-          reportId: reportDetailAiExpansions.reportId,
-          teamId: reportDetailAiExpansions.teamId,
-          teamName: teams.name,
-          requestedByUserId: reportDetailAiExpansions.requestedByUserId,
-          requestedByUserEmail: users.email,
-          requestNumber: reportDetailAiExpansions.requestNumber,
-          kind: reportDetailAiExpansions.kind,
-          rowId: reportDetailAiExpansions.rowId,
-          status: reportDetailAiExpansions.status,
-          usage: reportDetailAiExpansions.usage,
-          estimatedCostUsd: reportDetailAiExpansions.estimatedCostUsd,
-          xRequestId: reportDetailAiExpansions.xRequestId,
-          xClientRequestId: reportDetailAiExpansions.xClientRequestId,
-          error: reportDetailAiExpansions.error,
-          createdAt: reportDetailAiExpansions.createdAt,
+          id: metricsBackfillJobs.id,
+          teamId: metricsBackfillJobs.teamId,
+          targetPropertyId: metricsBackfillJobs.targetPropertyId,
+          includeGsc: metricsBackfillJobs.includeGsc,
+          includeGa4: metricsBackfillJobs.includeGa4,
+          reason: metricsBackfillJobs.reason,
+          status: metricsBackfillJobs.status,
+          triggerSource: metricsBackfillJobs.triggerSource,
+          totals: metricsBackfillJobs.totals,
+          error: metricsBackfillJobs.error,
+          attempts: metricsBackfillJobs.attempts,
+          maxAttempts: metricsBackfillJobs.maxAttempts,
+          claimedBy: metricsBackfillJobs.claimedBy,
+          claimExpiresAt: metricsBackfillJobs.claimExpiresAt,
+          heartbeatAt: metricsBackfillJobs.heartbeatAt,
+          createdAt: metricsBackfillJobs.createdAt,
+          startedAt: metricsBackfillJobs.startedAt,
+          finishedAt: metricsBackfillJobs.finishedAt,
         })
-        .from(reportDetailAiExpansions)
-        .leftJoin(teams, eq(reportDetailAiExpansions.teamId, teams.id))
-        .leftJoin(users, eq(reportDetailAiExpansions.requestedByUserId, users.id))
-        .orderBy(desc(reportDetailAiExpansions.createdAt))
-        .limit(200),
+        .from(metricsBackfillJobs)
+        .orderBy(desc(metricsBackfillJobs.createdAt))
+        .limit(100),
+      db
+        .select({
+          id: propertyRefreshJobs.id,
+          teamId: propertyRefreshJobs.teamId,
+          propertyId: propertyRefreshJobs.propertyId,
+          jobType: propertyRefreshJobs.jobType,
+          status: propertyRefreshJobs.status,
+          phase: propertyRefreshJobs.phase,
+          message: propertyRefreshJobs.message,
+          progressMeta: propertyRefreshJobs.progressMeta,
+          lastError: propertyRefreshJobs.lastError,
+          attempts: propertyRefreshJobs.attempts,
+          maxAttempts: propertyRefreshJobs.maxAttempts,
+          claimedBy: propertyRefreshJobs.claimedBy,
+          claimExpiresAt: propertyRefreshJobs.claimExpiresAt,
+          heartbeatAt: propertyRefreshJobs.heartbeatAt,
+          createdAt: propertyRefreshJobs.createdAt,
+          updatedAt: propertyRefreshJobs.updatedAt,
+          startedAt: propertyRefreshJobs.startedAt,
+          finishedAt: propertyRefreshJobs.finishedAt,
+        })
+        .from(propertyRefreshJobs)
+        .orderBy(desc(propertyRefreshJobs.createdAt))
+        .limit(100),
     ]);
+
+    const jobActivity = buildUnifiedJobActivity({
+      metricsJobs,
+      propertyRefreshJobs: propertyRefreshJobRows,
+      limit: 150,
+    });
+
+    const stats = {
+      queued: jobActivity.counts.sourceData.queued + jobActivity.counts.propertyRefresh.queued,
+      processing: jobActivity.counts.sourceData.active + jobActivity.counts.propertyRefresh.active,
+      failed: jobActivity.counts.sourceData.failed + jobActivity.counts.propertyRefresh.failed,
+      total: jobActivity.counts.sourceData.total + jobActivity.counts.propertyRefresh.total,
+    };
 
     return NextResponse.json({
       stats,
-      jobs: jobsWithReports,
+      jobs: [],
       dailyCosts,
-      detailRequests: mapDetailRequestRows(detailRequests),
+      detailRequests: [],
+      jobActivity,
     });
   } catch (error) {
     return handleRouteError("Error fetching AI debug data", error);

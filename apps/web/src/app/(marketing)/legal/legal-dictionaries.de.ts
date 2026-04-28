@@ -32,7 +32,7 @@ export const legalDictionaryDe = {
       description: "Wie Webhealth personenbezogene Daten erhebt, nutzt, speichert und schützt.",
       lastUpdatedLabel: "Stand: März 2026",
       intro: [
-        `${legalProfile.productName} wird von ${getOperatorDisplayName("de")} betrieben. Diese Hinweise erklären, wie wir personenbezogene Daten verarbeiten, wenn Sie die Website besuchen, sich mit Google anmelden, Datenquellen verbinden, Reports erstellen, den Support kontaktieren oder kostenpflichtige Funktionen nutzen.`,
+        `${legalProfile.productName} wird von ${getOperatorDisplayName("de")} betrieben. Diese Hinweise erklären, wie wir personenbezogene Daten verarbeiten, wenn Sie die Website besuchen, sich mit Google anmelden, Datenquellen verbinden, Snapshots erstellen, den Support kontaktieren oder kostenpflichtige Funktionen nutzen.`,
         "Dieses Dokument ist so formuliert, dass es sowohl für Geschäftskunden als auch für Verbraucher nutzbar ist. Zwingende gesetzliche Rechte bleiben unberührt.",
       ],
       sections: [
@@ -49,9 +49,9 @@ export const legalDictionaryDe = {
             "Konto- und Identitätsdaten wie Name, E-Mail-Adresse, Profilbild, Google-Kennungen und Sitzungsdaten.",
             "Verschlüsselte Google-Provider-Tokens, Ablaufdaten der Tokens und Google-Lokalisierungsdaten, die für den Zugriff auf Search Console und Analytics erforderlich sind.",
             "Google Search Console Kennzahlen wie Klicks, Impressionen, CTR, Position, Queries und seitenbezogene Performancewerte.",
-            "Google Analytics 4 Kennzahlen wie Sitzungen, Nutzer, neue Nutzer, Traffic-Quellen, Landingpages und weitere Report-Eingaben zur gewählten Property.",
+            "Google Analytics 4 Kennzahlen wie Sitzungen, Nutzer, neue Nutzer, Traffic-Quellen, Landingpages und weitere Snapshot-Eingaben zur gewählten Property.",
             "Crawl- und Auditdaten öffentlich erreichbarer Seiten, einschließlich defekter Links, fehlender Metadaten und sonstiger technischer Auffälligkeiten.",
-            "Workspace-Einstellungen, Report-Verlauf, Abrechnungsstatus, Feature-Flags und Nutzungsdaten zum gebuchten Plan.",
+            "Workspace-Einstellungen, Snapshot-Verlauf, Abrechnungsstatus, Feature-Flags und Nutzungsdaten zum gebuchten Plan.",
             "Support- und Feedbackdaten, einschließlich Nachrichteninhalt und den an die Anfrage angehängten Kontodaten.",
             "Sicherheits- und Auditdaten wie IP-Adresse, User-Agent, Admin-/Systemlog-Einträge und operative Fehlermeldungen.",
             "Browser- und Gerätespeicher, einschließlich Authentifizierungs-Cookies, UI-State-Cookies und Local-Storage-Einträgen für Onboarding oder ausstehende Aktionen.",
@@ -60,10 +60,10 @@ export const legalDictionaryDe = {
         {
           title: "Zwecke und Rechtsgrundlagen",
           bullets: [
-            "Bereitstellung des Dienstes, Authentifizierung und Erstellung angeforderter Reports: Vertragserfüllung oder Durchführung vorvertraglicher Maßnahmen.",
+            "Bereitstellung des Dienstes, Authentifizierung und Erstellung angeforderter Snapshots: Vertragserfüllung oder Durchführung vorvertraglicher Maßnahmen.",
             "Automatische Synchronisierung verfügbarer Google-Properties nach der Anmeldung: Vertragserfüllung und unser berechtigtes Interesse an einer einfachen Einrichtung.",
             "Verarbeitung von Abonnements, Belegen, Kündigungen und Planlimits: Vertragserfüllung sowie gesetzliche Aufbewahrungspflichten.",
-            "Betrieb der Report-Pipeline einschließlich KI-gestützter Analyse: Vertragserfüllung.",
+            "Betrieb von Snapshot-Exporten, Live-Dashboards, Datenaktualisierungen und Property-Refreshes: Vertragserfüllung.",
             "Bearbeitung von Supportanfragen, Feedback und accountbezogener Kommunikation: Vertragserfüllung und berechtigtes Interesse an Support.",
             "Missbrauchsverhinderung, Sicherheit, Incident-Untersuchungen und Audit-Trails: berechtigte Interessen an Sicherheit, Betrugsprävention und zuverlässigem Betrieb.",
             "Messung der Websitenutzung mit Google Analytics 4 nach Ihrer Einwilligung in Analytics-Cookies: Einwilligung.",
@@ -73,8 +73,8 @@ export const legalDictionaryDe = {
           title: "Google-API-Zugriff und Funktionsweise",
           paragraphs: [
             "Bei der Anmeldung mit Google fordern wir nur lesenden Zugriff auf Google Search Console und Google Analytics 4 sowie grundlegende Identitätsscopes an. Schreibzugriff auf Ihr Google-Konto wird nicht angefordert.",
-            "Nach der ersten Google-Anmeldung kann die App automatisch erreichbare Search-Console- und GA4-Properties in Ihren Workspace synchronisieren. Für die Report-Erstellung wird anschließend die ausgewählte verbundene Property samt erforderlicher Kontextdaten verwendet.",
-            "Wir verwenden aus Google stammende Daten ausschließlich zur Bereitstellung, Absicherung und Verbesserung der angeforderten Reporting-Funktionen. Wir verkaufen keine Google-Nutzerdaten und verwenden sie nicht zu fremden Werbezwecken.",
+            "Nach der ersten Google-Anmeldung kann die App automatisch erreichbare Search-Console- und GA4-Properties in Ihren Workspace synchronisieren. Für die Snapshot-Erstellung wird anschließend die ausgewählte verbundene Property samt erforderlicher Kontextdaten verwendet.",
+            "Wir verwenden aus Google stammende Daten ausschließlich zur Bereitstellung, Absicherung und Verbesserung der angeforderten Snapshot- und Dashboard-Funktionen. Wir verkaufen keine Google-Nutzerdaten und verwenden sie nicht zu fremden Werbezwecken.",
           ],
         },
         {
@@ -95,7 +95,7 @@ export const legalDictionaryDe = {
           title: "Empfänger und Auftragsverarbeiter",
           bullets: [
             "Google für OAuth-Anmeldung, als verbundene Datenquelle für Search Console und GA4 sowie als Anbieter von Google Analytics 4 für Website-Analysen nach Einwilligung.",
-            "OpenAI zur Verarbeitung ausgewählter Report-Kontexte, URLs, Kennzahlen und strukturierter Auditdaten zur Erzeugung KI-gestützter Ausgaben.",
+            "OpenAI zur Verarbeitung importierter Abrechnungsdaten, sofern konfiguriert.",
             "Stripe zur Anlage von Kundenprofilen, Abwicklung von Abonnements und Bereitstellung des Billing-Portals.",
             "Vercel zum Hosting und Ausliefern der Webanwendung.",
             "Hetzner/PostgreSQL zum Hosting der Anwendungsdatenbank und Worker-Infrastruktur in der EU.",
@@ -126,8 +126,8 @@ export const legalDictionaryDe = {
           title: "Speicherdauer",
           bullets: [
             "Konto- und Workspace-Daten werden grundsätzlich solange gespeichert, wie das Konto aktiv ist, sofern keine längere gesetzliche Aufbewahrungspflicht besteht.",
-            "Reports, generierte Erkenntnisse und zugehörige Kennzahlen bleiben grundsätzlich verfügbar, solange das Konto aktiv ist, vorbehaltlich Löschanfragen und operativer Aufbewahrungsfristen.",
-            "Wenn Sie eine Google-Datenquelle trennen oder den Zugriff widerrufen, werden die zugehörigen Tokens umgehend gelöscht. Bei Löschung Ihres Kontos werden sämtliche gespeicherten Google-Nutzerdaten — einschließlich Tokens, synchronisierter Properties und Report-Daten — gelöscht.",
+            "Snapshots, generierte Erkenntnisse und zugehörige Kennzahlen bleiben grundsätzlich verfügbar, solange das Konto aktiv ist, vorbehaltlich Löschanfragen und operativer Aufbewahrungsfristen.",
+            "Wenn Sie eine Google-Datenquelle trennen oder den Zugriff widerrufen, werden die zugehörigen Tokens umgehend gelöscht. Bei Löschung Ihres Kontos werden sämtliche gespeicherten Google-Nutzerdaten — einschließlich Tokens, synchronisierter Properties und Snapshot-Daten — gelöscht.",
             "Feedback, Audit-Logs und Sicherheitsevents werden solange gespeichert, wie dies für Support, Missbrauchsverhinderung und Nachvollziehbarkeit erforderlich ist; anschließend werden sie gelöscht oder anonymisiert.",
             "Abrechnungs- und Buchhaltungsunterlagen können aufgrund steuer- oder handelsrechtlicher Vorgaben länger aufbewahrt werden.",
           ],
@@ -135,7 +135,7 @@ export const legalDictionaryDe = {
         {
           title: "Erforderliche Daten und automatisierte Entscheidungen",
           paragraphs: [
-            "Bestimmte Daten sind erforderlich, um ein Konto anzulegen, Google-Datenquellen zu verbinden, einen kostenpflichtigen Plan zu kaufen oder Reports zu erzeugen. Wenn Sie die dafür erforderlichen Daten nicht bereitstellen, können wir den jeweiligen Teil des Dienstes möglicherweise nicht anbieten.",
+            "Bestimmte Daten sind erforderlich, um ein Konto anzulegen, Google-Datenquellen zu verbinden, einen kostenpflichtigen Plan zu kaufen oder Snapshots zu erzeugen. Wenn Sie die dafür erforderlichen Daten nicht bereitstellen, können wir den jeweiligen Teil des Dienstes möglicherweise nicht anbieten.",
             "Wir verwenden keine ausschließlich automatisierte Entscheidungsfindung einschließlich Profiling, die im Sinne von Artikel 22 DSGVO rechtliche Wirkungen oder vergleichbar erhebliche Beeinträchtigungen entfaltet.",
           ],
         },
@@ -180,7 +180,7 @@ export const legalDictionaryDe = {
         {
           title: "Leistungsbeschreibung",
           paragraphs: [
-            "Webhealth verbindet Google Search Console und Google Analytics 4, führt Website-Crawls durch und erstellt SEO- sowie Analytics-Reports mit KI-gestützten Zusammenfassungen und Handlungsempfehlungen.",
+            "Webhealth verbindet Google Search Console und Google Analytics 4, führt Website-Crawls durch und stellt SEO- und Analytics-Live-Dashboards, Snapshot-Exporte und deterministische Handlungsempfehlungen bereit.",
             "Der Dienst dient der Unterstützung bei der Analyse von Website-Performance. Er ersetzt keine rechtliche, steuerliche, finanzielle oder sonstige professionelle Beratung.",
           ],
         },
@@ -202,10 +202,10 @@ export const legalDictionaryDe = {
           ],
         },
         {
-          title: "KI-gestützte Ausgaben",
+          title: "Snapshot-Ausgaben",
           paragraphs: [
-            "Reports können KI-gestützte Analysen enthalten, die aus verbundenen Kennzahlen, Crawling-Ergebnissen und Report-Kontext erzeugt werden. KI-Ausgaben können unvollständig oder fehlerhaft sein und sollten vor Maßnahmen überprüft werden.",
-            "Für Entscheidungen auf Grundlage der Report-Ausgaben bleiben Sie verantwortlich.",
+            "Snapshots und Dashboards werden aus verbundenen Kennzahlen, Crawling-Ergebnissen und deterministischer Priorisierungslogik erzeugt. Prüfen Sie die zugrunde liegenden Daten, bevor Sie Maßnahmen ergreifen.",
+            "Für Entscheidungen auf Grundlage der Snapshot-Ausgaben bleiben Sie verantwortlich.",
           ],
         },
         {
@@ -218,7 +218,7 @@ export const legalDictionaryDe = {
         {
           title: "Geistiges Eigentum",
           paragraphs: [
-            "Alle Rechte am Dienst, an der Software, am Branding und an von uns erstellten Materialien verbleiben bei uns. Rechte an Ihren Daten und Report-Eingaben verbleiben bei Ihnen.",
+            "Alle Rechte am Dienst, an der Software, am Branding und an von uns erstellten Materialien verbleiben bei uns. Rechte an Ihren Daten und Snapshot-Eingaben verbleiben bei Ihnen.",
             "Sie erhalten ein beschränktes, nicht ausschließliches und nicht übertragbares Recht zur Nutzung des Dienstes nach Maßgabe dieser Bedingungen.",
           ],
         },

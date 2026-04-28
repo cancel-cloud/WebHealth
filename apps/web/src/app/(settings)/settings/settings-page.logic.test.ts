@@ -24,30 +24,20 @@ test("normalizeSettingsResponse coerces optional values into stable defaults", (
   assert.deepEqual(
     normalizeSettingsResponse({
       weeklyDigest: 1,
-      reportComplete: 0,
       syncFailure: true,
       emailReceipts: undefined,
-      reportLanguage: 42,
       teamTier: "pro",
-      reportsThisMonth: 3,
-      detailsThisMonth: "2",
     }),
     {
       weeklyDigest: true,
-      reportComplete: false,
       syncFailure: true,
       emailReceipts: false,
-      reportLanguage: "auto",
       isRestricted: false,
       restrictionMessage: null,
       adminContacts: [],
       teamTier: "pro",
       hasStripeCustomer: false,
       subscriptionCancelAt: null,
-      reportsThisMonth: 3,
-      reportsLimit: null,
-      detailsThisMonth: 0,
-      detailsLimit: null,
     }
   );
 });
@@ -56,16 +46,10 @@ test("getSettingsAccountSummary keeps the header focused on the active plan name
   const summary = getSettingsAccountSummary({
     teamTier: "pro",
     subscriptionCancelAt: "2026-04-15T00:00:00.000Z",
-    reportsThisMonth: 4,
-    reportsLimit: 10,
-    detailsThisMonth: 1,
-    detailsLimit: 5,
   });
 
   assert.equal(summary.planLabel, "Pro Plan");
   assert.equal(summary.planStatus, null);
-  assert.equal(summary.usage.reportsThisMonth, 4);
-  assert.equal(summary.usage.detailsLimit, 5);
 });
 
 test("getSettingsAccountSummary omits the current-plan label when the plan is active", () => {

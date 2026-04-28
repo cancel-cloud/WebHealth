@@ -29,9 +29,9 @@ const PLANS = [
     active: false,
     features: [
       "Unlimited properties",
-      "Unlimited reports",
+      "Unlimited snapshots",
       "Team members (up to 5)",
-      "Priority AI processing",
+      "Priority refreshes",
       "White-label exports",
       "Priority support",
     ],

@@ -15,19 +15,7 @@ const FLAGS = [
   {
     id: "flag_crawling_enabled",
     name: "crawling_enabled",
-    description: "Enable website crawling during report processing",
-    enabledGlobally: true,
-  },
-  {
-    id: "flag_ai_quick_wins_enabled",
-    name: "ai_quick_wins_enabled",
-    description: "Enable AI-powered quick wins generation in reports",
-    enabledGlobally: true,
-  },
-  {
-    id: "flag_scheduled_reports_enabled",
-    name: "scheduled_reports_enabled",
-    description: "Enable scheduled (queued) reports for properties without GA4",
+    description: "Enable website crawling during property refreshes",
     enabledGlobally: true,
   },
 ];

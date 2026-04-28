@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { PropertyRefreshState } from "@webhealth/shared/lib/property-refresh";
@@ -30,6 +30,8 @@ export function PropertyLiveStatus({
   const router = useRouter();
   const [currentState, setCurrentState] = useState(initialRefreshState);
   const toastId = `property-refresh-${propertyId}`;
+  // Prevents cleanup from dismissing a success/error toast that poll() just promoted
+  const terminalToastShownRef = useRef(false);
 
   useEffect(() => {
     setCurrentState(initialRefreshState);
@@ -38,10 +40,14 @@ export function PropertyLiveStatus({
   useEffect(() => {
     const isActive = currentState?.status === "queued" || currentState?.status === "processing";
     if (!isActive) {
-      toast.dismiss(toastId);
+      if (!terminalToastShownRef.current) {
+        toast.dismiss(toastId);
+      }
+      terminalToastShownRef.current = false;
       return;
     }
 
+    terminalToastShownRef.current = false;
     toast.loading(currentState?.message ?? "Refreshing property…", {
       id: toastId,
       duration: Infinity,
@@ -78,18 +84,21 @@ export function PropertyLiveStatus({
       onStateChange?.(nextState);
 
       if (!nextState && data?.hasNewerPayload) {
+        terminalToastShownRef.current = true;
         toast.success("Rerun complete.", { id: toastId });
         router.refresh();
         return;
       }
 
       if (nextState?.status === "complete") {
+        terminalToastShownRef.current = true;
         toast.success(nextState.message ?? "Rerun complete.", { id: toastId });
         router.refresh();
         return;
       }
 
       if (nextState?.status === "failed") {
+        terminalToastShownRef.current = true;
         toast.error(nextState.message ?? "Rerun failed. Showing last valid dashboard.", { id: toastId });
         router.refresh();
         return;
@@ -107,7 +116,9 @@ export function PropertyLiveStatus({
 
     return () => {
       window.clearInterval(interval);
-      toast.dismiss(toastId);
+      if (!terminalToastShownRef.current) {
+        toast.dismiss(toastId);
+      }
     };
   }, [compareMode, currentState?.message, currentState?.status, endDate, onStateChange, payloadVersion, preset, propertyId, router, startDate, toastId]);
 

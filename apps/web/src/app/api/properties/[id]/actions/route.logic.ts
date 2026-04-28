@@ -1,4 +1,4 @@
-import type { RecommendationState } from "@webhealth/shared/lib/reports/types";
+import type { RecommendationState } from "@webhealth/shared/lib/action-types";
 import { badRequest } from "@webhealth/shared/lib/http-errors";
 
 const ACTION_STATES = new Set<RecommendationState>([

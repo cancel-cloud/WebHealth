@@ -26,11 +26,6 @@ type FeedbackSubmission = {
   createdAt: string;
   resolvedAt: string | null;
   planLabel: string | null;
-  reportsCount: number;
-  reportsThisMonth: number;
-  reportsLimit: number | null;
-  detailsThisMonth: number;
-  detailsLimit: number | null;
 };
 
 type FeedbackPagination = {
@@ -38,10 +33,6 @@ type FeedbackPagination = {
   limit: number;
   hasNext: boolean;
 };
-
-function formatLimitUsage(current: number, limit: number | null) {
-  return limit === null ? `${current} / Unlimited` : `${current} / ${limit}`;
-}
 
 function typeLabel(type: string) {
   return type === "bug_report" ? "Bug report" : "Feature request";
@@ -225,22 +216,10 @@ export function FeedbackInbox({
                     ) : null}
                   </div>
 
-                  <div className="grid gap-3 text-sm text-muted-foreground md:grid-cols-2 xl:grid-cols-4">
+                  <div className="grid gap-3 text-sm text-muted-foreground md:grid-cols-2 xl:grid-cols-3">
                     <div>
                       <p className="text-xs uppercase tracking-[0.18em]">Plan</p>
                       <p className="mt-1 text-foreground">{submission.planLabel ?? "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.18em]">Reports</p>
-                      <p className="mt-1 text-foreground">{submission.reportsCount} total</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.18em]">Reports This Month</p>
-                      <p className="mt-1 text-foreground">{formatLimitUsage(submission.reportsThisMonth, submission.reportsLimit)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.18em]">Detail Usage</p>
-                      <p className="mt-1 text-foreground">{formatLimitUsage(submission.detailsThisMonth, submission.detailsLimit)}</p>
                     </div>
                   </div>
                 </CardContent>

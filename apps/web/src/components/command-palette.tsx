@@ -8,10 +8,10 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@webhealth/shared/lib/utils";
 import {
-  LayoutDashboard, FileText, Globe, Settings,
+  LayoutDashboard, Globe, Settings,
   Plus, RefreshCw, Sun, Moon, Monitor, LogOut,
   Users, ScrollText, Flag,
-  SlidersHorizontal, Bot, Bug,
+  SlidersHorizontal, Bug,
   MessageSquare,
   Sparkles,
   Palette,
@@ -102,7 +102,6 @@ export function CommandPalette({
 
             <Command.Group heading="Navigation" className={GH}>
               <CmdItem onSelect={() => run(() => router.push("/dashboard"))} icon={LayoutDashboard} label="Go to Dashboard" />
-              <CmdItem onSelect={() => run(() => router.push("/reports"))} icon={FileText} label="Go to Reports" />
               <CmdItem onSelect={() => run(() => router.push("/properties"))} icon={Globe} label="Go to Properties" />
               <CmdItem onSelect={() => run(() => router.push("/settings"))} icon={Settings} label="Go to Settings" />
               <CmdItem onSelect={() => run(() => router.push("/settings/branding"))} icon={Palette} label="Go to Branding" />
@@ -111,7 +110,7 @@ export function CommandPalette({
             <Command.Separator className="my-1 h-px bg-border" />
 
             <Command.Group heading="Actions" className={GH}>
-              <CmdItem onSelect={() => run(() => router.push("/reports"))} icon={Plus} label="New Report" />
+              <CmdItem onSelect={() => run(() => router.push("/properties"))} icon={Plus} label="Open Properties" />
               <CmdItem onSelect={() => run(() => router.push("/properties"))} icon={RefreshCw} label="Sync Properties" />
               <CmdItem onSelect={() => run(() => router.push("/settings?tab=contact"))} icon={MessageSquare} label="Contact Support" />
               <CmdItem onSelect={() => run(() => onFeatureRequest?.())} icon={Sparkles} label="Feature Requests" />
@@ -133,8 +132,7 @@ export function CommandPalette({
                   <CmdItem onSelect={() => run(() => router.push("/admin/logs"))} icon={ScrollText} label="System Logs" />
                   <CmdItem onSelect={() => run(() => router.push("/admin/feature-flags"))} icon={Flag} label="Feature Flags" />
                   <CmdItem onSelect={() => run(() => router.push("/admin/global-settings"))} icon={SlidersHorizontal} label="Global Settings" />
-                  <CmdItem onSelect={() => run(() => router.push("/admin/ai-report-settings"))} icon={Bot} label="AI Report Settings" />
-                  <CmdItem onSelect={() => run(() => router.push("/admin/ai-report-debug"))} icon={Bug} label="AI Debug Console" />
+                  <CmdItem onSelect={() => run(() => router.push("/admin/ai-report-debug"))} icon={Bug} label="Ops Debug Console" />
                 </Command.Group>
               </>
             )}

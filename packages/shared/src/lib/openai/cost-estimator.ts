@@ -1,4 +1,4 @@
-import type { AiUsageSnapshot } from "@webhealth/shared/lib/reports/types";
+import type { AiUsageSnapshot } from "@webhealth/shared/lib/action-types";
 
 type Pricing = {
   inputPer1M: number;

@@ -60,7 +60,7 @@ export function PropertyShareTrendChart({
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold tracking-tight">Traffic trend</h2>
-          <p className="mt-1 text-sm text-slate-500">How traffic moved through the report period.</p>
+          <p className="mt-1 text-sm text-slate-500">How traffic moved through the snapshot period.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {availableMetrics.map((metric) => (
@@ -127,11 +127,11 @@ export function PropertyShareTrendChart({
               })),
             }}
             className="h-full w-full"
-            ariaLabel="Traffic trend for the shared report period"
+            ariaLabel="Traffic trend for the shared snapshot period"
           />
         ) : (
           <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-slate-200 text-sm text-slate-500">
-            No trend data is available for this report period.
+            No trend data is available for this snapshot period.
           </div>
         )}
       </div>

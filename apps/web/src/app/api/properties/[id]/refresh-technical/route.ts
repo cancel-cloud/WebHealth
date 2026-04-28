@@ -30,6 +30,7 @@ export async function POST(
       propertyId: resolved.canonicalGscProperty.id,
       triggeredByUserId: session.user.id,
       jobType: "crawl_refresh",
+      triggerSource: "manual",
       payload: {
         preset: body.preset ?? null,
         compareMode: body.compareMode ?? null,

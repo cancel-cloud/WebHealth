@@ -1,4 +1,4 @@
-import type { RecommendationDetail, RecommendationEvidenceFact } from "./reports/types";
+import type { RecommendationDetail, RecommendationEvidenceFact } from "./action-types";
 
 function sanitizeStringList(input: unknown) {
   return Array.isArray(input)

@@ -30,14 +30,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UsageCard } from "@/components/usage-card";
 import {
   Bot,
   Bug,
   ChevronDown,
   ChevronRight,
   CircleHelp,
-  FileText,
   Flag,
   Globe,
   LayoutDashboard,
@@ -58,10 +56,6 @@ import { useTheme } from "@/components/theme-provider";
 
 type SidebarMeta = {
   teamTier: string;
-  reportsThisMonth: number;
-  reportsLimit: number | null;
-  detailsThisMonth: number;
-  detailsLimit: number | null;
   reportableProperties: SidebarProperty[];
 };
 
@@ -77,7 +71,6 @@ const ICONS: Record<
   React.ComponentType<{ className?: string }>
 > = {
   dashboard: LayoutDashboard,
-  reports: FileText,
   properties: Globe,
   settings: Settings,
   support: CircleHelp,
@@ -335,22 +328,6 @@ export function AppSidebar({
         setMeta({
           teamTier:
             typeof source.teamTier === "string" ? source.teamTier : "free",
-          reportsThisMonth:
-            typeof source.reportsThisMonth === "number"
-              ? source.reportsThisMonth
-              : 0,
-          reportsLimit:
-            typeof source.reportsLimit === "number"
-              ? source.reportsLimit
-              : null,
-          detailsThisMonth:
-            typeof source.detailsThisMonth === "number"
-              ? source.detailsThisMonth
-              : 0,
-          detailsLimit:
-            typeof source.detailsLimit === "number"
-              ? source.detailsLimit
-              : null,
           reportableProperties,
         });
       })
@@ -408,9 +385,7 @@ export function AppSidebar({
                 badge={
                   item.id === "properties"
                     ? meta?.reportableProperties.length
-                    : item.id === "reports"
-                      ? meta?.reportsThisMonth
-                      : undefined
+                    : undefined
                 }
               />
             ))}
@@ -505,16 +480,6 @@ export function AppSidebar({
 
       <div className="border-t border-sidebar-border/80 p-4">
         <div className="space-y-3">
-          {meta ? (
-            <UsageCard
-              reportsThisMonth={meta.reportsThisMonth}
-              reportsLimit={meta.reportsLimit}
-              detailsThisMonth={meta.detailsThisMonth}
-              detailsLimit={meta.detailsLimit}
-              variant="compact"
-            />
-          ) : null}
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex w-full min-w-0 items-center gap-3 rounded-lg border border-sidebar-border/70 bg-sidebar-accent/40 px-3 py-2.5 text-left transition-colors hover:bg-sidebar-accent/75 focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 focus-visible:outline-none">

@@ -3,45 +3,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getPricingBadgeClassNames } from "@/components/pricing-badge-styles";
-import { PRICING_PLANS } from "@/lib/pricing";
+import {
+  getLocalizedPricingValue,
+  PUBLIC_PRICING_PLANS,
+} from "@/lib/pricing";
 import { Check } from "lucide-react";
 import { motion } from "framer-motion";
-
-const PRICING = [
-  {
-    name: PRICING_PLANS.solo.name,
-    price: PRICING_PLANS.solo.priceLabel,
-    period: PRICING_PLANS.solo.periodLabel,
-    description: PRICING_PLANS.solo.description,
-    cta: "Start Free",
-    href: "/dashboard",
-    features: PRICING_PLANS.solo.features,
-    comingSoon: false,
-    highlight: false,
-  },
-  {
-    name: PRICING_PLANS.pro.name,
-    price: PRICING_PLANS.pro.priceLabel,
-    period: PRICING_PLANS.pro.periodLabel,
-    description: PRICING_PLANS.pro.description,
-    cta: "Get Started",
-    href: "/dashboard",
-    features: PRICING_PLANS.pro.features,
-    comingSoon: false,
-    highlight: true,
-  },
-  {
-    name: "Agency",
-    price: "",
-    period: "",
-    description: "For agencies and high-volume clients running SEO at scale.",
-    cta: "Get early access",
-    href: "mailto:kontakt@devbrew.dev?subject=Webhealth%20Agency%20Interest",
-    features: [] as string[],
-    comingSoon: true,
-    highlight: false,
-  },
-];
 
 const fadeUp = {
   hidden: { opacity: 0, y: 18 },
@@ -88,11 +55,11 @@ export function PricingSection() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
-          className="grid md:grid-cols-3 gap-5 items-stretch"
+          className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch"
         >
-          {PRICING.map((plan) => (
+          {PUBLIC_PRICING_PLANS.map((plan) => (
             <motion.div
-              key={plan.name}
+              key={plan.tier}
               variants={fadeUp}
               className={`rounded-lg p-8 flex flex-col bg-white h-full ${
                 plan.highlight ? "md:-translate-y-2" : ""
@@ -106,90 +73,99 @@ export function PricingSection() {
                   : "0 1px 4px oklch(0 0 0 / 0.04)",
               }}
             >
-              {plan.highlight && (
-                <span
-                  className={`self-start mb-4 ${pricingBadgeClasses.base} ${pricingBadgeClasses.mostPopularSpacing} ${pricingBadgeClasses.mostPopular}`}
-                >
-                  Most Popular
-                </span>
-              )}
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-display text-sm font-semibold uppercase tracking-widest">
-                  {plan.name}
-                </h3>
-                {plan.comingSoon && (
+              <div className="min-h-7">
+                {plan.highlight && (
                   <span
-                    className={`${pricingBadgeClasses.base} ${pricingBadgeClasses.comingSoonSpacing} ${pricingBadgeClasses.comingSoon}`}
+                    className={`self-start ${pricingBadgeClasses.base} ${pricingBadgeClasses.mostPopularSpacing} ${pricingBadgeClasses.mostPopular}`}
                   >
-                    Coming Soon
+                    {getLocalizedPricingValue(plan.badge!, "en")}
                   </span>
                 )}
               </div>
-              <p
-                className="text-xs mb-6 min-w-0"
-                style={{ color: "oklch(0.55 0.02 250)" }}
-              >
-                {plan.description}
-              </p>
-              {plan.price ? (
-                <div className="flex items-baseline gap-1 mb-8">
-                  <span className="font-display text-4xl font-bold tabular-nums">
-                    {plan.price}
-                  </span>
-                  <span
-                    className="text-sm"
-                    style={{ color: "oklch(0.6 0.02 250)" }}
-                  >
-                    {plan.period}
-                  </span>
-                </div>
-              ) : (
+              <div className="mt-4 min-h-[8.5rem]">
+                <h3 className="font-display text-sm font-semibold uppercase tracking-widest">
+                  {getLocalizedPricingValue(plan.name, "en")}
+                </h3>
                 <p
-                  className="text-xs mb-8 italic"
+                  className="mt-2 text-xs min-w-0"
                   style={{ color: "oklch(0.55 0.02 250)" }}
                 >
-                  Pricing available on request — get in touch to be first in
-                  line.
+                  {getLocalizedPricingValue(plan.description, "en")}
                 </p>
-              )}
+              </div>
+              <div className="flex min-h-16 items-end gap-1">
+                <span className="font-display text-4xl font-bold tabular-nums">
+                  {getLocalizedPricingValue(plan.price, "en")}
+                </span>
+                <span
+                  className="text-sm"
+                  style={{ color: "oklch(0.6 0.02 250)" }}
+                >
+                  {getLocalizedPricingValue(plan.period, "en")}
+                </span>
+              </div>
+              <div className="mt-3 min-h-10">
+                {plan.note ? (
+                  <p
+                    className="text-xs"
+                    style={{ color: "oklch(0.55 0.02 250)" }}
+                  >
+                    {getLocalizedPricingValue(plan.note, "en")}
+                  </p>
+                ) : null}
+              </div>
               {plan.features.length > 0 && (
-                <ul className="space-y-2.5 mb-8 flex-1">
+                <ul className="mt-6 space-y-2.5 flex-1">
                   {plan.features.map((feat) => (
-                    <li key={feat} className="flex items-start gap-2 text-sm">
+                    <li
+                      key={feat.en}
+                      className="flex items-start gap-2 text-sm"
+                    >
                       <Check
                         className="size-4 mt-0.5 shrink-0"
                         aria-hidden="true"
                         style={{ color: "#6366f1" }}
                       />
-                      <span className="min-w-0">{feat}</span>
+                      <span className="min-w-0">
+                        {getLocalizedPricingValue(feat, "en")}
+                      </span>
                     </li>
                   ))}
                 </ul>
               )}
-              {plan.highlight ? (
-                <Link
-                  href={plan.href}
-                  className="flex items-center justify-center h-10 w-full rounded-full text-sm font-semibold text-white focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:outline-none touch-manipulation mt-auto"
-                  style={{
-                    backgroundImage: "linear-gradient(90deg, #6366f1, #0ea5e9)",
-                  }}
-                >
-                  {plan.cta}
-                </Link>
-              ) : (
-                <a href={plan.href} className="mt-auto">
-                  <Button
-                    className="w-full rounded-full h-10 text-sm font-medium focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 touch-manipulation"
+              <div className="mt-auto pt-6">
+                {plan.highlight ? (
+                  <Link
+                    href="/dashboard"
+                    className="flex h-10 w-full items-center justify-center rounded-full text-sm font-semibold text-white focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:outline-none touch-manipulation"
                     style={{
-                      backgroundColor: "#6366f10e",
-                      color: "#6366f1",
-                      border: "1px solid #6366f122",
+                      backgroundImage:
+                        "linear-gradient(90deg, #6366f1, #0ea5e9)",
                     }}
                   >
-                    {plan.cta}
-                  </Button>
-                </a>
-              )}
+                    {getLocalizedPricingValue(plan.cta, "en")}
+                  </Link>
+                ) : (
+                  <a
+                    href={
+                      plan.tier === "agency"
+                        ? "mailto:kontakt@devbrew.dev?subject=Webhealth%20Agency%20Interest"
+                        : "/dashboard"
+                    }
+                  >
+                    <Button
+                      className="h-10 w-full rounded-full text-sm font-medium focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 touch-manipulation"
+                      style={{
+                        backgroundColor: "#6366f10e",
+                        color: "#6366f1",
+                        border: "1px solid #6366f122",
+                      }}
+                    >
+                      {getLocalizedPricingValue(plan.cta, "en")}
+                    </Button>
+                  </a>
+                )}
+              </div>
             </motion.div>
           ))}
         </motion.div>

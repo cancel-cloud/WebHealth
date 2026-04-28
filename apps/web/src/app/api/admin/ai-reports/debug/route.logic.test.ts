@@ -1,33 +1,62 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { mapDetailRequestRows } from "./route.logic";
+import { buildUnifiedJobActivity } from "./route.logic";
 
-test("mapDetailRequestRows keeps debug payload shape and serializes createdAt", () => {
-  const rows = mapDetailRequestRows([
-    {
-      id: "rdae_1",
-      reportId: "rep_1",
-      teamId: "team_1",
-      teamName: "Team One",
-      requestedByUserId: "user_1",
-      requestedByUserEmail: "user@example.com",
-      requestNumber: 2,
-      kind: "nearWin",
-      rowId: "keyword-abc",
-      status: "success",
-      usage: { inputTokens: 10, outputTokens: 2 },
-      estimatedCostUsd: "0.000123",
-      xRequestId: "req_123",
-      xClientRequestId: "report_rep_1_detail_2_nearWin",
-      error: null,
-      createdAt: new Date("2026-03-05T10:00:00.000Z"),
-    },
-  ]);
+test("buildUnifiedJobActivity merges source-data and property refresh activity", () => {
+  const activity = buildUnifiedJobActivity({
+    metricsJobs: [
+      {
+        id: "mbj_1",
+        teamId: "team_1",
+        targetPropertyId: "gsc_sc-domain:example.com",
+        includeGsc: true,
+        includeGa4: true,
+        reason: "manual_backfill",
+        status: "processing",
+        triggerSource: "manual",
+        totals: { gscFetchedDates: 2, ga4FetchedDates: 2 },
+        error: null,
+        attempts: 1,
+        maxAttempts: 2,
+        claimedBy: "mbw_1",
+        claimExpiresAt: new Date("2026-04-01T09:08:00.000Z"),
+        heartbeatAt: new Date("2026-04-01T09:06:00.000Z"),
+        createdAt: new Date("2026-04-01T09:01:00.000Z"),
+        startedAt: new Date("2026-04-01T09:02:00.000Z"),
+        finishedAt: null,
+      },
+    ],
+    propertyRefreshJobs: [
+      {
+        id: "prj_1",
+        teamId: "team_2",
+        propertyId: "gsc_sc-domain:site.test",
+        jobType: "decision_refresh",
+        status: "queued",
+        phase: "queued",
+        message: "Decision refresh queued",
+        progressMeta: null,
+        lastError: null,
+        attempts: 0,
+        maxAttempts: 2,
+        claimedBy: null,
+        claimExpiresAt: null,
+        heartbeatAt: null,
+        createdAt: new Date("2026-04-01T09:04:00.000Z"),
+        updatedAt: new Date("2026-04-01T09:04:00.000Z"),
+        startedAt: null,
+        finishedAt: null,
+      },
+    ],
+  });
 
-  assert.equal(rows.length, 1);
-  assert.equal(rows[0]?.requestNumber, 2);
-  assert.equal(rows[0]?.kind, "nearWin");
-  assert.equal(rows[0]?.createdAt, "2026-03-05T10:00:00.000Z");
-  assert.equal(rows[0]?.xRequestId, "req_123");
+  assert.deepEqual(
+    activity.items.map((item) => item.id),
+    ["mbj_1", "prj_1"],
+  );
+  assert.equal(activity.counts.sourceData.active, 1);
+  assert.equal(activity.counts.propertyRefresh.queued, 1);
+  assert.equal(activity.items[0]?.family, "source_data");
+  assert.equal(activity.items[0]?.usage?.gscFetchedDates, 2);
 });

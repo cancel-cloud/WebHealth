@@ -1,24 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from "@webhealth/shared/db";
-import { userSettings, reports, planSettings, teamUsage } from "@webhealth/shared/db/schema";
-import { eq, and, gte, count } from 'drizzle-orm';
+import { userSettings } from "@webhealth/shared/db/schema";
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { listAdminEmails } from "@webhealth/shared/lib/admin-access";
 import { badRequest } from "@webhealth/shared/lib/http-errors";
-import { withKeyedCache } from "@webhealth/shared/lib/simple-cache";
 import { requireSession, getUserTeamMemberships } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";
 
-const getPlanSettings = withKeyedCache(
-  (tier: string) =>
-    db.query.planSettings.findFirst({
-      where: (ps, { eq }) => eq(ps.tier, tier),
-      columns: { reportsPerMonth: true, detailsPerMonth: true },
-    }),
-  30 * 60 * 1000
-);
-
-const ALLOWED_FIELDS = ['weeklyDigest', 'reportComplete', 'syncFailure', 'emailReceipts', 'reportLanguage'] as const;
+const ALLOWED_FIELDS = ['weeklyDigest', 'syncFailure', 'emailReceipts'] as const;
 
 // GET /api/settings — fetch (or upsert defaults for) the current user's settings
 export async function GET() {
@@ -47,23 +37,6 @@ export async function GET() {
     const hasStripeCustomer = Boolean(team?.stripeCustomerId);
     const subscriptionCancelAt = team?.subscriptionCancelAt?.toISOString() ?? null;
 
-    // Usage data for the current month
-    const yearMonth = new Date().toISOString().slice(0, 7);
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const [planRecord, usageRecord, reportsThisMonthResult] = primaryTeamId
-      ? await Promise.all([
-          getPlanSettings(teamTier),
-          db.query.teamUsage.findFirst({
-            where: (u, { and, eq }) => and(eq(u.teamId, primaryTeamId), eq(u.yearMonth, yearMonth)),
-            columns: { detailsCount: true },
-          }),
-          db.select({ count: count() }).from(reports).where(
-            and(eq(reports.teamId, primaryTeamId), gte(reports.createdAt, monthStart))
-          ),
-        ])
-      : [null, null, [{ count: 0 }]];
-
     const existing = await db.query.userSettings.findFirst({
       where: eq(userSettings.userId, userId),
     });
@@ -75,15 +48,11 @@ export async function GET() {
       teamTier,
       hasStripeCustomer,
       subscriptionCancelAt,
-      reportsThisMonth: Number(reportsThisMonthResult[0]?.count ?? 0),
-      reportsLimit: planRecord?.reportsPerMonth ?? null,
-      detailsThisMonth: usageRecord?.detailsCount ?? 0,
-      detailsLimit: planRecord?.detailsPerMonth ?? null,
     };
 
     if (existing) {
-      const { weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage } = existing;
-      return NextResponse.json({ weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage, ...baseResponse });
+      const { weeklyDigest, syncFailure, emailReceipts } = existing;
+      return NextResponse.json({ weeklyDigest, syncFailure, emailReceipts, ...baseResponse });
     }
 
     // No row yet — upsert defaults and return them
@@ -96,8 +65,8 @@ export async function GET() {
       })
       .returning();
 
-    const { weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage } = created;
-    return NextResponse.json({ weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage, ...baseResponse });
+    const { weeklyDigest, syncFailure, emailReceipts } = created;
+    return NextResponse.json({ weeklyDigest, syncFailure, emailReceipts, ...baseResponse });
   } catch (error: unknown) {
     return handleRouteError("GET /api/settings error", error);
   }
@@ -114,11 +83,7 @@ export async function PATCH(req: Request) {
     // Only pick allowed fields from the request body
     const patch: Record<string, unknown> = {};
     for (const field of ALLOWED_FIELDS) {
-      if (field === 'reportLanguage') {
-        if (typeof body[field] === 'string' && body[field].trim()) {
-          patch[field] = body[field].trim().toLowerCase();
-        }
-      } else if (typeof body[field] === 'boolean') {
+      if (typeof body[field] === 'boolean') {
         patch[field] = body[field];
       }
     }
@@ -136,8 +101,8 @@ export async function PATCH(req: Request) {
       })
       .returning();
 
-    const { weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage } = updated;
-    return NextResponse.json({ weeklyDigest, reportComplete, syncFailure, emailReceipts, reportLanguage });
+    const { weeklyDigest, syncFailure, emailReceipts } = updated;
+    return NextResponse.json({ weeklyDigest, syncFailure, emailReceipts });
   } catch (error: unknown) {
     return handleRouteError("PATCH /api/settings error", error);
   }

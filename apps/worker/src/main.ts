@@ -1,14 +1,9 @@
-import { startArtifactServer } from "./artifact-server";
 import { loadWorkerEnv } from "./load-env";
 import { initWorkerMonitoring, reportWorkerFatalError } from "./monitoring";
 import {
   createWorkerRuntimeState,
-  markArtifactServerListening,
   markDatabaseReady,
   markFatalError,
-  markJobEnd,
-  markJobStart,
-  markLoopTick,
   markShutdownRequested,
   markWorkerPhase,
 } from "./runtime-state";
@@ -17,26 +12,28 @@ import { shouldForceExitForStuckJob } from "./runtime-watchdog";
 loadWorkerEnv();
 initWorkerMonitoring();
 
-const runtimeState = createWorkerRuntimeState({
-  artifactServerExpected: !!process.env.ARTIFACT_TOKEN_SECRET,
-});
+const runtimeState = createWorkerRuntimeState();
 let workerPhase = "boot";
 
 async function main() {
-  let artifactServer: Awaited<ReturnType<typeof startArtifactServer>> | null = null;
-  let workerLoopControls:
-    | ReturnType<
-        typeof import("@webhealth/shared/lib/queue/report-worker")["startReportWorkerLoop"]
-      >
-    | null = null;
   let propertyRefreshWorkerControls:
     | ReturnType<
         typeof import("@webhealth/shared/lib/property-refresh-worker")["startPropertyRefreshWorkerLoop"]
       >
     | null = null;
-  let weeklyReviewSchedulerControls:
+  let automatedPropertyRefreshWorkerControls:
     | ReturnType<
-        typeof import("@webhealth/shared/lib/weekly-review-scheduler")["startWeeklyReviewScheduler"]
+        typeof import("@webhealth/shared/lib/property-refresh-worker")["startPropertyRefreshWorkerLoop"]
+      >
+    | null = null;
+  let metricsBackfillWorkerControls:
+    | ReturnType<
+        typeof import("@webhealth/shared/lib/metrics-cache")["startMetricsBackfillWorkerLoop"]
+      >
+    | null = null;
+  let activePropertyAutomationSchedulerControls:
+    | ReturnType<
+        typeof import("@webhealth/shared/lib/active-property-automation")["startActivePropertyAutomationScheduler"]
       >
     | null = null;
   let closeDb: (() => Promise<void>) | null = null;
@@ -44,16 +41,9 @@ async function main() {
   let shutdownPromise: Promise<never> | null = null;
   const once = process.argv.includes("--once");
 
-  const readinessStaleAfterMs = parseInt(
-    process.env.WORKER_READY_STALE_AFTER_MS ?? "45000",
-    10,
-  );
-  const maxJobRuntimeMs = parseInt(
-    process.env.REPORT_WORKER_MAX_JOB_RUNTIME_MS ?? "900000",
-    10,
-  );
+  const maxJobRuntimeMs = parseInt(process.env.WORKER_MAX_JOB_RUNTIME_MS ?? "900000", 10);
   const watchdogIntervalMs = parseInt(
-    process.env.REPORT_WORKER_WATCHDOG_INTERVAL_MS ?? "5000",
+    process.env.WORKER_WATCHDOG_INTERVAL_MS ?? "5000",
     10,
   );
 
@@ -61,18 +51,18 @@ async function main() {
     if (shutdownPromise) return shutdownPromise;
 
     markShutdownRequested(runtimeState);
-    console.warn(`[report-worker][WARN][SHUTDOWN] stopping worker reason=${reason}`);
+    console.warn(`[worker][WARN][SHUTDOWN] stopping worker reason=${reason}`);
 
     shutdownPromise = (async () => {
       if (watchdogTimer) {
         clearInterval(watchdogTimer);
         watchdogTimer = null;
       }
-      workerLoopControls?.stop();
       propertyRefreshWorkerControls?.stop();
-      weeklyReviewSchedulerControls?.stop();
+      automatedPropertyRefreshWorkerControls?.stop();
+      metricsBackfillWorkerControls?.stop();
+      activePropertyAutomationSchedulerControls?.stop();
       await Promise.allSettled([
-        artifactServer?.stop() ?? Promise.resolve(),
         closeDb?.() ?? Promise.resolve(),
       ]);
       process.exit(exitCode);
@@ -92,14 +82,14 @@ async function main() {
   markWorkerPhase(runtimeState, "imports");
   const sharedDbModule = await import("@webhealth/shared/db");
   const { ensureWorkerDatabaseReady } = await import("@webhealth/shared/db/worker-db-bootstrap");
-  const { startReportWorkerLoop, runSingleReportWorkerTick } = await import(
-    "@webhealth/shared/lib/queue/report-worker"
-  );
-  const { startPropertyRefreshWorkerLoop } = await import(
+  const { startPropertyRefreshWorkerLoop, runSinglePropertyRefreshWorkerTick } = await import(
     "@webhealth/shared/lib/property-refresh-worker"
   );
-  const { startWeeklyReviewScheduler } = await import(
-    "@webhealth/shared/lib/weekly-review-scheduler"
+  const { startMetricsBackfillWorkerLoop, runSingleMetricsBackfillWorkerTick } = await import(
+    "@webhealth/shared/lib/metrics-cache"
+  );
+  const { startActivePropertyAutomationScheduler } = await import(
+    "@webhealth/shared/lib/active-property-automation"
   );
   closeDb = sharedDbModule.closeDb;
 
@@ -108,49 +98,34 @@ async function main() {
   await ensureWorkerDatabaseReady();
   markDatabaseReady(runtimeState);
 
-  // Start artifact HTTP server for cross-service file downloads
-  if (!once && process.env.ARTIFACT_TOKEN_SECRET) {
-    workerPhase = "artifact-server";
-    markWorkerPhase(runtimeState, "artifact-server");
-    artifactServer = await startArtifactServer({
-      getRuntimeState: () => runtimeState,
-      staleAfterMs: readinessStaleAfterMs,
-    });
-    markArtifactServerListening(runtimeState);
-  } else if (!once) {
-    console.warn("[report-worker][WARN][BOOT] ARTIFACT_TOKEN_SECRET not set; artifact HTTP server disabled");
-  }
-
   if (once) {
     workerPhase = "single-tick";
     markWorkerPhase(runtimeState, "single-tick");
-    const result = await runSingleReportWorkerTick(undefined, {
-      onFatalError: ({ error, nowMs }) => markFatalError(runtimeState, error, nowMs),
-      onJobEnd: () => markJobEnd(runtimeState),
-      onJobStart: ({ jobId, nowMs }) => markJobStart(runtimeState, { jobId, nowMs }),
-      onLoopTick: ({ nowMs }) => markLoopTick(runtimeState, nowMs),
-    });
-    if (result.processed) {
-      console.log(`[report-worker][INFO][WORKING] single tick processed job jobId=${result.jobId}`);
+    const propertyResult = await runSinglePropertyRefreshWorkerTick();
+    const metricsResult = propertyResult.processed ? { processed: false as const } : await runSingleMetricsBackfillWorkerTick();
+    if (propertyResult.processed || metricsResult.processed) {
+      console.log("[worker][INFO][WORKING] single tick processed a job");
     } else {
-      console.log("[report-worker][INFO][IDLE] single tick found no claimable jobs");
+      console.log("[worker][INFO][IDLE] single tick found no claimable jobs");
     }
     await requestShutdown(0, "once-complete");
   }
 
   workerPhase = "worker-loop";
   markWorkerPhase(runtimeState, "worker-loop");
-  console.log("[report-worker][INFO][BOOT] starting worker process");
-  weeklyReviewSchedulerControls = startWeeklyReviewScheduler();
-  workerLoopControls = startReportWorkerLoop({
-    hooks: {
-      onFatalError: ({ error, nowMs }) => markFatalError(runtimeState, error, nowMs),
-      onJobEnd: () => markJobEnd(runtimeState),
-      onJobStart: ({ jobId, nowMs }) => markJobStart(runtimeState, { jobId, nowMs }),
-      onLoopTick: ({ nowMs }) => markLoopTick(runtimeState, nowMs),
-    },
+  console.log("[worker][INFO][BOOT] starting worker process");
+  activePropertyAutomationSchedulerControls = startActivePropertyAutomationScheduler();
+  metricsBackfillWorkerControls = startMetricsBackfillWorkerLoop();
+  propertyRefreshWorkerControls = startPropertyRefreshWorkerLoop({
+    lane: "manual",
+    workerName: "pref",
   });
-  propertyRefreshWorkerControls = startPropertyRefreshWorkerLoop();
+  automatedPropertyRefreshWorkerControls = startPropertyRefreshWorkerLoop({
+    lane: "automation",
+    workerName: "apref",
+    intervalMs: parseInt(process.env.AUTOMATED_PROPERTY_REFRESH_WORKER_POLL_MS ?? "6000", 10),
+    maxPollMs: parseInt(process.env.AUTOMATED_PROPERTY_REFRESH_WORKER_MAX_POLL_MS ?? "45000", 10),
+  });
 
   watchdogTimer = setInterval(() => {
     if (
@@ -164,7 +139,7 @@ async function main() {
         `Worker job exceeded max runtime of ${maxJobRuntimeMs}ms and will be restarted`,
       );
       markFatalError(runtimeState, error);
-      console.error("[report-worker][FATAL][FATAL] stuck job watchdog triggered", error);
+      console.error("[worker][FATAL][FATAL] stuck job watchdog triggered", error);
       void requestShutdown(1, "stuck-job-watchdog");
     }
   }, watchdogIntervalMs);
@@ -176,6 +151,6 @@ main().catch(async (error) => {
     phase: workerPhase,
     target: workerPhase === "database-ready" ? "direct-database" : "worker-process",
   });
-  console.error("[report-worker][FATAL][FATAL] worker process crashed", error);
+  console.error("[worker][FATAL][FATAL] worker process crashed", error);
   process.exit(1);
 });

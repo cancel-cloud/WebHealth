@@ -1,16 +1,9 @@
 export const PRODUCT_EVENT_NAMES = [
-  "weekly_watch_enabled",
-  "weekly_watch_disabled",
-  "weekly_auto_report_enqueued",
-  "weekly_auto_report_completed",
-  "weekly_auto_report_skipped_quota",
-  "weekly_dashboard_card_viewed",
-  "weekly_report_opened",
-  "manual_report_created",
-  "manual_report_opened",
-  "report_detail_requested",
   "property_activated",
   "property_deactivated",
+  "snapshot_captured",
+  "snapshot_opened",
+  "snapshot_share_created",
 ] as const;
 
 export type ProductEventName = (typeof PRODUCT_EVENT_NAMES)[number];
@@ -18,8 +11,8 @@ export type ProductEventName = (typeof PRODUCT_EVENT_NAMES)[number];
 export type ProductEventSource =
   | "dashboard"
   | "properties"
-  | "reports"
-  | "report_detail"
+  | "property_dashboard"
+  | "snapshot"
   | "worker"
   | "api";
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@webhealth/shared/db";
-import { properties, propertyWeeklyReviews } from "@webhealth/shared/db/schema";
+import { properties } from "@webhealth/shared/db/schema";
 import { notFound } from "@webhealth/shared/lib/http-errors";
 import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import { requireTeamOwner, requireUnrestrictedSession } from "@/lib/server/authz";
@@ -18,52 +18,44 @@ export async function PATCH(
     const ownerMembership = await requireTeamOwner(session);
     const { id } = await params;
     const propertyId = decodeRouteParam(id);
-    const body = await req.json() as { active?: unknown };
+    const body = await req.json() as { active?: unknown; propertyIds?: unknown };
     const enabled = Boolean(body.active);
     const teamId = ownerMembership.teamId;
+    const requestedPropertyIds = Array.isArray(body.propertyIds)
+      ? body.propertyIds.filter((value): value is string => typeof value === "string" && value.length > 0)
+      : [];
+    const propertyIds = [...new Set([propertyId, ...requestedPropertyIds])];
 
-    const property = await db.query.properties.findFirst({
-      where: (p, { and: andFn, eq: eqFn }) =>
-        andFn(eqFn(p.id, propertyId), eqFn(p.teamId, teamId)),
+    const targetProperties = await db.query.properties.findMany({
+      where: (p, { and: andFn, eq: eqFn, inArray: inArrayFn }) =>
+        andFn(eqFn(p.teamId, teamId), inArrayFn(p.id, propertyIds)),
       columns: { id: true, name: true, active: true },
     });
-    if (!property) {
+    if (targetProperties.length !== propertyIds.length) {
       throw notFound("Property not found or unauthorized", "PROPERTY_NOT_FOUND");
     }
+    const property = targetProperties.find((item) => item.id === propertyId) ?? targetProperties[0];
 
-    const [activeRows, weeklyReview] = await Promise.all([
-      db.query.properties.findMany({
-        where: (p, { and: andFn, eq: eqFn }) =>
-          andFn(eqFn(p.teamId, teamId), eqFn(p.active, true)),
-        columns: { id: true },
-      }),
-      db.query.propertyWeeklyReviews.findFirst({
-        where: (review, { and: andFn, eq: eqFn }) =>
-          andFn(eqFn(review.teamId, teamId), eqFn(review.propertyId, propertyId)),
-        columns: { id: true, enabled: true },
-      }),
-    ]);
+    const activeRows = await db.query.properties.findMany({
+      where: (p, { and: andFn, eq: eqFn }) =>
+        andFn(eqFn(p.teamId, teamId), eqFn(p.active, true)),
+      columns: { id: true },
+    });
 
     const update = buildPropertyActiveUpdate({
       enabled,
-      weeklyReviewEnabled: weeklyReview?.enabled ?? false,
       activePropertiesBefore: activeRows.length,
       propertyWasActive: property.active,
     });
+    const activePropertiesAfter = activeRows.length + targetProperties.reduce((delta, target) => {
+      if (target.active === update.nextActive) return delta;
+      return delta + (update.nextActive ? 1 : -1);
+    }, 0);
 
-    await db.transaction(async (tx) => {
-      await tx
-        .update(properties)
-        .set({ active: update.nextActive })
-        .where(and(eq(properties.id, propertyId), eq(properties.teamId, teamId)));
-
-      if (update.shouldDisableWeeklyReview && weeklyReview) {
-        await tx
-          .update(propertyWeeklyReviews)
-          .set({ enabled: false, updatedAt: new Date() })
-          .where(eq(propertyWeeklyReviews.id, weeklyReview.id));
-      }
-    });
+    await db
+      .update(properties)
+      .set({ active: update.nextActive })
+      .where(and(inArray(properties.id, propertyIds), eq(properties.teamId, teamId)));
 
     void recordProductEvent({
       teamId,
@@ -75,15 +67,15 @@ export async function PATCH(
       properties: {
         propertyId,
         propertyName: property.name,
-        activePropertiesAfter: update.activePropertiesAfter,
+        activePropertiesAfter,
+        propertyIds,
       },
     }).catch(() => {});
 
     return NextResponse.json({
       success: true,
       active: update.nextActive,
-      activePropertiesCount: update.activePropertiesAfter,
-      weeklyReviewDisabled: update.shouldDisableWeeklyReview,
+      activePropertiesCount: activePropertiesAfter,
     });
   } catch (error) {
     return handleRouteError("Error updating property active state", error);

@@ -53,7 +53,7 @@ export function getGoogleAccessDialogModel(issue: GoogleAccessIssue) {
   const reconnectSteps =
     issue.state === "google_auth_relogin_required"
       ? "Your previous Google authorization expired. Sign in again and confirm the required access so WebHealth can sync and refresh your properties."
-      : `WebHealth needs ${formatMissingGrants(issue.missingGrants)} access to sync properties and start reports. Reconnect Google, review the consent screen, and approve the required access.`;
+      : `WebHealth needs ${formatMissingGrants(issue.missingGrants)} access to sync and refresh your properties. Reconnect Google, review the consent screen, and approve the required access.`;
 
   return {
     title: getDialogTitle(issue.state),

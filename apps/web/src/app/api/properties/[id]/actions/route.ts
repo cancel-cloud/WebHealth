@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { RecommendationState } from "@webhealth/shared/lib/reports/types";
+import type { RecommendationState } from "@webhealth/shared/lib/action-types";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { upsertActionItemState } from "@webhealth/shared/lib/live-dashboard";
 import {

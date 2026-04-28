@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -16,66 +17,29 @@ import { Badge } from "@/components/ui/badge";
 import { requestJson } from "@/lib/client/api";
 import { getAppErrorMessage } from "@/lib/client/app-error";
 import { toast } from "sonner";
-
-type ManagedProperty = {
-  id: string;
-  name: string;
-  url: string;
-  type: string;
-  active: boolean;
-  ga4PropertyId: string | null;
-};
-
-function ga4NumericId(property: ManagedProperty) {
-  return property.id.replace(/^ga4_/, "");
-}
-
-function getPropertyStatus(property: ManagedProperty, allProperties: ManagedProperty[]) {
-  if (property.type === "gsc") {
-    const linked = Boolean(property.ga4PropertyId && allProperties.some((item) => item.id === `ga4_${property.ga4PropertyId}`));
-    return {
-      linked,
-      sourceLabel: "GSC",
-      badgeLabel: linked ? "linked" : "setup",
-      note: linked
-        ? "Ready for dashboard cards, refresh jobs, and action computation."
-        : "Missing GA4. Keep this hidden until Analytics is linked for complete traffic context.",
-    };
-  }
-
-  const linked = allProperties.some((item) => item.type === "gsc" && item.ga4PropertyId === ga4NumericId(property));
-  return {
-    linked,
-    sourceLabel: "GA4",
-    badgeLabel: linked ? "linked" : "setup",
-    note: linked
-      ? "Ready through its linked Search Console property."
-      : "Missing Search Console. Keep this hidden until GSC is linked for ranked actions and complete data.",
-  };
-}
-
-function sortManagedProperties(properties: ManagedProperty[]) {
-  return [...properties].sort((a, b) => {
-    const aStatus = getPropertyStatus(a, properties);
-    const bStatus = getPropertyStatus(b, properties);
-    if (aStatus.linked !== bStatus.linked) return aStatus.linked ? -1 : 1;
-    if (a.type !== b.type) return a.type === "gsc" ? -1 : 1;
-    return a.name.localeCompare(b.name);
-  });
-}
+import {
+  buildManagedPropertyRows,
+  filterManagedPropertyRows,
+  getManagedPropertyToggleTargets,
+  type ManagedPropertyRow,
+  type ManagedPropertySource,
+} from "./manage-properties-dialog.logic";
 
 export function ManagePropertiesDialog({
   properties,
 }: {
-  properties: ManagedProperty[];
+  properties: ManagedPropertySource[];
 }) {
   const router = useRouter();
-  const [items, setItems] = useState(() => sortManagedProperties(properties));
+  const [items, setItems] = useState(() => buildManagedPropertyRows(properties));
+  const [search, setSearch] = useState("");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const currentActiveCount = items.filter((property) => property.active).length;
+  const visibleItems = filterManagedPropertyRows(items, search);
 
-  async function updateProperty(property: ManagedProperty, active: boolean) {
+  async function updateProperty(property: ManagedPropertyRow, active: boolean) {
+    const targetIds = getManagedPropertyToggleTargets(property);
     setPendingId(property.id);
     const previous = items;
     setItems((current) =>
@@ -83,10 +47,10 @@ export function ManagePropertiesDialog({
     );
 
     try {
-      await requestJson(`/api/properties/${encodeURIComponent(property.id)}/active`, {
+      await requestJson(`/api/properties/${encodeURIComponent(targetIds[0])}/active`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ active }),
+        body: JSON.stringify({ active, propertyIds: targetIds }),
       });
       toast.success(active ? "Property activated" : "Property hidden from dashboard");
       startTransition(() => router.refresh());
@@ -115,10 +79,16 @@ export function ManagePropertiesDialog({
           {currentActiveCount} active of {items.length} synced properties. Linked GSC + GA4 sources are listed first. Sources missing one connector should usually stay inactive.
         </div>
 
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search properties"
+          aria-label="Search properties"
+        />
+
         <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
-          {items.map((property) => {
+          {visibleItems.map((property) => {
             const isUpdating = pendingId === property.id || isPending;
-            const status = getPropertyStatus(property, items);
             return (
               <div
                 key={property.id}
@@ -127,16 +97,16 @@ export function ManagePropertiesDialog({
                 <div className="min-w-0 space-y-2">
                   <div className="flex min-w-0 items-center gap-2">
                     <p className="truncate text-sm font-medium">{property.name}</p>
-                    <Badge variant="outline" className="uppercase">{status.sourceLabel}</Badge>
-                    {status.linked ? (
+                    <Badge variant="outline" className="uppercase">{property.sourceLabel}</Badge>
+                    {property.linked ? (
                       <Badge variant="outline" className="border-emerald-200 text-emerald-700">linked</Badge>
                     ) : (
                       <Badge variant="outline" className="border-amber-200 text-amber-700">setup</Badge>
                     )}
                   </div>
                   <p className="truncate text-xs text-muted-foreground">{property.url}</p>
-                  <p className={status.linked ? "text-xs text-muted-foreground" : "text-xs text-amber-700 dark:text-amber-300"}>
-                    {status.note}
+                  <p className={property.linked ? "text-xs text-muted-foreground" : "text-xs text-amber-700 dark:text-amber-300"}>
+                    {property.note}
                   </p>
                 </div>
                 <Switch
@@ -148,6 +118,11 @@ export function ManagePropertiesDialog({
               </div>
             );
           })}
+          {!visibleItems.length ? (
+            <div className="rounded-lg border border-border/70 p-6 text-center text-sm text-muted-foreground">
+              No synced properties match your search.
+            </div>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
