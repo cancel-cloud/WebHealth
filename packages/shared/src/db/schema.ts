@@ -120,6 +120,9 @@ export const properties = pgTable("properties", {
   name: text("name").notNull(),
   url: text("url").notNull(),
   ga4PropertyId: text("ga4_property_id"), // To link GSC to GA4
+  ga4LinkConfidence: text("ga4_link_confidence"),
+  ga4LinkSource: text("ga4_link_source"),
+  ga4LinkUpdatedAt: timestamp("ga4_link_updated_at"),
   gscDataStartDate: date("gsc_data_start_date"),
   syncStatus: text("sync_status").default("pending").notNull(), // pending, syncing, complete, failed
   lastSyncedAt: timestamp("last_synced_at"),
@@ -432,6 +435,7 @@ export const gscDailyRaw = pgTable("gsc_daily_raw", {
   summaryPayload: jsonb("summary_payload").notNull(),
   queriesPayload: jsonb("queries_payload"),
   pagesPayload: jsonb("pages_payload"),
+  queryPagePairsPayload: jsonb("query_page_pairs_payload"),
   countriesPayload: jsonb("countries_payload"),
   devicesPayload: jsonb("devices_payload"),
   fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
@@ -457,6 +461,23 @@ export const ga4DailyRaw = pgTable("ga4_daily_raw", {
   unique().on(t.ga4PropertyId, t.sourceDate),
   index("ga4_daily_raw_gsc_date_idx").on(t.gscPropertyId, t.sourceDate),
   index("ga4_daily_raw_team_date_idx").on(t.teamId, t.sourceDate),
+]);
+
+export const ga4ReportArtifacts = pgTable("ga4_report_artifacts", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  gscPropertyId: text("gsc_property_id").references(() => properties.id, { onDelete: "set null" }),
+  ga4PropertyId: text("ga4_property_id").notNull(),
+  dateStart: date("date_start").notNull(),
+  dateEnd: date("date_end").notNull(),
+  reportPayload: jsonb("report_payload").notNull(),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+  syncJobId: text("sync_job_id").references(() => metricsBackfillJobs.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.ga4PropertyId, t.dateStart, t.dateEnd),
+  index("ga4_report_artifacts_gsc_range_idx").on(t.gscPropertyId, t.dateStart, t.dateEnd),
+  index("ga4_report_artifacts_team_fetched_idx").on(t.teamId, t.fetchedAt),
 ]);
 
 export const gscDailyFacts = pgTable("gsc_daily_facts", {
@@ -514,6 +535,97 @@ export const propertyDailyAiSummaries = pgTable("property_daily_ai_summaries", {
 }, (t) => [
   unique().on(t.propertyId, t.sourceDate),
   index("property_daily_ai_summaries_team_property_date_idx").on(t.teamId, t.propertyId, t.sourceDate),
+]);
+
+export const aiPromptTemplates = pgTable("ai_prompt_templates", {
+  id: text("id").primaryKey(),
+  purpose: text("purpose").notNull(),
+  version: integer("version").notNull(),
+  name: text("name").notNull(),
+  systemPrompt: text("system_prompt").notNull(),
+  isActive: boolean("is_active").default(false).notNull(),
+  createdByUserId: text("created_by_user_id").references(() => user.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.purpose, t.version),
+  index("ai_prompt_templates_purpose_active_idx").on(t.purpose, t.isActive),
+]);
+
+export const aiRuntimeSettings = pgTable("ai_runtime_settings", {
+  id: text("id").primaryKey(),
+  summaryModel: text("summary_model").default("gpt-5-mini").notNull(),
+  analyzerModel: text("analyzer_model").default("gpt-5-mini").notNull(),
+  maxOutputTokens: integer("max_output_tokens").default(128000).notNull(),
+  updatedByUserId: text("updated_by_user_id").references(() => user.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const aiAnalysisRuns = pgTable("ai_analysis_runs", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  refreshJobId: text("refresh_job_id").references(() => propertyRefreshJobs.id, { onDelete: "set null" }),
+  preset: text("preset").notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  compareMode: text("compare_mode").notNull(),
+  compareStartDate: date("compare_start_date"),
+  compareEndDate: date("compare_end_date"),
+  sourceVersionHash: text("source_version_hash").notNull(),
+  status: text("status").default("queued").notNull(),
+  phase: text("phase").default("queued").notNull(),
+  summaryModel: text("summary_model"),
+  analyzerModel: text("analyzer_model"),
+  promptVersions: jsonb("prompt_versions").notNull(),
+  sourceSummaryInput: jsonb("source_summary_input"),
+  sourceSummaries: jsonb("source_summaries"),
+  analyzerOutput: jsonb("analyzer_output"),
+  usageSnapshot: jsonb("usage_snapshot"),
+  costEstimateUsd: numeric("cost_estimate_usd", { precision: 14, scale: 6 }),
+  error: text("error"),
+  startedAt: timestamp("started_at"),
+  finishedAt: timestamp("finished_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(
+    t.propertyId,
+    t.startDate,
+    t.endDate,
+    t.compareMode,
+    t.compareStartDate,
+    t.compareEndDate,
+    t.sourceVersionHash,
+  ),
+  index("ai_analysis_runs_property_status_idx").on(t.propertyId, t.status, t.updatedAt),
+  index("ai_analysis_runs_team_created_idx").on(t.teamId, t.createdAt),
+]);
+
+export const aiRecommendations = pgTable("ai_recommendations", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  aiRunId: text("ai_run_id").notNull().references(() => aiAnalysisRuns.id, { onDelete: "cascade" }),
+  actionItemId: text("action_item_id").references(() => actionItems.id, { onDelete: "set null" }),
+  fingerprint: text("fingerprint").notNull(),
+  source: text("source").default("ai").notNull(),
+  title: text("title").notNull(),
+  area: text("area").notNull(),
+  targetType: text("target_type").notNull(),
+  targetKey: text("target_key").notNull(),
+  confidence: text("confidence").notNull(),
+  summary: text("summary").notNull(),
+  clientSafeSummary: text("client_safe_summary").notNull(),
+  evidenceAnchors: jsonb("evidence_anchors").notNull(),
+  rawRecommendation: jsonb("raw_recommendation").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.aiRunId, t.fingerprint),
+  index("ai_recommendations_property_created_idx").on(t.propertyId, t.createdAt),
+  index("ai_recommendations_team_created_idx").on(t.teamId, t.createdAt),
+  index("ai_recommendations_action_item_idx").on(t.actionItemId),
 ]);
 
 export const featureFlags = pgTable("feature_flags", {

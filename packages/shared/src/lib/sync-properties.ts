@@ -8,6 +8,7 @@ import {
   fetchGa4Properties,
   fetchGscDataStartDate,
 } from "@webhealth/shared/lib/google/api";
+import { estimateGa4DisplayNameLink } from "@webhealth/shared/lib/ga4-linking";
 import { updateGoogleAccountTokens } from "@webhealth/shared/lib/provider-tokens";
 
 export async function syncPropertiesForUser({
@@ -149,21 +150,17 @@ export async function syncPropertiesForUser({
       and(eq(p.teamId, teamId), eq(p.type, "gsc"), isNull(p.ga4PropertyId)),
   });
   for (const gscProp of unlinkedGsc) {
-    const domain = gscProp.url
-      .replace("sc-domain:", "")
-      .replace("https://", "")
-      .replace("http://", "")
-      .replace(/\/$/, "")
-      .toLowerCase();
-    const match = ga4Props.find(
-      (ga4) =>
-        ga4.displayName.toLowerCase().includes(domain) ||
-        domain.includes(ga4.displayName.toLowerCase().replace(/^www\./, ""))
-    );
+    const match = ga4Props.find((ga4) => estimateGa4DisplayNameLink(gscProp.url, ga4.displayName).matched);
     if (match) {
+      const estimate = estimateGa4DisplayNameLink(gscProp.url, match.displayName);
       await db
         .update(properties)
-        .set({ ga4PropertyId: match.propertyId })
+        .set({
+          ga4PropertyId: match.propertyId,
+          ga4LinkConfidence: estimate.confidence,
+          ga4LinkSource: estimate.source,
+          ga4LinkUpdatedAt: new Date(),
+        })
         .where(eq(properties.id, gscProp.id));
       autoLinked++;
     }

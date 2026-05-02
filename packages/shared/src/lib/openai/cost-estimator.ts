@@ -7,6 +7,10 @@ type Pricing = {
 };
 
 const MODEL_PRICING: Record<string, Pricing> = {
+  "gpt-5.5": { inputPer1M: 5, outputPer1M: 30, cachedInputPer1M: 0.5 },
+  "gpt-5.4-mini": { inputPer1M: 0.75, outputPer1M: 4.5, cachedInputPer1M: 0.08 },
+  "gpt-5.4-nano": { inputPer1M: 0.2, outputPer1M: 1.25, cachedInputPer1M: 0.02 },
+  "gpt-5.4": { inputPer1M: 2.5, outputPer1M: 15, cachedInputPer1M: 0.25 },
   "gpt-5.2": { inputPer1M: 1.75, outputPer1M: 14, cachedInputPer1M: 0.175 },
   "gpt-5-mini": { inputPer1M: 0.25, outputPer1M: 2 },
   "gpt-5": { inputPer1M: 1.75, outputPer1M: 14, cachedInputPer1M: 0.175 },

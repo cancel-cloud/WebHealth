@@ -116,3 +116,40 @@ test("crawlWebsite only visits in-scope pages", async () => {
   assert.deepEqual(fetchedUrls, ["https://example.com/", "https://example.com/about"]);
   assert.equal(result.pages.length, 2);
 });
+
+test("crawlWebsite captures SEO fundamentals for AI evidence", async () => {
+  const result = await crawlWebsite("https://example.com/", 1, {
+    dnsLookup: async () => [{ address: "93.184.216.34", family: 4 }],
+    fetchImpl: async () =>
+      new Response(
+        `
+          <html>
+            <head>
+              <title>Home</title>
+              <meta name="description" content="desc" />
+              <meta name="robots" content="noindex,nofollow" />
+              <link rel="canonical" href="https://example.com/canonical" />
+            </head>
+            <body>
+              <h1>Home</h1>
+              <img src="/hero.jpg" />
+              Short copy.
+            </body>
+          </html>
+        `,
+        { status: 200 },
+      ),
+  });
+
+  const page = result.pages[0]!;
+  assert.equal(page.noindex, true);
+  assert.equal(page.nofollow, true);
+  assert.equal(page.imageMissingAltCount, 1);
+  assert.equal(page.hasStructuredData, false);
+  assert.equal(page.hasViewportMeta, false);
+  assert.equal(result.summary.noindexPages, 1);
+  assert.equal(result.summary.imageMissingAlt, 1);
+  assert.ok(page.issues.includes("Canonical URL points to a different URL"));
+  assert.ok(page.issues.includes("Missing viewport meta tag"));
+  assert.ok(page.issues.includes("Missing structured data"));
+});

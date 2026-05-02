@@ -5,6 +5,7 @@ import {
   account,
   ga4DailyFacts,
   ga4DailyRaw,
+  ga4ReportArtifacts,
   gscDailyFacts,
   gscDailyRaw,
   metricsBackfillJobs,
@@ -14,6 +15,7 @@ import {
 } from "@webhealth/shared/db/schema";
 import {
   fetchGa4DailySummary,
+  fetchGa4ReportProfileForRange,
   fetchGscMetricsBatch,
   getGoogleAuthClient,
   type GscDayMetrics,
@@ -144,6 +146,7 @@ async function upsertGscDayData(params: {
       },
       queriesPayload: metrics.topQueries,
       pagesPayload: metrics.topPages,
+      queryPagePairsPayload: metrics.queryPagePairs,
       countriesPayload: metrics.topCountries,
       devicesPayload: metrics.topDevices,
       fetchedAt: now,
@@ -161,6 +164,7 @@ async function upsertGscDayData(params: {
         },
         queriesPayload: metrics.topQueries,
         pagesPayload: metrics.topPages,
+        queryPagePairsPayload: metrics.queryPagePairs,
         countriesPayload: metrics.topCountries,
         devicesPayload: metrics.topDevices,
         fetchedAt: now,
@@ -257,6 +261,40 @@ async function upsertGa4DayData(params: {
         newUsers: metrics.newUsers,
         fetchedAt: now,
         updatedAt: now,
+      },
+    });
+}
+
+async function upsertGa4ReportArtifact(params: {
+  teamId: string;
+  gscPropertyId: string | null;
+  ga4PropertyId: string;
+  dateStart: DateString;
+  dateEnd: DateString;
+  reportPayload: unknown;
+  syncJobId?: string | null;
+}) {
+  const now = new Date();
+  await db
+    .insert(ga4ReportArtifacts)
+    .values({
+      id: `ga4a_${nanoid(12)}`,
+      teamId: params.teamId,
+      gscPropertyId: params.gscPropertyId,
+      ga4PropertyId: params.ga4PropertyId,
+      dateStart: params.dateStart,
+      dateEnd: params.dateEnd,
+      reportPayload: params.reportPayload,
+      fetchedAt: now,
+      syncJobId: params.syncJobId ?? null,
+    })
+    .onConflictDoUpdate({
+      target: [ga4ReportArtifacts.ga4PropertyId, ga4ReportArtifacts.dateStart, ga4ReportArtifacts.dateEnd],
+      set: {
+        gscPropertyId: params.gscPropertyId,
+        reportPayload: params.reportPayload,
+        fetchedAt: now,
+        syncJobId: params.syncJobId ?? null,
       },
     });
 }
@@ -468,7 +506,7 @@ export async function processMetricsBackfillJob(args: {
                 sourceDate: day,
                 metrics: {
                   clicks: 0, impressions: 0, ctr: 0, position: 0,
-                  topQueries: [], topPages: [], topCountries: [], topDevices: [],
+                  topQueries: [], topPages: [], queryPagePairs: [], topCountries: [], topDevices: [],
                 },
                 syncJobId: job.id,
               });
@@ -519,7 +557,10 @@ export async function processMetricsBackfillJob(args: {
         const fetchEnd = datesToFetch[datesToFetch.length - 1];
 
         try {
-          const dayMap = await fetchGa4DailySummary(args.authClient, ga4Id, fetchStart, fetchEnd);
+          const [dayMap, profile] = await Promise.all([
+            fetchGa4DailySummary(args.authClient, ga4Id, fetchStart, fetchEnd),
+            fetchGa4ReportProfileForRange(args.authClient, ga4Id, fetchStart, fetchEnd),
+          ]);
 
           for (const day of datesToFetch) {
             const metrics = dayMap.get(day) ?? { sessions: 0, users: 0, newUsers: 0 };
@@ -536,6 +577,15 @@ export async function processMetricsBackfillJob(args: {
               totals.ga4RefreshedDates++;
             }
           }
+          await upsertGa4ReportArtifact({
+            teamId: job.teamId,
+            gscPropertyId: prop.id,
+            ga4PropertyId: ga4Id,
+            dateStart: fetchStart,
+            dateEnd: fetchEnd,
+            reportPayload: profile,
+            syncJobId: job.id,
+          });
           ga4ValidatedProps.add(ga4Id);
         } catch {
           totals.ga4FailedDates += datesToFetch.length;
@@ -806,6 +856,15 @@ type AggregatedGscTopPage = {
   impressions: number;
 };
 
+type AggregatedGscQueryPagePair = {
+  query: string;
+  page: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+};
+
 type AggregatedGscTopCountry = {
   country: string;
   clicks: number;
@@ -870,6 +929,44 @@ function aggregateGscTopPages(rawRows: Array<typeof gscDailyRaw.$inferSelect>): 
 
   return [...map.entries()]
     .map(([page, v]) => ({ page, clicks: v.clicks, impressions: v.impressions }))
+    .sort((a, b) => b.clicks - a.clicks)
+    .slice(0, 25);
+}
+
+function aggregateGscQueryPagePairs(rawRows: Array<typeof gscDailyRaw.$inferSelect>): AggregatedGscQueryPagePair[] {
+  const map = new Map<string, { clicks: number; impressions: number; positionImpr: number }>();
+  for (const row of rawRows) {
+    const items = Array.isArray(row.queryPagePairsPayload) ? (row.queryPagePairsPayload as unknown[]) : [];
+    for (const item of items) {
+      if (!item || typeof item !== "object") continue;
+      const record = item as Record<string, unknown>;
+      const query = String(record.query ?? "");
+      const page = String(record.page ?? "");
+      if (!query || !page) continue;
+      const key = `${query}\u0000${page}`;
+      const clicks = Number(record.clicks ?? 0);
+      const impressions = Number(record.impressions ?? 0);
+      const position = Number(record.position ?? 0);
+      const cur = map.get(key) ?? { clicks: 0, impressions: 0, positionImpr: 0 };
+      cur.clicks += clicks;
+      cur.impressions += impressions;
+      cur.positionImpr += position * Math.max(impressions, 1);
+      map.set(key, cur);
+    }
+  }
+
+  return [...map.entries()]
+    .map(([key, v]) => {
+      const [query = "", page = ""] = key.split("\u0000");
+      return {
+        query,
+        page,
+        clicks: v.clicks,
+        impressions: v.impressions,
+        ctr: v.impressions > 0 ? v.clicks / v.impressions : 0,
+        position: v.impressions > 0 ? v.positionImpr / v.impressions : 0,
+      };
+    })
     .sort((a, b) => b.clicks - a.clicks)
     .slice(0, 25);
 }
@@ -1029,6 +1126,7 @@ export async function composeReportMetricsFromCache(params: {
         ...gscCurrentSummary,
         topQueries: aggregateGscTopQueries(gscCurrent.rawRows),
         topPages: aggregateGscTopPages(gscCurrent.rawRows),
+        queryPagePairs: aggregateGscQueryPagePairs(gscCurrent.rawRows),
         topCountries: aggregateGscTopCountries(gscCurrent.rawRows),
         topDevices: aggregateGscTopDevices(gscCurrent.rawRows),
       },
@@ -1036,6 +1134,7 @@ export async function composeReportMetricsFromCache(params: {
         ...gscCompareSummary,
         topQueries: aggregateGscTopQueries(gscCompare.rawRows),
         topPages: aggregateGscTopPages(gscCompare.rawRows),
+        queryPagePairs: aggregateGscQueryPagePairs(gscCompare.rawRows),
         topCountries: aggregateGscTopCountries(gscCompare.rawRows),
         topDevices: aggregateGscTopDevices(gscCompare.rawRows),
       },

@@ -202,6 +202,13 @@ export function getAppSidebarModel({
           current: isPathCurrent(pathname, "/admin/global-settings"),
         },
         {
+          id: "admin-ai-prompts",
+          label: "AI Prompts",
+          href: "/admin/ai-prompts",
+          icon: "bot",
+          current: isPathCurrent(pathname, "/admin/ai-prompts"),
+        },
+        {
           id: "admin-ai-report-debug",
           label: "Ops Debug Console",
           href: "/admin/ai-report-debug",
