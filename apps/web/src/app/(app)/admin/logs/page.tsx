@@ -17,7 +17,7 @@ export default async function AdminLogsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">System Logs</h1>
         <p className="text-muted-foreground text-sm">
-          Admin-triggered sync and processing events.
+          Admin syncs, background refreshes, AI insight runs, action changes, and snapshot activity.
         </p>
       </div>
       <LogsTable initialLogs={logs} />
