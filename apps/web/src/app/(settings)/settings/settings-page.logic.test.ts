@@ -26,7 +26,7 @@ test("normalizeSettingsResponse coerces optional values into stable defaults", (
       weeklyDigest: 1,
       syncFailure: true,
       emailReceipts: undefined,
-      teamTier: "pro",
+      teamTier: "studio",
     }),
     {
       weeklyDigest: true,
@@ -35,7 +35,7 @@ test("normalizeSettingsResponse coerces optional values into stable defaults", (
       isRestricted: false,
       restrictionMessage: null,
       adminContacts: [],
-      teamTier: "pro",
+      teamTier: "studio",
       hasStripeCustomer: false,
       subscriptionCancelAt: null,
     }
@@ -44,11 +44,11 @@ test("normalizeSettingsResponse coerces optional values into stable defaults", (
 
 test("getSettingsAccountSummary keeps the header focused on the active plan name", () => {
   const summary = getSettingsAccountSummary({
-    teamTier: "pro",
+    teamTier: "studio",
     subscriptionCancelAt: "2026-04-15T00:00:00.000Z",
   });
 
-  assert.equal(summary.planLabel, "Pro Plan");
+  assert.equal(summary.planLabel, "Studio Plan");
   assert.equal(summary.planStatus, null);
 });
 
@@ -65,7 +65,7 @@ test("getSettingsAccountSummary omits the current-plan label when the plan is ac
 test("paid Solo action uses destructive styling for an active downgrade", () => {
   assert.deepEqual(
     getSettingsSoloPlanAction({
-      teamTier: "pro",
+      teamTier: "studio",
       subscriptionCancelAt: null,
     }),
     {
@@ -78,7 +78,7 @@ test("paid Solo action uses destructive styling for an active downgrade", () => 
 test("paid Solo action keeps manage-cancellation styling non-destructive", () => {
   assert.deepEqual(
     getSettingsSoloPlanAction({
-      teamTier: "pro",
+      teamTier: "studio",
       subscriptionCancelAt: "2026-04-15T00:00:00.000Z",
     }),
     {
@@ -90,9 +90,9 @@ test("paid Solo action keeps manage-cancellation styling non-destructive", () =>
 
 test("getCheckoutConfirmationCopy explains recurring billing and legal review before Stripe checkout", () => {
   assert.deepEqual(
-    getCheckoutConfirmationCopy("pro", "€29"),
+    getCheckoutConfirmationCopy("starter", "€29"),
     {
-      title: "Continue to Pro checkout?",
+      title: "Continue to Starter checkout?",
       recurringNotice: "€29/mo. The subscription renews monthly until you cancel it.",
       cancellationNotice:
         "Cancellation, invoices, and plan changes are managed from the Stripe billing portal in your settings.",

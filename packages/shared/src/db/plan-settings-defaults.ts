@@ -9,16 +9,28 @@ export const DEFAULT_PLAN_SETTINGS = [
     maxProperties: null,
   },
   {
-    id: "plan_pro",
-    tier: "pro",
-    displayName: "Pro",
-    maxProperties: null,
+    id: "plan_starter",
+    tier: "starter",
+    displayName: "Starter",
+    maxProperties: 5,
+  },
+  {
+    id: "plan_studio",
+    tier: "studio",
+    displayName: "Studio",
+    maxProperties: 20,
   },
   {
     id: "plan_agency",
     tier: "agency",
     displayName: "Agency",
-    maxProperties: null,
+    maxProperties: 25,
+  },
+  {
+    id: "plan_pro",
+    tier: "pro",
+    displayName: "Pro (legacy)",
+    maxProperties: 20,
   },
 ] as const;
 

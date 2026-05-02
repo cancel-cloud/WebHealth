@@ -442,7 +442,7 @@ export default function SettingsPage() {
                                 {getLocalizedPricingValue(plan.cta, "en")}
                               </a>
                             </Button>
-                          ) : (
+                          ) : plan.tier === "solo" ? (
                             <Button
                               asChild
                               variant={isCurrent ? "outline" : "default"}
@@ -453,6 +453,31 @@ export default function SettingsPage() {
                                   ? "Current Plan"
                                   : getLocalizedPricingValue(plan.cta, "en")}
                               </Link>
+                            </Button>
+                          ) : (
+                            <Button
+                              variant={isCurrent ? "outline" : "default"}
+                              className="h-10 w-full rounded-full"
+                              disabled={isCurrent}
+                              onClick={async () => {
+                                try {
+                                  const data = await requestJson<{ url?: string }>("/api/stripe/checkout", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ plan: plan.tier }),
+                                  });
+                                  if (!data?.url) throw new Error("Stripe checkout URL missing");
+                                  window.location.href = data.url;
+                                } catch (error) {
+                                  toast.error("Checkout failed", {
+                                    description: getAppErrorMessage(error, "Please try again."),
+                                  });
+                                }
+                              }}
+                            >
+                              {isCurrent
+                                ? "Current Plan"
+                                : getLocalizedPricingValue(plan.cta, "en")}
                             </Button>
                           )}
                         </div>

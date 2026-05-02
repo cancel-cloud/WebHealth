@@ -29,7 +29,7 @@ export const legalDictionaryDe = {
   documents: {
     privacy: {
       title: "Datenschutzhinweise",
-      description: "Wie Webhealth personenbezogene Daten erhebt, nutzt, speichert und schützt.",
+      description: "Wie Webhealth personenbezogene Daten erhebt, nutzt und schützt — Verschlüsselung, Speicherdauer und Ihre Betroffenenrechte nach DSGVO.",
       lastUpdatedLabel: "Stand: März 2026",
       intro: [
         `${legalProfile.productName} wird von ${getOperatorDisplayName("de")} betrieben. Diese Hinweise erklären, wie wir personenbezogene Daten verarbeiten, wenn Sie die Website besuchen, sich mit Google anmelden, Datenquellen verbinden, Snapshots erstellen, den Support kontaktieren oder kostenpflichtige Funktionen nutzen.`,
@@ -164,7 +164,7 @@ export const legalDictionaryDe = {
     },
     terms: {
       title: "Nutzungsbedingungen",
-      description: "Bedingungen für Zugang und Nutzung des Webhealth-Dienstes.",
+      description: "Bedingungen für die Nutzung von Webhealth — Pläne, Abrechnung, Kündigung, Verbraucherrechte und Haftung für SEO- und Analyse-Funktionen.",
       lastUpdatedLabel: "Stand: März 2026",
       intro: [
         `${legalProfile.productName} wird von ${getOperatorDisplayName("de")} bereitgestellt. Diese Bedingungen sind so formuliert, dass sie sowohl für Geschäftskunden als auch für Verbraucher gelten, sofern einzelne Klauseln nichts anderes bestimmen.`,
@@ -246,7 +246,7 @@ export const legalDictionaryDe = {
     },
     impressum: {
       title: "Impressum",
-      description: "Anbieterkennzeichnung und Pflichtangaben für Webhealth.",
+      description: "Anbieterkennzeichnung, Kontaktdaten und gesetzliche Pflichtangaben nach § 5 TMG für den Webhealth-SEO- und Analyse-Dienst von DevBrew.",
       lastUpdatedLabel: "Stand: März 2026",
       intro: [
         "Dieses Impressum enthält die Anbieterkennzeichnung und die Angaben zur Verbraucherstreitbeilegung für Webhealth.",

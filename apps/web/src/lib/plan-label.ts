@@ -12,8 +12,10 @@ export function formatPlanName(teamTier?: string | null) {
     case undefined:
     case null:
       return "Solo Plan";
-    case "pro":
-      return "Pro Plan";
+    case "starter":
+      return "Starter Plan";
+    case "studio":
+      return "Studio Plan";
     case "agency":
       return "Agency Plan";
     default:

@@ -29,25 +29,37 @@ export const PRICING_PLANS = {
       "Live crawl",
     ],
   },
-  pro: {
-    name: "Pro",
-    priceLabel: "38€",
+  starter: {
+    name: "Starter",
+    priceLabel: "29€",
     periodLabel: "/ month",
     description: "For freelancers managing multiple client sites.",
     features: [
-      "Unlimited properties",
+      "Up to 5 client sites",
       "Live property dashboards",
       "Snapshot exports",
+      "White-label on (preview)",
+      "Email support",
+    ],
+  },
+  studio: {
+    name: "Studio",
+    priceLabel: "79€",
+    periodLabel: "/ month",
+    description: "For small agencies running SEO monthly.",
+    features: [
+      "Up to 20 client sites",
+      "Unlimited snapshots",
       "Priority refreshes",
       "Ranked fix list",
-      "Email support",
+      "Priority support",
     ],
   },
   agency: {
     name: "Agency",
-    priceLabel: "79€",
-    periodLabel: "per month",
-    description: "For agencies and high-volume clients running SEO at scale.",
+    priceLabel: "149€",
+    periodLabel: "base / month",
+    description: "Planned for agencies that need collaboration and client controls.",
   },
 } as const;
 

@@ -13,7 +13,7 @@ export type Settings = {
 };
 
 export type SettingsTab = "account" | "contact";
-export type PaidPlan = "pro" | "agency";
+export type PaidPlan = "starter" | "studio";
 
 export type CheckoutConfirmationState = {
   acceptedLegalDocuments: boolean;
@@ -48,7 +48,7 @@ export function getSettingsSoloPlanAction(
 }
 
 export function getCheckoutConfirmationCopy(plan: PaidPlan, priceLabel: string) {
-  const planName = plan === "agency" ? "Agency" : "Pro";
+  const planName = plan === "studio" ? "Studio" : "Starter";
 
   return {
     title: `Continue to ${planName} checkout?`,
