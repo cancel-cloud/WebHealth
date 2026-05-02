@@ -46,7 +46,21 @@ function MarketingFooter() {
             &copy; {new Date().getFullYear()} DevBrew. All rights reserved.
           </span>
         </div>
-        <nav className="flex items-center gap-5" aria-label="Footer navigation">
+        <nav className="flex flex-wrap items-center gap-5" aria-label="Footer navigation">
+          <Link
+            href="/about"
+            className="text-xs transition-colors hover:underline"
+            style={{ color: "oklch(0.55 0.02 250)" }}
+          >
+            About
+          </Link>
+          <Link
+            href="/pricing"
+            className="text-xs transition-colors hover:underline"
+            style={{ color: "oklch(0.55 0.02 250)" }}
+          >
+            Pricing
+          </Link>
           <Suspense fallback={<LegalFooterLinksFallback />}>
             <LegalFooterLinks />
           </Suspense>
@@ -73,7 +87,7 @@ export function MarketingShell({
   const isAgencyHomepage = pathname === "/";
 
   if (isAgencyHomepage) {
-    return <main className="flex-1 flex flex-col">{children}</main>;
+    return <>{children}</>;
   }
 
   return (

@@ -59,7 +59,7 @@ test("buildCheckoutSessionParams includes recurring billing and legal review cop
     priceId: "price_123",
     origin: "https://webhealth.devbrew.dev",
     teamId: "team_123",
-    plan: "pro",
+    plan: "starter",
   });
 
   const submitMessage =

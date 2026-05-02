@@ -41,13 +41,13 @@ export function PricingSection() {
           >
             Pricing
           </p>
-          <h2
+          <h1
             id="pricing-heading"
             className="font-display text-4xl md:text-5xl font-bold tracking-tight"
             style={{ textWrap: "balance" } as React.CSSProperties}
           >
             Simple. Transparent. No surprises.
-          </h2>
+          </h1>
         </div>
 
         <motion.div
@@ -83,9 +83,9 @@ export function PricingSection() {
                 )}
               </div>
               <div className="mt-4 min-h-[8.5rem]">
-                <h3 className="font-display text-sm font-semibold uppercase tracking-widest">
+                <h2 className="font-display text-sm font-semibold uppercase tracking-widest">
                   {getLocalizedPricingValue(plan.name, "en")}
-                </h3>
+                </h2>
                 <p
                   className="mt-2 text-xs min-w-0"
                   style={{ color: "oklch(0.55 0.02 250)" }}

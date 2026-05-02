@@ -29,7 +29,7 @@ export const legalDictionaryEn = {
   documents: {
     privacy: {
       title: "Privacy Policy",
-      description: "How Webhealth collects, uses, stores, and protects personal data.",
+      description: "How Webhealth collects, uses, and protects personal data when connecting Search Console and Analytics 4 — encryption, retention, and your rights.",
       lastUpdatedLabel: "Last updated: March 2026",
       intro: [
         `${legalProfile.productName} is operated by ${getOperatorDisplayName("en")}. This notice explains how we process personal data when you visit the site, sign in with Google, connect data sources, generate snapshots, contact support, or use paid features.`,
@@ -164,7 +164,7 @@ export const legalDictionaryEn = {
     },
     terms: {
       title: "Terms of Service",
-      description: "Terms governing access to and use of the Webhealth service.",
+      description: "Terms governing use of the Webhealth SEO and analytics service — plans, billing, cancellation, intellectual property, and consumer rights.",
       lastUpdatedLabel: "Last updated: March 2026",
       intro: [
         `${legalProfile.productName} is provided by ${getOperatorDisplayName("en")}. These terms are written to cover both business customers and consumers unless a specific clause says otherwise.`,
@@ -248,7 +248,7 @@ export const legalDictionaryEn = {
     },
     impressum: {
       title: "Impressum (Legal Notice)",
-      description: "Provider identification and mandatory legal information for Webhealth.",
+      description: "Provider identification, contact details, and mandatory legal information for the Webhealth SEO and analytics service operated by DevBrew.",
       lastUpdatedLabel: "Last updated: March 2026",
       languageNotice:
         "“Impressum” is the German legal notice / provider identification page.",
