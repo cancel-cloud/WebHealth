@@ -64,6 +64,48 @@
       "when": 1774454400000,
       "tag": "0008_retire_legacy_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1774540800000,
+      "tag": "0009_ai_analysis_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1774627200000,
+      "tag": "0010_ga4_link_confidence",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1774713600000,
+      "tag": "0011_gsc_query_page_pairs",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1774800000000,
+      "tag": "0012_ga4_report_artifacts",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1774886400000,
+      "tag": "0013_ai_runtime_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1774972800000,
+      "tag": "0014_gpt5_mini_runtime_defaults",
+      "breakpoints": true
     }
   ]
 }

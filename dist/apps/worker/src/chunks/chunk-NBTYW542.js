@@ -1,29 +1,26 @@
 import {
-  resolveTeamReportSources
-} from "./chunk-DBENP726.js";
-import {
-  getLatestMetricsBackfillState
-} from "./chunk-3NHS453Z.js";
-import {
   getLatestPropertyCrawl,
   getLatestPropertyRefreshState,
   getLatestPropertyRefreshStateForWindow
-} from "./chunk-HOT5KVBW.js";
+} from "./chunk-QENNCNTT.js";
+import {
+  getLatestMetricsBackfillState
+} from "./chunk-JPMC6U57.js";
 import {
   db
-} from "./chunk-GSUZOY5F.js";
+} from "./chunk-MKUBJP65.js";
 import {
   actionItems,
+  aiAnalysisRuns,
+  aiRecommendations,
   analysisWindowCache,
   propertyShareLinks,
   snapshotExports
-} from "./chunk-4NLGD3XI.js";
-import "./chunk-EJ6QGHXW.js";
-import "./chunk-3LHI6BO3.js";
+} from "./chunk-IZCFPQU7.js";
 
 // packages/shared/src/lib/live-dashboard.ts
-import { createHash } from "node:crypto";
-import { and, eq, isNull, lt } from "drizzle-orm";
+import { createHash as createHash2 } from "node:crypto";
+import { and as and2, eq as eq2, isNull as isNull2, lt } from "drizzle-orm";
 import { nanoid as nanoid2 } from "nanoid";
 
 // packages/shared/src/lib/deterministic-insights.ts
@@ -1067,6 +1064,91 @@ function buildDeterministicInsights(input) {
   };
 }
 
+// packages/shared/src/lib/properties/reportable-properties.ts
+function isGscProperty(property) {
+  return property.type === "gsc" || property.id.startsWith("gsc_");
+}
+function isGa4Property(property) {
+  return property.type === "ga4" || property.id.startsWith("ga4_");
+}
+function ga4DbIdFromNumericId(ga4PropertyId) {
+  return `ga4_${ga4PropertyId}`;
+}
+function ga4NumericIdFromDbId(id) {
+  return id.replace(/^ga4_/, "");
+}
+function gscCandidateRank(property) {
+  let score = 0;
+  if (property.url.startsWith("sc-domain:")) score += 100;
+  if (property.ga4PropertyId) score += 20;
+  if (property.url.startsWith("https://")) score += 5;
+  if (property.url.startsWith("http://")) score += 1;
+  return score;
+}
+function preferGscCandidate(next, current) {
+  const nextRank = gscCandidateRank(next);
+  const currentRank = gscCandidateRank(current);
+  if (nextRank !== currentRank) return nextRank > currentRank;
+  return next.id < current.id;
+}
+function isActive(property) {
+  return property.active !== false;
+}
+function resolveReportSourcesFromProperties(allProperties, selectedPropertyId, options = {}) {
+  const properties2 = options.includeInactive ? allProperties : allProperties.filter(isActive);
+  const selectedProperty = properties2.find((p) => p.id === selectedPropertyId);
+  if (!selectedProperty) {
+    throw new Error("Property not found");
+  }
+  const sameTeam = properties2.filter((p) => p.teamId === selectedProperty.teamId);
+  const ga4ById = new Map(sameTeam.filter(isGa4Property).map((p) => [p.id, p]));
+  const gscRows = sameTeam.filter(isGscProperty);
+  if (isGscProperty(selectedProperty)) {
+    const linkedGa4Property = selectedProperty.ga4PropertyId ? ga4ById.get(ga4DbIdFromNumericId(selectedProperty.ga4PropertyId)) ?? null : null;
+    return {
+      selectedProperty,
+      canonicalGscProperty: selectedProperty,
+      linkedGa4Property,
+      canonicalReportPropertyId: selectedProperty.id,
+      selectedWasGa4: false
+    };
+  }
+  if (isGa4Property(selectedProperty)) {
+    const ga4NumericId = ga4NumericIdFromDbId(selectedProperty.id);
+    const linkedGscCandidates = gscRows.filter((p) => p.ga4PropertyId === ga4NumericId);
+    if (linkedGscCandidates.length === 0) {
+      throw new Error(
+        `Selected GA4 property ${selectedProperty.id} is not linked to a Google Search Console property`
+      );
+    }
+    const canonicalGscProperty = linkedGscCandidates.reduce(
+      (best, next) => preferGscCandidate(next, best) ? next : best
+    );
+    return {
+      selectedProperty,
+      canonicalGscProperty,
+      linkedGa4Property: selectedProperty,
+      canonicalReportPropertyId: canonicalGscProperty.id,
+      selectedWasGa4: true
+    };
+  }
+  throw new Error(`Unsupported property type for reports: ${selectedProperty.type}`);
+}
+
+// packages/shared/src/lib/properties/reportable-properties-db.ts
+async function listTeamProperties(teamId) {
+  return db.query.properties.findMany({
+    where: (p, { eq: eq3 }) => eq3(p.teamId, teamId)
+  });
+}
+async function resolveTeamReportSources(teamId, selectedPropertyId) {
+  const teamProperties = await listTeamProperties(teamId);
+  if (!teamProperties.some((p) => p.id === selectedPropertyId)) {
+    throw new Error("Property not found or unauthorized");
+  }
+  return resolveReportSourcesFromProperties(teamProperties, selectedPropertyId);
+}
+
 // packages/shared/src/lib/team-branding.ts
 import { nanoid } from "nanoid";
 var EMPTY_TEAM_BRANDING_PROFILE = {
@@ -1119,9 +1201,182 @@ function toPartialBrandingProfile(value) {
 }
 async function getTeamBrandingProfile(teamId) {
   const row = await db.query.teamBrandingProfiles.findFirst({
-    where: (table, { eq: eq2 }) => eq2(table.teamId, teamId)
+    where: (table, { eq: eq3 }) => eq3(table.teamId, teamId)
   });
   return normalizeTeamBrandingProfile(toPartialBrandingProfile(row));
+}
+
+// packages/shared/src/lib/ai-dashboard-actions.ts
+import { and, desc, eq, isNull } from "drizzle-orm";
+
+// packages/shared/src/lib/ai-analysis.ts
+import { createHash } from "node:crypto";
+function validateAiRecommendation(input) {
+  const errors = [];
+  if (!input.target?.value?.trim()) {
+    errors.push("AI recommendations require a concrete target URL, query, or issue scope.");
+  }
+  const nonModelAnchors = input.evidenceAnchors.filter((anchor) => anchor.source !== "model");
+  if (nonModelAnchors.length < 2) {
+    errors.push("AI recommendations require at least two non-model evidence anchors.");
+  }
+  return errors.length ? { ok: false, errors } : { ok: true, recommendation: input };
+}
+function buildAiActionIdentity(input) {
+  const targetKey = normalizeTargetKey(input.target);
+  const digest = createHash("sha256").update(`${input.target.type}:${targetKey}:${input.title.trim().toLowerCase()}`).digest("hex").slice(0, 16);
+  return {
+    fingerprint: `ai_review_action|${input.target.type}|${targetKey}|review_ai_recommendation|${digest}`,
+    actionFamily: "ai_review_action",
+    causeFamily: "ai_intent_page_diagnosis",
+    remedyKey: "review_ai_recommendation",
+    targetType: input.target.type,
+    targetKey
+  };
+}
+function buildDefaultAiPromptTemplateSeeds() {
+  return [
+    {
+      purpose: "gsc_source_summary",
+      version: 1,
+      name: "GSC source summary v1",
+      isActive: true,
+      systemPrompt: "Summarize Search Console evidence for the selected and comparison windows. Focus on query intent, page/query pair movement, winners, losers, CTR gaps, and near-wins. Use only supplied evidence and keep every claim traceable to evidence anchors."
+    },
+    {
+      purpose: "ga4_source_summary",
+      version: 1,
+      name: "GA4 source summary v1",
+      isActive: true,
+      systemPrompt: "Summarize GA4 evidence for the selected and comparison windows. Focus on landing pages, channels, devices, countries, events, and behavior shifts that explain SEO performance. Use only supplied evidence and keep every claim traceable to evidence anchors."
+    },
+    {
+      purpose: "crawl_source_summary",
+      version: 1,
+      name: "Crawl source summary v1",
+      isActive: true,
+      systemPrompt: "Summarize crawl and page-text evidence for SEO diagnosis. Focus on technical fundamentals, page intent mismatch, missing or duplicate metadata, indexing directives, structured data, internal link issues, and thin content. Use only supplied evidence anchors."
+    },
+    {
+      purpose: "main_analyzer",
+      version: 1,
+      name: "Main SEO analyzer v1",
+      isActive: true,
+      systemPrompt: [
+        "You are WebHealth's main SEO analyzer. Convert deterministic SEO evidence plus analytics summaries into schema-valid AiRecommendation JSON.",
+        "Use only the supplied inputs: selected and comparison GSC summaries, GA4 summaries, crawl summaries, deterministic findings, evidence anchors, rendered/browser evidence, Rich Results evidence, and Screaming Frog evidence when present. Do not browse, infer hidden data, invent metrics, invent client context, or make revenue or traffic promises.",
+        "Output only valid JSON matching the AiRecommendation schema supplied by the caller. Do not include markdown, prose outside JSON, comments, or extra fields.",
+        "Prioritize recommendations in this order: crawlability and indexation; technical foundations such as redirects, status codes, canonicals, performance, mobile usability, internal linking, sitemap, robots, and broken resources; on-page optimization such as titles, meta descriptions, headings, keyword/page alignment, intent fit, and SERP CTR issues; content quality such as thin content, duplication, outdated coverage, weak intent satisfaction, missing trust signals, and topical gaps; authority and link issues when evidence exists.",
+        "Every recommendation must name a concrete target: URL, URL pattern, query group, page type, template, crawl segment, or measurable issue. Every recommendation must cite at least two non-model evidence anchors. Valid anchors include GSC metrics, GA4 metrics, crawl records, deterministic findings, rendered DOM evidence, browser evidence, Rich Results evidence, Screaming Frog exports, sitemap or robots observations, status-code data, canonical data, link data, and comparison-period deltas.",
+        "Model judgment may explain why the evidence matters, but it must never count as an evidence anchor. If fewer than two evidence anchors support an issue, omit the recommendation. Prefer deterministic findings over speculative interpretation. Use comparison data only when present and label the trend direction from the provided periods.",
+        "Never claim structured data or schema markup is absent unless rendered/browser evidence, Google Rich Results evidence, or Screaming Frog rendered extraction explicitly supports that conclusion. Static HTML, curl-like fetches, missing crawl extraction, or absent evidence are insufficient.",
+        "Do not diagnose Google penalties, algorithmic suppression, tracking failure, or business impact unless the provided evidence directly supports it.",
+        "Make each recommendation specific, implementable, and audit-report ready. Include the observed issue, why it matters for organic search, the affected target, the concrete action, and the supporting evidence. Keep clientSafeSummary professional, concise, and safe for direct inclusion in an SEO audit report.",
+        "Avoid internal implementation language, uncertainty filler, hype, and guarantees. Use careful language such as 'may improve crawl efficiency', 'can help consolidate signals', or 'is eligible to improve visibility', never 'will increase rankings', 'will recover traffic', or 'will generate revenue'. When evidence conflicts, state the conflict clearly and recommend validation rather than forcing a conclusion."
+      ].join("\n\n")
+    }
+  ];
+}
+function buildDefaultAiPromptTemplateRows(now = /* @__PURE__ */ new Date()) {
+  return buildDefaultAiPromptTemplateSeeds().map((seed) => ({
+    id: `aipt_${seed.purpose}_v${seed.version}`,
+    ...seed,
+    createdAt: now,
+    updatedAt: now
+  }));
+}
+function normalizeTargetKey(target) {
+  if (target.type !== "url") return target.value.trim().toLowerCase();
+  try {
+    const parsed = new URL(target.value);
+    parsed.hash = "";
+    parsed.search = "";
+    return parsed.toString().replace(/\/$/, "").toLowerCase();
+  } catch {
+    return target.value.trim().replace(/[?#].*$/, "").replace(/\/$/, "").toLowerCase();
+  }
+}
+
+// packages/shared/src/lib/ai-dashboard-actions.ts
+function aiRecommendationToWeeklyAction(params) {
+  const targetValue = params.recommendation.target?.value ?? params.recommendation.title;
+  return {
+    id: `weekly_ai_${params.recommendation.id}`,
+    rank: params.rank,
+    area: params.recommendation.area,
+    title: params.recommendation.title,
+    whyNow: params.recommendation.summary,
+    source: "ai",
+    aiRunId: params.aiRunId,
+    evidenceAnchors: params.recommendation.evidenceAnchors,
+    clientSafeSummary: params.recommendation.clientSafeSummary,
+    recommendationClass: "lift",
+    primaryMetric: params.recommendation.area === "technical" ? "crawl_health" : "clicks",
+    expectedDirection: "improve",
+    successWindow: "14-42d",
+    successSignal: "Evidence-backed movement in the cited URL, query, or issue scope.",
+    timeToValue: "weeks",
+    firstVisibleWin: params.recommendation.clientSafeSummary,
+    valueAtStake: {},
+    confidenceLabel: params.recommendation.confidence,
+    confidenceScore: params.recommendation.confidence === "high" ? 0.9 : params.recommendation.confidence === "medium" ? 0.7 : 0.45,
+    confidenceBasis: "AI review with at least two evidence anchors.",
+    owner: params.recommendation.area === "technical" ? "developer" : "seo",
+    effort: params.recommendation.area === "technical" ? "M" : "S",
+    priorityReason: params.recommendation.summary,
+    targetPage: params.recommendation.target?.type === "url" ? targetValue : null,
+    supportingQueries: params.recommendation.target?.type === "query" ? [targetValue] : [],
+    detail: {
+      observed: params.recommendation.evidenceAnchors.map((anchor) => `${anchor.label}: ${anchor.value}`),
+      likelyCauses: [params.recommendation.summary],
+      recommendedActions: [params.recommendation.clientSafeSummary],
+      whyThisHelps: ["The recommendation is tied to current source evidence."],
+      expectedOutcome: ["Verify the cited signal in the next refreshed window."],
+      evidence: {
+        deterministic: params.recommendation.evidenceAnchors.map((anchor) => ({
+          label: anchor.label,
+          value: anchor.value
+        })),
+        inferred: []
+      }
+    }
+  };
+}
+async function getLatestCompleteAiActions(params) {
+  const run = await db.query.aiAnalysisRuns.findFirst({
+    where: and(
+      eq(aiAnalysisRuns.teamId, params.teamId),
+      eq(aiAnalysisRuns.propertyId, params.propertyId),
+      eq(aiAnalysisRuns.status, "complete"),
+      eq(aiAnalysisRuns.startDate, params.startDate),
+      eq(aiAnalysisRuns.endDate, params.endDate),
+      eq(aiAnalysisRuns.compareMode, params.compareMode),
+      params.compareStartDate ? eq(aiAnalysisRuns.compareStartDate, params.compareStartDate) : isNull(aiAnalysisRuns.compareStartDate),
+      params.compareEndDate ? eq(aiAnalysisRuns.compareEndDate, params.compareEndDate) : isNull(aiAnalysisRuns.compareEndDate)
+    ),
+    orderBy: [desc(aiAnalysisRuns.updatedAt)]
+  });
+  if (!run) return [];
+  const rows = await db.query.aiRecommendations.findMany({
+    where: eq(aiRecommendations.aiRunId, run.id),
+    orderBy: [aiRecommendations.createdAt],
+    limit: 4
+  });
+  return rows.map((row, index) => {
+    const recommendation = row.rawRecommendation;
+    if (!recommendation.target) return null;
+    return {
+      ...aiRecommendationToWeeklyAction({
+        recommendation,
+        aiRunId: run.id,
+        rank: index + 1
+      }),
+      ...buildAiActionIdentity({
+        target: recommendation.target,
+        title: recommendation.title
+      })
+    };
+  }).filter((row) => Boolean(row));
 }
 
 // packages/shared/src/lib/live-dashboard.ts
@@ -1474,10 +1729,10 @@ function buildSourceVersionHash(params) {
     gscLastFactAt: params.gscLastFactAt ?? null,
     ga4LastFactAt: params.ga4LastFactAt ?? null,
     crawlCapturedAt: params.crawlCapturedAt ?? null,
-    crawlFingerprintDigest: params.crawlFingerprint ? createHash("sha256").update(params.crawlFingerprint).digest("hex") : null,
+    crawlFingerprintDigest: params.crawlFingerprint ? createHash2("sha256").update(params.crawlFingerprint).digest("hex") : null,
     changeLastUpdatedAt: params.changeLastUpdatedAt ?? null
   });
-  return `ldv1_${createHash("sha256").update(rawVersionKey).digest("hex")}`;
+  return `ldv1_${createHash2("sha256").update(rawVersionKey).digest("hex")}`;
 }
 function summarizeOperatingContext(params) {
   const clicksDelta = params.clicksCurrent - params.clicksCompare;
@@ -1550,7 +1805,7 @@ async function fetchAuthorizedProperty(teamId, propertyId) {
 }
 async function fetchLatestSnapshots(teamId, propertyId) {
   const rows = await db.query.snapshotExports.findMany({
-    where: (table, { and: and2, eq: eq2 }) => and2(eq2(table.teamId, teamId), eq2(table.propertyId, propertyId)),
+    where: (table, { and: and3, eq: eq3 }) => and3(eq3(table.teamId, teamId), eq3(table.propertyId, propertyId)),
     orderBy: (table, { desc: descOrder }) => [descOrder(table.createdAt)],
     limit: 5
   });
@@ -1657,14 +1912,14 @@ async function fetchWindowData(params) {
 }
 async function readCache(params) {
   const row = await db.query.analysisWindowCache.findFirst({
-    where: and(
-      eq(analysisWindowCache.propertyId, params.property.id),
-      eq(analysisWindowCache.startDate, params.window.startDate),
-      eq(analysisWindowCache.endDate, params.window.endDate),
-      eq(analysisWindowCache.compareMode, params.window.compareMode),
-      params.window.compareStartDate ? eq(analysisWindowCache.compareStartDate, params.window.compareStartDate) : isNull(analysisWindowCache.compareStartDate),
-      params.window.compareEndDate ? eq(analysisWindowCache.compareEndDate, params.window.compareEndDate) : isNull(analysisWindowCache.compareEndDate),
-      eq(analysisWindowCache.sourceVersionHash, params.sourceVersionHash)
+    where: and2(
+      eq2(analysisWindowCache.propertyId, params.property.id),
+      eq2(analysisWindowCache.startDate, params.window.startDate),
+      eq2(analysisWindowCache.endDate, params.window.endDate),
+      eq2(analysisWindowCache.compareMode, params.window.compareMode),
+      params.window.compareStartDate ? eq2(analysisWindowCache.compareStartDate, params.window.compareStartDate) : isNull2(analysisWindowCache.compareStartDate),
+      params.window.compareEndDate ? eq2(analysisWindowCache.compareEndDate, params.window.compareEndDate) : isNull2(analysisWindowCache.compareEndDate),
+      eq2(analysisWindowCache.sourceVersionHash, params.sourceVersionHash)
     ),
     orderBy: (table, { desc: descOrder }) => [descOrder(table.updatedAt)]
   });
@@ -1990,6 +2245,28 @@ async function getLiveDashboardData(input) {
       refreshState
     });
   }
+  const aiActions = await getLatestCompleteAiActions({
+    teamId: property.teamId,
+    propertyId: property.id,
+    startDate: window.startDate,
+    endDate: window.endDate,
+    compareMode: window.compareMode,
+    compareStartDate: window.compareStartDate,
+    compareEndDate: window.compareEndDate
+  });
+  if (aiActions.length) {
+    const deterministicActions = payload.actions.filter((action) => action.source !== "ai").map((action) => ({ ...action, source: action.source ?? "rules" }));
+    const mergedActions = [...deterministicActions.slice(0, 4), ...aiActions].slice(0, 8).map((action, index) => ({ ...action, rank: index + 1 }));
+    payload = {
+      ...payload,
+      actions: mergedActions
+    };
+  } else {
+    payload = {
+      ...payload,
+      actions: payload.actions.map((action) => ({ ...action, source: action.source ?? "rules" }))
+    };
+  }
   if (payload.actions.length) {
     await syncActionsToStore({
       teamId: property.teamId,
@@ -2106,9 +2383,9 @@ async function upsertActionItemState(params) {
 }
 async function getLatestDashboardPayloadVersion(params) {
   const row = await db.query.analysisWindowCache.findFirst({
-    where: and(
-      eq(analysisWindowCache.teamId, params.teamId),
-      eq(analysisWindowCache.propertyId, params.propertyId)
+    where: and2(
+      eq2(analysisWindowCache.teamId, params.teamId),
+      eq2(analysisWindowCache.propertyId, params.propertyId)
     ),
     orderBy: (table, { desc: descOrder }) => [descOrder(table.updatedAt)]
   });
@@ -2429,21 +2706,26 @@ function buildPropertyShareDownloadPayload(params) {
     dashboard: params.dashboard
   };
 }
+
 export {
-  buildClientReportComparison,
-  buildDegradedStates,
+  resolveTeamReportSources,
+  validateAiRecommendation,
+  buildAiActionIdentity,
+  buildDefaultAiPromptTemplateRows,
+  resolveAnalysisWindow,
   buildFreshnessSources,
-  buildPropertyShareDownloadPayload,
-  createPropertyShareLink,
-  createSnapshotExport,
-  getLatestDashboardPayloadVersion,
+  buildDegradedStates,
+  mergeActionWorkflowState,
   getLiveDashboardData,
+  upsertActionItemState,
+  getLatestDashboardPayloadVersion,
+  getWorkspaceActionBoard,
+  createSnapshotExport,
+  getSnapshotExportDetail,
+  selectPreviousPropertyShare,
+  buildClientReportComparison,
+  createPropertyShareLink,
   getPropertyShareByToken,
   getPropertyShareReportByToken,
-  getSnapshotExportDetail,
-  getWorkspaceActionBoard,
-  mergeActionWorkflowState,
-  resolveAnalysisWindow,
-  selectPreviousPropertyShare,
-  upsertActionItemState
+  buildPropertyShareDownloadPayload
 };
