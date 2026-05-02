@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
 import { ArrowDownRight, ArrowUpRight, CheckCircle2, ExternalLink } from "lucide-react";
 import { getPropertyShareReportByToken, type ClientReportComparison } from "@webhealth/shared/lib/live-dashboard";
+import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import { PropertyShareTrendChart } from "./property-share-trend-chart";
 
 function formatNumber(value: number | null | undefined) {
@@ -115,6 +116,18 @@ export default async function PropertySharePage({
   const { token } = await params;
   const share = await getPropertyShareReportByToken(token);
   if (!share) notFound();
+
+  void recordProductEvent({
+    teamId: share.teamId,
+    userId: null,
+    name: "snapshot_opened",
+    source: "snapshot",
+    entityType: "share",
+    entityId: share.shareId,
+    properties: {
+      propertyId: share.propertyId,
+    },
+  }).catch(() => {});
 
   const dashboard = share.payloadSnapshot;
   const comparison = share.clientReportComparison;

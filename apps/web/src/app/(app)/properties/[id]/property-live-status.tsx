@@ -7,6 +7,7 @@ import type { PropertyRefreshState } from "@webhealth/shared/lib/property-refres
 import { requestJson } from "@/lib/client/api";
 
 const POLL_INTERVAL_MS = 4000;
+const TERMINAL_TOAST_DURATION_MS = 5000;
 
 export function PropertyLiveStatus({
   propertyId,
@@ -85,21 +86,24 @@ export function PropertyLiveStatus({
 
       if (!nextState && data?.hasNewerPayload) {
         terminalToastShownRef.current = true;
-        toast.success("Rerun complete.", { id: toastId });
+        toast.success("Rerun complete.", { id: toastId, duration: TERMINAL_TOAST_DURATION_MS });
         router.refresh();
         return;
       }
 
       if (nextState?.status === "complete") {
         terminalToastShownRef.current = true;
-        toast.success(nextState.message ?? "Rerun complete.", { id: toastId });
+        toast.success(nextState.message ?? "Rerun complete.", { id: toastId, duration: TERMINAL_TOAST_DURATION_MS });
         router.refresh();
         return;
       }
 
       if (nextState?.status === "failed") {
         terminalToastShownRef.current = true;
-        toast.error(nextState.message ?? "Rerun failed. Showing last valid dashboard.", { id: toastId });
+        toast.error(nextState.message ?? "Rerun failed. Showing last valid dashboard.", {
+          id: toastId,
+          duration: TERMINAL_TOAST_DURATION_MS,
+        });
         router.refresh();
         return;
       }

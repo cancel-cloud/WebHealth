@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { RecommendationState } from "@webhealth/shared/lib/action-types";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { upsertActionItemState } from "@webhealth/shared/lib/live-dashboard";
+import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import {
   requirePrimaryTeamMembership,
   requireUnrestrictedSession,
@@ -41,6 +42,22 @@ export async function PATCH(
       assigneeEmail: body.assigneeEmail,
       snoozedUntil: body.snoozedUntil,
     });
+
+    if (body.state) {
+      void recordProductEvent({
+        teamId: membership.teamId,
+        userId: session.user.id,
+        name: "action_state_changed",
+        source: "property_dashboard",
+        entityType: "action",
+        entityId: row.id,
+        properties: {
+          propertyId: resolved.canonicalGscProperty.id,
+          fingerprint: body.fingerprint,
+          state: body.state,
+        },
+      }).catch(() => {});
+    }
 
     return NextResponse.json({ action: row });
   } catch (error) {

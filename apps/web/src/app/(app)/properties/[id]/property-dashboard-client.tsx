@@ -62,6 +62,40 @@ type SnapshotSummary = LiveDashboardData["recentSnapshots"][number];
 type EvidenceTab = "queries" | "pages" | "opportunities" | "changes";
 type FreshnessSource = LiveDashboardData["freshness"]["sources"][number];
 
+const TERMINAL_REFRESH_TOAST_DURATION_MS = 5000;
+
+function buildOptimisticRerunState(propertyId: string, baseState: PropertyRefreshState | null): PropertyRefreshState {
+  const now = new Date().toISOString();
+
+  return {
+    id: baseState?.id ?? `optimistic-rerun-${propertyId}`,
+    jobType: "decision_refresh",
+    status: "queued",
+    phase: "rerun_queued",
+    message: "Re-run in progress for the displayed data.",
+    progressMeta: baseState?.progressMeta ?? null,
+    startedAt: baseState?.startedAt ?? null,
+    finishedAt: null,
+    updatedAt: now,
+  };
+}
+
+function getActiveRefreshMessage(state: PropertyRefreshState) {
+  if (state.message) {
+    return state.message;
+  }
+
+  if (state.phase === "analysis") {
+    return "Recomputing ranked actions...";
+  }
+
+  if (state.phase.startsWith("source_data")) {
+    return "Refreshing source data...";
+  }
+
+  return "Refreshing the displayed data...";
+}
+
 const ACTION_STATES: Array<{ value: ActionRow["state"]; label: string }> = [
   { value: "open", label: "Open" },
   { value: "in_progress", label: "In progress" },
@@ -340,6 +374,11 @@ export function PropertyDashboardClient({
   const [startDate, setStartDate] = useState(dashboard.analysisWindow.startDate);
   const [endDate, setEndDate] = useState(dashboard.analysisWindow.requestedEndDate);
   const refreshToastId = `property-refresh-${dashboard.property.id}`;
+  const activeRefreshState = currentRefreshState && (currentRefreshState.status === "queued" || currentRefreshState.status === "processing")
+    ? currentRefreshState
+    : null;
+  const rerunDisabled = rerunLoading || Boolean(activeRefreshState);
+  const visibleDegradedStates = dashboard.degradedStates.filter((state) => state.code !== "refresh_in_progress");
 
   const safeLatestDate = dashboard.freshness.safeLatestDate;
   const crawlFreshness = dashboard.freshness.sources.find((source) => source.source === "crawl");
@@ -853,6 +892,7 @@ export function PropertyDashboardClient({
 
   const rerunAllData = async () => {
     setRerunLoading(true);
+    setCurrentRefreshState((state) => buildOptimisticRerunState(dashboard.property.id, state));
     toast.loading("Rerunning GA4, Search Console and crawl…", {
       id: refreshToastId,
       duration: Infinity,
@@ -876,7 +916,11 @@ export function PropertyDashboardClient({
       });
 
       if (response?.status === "failed") {
-        toast.error("Rerun failed. Showing last valid dashboard.", { id: refreshToastId });
+        setCurrentRefreshState(null);
+        toast.error("Rerun failed. Showing last valid dashboard.", {
+          id: refreshToastId,
+          duration: TERMINAL_REFRESH_TOAST_DURATION_MS,
+        });
       } else if (response?.warnings?.length) {
         toast.loading(`Rerun queued. ${response.warnings[0]}`, { id: refreshToastId, duration: Infinity });
       } else {
@@ -884,8 +928,10 @@ export function PropertyDashboardClient({
       }
       router.refresh();
     } catch (error) {
+      setCurrentRefreshState(null);
       toast.error(getAppErrorMessage(error, "Rerun failed. Showing last valid dashboard."), {
         id: refreshToastId,
+        duration: TERMINAL_REFRESH_TOAST_DURATION_MS,
       });
     } finally {
       setRerunLoading(false);
@@ -1053,7 +1099,7 @@ export function PropertyDashboardClient({
     <div className="relative space-y-10">
       <PropertyLiveStatus
         propertyId={dashboard.property.id}
-        initialRefreshState={dashboard.propertyUpdateState}
+        initialRefreshState={currentRefreshState}
         payloadVersion={dashboard.payloadVersion}
         preset={dashboard.analysisWindow.preset}
         compareMode={dashboard.analysisWindow.compareMode}
@@ -1310,9 +1356,9 @@ export function PropertyDashboardClient({
                 Reset
               </Button>
               <Button size="sm" className="h-9 rounded-full" onClick={applyFilters}>Apply</Button>
-              <Button variant="outline" size="sm" className="h-9 rounded-full bg-white" onClick={rerunAllData} disabled={rerunLoading}>
-                {rerunLoading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
-                Rerun all data
+              <Button variant="outline" size="sm" className="h-9 rounded-full bg-white" onClick={rerunAllData} disabled={rerunDisabled}>
+                {rerunDisabled ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
+                {rerunDisabled ? "Rerunning..." : "Rerun all data"}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1366,9 +1412,9 @@ export function PropertyDashboardClient({
           </div>
           </div>
 
-          {dashboard.degradedStates.length ? (
+          {visibleDegradedStates.length ? (
             <div className="grid gap-2">
-              {dashboard.degradedStates.map((state) => (
+              {visibleDegradedStates.map((state) => (
                 <div key={state.code} className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
                   <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
                   <div>
@@ -1377,6 +1423,16 @@ export function PropertyDashboardClient({
                   </div>
                 </div>
               ))}
+            </div>
+          ) : null}
+
+          {activeRefreshState ? (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+              <LoaderCircle className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+              <div>
+                <div className="font-semibold">Update in progress</div>
+                <div>{getActiveRefreshMessage(activeRefreshState)}</div>
+              </div>
             </div>
           ) : null}
         </header>
@@ -1418,9 +1474,9 @@ export function PropertyDashboardClient({
                   </button>
                 ))}
               </div>
-              <Button variant="outline" size="sm" className="h-9 shrink-0 rounded-full bg-white" onClick={rerunAllData} disabled={rerunLoading}>
-                {rerunLoading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
-                Re-run
+              <Button variant="outline" size="sm" className="h-9 shrink-0 rounded-full bg-white" onClick={rerunAllData} disabled={rerunDisabled}>
+                {rerunDisabled ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
+                {rerunDisabled ? "Rerunning..." : "Re-run"}
               </Button>
             </div>
           </div>
@@ -1816,9 +1872,9 @@ export function PropertyDashboardClient({
               </div>
             </div>
 
-            {dashboard.degradedStates.length ? (
+            {visibleDegradedStates.length ? (
               <div className="grid gap-3">
-                {dashboard.degradedStates.map((state) => (
+                {visibleDegradedStates.map((state) => (
                   <div key={state.code} className="flex flex-col gap-3 rounded-[20px] border border-amber-200/90 bg-amber-50/80 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-start gap-3">
                       <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
@@ -1888,14 +1944,14 @@ export function PropertyDashboardClient({
                   variant="ghost"
                   className="h-auto rounded-full px-0 text-foreground/80 hover:bg-transparent hover:text-foreground"
                   onClick={rerunAllData}
-                  disabled={rerunLoading}
+                  disabled={rerunDisabled}
                 >
-                  {rerunLoading ? (
+                  {rerunDisabled ? (
                     <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
                     <RefreshCcw className="mr-2 h-4 w-4" />
                   )}
-                  {rerunLoading ? "Rerunning…" : "Rerun all data"}
+                  {rerunDisabled ? "Rerunning..." : "Rerun all data"}
                 </Button>
               </PropertyMetaPill>
               <DropdownMenu>
@@ -2173,6 +2229,9 @@ export function PropertyDashboardClient({
                         <p className="text-sm text-muted-foreground">{action.whyNow}</p>
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline" className="rounded-full border-white/70 bg-white/80 dark:border-white/10 dark:bg-white/[0.05]">{action.owner}</Badge>
+                          <Badge variant="outline" className="rounded-full border-white/70 bg-white/80 dark:border-white/10 dark:bg-white/[0.05]">
+                            {action.source === "ai" ? "AI review" : action.source === "rules_ai" ? "Rules + AI" : "Rules"}
+                          </Badge>
                           <Badge variant="outline" className="rounded-full border-white/70 bg-white/80 dark:border-white/10 dark:bg-white/[0.05]">{action.effort}</Badge>
                           <Badge variant="outline" className="rounded-full border-white/70 bg-white/80 dark:border-white/10 dark:bg-white/[0.05]">{action.successWindow}</Badge>
                           <Badge variant="outline" className="rounded-full border-white/70 bg-white/80 dark:border-white/10 dark:bg-white/[0.05]">System #{action.systemRank ?? action.rank}</Badge>
@@ -2576,6 +2635,9 @@ export function PropertyDashboardClient({
 
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline" className="rounded-full">{selectedAction.recommendationClass}</Badge>
+                <Badge variant="outline" className="rounded-full">
+                  {selectedAction.source === "ai" ? "AI review" : selectedAction.source === "rules_ai" ? "Rules + AI" : "Rules"}
+                </Badge>
                 <Badge variant="outline" className="rounded-full">{selectedAction.owner}</Badge>
                 <Badge variant="outline" className="rounded-full">{selectedAction.effort}</Badge>
                 <Badge variant="outline" className="rounded-full">{selectedAction.successWindow}</Badge>

@@ -3,6 +3,7 @@ import { createMetricsBackfillJob } from "@webhealth/shared/lib/metrics-cache";
 import { enqueuePropertyRefreshJob } from "@webhealth/shared/lib/property-refresh";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { getGoogleAccountTokensForUser } from "@webhealth/shared/lib/provider-tokens";
+import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import {
   requirePrimaryTeamMembership,
   requireUnrestrictedSession,
@@ -86,6 +87,33 @@ export async function POST(
       triggerSource: "manual",
       payload: refreshPayload,
     });
+
+    void recordProductEvent({
+      teamId: membership.teamId,
+      userId: session.user.id,
+      name: "refresh_started",
+      source: "property_dashboard",
+      entityType: "property",
+      entityId: canonicalProperty.id,
+      properties: {
+        propertyId: canonicalProperty.id,
+        dataRefreshStatus: dataRefresh.status,
+        crawlJobId: crawlJob.id,
+        decisionJobId: decisionJob.id,
+      },
+    }).catch(() => {});
+    void recordProductEvent({
+      teamId: membership.teamId,
+      userId: session.user.id,
+      name: "ai_run_queued",
+      source: "property_dashboard",
+      entityType: "property",
+      entityId: canonicalProperty.id,
+      properties: {
+        propertyId: canonicalProperty.id,
+        decisionJobId: decisionJob.id,
+      },
+    }).catch(() => {});
 
     return NextResponse.json(buildRerunAllResponse({
       dataRefresh,

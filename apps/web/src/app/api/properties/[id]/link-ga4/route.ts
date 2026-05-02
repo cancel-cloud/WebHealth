@@ -52,7 +52,12 @@ export async function PATCH(
     // Link GSC → GA4
     await db
       .update(properties)
-      .set({ ga4PropertyId })
+      .set({
+        ga4PropertyId,
+        ga4LinkConfidence: "high",
+        ga4LinkSource: "manual",
+        ga4LinkUpdatedAt: new Date(),
+      })
       .where(eq(properties.id, gscPropertyId));
 
     db.insert(systemLogs).values({
