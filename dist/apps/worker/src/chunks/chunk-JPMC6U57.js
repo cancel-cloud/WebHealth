@@ -1,16 +1,17 @@
 import {
   db
-} from "./chunk-GSUZOY5F.js";
+} from "./chunk-MKUBJP65.js";
 import {
   account,
   ga4DailyFacts,
   ga4DailyRaw,
+  ga4ReportArtifacts,
   gscDailyFacts,
   gscDailyRaw,
   metricsBackfillJobs,
   systemLogs,
   teamMembers
-} from "./chunk-4NLGD3XI.js";
+} from "./chunk-IZCFPQU7.js";
 
 // packages/shared/src/lib/metrics-cache.ts
 import { and as and2, eq as eq2, sql } from "drizzle-orm";
@@ -33,7 +34,7 @@ function getGoogleAuthClient(accessToken, refreshToken, expiresAt) {
 }
 async function fetchGscMetricsBatch(authClient, siteUrl, dateStart, dateEnd) {
   const searchConsole = google.webmasters({ version: "v3", auth: authClient });
-  const [dailyRes, queriesRes, pagesRes, countriesRes, devicesRes] = await Promise.all([
+  const [dailyRes, queriesRes, pagesRes, queryPageRes, countriesRes, devicesRes] = await Promise.all([
     // 1. Daily summary
     searchConsole.searchanalytics.query({
       siteUrl,
@@ -49,12 +50,17 @@ async function fetchGscMetricsBatch(authClient, siteUrl, dateStart, dateEnd) {
       siteUrl,
       requestBody: { startDate: dateStart, endDate: dateEnd, dimensions: ["date", "page"], rowLimit: 25e3 }
     }),
-    // 4. Daily country breakdown
+    // 4. Daily query-page pairs for intent and cannibalization evidence
+    searchConsole.searchanalytics.query({
+      siteUrl,
+      requestBody: { startDate: dateStart, endDate: dateEnd, dimensions: ["date", "query", "page"], rowLimit: 25e3 }
+    }),
+    // 5. Daily country breakdown
     searchConsole.searchanalytics.query({
       siteUrl,
       requestBody: { startDate: dateStart, endDate: dateEnd, dimensions: ["date", "country"], rowLimit: 25e3 }
     }),
-    // 5. Daily device breakdown
+    // 6. Daily device breakdown
     searchConsole.searchanalytics.query({
       siteUrl,
       requestBody: { startDate: dateStart, endDate: dateEnd, dimensions: ["date", "device"], rowLimit: 25e3 }
@@ -70,6 +76,7 @@ async function fetchGscMetricsBatch(authClient, siteUrl, dateStart, dateEnd) {
       position: row.position ?? 0,
       topQueries: [],
       topPages: [],
+      queryPagePairs: [],
       topCountries: [],
       topDevices: []
     });
@@ -94,6 +101,19 @@ async function fetchGscMetricsBatch(authClient, siteUrl, dateStart, dateEnd) {
       page,
       clicks: row.clicks ?? 0,
       impressions: row.impressions ?? 0
+    });
+  }
+  const queryPagePairsByDay = /* @__PURE__ */ new Map();
+  for (const row of queryPageRes.data.rows ?? []) {
+    const [date, query, page] = row.keys;
+    if (!queryPagePairsByDay.has(date)) queryPagePairsByDay.set(date, []);
+    queryPagePairsByDay.get(date).push({
+      query,
+      page,
+      clicks: row.clicks ?? 0,
+      impressions: row.impressions ?? 0,
+      ctr: row.ctr ?? 0,
+      position: row.position ?? 0
     });
   }
   const countriesByDay = /* @__PURE__ */ new Map();
@@ -125,6 +145,8 @@ async function fetchGscMetricsBatch(authClient, siteUrl, dateStart, dateEnd) {
     entry.topQueries = queries.sort((a, b) => b.clicks - a.clicks).slice(0, 25);
     const pages = pagesByDay.get(date) ?? [];
     entry.topPages = pages.sort((a, b) => b.clicks - a.clicks).slice(0, 25);
+    const pairs = queryPagePairsByDay.get(date) ?? [];
+    entry.queryPagePairs = pairs.sort((a, b) => b.clicks - a.clicks).slice(0, 50);
     entry.topCountries = countriesByDay.get(date) ?? [];
     entry.topDevices = devicesByDay.get(date) ?? [];
   }
@@ -156,6 +178,130 @@ async function fetchGa4DailySummary(authClient, propertyId, dateStart, dateEnd) 
     });
   }
   return result;
+}
+async function fetchGa4ProfileForPeriod(analyticsData, property, startDate, endDate) {
+  const dateRanges = [{ startDate, endDate }];
+  function parseRows(report, mapper) {
+    return (report?.rows ?? []).map((row) => {
+      const dims = (row.dimensionValues ?? []).map((d) => d.value ?? "");
+      const mets = (row.metricValues ?? []).map((m) => m.value ?? "0");
+      return mapper(dims, mets);
+    });
+  }
+  const [batch1Res, batch2Res] = await Promise.all([
+    analyticsData.properties.batchRunReports({
+      property,
+      requestBody: {
+        requests: [
+          {
+            dateRanges,
+            dimensions: [{ name: "pagePath" }],
+            metrics: [{ name: "screenPageViews" }, { name: "sessions" }],
+            limit: "25"
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "sessionMedium" }],
+            metrics: [{ name: "sessions" }, { name: "totalUsers" }],
+            limit: "25"
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "deviceCategory" }],
+            metrics: [{ name: "sessions" }, { name: "totalUsers" }]
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "country" }],
+            metrics: [{ name: "totalUsers" }, { name: "sessions" }],
+            limit: "25"
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "eventName" }],
+            metrics: [{ name: "eventCount" }, { name: "totalUsers" }],
+            limit: "25"
+          }
+        ]
+      }
+    }),
+    analyticsData.properties.batchRunReports({
+      property,
+      requestBody: {
+        requests: [
+          {
+            dateRanges,
+            dimensions: [{ name: "operatingSystem" }],
+            metrics: [{ name: "sessions" }],
+            limit: "10"
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "landingPage" }],
+            metrics: [{ name: "sessions" }, { name: "screenPageViews" }],
+            limit: "25"
+          },
+          {
+            dateRanges,
+            dimensions: [{ name: "firstUserMedium" }],
+            metrics: [{ name: "totalUsers" }],
+            limit: "25"
+          }
+        ]
+      }
+    })
+  ]);
+  const reports1 = batch1Res.data.reports ?? [];
+  const reports2 = batch2Res.data.reports ?? [];
+  return {
+    topPages: parseRows(reports1[0], (dims, mets) => ({
+      pagePath: dims[0],
+      pageviews: parseInt(mets[0]),
+      sessions: parseInt(mets[1])
+    })),
+    trafficSources: parseRows(reports1[1], (dims, mets) => ({
+      medium: dims[0],
+      sessions: parseInt(mets[0]),
+      users: parseInt(mets[1])
+    })),
+    deviceBreakdown: parseRows(reports1[2], (dims, mets) => ({
+      device: dims[0],
+      sessions: parseInt(mets[0]),
+      users: parseInt(mets[1])
+    })),
+    countryBreakdown: parseRows(reports1[3], (dims, mets) => ({
+      country: dims[0],
+      users: parseInt(mets[0]),
+      sessions: parseInt(mets[1])
+    })),
+    events: parseRows(reports1[4], (dims, mets) => ({
+      eventName: dims[0],
+      eventCount: parseInt(mets[0]),
+      totalUsers: parseInt(mets[1])
+    })),
+    osBreakdown: parseRows(reports2[0], (dims, mets) => ({
+      os: dims[0],
+      sessions: parseInt(mets[0])
+    })),
+    landingPages: parseRows(reports2[1], (dims, mets) => ({
+      landingPage: dims[0],
+      sessions: parseInt(mets[0]),
+      pageviews: parseInt(mets[1])
+    })),
+    acquisitionChannels: parseRows(reports2[2], (dims, mets) => ({
+      channel: dims[0],
+      users: parseInt(mets[0])
+    }))
+  };
+}
+async function fetchGa4ReportProfileForRange(authClient, propertyId, startDate, endDate) {
+  const analyticsData = google.analyticsdata({ version: "v1beta", auth: authClient });
+  return fetchGa4ProfileForPeriod(
+    analyticsData,
+    `properties/${propertyId}`,
+    startDate,
+    endDate
+  );
 }
 
 // packages/shared/src/lib/provider-tokens.ts
@@ -207,7 +353,7 @@ function decryptGoogleAccountTokens(row) {
   };
 }
 async function getGoogleAccountTokensForUser(userId) {
-  const { db: db2 } = await import("./db-CO5BENFV.js");
+  const { db: db2 } = await import("./db-ND272BIY.js");
   const googleAccount = await db2.query.account.findFirst({
     where: (table, { and: and3, eq: eq3 }) => and3(eq3(table.userId, userId), eq3(table.providerId, "google"))
   });
@@ -283,6 +429,7 @@ async function upsertGscDayData(params) {
     },
     queriesPayload: metrics.topQueries,
     pagesPayload: metrics.topPages,
+    queryPagePairsPayload: metrics.queryPagePairs,
     countriesPayload: metrics.topCountries,
     devicesPayload: metrics.topDevices,
     fetchedAt: now,
@@ -299,6 +446,7 @@ async function upsertGscDayData(params) {
       },
       queriesPayload: metrics.topQueries,
       pagesPayload: metrics.topPages,
+      queryPagePairsPayload: metrics.queryPagePairs,
       countriesPayload: metrics.topCountries,
       devicesPayload: metrics.topDevices,
       fetchedAt: now,
@@ -376,6 +524,28 @@ async function upsertGa4DayData(params) {
       newUsers: metrics.newUsers,
       fetchedAt: now,
       updatedAt: now
+    }
+  });
+}
+async function upsertGa4ReportArtifact(params) {
+  const now = /* @__PURE__ */ new Date();
+  await db.insert(ga4ReportArtifacts).values({
+    id: `ga4a_${nanoid(12)}`,
+    teamId: params.teamId,
+    gscPropertyId: params.gscPropertyId,
+    ga4PropertyId: params.ga4PropertyId,
+    dateStart: params.dateStart,
+    dateEnd: params.dateEnd,
+    reportPayload: params.reportPayload,
+    fetchedAt: now,
+    syncJobId: params.syncJobId ?? null
+  }).onConflictDoUpdate({
+    target: [ga4ReportArtifacts.ga4PropertyId, ga4ReportArtifacts.dateStart, ga4ReportArtifacts.dateEnd],
+    set: {
+      gscPropertyId: params.gscPropertyId,
+      reportPayload: params.reportPayload,
+      fetchedAt: now,
+      syncJobId: params.syncJobId ?? null
     }
   });
 }
@@ -551,6 +721,7 @@ async function processMetricsBackfillJob(args) {
                   position: 0,
                   topQueries: [],
                   topPages: [],
+                  queryPagePairs: [],
                   topCountries: [],
                   topDevices: []
                 },
@@ -597,7 +768,10 @@ async function processMetricsBackfillJob(args) {
         const fetchStart = datesToFetch[0];
         const fetchEnd = datesToFetch[datesToFetch.length - 1];
         try {
-          const dayMap = await fetchGa4DailySummary(args.authClient, ga4Id, fetchStart, fetchEnd);
+          const [dayMap, profile] = await Promise.all([
+            fetchGa4DailySummary(args.authClient, ga4Id, fetchStart, fetchEnd),
+            fetchGa4ReportProfileForRange(args.authClient, ga4Id, fetchStart, fetchEnd)
+          ]);
           for (const day of datesToFetch) {
             const metrics = dayMap.get(day) ?? { sessions: 0, users: 0, newUsers: 0 };
             await upsertGa4DayData({
@@ -613,6 +787,15 @@ async function processMetricsBackfillJob(args) {
               totals.ga4RefreshedDates++;
             }
           }
+          await upsertGa4ReportArtifact({
+            teamId: job.teamId,
+            gscPropertyId: prop.id,
+            ga4PropertyId: ga4Id,
+            dateStart: fetchStart,
+            dateEnd: fetchEnd,
+            reportPayload: profile,
+            syncJobId: job.id
+          });
           ga4ValidatedProps.add(ga4Id);
         } catch {
           totals.ga4FailedDates += datesToFetch.length;
@@ -862,6 +1045,39 @@ function aggregateGscTopPages(rawRows) {
   }
   return [...map.entries()].map(([page, v]) => ({ page, clicks: v.clicks, impressions: v.impressions })).sort((a, b) => b.clicks - a.clicks).slice(0, 25);
 }
+function aggregateGscQueryPagePairs(rawRows) {
+  const map = /* @__PURE__ */ new Map();
+  for (const row of rawRows) {
+    const items = Array.isArray(row.queryPagePairsPayload) ? row.queryPagePairsPayload : [];
+    for (const item of items) {
+      if (!item || typeof item !== "object") continue;
+      const record = item;
+      const query = String(record.query ?? "");
+      const page = String(record.page ?? "");
+      if (!query || !page) continue;
+      const key = `${query}\0${page}`;
+      const clicks = Number(record.clicks ?? 0);
+      const impressions = Number(record.impressions ?? 0);
+      const position = Number(record.position ?? 0);
+      const cur = map.get(key) ?? { clicks: 0, impressions: 0, positionImpr: 0 };
+      cur.clicks += clicks;
+      cur.impressions += impressions;
+      cur.positionImpr += position * Math.max(impressions, 1);
+      map.set(key, cur);
+    }
+  }
+  return [...map.entries()].map(([key, v]) => {
+    const [query = "", page = ""] = key.split("\0");
+    return {
+      query,
+      page,
+      clicks: v.clicks,
+      impressions: v.impressions,
+      ctr: v.impressions > 0 ? v.clicks / v.impressions : 0,
+      position: v.impressions > 0 ? v.positionImpr / v.impressions : 0
+    };
+  }).sort((a, b) => b.clicks - a.clicks).slice(0, 25);
+}
 function aggregateGscTopCountries(rawRows) {
   const map = /* @__PURE__ */ new Map();
   for (const row of rawRows) {
@@ -986,6 +1202,7 @@ async function composeReportMetricsFromCache(params) {
         ...gscCurrentSummary,
         topQueries: aggregateGscTopQueries(gscCurrent.rawRows),
         topPages: aggregateGscTopPages(gscCurrent.rawRows),
+        queryPagePairs: aggregateGscQueryPagePairs(gscCurrent.rawRows),
         topCountries: aggregateGscTopCountries(gscCurrent.rawRows),
         topDevices: aggregateGscTopDevices(gscCurrent.rawRows)
       },
@@ -993,6 +1210,7 @@ async function composeReportMetricsFromCache(params) {
         ...gscCompareSummary,
         topQueries: aggregateGscTopQueries(gscCompare.rawRows),
         topPages: aggregateGscTopPages(gscCompare.rawRows),
+        queryPagePairs: aggregateGscQueryPagePairs(gscCompare.rawRows),
         topCountries: aggregateGscTopCountries(gscCompare.rawRows),
         topDevices: aggregateGscTopDevices(gscCompare.rawRows)
       }

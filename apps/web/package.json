@@ -13,7 +13,7 @@
     "@better-fetch/fetch": "^1.1.21",
     "@hookform/resolvers": "^5.2.2",
     "@next/third-parties": "^16.2.2",
-    "@sentry/nextjs": "^10.47.0",
+    "@sentry/nextjs": "^10.51.0",
     "@tanstack/react-table": "^8.21.3",
     "@vercel/analytics": "^1.6.1",
     "@webhealth/shared": "workspace:*",
@@ -45,7 +45,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/postcss": "^4.2.4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
