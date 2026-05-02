@@ -1,9 +1,21 @@
 export const PRODUCT_EVENT_NAMES = [
+  "dashboard_opened",
   "property_activated",
   "property_deactivated",
+  "refresh_started",
+  "refresh_completed",
+  "refresh_failed",
+  "ai_run_queued",
+  "ai_run_started",
+  "ai_run_completed",
+  "ai_run_failed",
+  "action_state_changed",
   "snapshot_captured",
+  "snapshot_copied",
   "snapshot_opened",
   "snapshot_share_created",
+  "billing_cta_clicked",
+  "google_reconnect_started",
 ] as const;
 
 export type ProductEventName = (typeof PRODUCT_EVENT_NAMES)[number];

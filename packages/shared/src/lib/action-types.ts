@@ -71,6 +71,8 @@ export type RecommendationFeedbackType =
   | "not_applicable"
   | "already_done";
 
+export type RecommendationSource = "rules" | "ai" | "rules_ai";
+
 export type RecommendationEvidenceFact = {
   label: string;
   value: string;
@@ -222,6 +224,10 @@ export type WeeklyActionRow = RecommendationSummary & {
   title: string;
   whyNow: string;
   detail: RecommendationDetail;
+  source?: RecommendationSource;
+  aiRunId?: string | null;
+  evidenceAnchors?: unknown[];
+  clientSafeSummary?: string | null;
 };
 
 export type NotRecommendedRow = RecommendationSummary & {

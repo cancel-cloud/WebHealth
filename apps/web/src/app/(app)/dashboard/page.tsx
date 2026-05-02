@@ -1,18 +1,26 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { ArrowRight, Globe2 } from "lucide-react";
+import { AlertCircle, ArrowRight, Bot, Globe2 } from "lucide-react";
 import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { eq } from "drizzle-orm";
 import { properties as propertiesSchema } from "@webhealth/shared/db/schema";
 import { getWorkspaceActionBoard } from "@webhealth/shared/lib/live-dashboard";
+import { getAiRunCenterData, type AiRunCenterData } from "@webhealth/shared/lib/ai-run-center";
+import { isAdminEmail } from "@webhealth/shared/lib/admin-access";
+import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import { listTeamCombinedReportableProperties } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { OnboardingModal } from "./onboarding-modal";
 import { WorkspaceActionBoard } from "./workspace-action-board";
 import { ManagePropertiesDialog } from "./manage-properties-dialog";
 import { SetupDismissButton } from "./setup-dismiss-button";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ view?: string }>;
+}) {
+  const params = await searchParams;
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -37,6 +45,22 @@ export default async function DashboardPage() {
 
   if (userTeams.length > 0) {
     const targetTeamId = userTeams[0].teamId;
+    void recordProductEvent({
+      teamId: targetTeamId,
+      userId: session!.user.id,
+      name: "dashboard_opened",
+      source: "dashboard",
+      entityType: "dashboard",
+      entityId: params?.view === "ai-insights" ? "ai-insights" : "overview",
+      properties: { view: params?.view ?? "overview" },
+    }).catch(() => {});
+
+    if (params?.view === "ai-insights") {
+      const isAdmin = await isAdminEmail(session!.user.email ?? null);
+      const aiRunCenter = await getAiRunCenterData(targetTeamId);
+      return <AiRunCenterView data={aiRunCenter} isAdmin={isAdmin} />;
+    }
+
     const userProperties = await db.query.properties.findMany({
       where: eq(propertiesSchema.teamId, targetTeamId),
     });
@@ -172,6 +196,147 @@ export default async function DashboardPage() {
         </section>
       ) : null}
 
+    </div>
+  );
+}
+
+function formatUsd(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 4,
+  }).format(value);
+}
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleString();
+}
+
+function AiRunCenterView({ data, isAdmin }: { data: AiRunCenterData; isAdmin: boolean }) {
+  const visibleRuns = isAdmin ? data.runs : data.runs.filter((run) => run.status !== "failed");
+  const visibleCounts = isAdmin
+    ? data.counts
+    : {
+        ...data.counts,
+        failed: 0,
+        total: data.counts.queued + data.counts.processing + data.counts.complete,
+      };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">AI Run Center</h1>
+          <p className="mt-1 max-w-2xl text-muted-foreground">
+            Monitor AI review work across active properties. Property dashboards remain the source of ranked fix-list execution.
+          </p>
+        </div>
+        {isAdmin ? (
+          <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
+            <Bot className="h-4 w-4" />
+            <span>Estimated spend: {formatUsd(data.estimatedCostUsd)}</span>
+          </div>
+        ) : null}
+      </div>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <SummaryTile label="Queued" value={visibleCounts.queued} description="Waiting to start" />
+        <SummaryTile label="Processing" value={visibleCounts.processing} description="Currently running" />
+        <SummaryTile label="Complete" value={visibleCounts.complete} description="Finished reviews" />
+        {isAdmin ? <SummaryTile label="Failed" value={visibleCounts.failed} description="Needs retry or review" /> : null}
+        <SummaryTile label="Total" value={visibleCounts.total} description="Tracked AI runs" />
+      </section>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
+        <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <div className="mb-4">
+            <h2 className="font-display text-lg font-semibold">Recent AI runs</h2>
+            <p className="text-sm text-muted-foreground">Latest source-summary and analyzer jobs by property.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="border-b text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                <tr>
+                  <th className="py-2 pr-4">Property</th>
+                  <th className="py-2 pr-4">Status</th>
+                  <th className="py-2 pr-4">Phase</th>
+                  {isAdmin ? <th className="py-2 pr-4">Model</th> : null}
+                  {isAdmin ? <th className="py-2 pr-4">Cost</th> : null}
+                  <th className="py-2 pr-4">Updated</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {visibleRuns.map((run) => {
+                  const statusLabel = isAdmin ? run.status : run.status === "failed" ? "needs review" : run.status;
+                  const phaseLabel = isAdmin ? run.phase : run.status === "failed" ? "review" : run.phase;
+
+                  return (
+                    <tr key={run.id}>
+                      <td className="py-3 pr-4">
+                        <div className="font-medium">{run.propertyName}</div>
+                        <div className="text-xs text-muted-foreground">{run.propertyId}</div>
+                        {isAdmin && run.error ? (
+                          <pre className="mt-2 max-h-24 overflow-auto rounded-lg border border-destructive/20 bg-destructive/5 p-2 text-xs whitespace-pre-wrap text-destructive">
+                            {run.error}
+                          </pre>
+                        ) : null}
+                      </td>
+                      <td className="py-3 pr-4">{statusLabel}</td>
+                      <td className="py-3 pr-4">{phaseLabel}</td>
+                      {isAdmin ? <td className="py-3 pr-4">{run.analyzerModel ?? "-"}</td> : null}
+                      {isAdmin ? <td className="py-3 pr-4">{run.costEstimateUsd ? formatUsd(Number(run.costEstimateUsd)) : "-"}</td> : null}
+                      <td className="py-3 pr-4">{formatDate(run.updatedAt)}</td>
+                    </tr>
+                  );
+                })}
+                {!visibleRuns.length ? (
+                  <tr>
+                    <td colSpan={isAdmin ? 6 : 4} className="py-8 text-center text-muted-foreground">
+                      No AI runs have been recorded yet.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <div className="mb-4">
+            <h2 className="font-display text-lg font-semibold">Latest AI findings</h2>
+            <p className="text-sm text-muted-foreground">Evidence-backed findings that can appear in ranked fix lists.</p>
+          </div>
+          <div className="space-y-3">
+            {data.recommendations.map((item) => (
+              <div key={item.id} className="rounded-lg border border-border/70 p-4">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <div>
+                    <div className="text-sm font-medium">{item.title}</div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <span className="rounded-lg border border-primary/25 bg-primary/5 px-2 py-1 text-xs font-medium text-primary">
+                        {item.propertyName}
+                      </span>
+                      <span className="rounded-lg border border-border bg-muted/40 px-2 py-1 text-xs font-medium text-foreground">
+                        {item.area}
+                      </span>
+                      <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+                        {item.confidence}
+                      </span>
+                    </div>
+                    <div className="mt-2 break-all text-xs text-muted-foreground">{item.targetKey}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {!data.recommendations.length ? (
+              <div className="rounded-lg border border-border/70 px-4 py-6 text-sm text-muted-foreground">
+                No AI recommendations have been saved yet.
+              </div>
+            ) : null}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

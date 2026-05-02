@@ -28,6 +28,7 @@ import type {
 } from "@webhealth/shared/lib/action-types";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { getTeamBrandingProfile } from "@webhealth/shared/lib/team-branding";
+import { getLatestCompleteAiActions } from "@webhealth/shared/lib/ai-dashboard-actions";
 
 export type AnalysisPreset = "last_7d" | "last_28d" | "last_90d" | "custom";
 export type CompareMode = "previous_period" | "same_period_last_year" | "none";
@@ -1307,6 +1308,33 @@ export async function getLiveDashboardData(input: LiveDashboardInput): Promise<L
       dashboardFreshnessState,
       refreshState,
     });
+  }
+
+  const aiActions = await getLatestCompleteAiActions({
+    teamId: property.teamId,
+    propertyId: property.id,
+    startDate: window.startDate,
+    endDate: window.endDate,
+    compareMode: window.compareMode,
+    compareStartDate: window.compareStartDate,
+    compareEndDate: window.compareEndDate,
+  });
+  if (aiActions.length) {
+    const deterministicActions = payload.actions
+      .filter((action) => action.source !== "ai")
+      .map((action) => ({ ...action, source: action.source ?? "rules" as const }));
+    const mergedActions = [...deterministicActions.slice(0, 4), ...aiActions]
+      .slice(0, 8)
+      .map((action, index) => ({ ...action, rank: index + 1 }));
+    payload = {
+      ...payload,
+      actions: mergedActions,
+    };
+  } else {
+    payload = {
+      ...payload,
+      actions: payload.actions.map((action) => ({ ...action, source: action.source ?? "rules" as const })),
+    };
   }
 
   if (payload.actions.length) {

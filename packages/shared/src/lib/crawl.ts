@@ -11,6 +11,12 @@ export type PageIssue = {
   h1Count: number;
   h1Texts?: string[];
   visibleTextExcerpt?: string;
+  noindex?: boolean;
+  nofollow?: boolean;
+  imageMissingAltCount?: number;
+  hasStructuredData?: boolean;
+  hasViewportMeta?: boolean;
+  visibleWordCount?: number;
 };
 
 export type CrawlResult = {
@@ -22,6 +28,12 @@ export type CrawlResult = {
     missingH1: number;
     multipleH1: number;
     brokenLinks: number;
+    noindexPages: number;
+    canonicalMismatch: number;
+    imageMissingAlt: number;
+    missingStructuredData: number;
+    missingViewportMeta: number;
+    thinContent: number;
   };
 };
 
@@ -337,6 +349,11 @@ function normalizeText(input: string) {
   return input.replace(/\s+/g, " ").trim();
 }
 
+function countWords(input: string): number {
+  if (!input) return 0;
+  return input.split(/\s+/).filter(Boolean).length;
+}
+
 export async function crawlWebsite(
   startUrl: string,
   maxPages = DEFAULT_MAX_PAGES,
@@ -387,11 +404,36 @@ export async function crawlWebsite(
 
     const bodyText = normalizeText($("body").text());
     const visibleTextExcerpt = bodyText.slice(0, 4000);
+    const visibleWordCount = countWords(bodyText);
+    const robotsContent = [
+      $("meta[name=\"robots\"]").attr("content") ?? "",
+      $("meta[name=\"googlebot\"]").attr("content") ?? "",
+    ]
+      .join(",")
+      .toLowerCase();
+    const noindex = robotsContent.split(",").map((value) => value.trim()).includes("noindex");
+    const nofollow = robotsContent.split(",").map((value) => value.trim()).includes("nofollow");
+    const imageMissingAltCount = $("img")
+      .filter((_, el) => !(($(el).attr("alt") ?? "").trim()))
+      .length;
+    const hasStructuredData = $("script[type=\"application/ld+json\"]").length > 0;
+    const hasViewportMeta = Boolean($("meta[name=\"viewport\"]").attr("content")?.trim());
 
     if (!title) issues.push("Missing <title> tag");
     if (!metaDescription) issues.push("Missing meta description");
     if (h1Count === 0) issues.push("Missing <h1> tag");
     if (h1Count > 1) issues.push(`Multiple <h1> tags (${h1Count} found)`);
+    if (canonicalUrl !== url) issues.push("Canonical URL points to a different URL");
+    if (noindex) issues.push("Page is marked noindex");
+    if (nofollow) issues.push("Page is marked nofollow");
+    if (imageMissingAltCount > 0) {
+      issues.push(`Images missing alt text (${imageMissingAltCount} found)`);
+    }
+    if (!hasViewportMeta) issues.push("Missing viewport meta tag");
+    if (!hasStructuredData) issues.push("Missing structured data");
+    if (visibleWordCount > 0 && visibleWordCount < 150) {
+      issues.push(`Thin visible text (${visibleWordCount} words)`);
+    }
 
     pages.push({
       url,
@@ -402,6 +444,12 @@ export async function crawlWebsite(
       h1Count,
       h1Texts,
       visibleTextExcerpt,
+      noindex,
+      nofollow,
+      imageMissingAltCount,
+      hasStructuredData,
+      hasViewportMeta,
+      visibleWordCount,
     });
 
     $("a[href]").each((_, el) => {
@@ -419,6 +467,17 @@ export async function crawlWebsite(
     missingH1: pages.filter((page) => page.h1Count === 0).length,
     multipleH1: pages.filter((page) => page.h1Count > 1).length,
     brokenLinks: brokenLinks.length,
+    noindexPages: pages.filter((page) => page.noindex).length,
+    canonicalMismatch: pages.filter((page) => page.canonicalUrl !== page.url).length,
+    imageMissingAlt: pages.reduce(
+      (total, page) => total + (page.imageMissingAltCount ?? 0),
+      0
+    ),
+    missingStructuredData: pages.filter((page) => !page.hasStructuredData).length,
+    missingViewportMeta: pages.filter((page) => !page.hasViewportMeta).length,
+    thinContent: pages.filter(
+      (page) => (page.visibleWordCount ?? Number.POSITIVE_INFINITY) < 150
+    ).length,
   };
 
   return { pages, brokenLinks, summary };

@@ -12,6 +12,8 @@ import {
   type PropertyRefreshClaimLane,
 } from "@webhealth/shared/lib/property-refresh";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
+import { runAiAnalysisForPropertyWindow } from "@webhealth/shared/lib/ai-analysis-runner";
+import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 
 async function isRefreshPropertyActive(job: ClaimedPropertyRefreshJob) {
   const property = await db.query.properties.findFirst({
@@ -70,6 +72,15 @@ async function processCrawlRefreshJob(job: ClaimedPropertyRefreshJob) {
   await completePropertyRefreshJob(job.id, "Technical refresh complete", {
     crawlPages: crawlData.pages.length,
   });
+  void recordProductEvent({
+    teamId: job.teamId,
+    userId: job.triggeredByUserId ?? null,
+    name: "refresh_completed",
+    source: "worker",
+    entityType: "property",
+    entityId: job.propertyId,
+    properties: { jobId: job.id, jobType: job.jobType, crawlPages: crawlData.pages.length },
+  }).catch(() => {});
 }
 
 async function processClaimedJob(job: ClaimedPropertyRefreshJob, workerId: string) {
@@ -97,8 +108,35 @@ async function processClaimedJob(job: ClaimedPropertyRefreshJob, workerId: strin
         message: "Recomputing ranked actions…",
       });
       await warmDashboardFromPayload(job);
+      const payload = (job.payload ?? {}) as Record<string, unknown>;
+      await updatePropertyRefreshJobProgress({
+        jobId: job.id,
+        phase: "ai_analysis",
+        message: "Running AI evidence review…",
+      });
+      const aiResult = await runAiAnalysisForPropertyWindow({
+        teamId: job.teamId,
+        propertyId: job.propertyId,
+        refreshJobId: job.id,
+        triggeredByUserId: job.triggeredByUserId ?? null,
+        preset: typeof payload.preset === "string" ? payload.preset : null,
+        compareMode: typeof payload.compareMode === "string" ? payload.compareMode : null,
+        startDate: typeof payload.startDate === "string" ? payload.startDate : null,
+        endDate: typeof payload.endDate === "string" ? payload.endDate : null,
+      });
       console.log(`[property-refresh][INFO] completed decision refresh job=${job.id} property=${job.propertyId}`);
-      await completePropertyRefreshJob(job.id, "Decision refresh complete");
+      await completePropertyRefreshJob(job.id, "Decision refresh complete", {
+        aiAnalysis: aiResult,
+      });
+      void recordProductEvent({
+        teamId: job.teamId,
+        userId: job.triggeredByUserId ?? null,
+        name: "refresh_completed",
+        source: "worker",
+        entityType: "property",
+        entityId: job.propertyId,
+        properties: { jobId: job.id, jobType: job.jobType },
+      }).catch(() => {});
       return;
     }
 
@@ -109,6 +147,15 @@ async function processClaimedJob(job: ClaimedPropertyRefreshJob, workerId: strin
     await failPropertyRefreshJob(job.id, message, job.phase, {
       error: message,
     });
+    void recordProductEvent({
+      teamId: job.teamId,
+      userId: job.triggeredByUserId ?? null,
+      name: "refresh_failed",
+      source: "worker",
+      entityType: "property",
+      entityId: job.propertyId,
+      properties: { jobId: job.id, jobType: job.jobType, message },
+    }).catch(() => {});
   } finally {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
   }

@@ -87,6 +87,7 @@ export type GscDayMetrics = {
   position: number;
   topQueries: { query: string; clicks: number; impressions: number; ctr: number; position: number }[];
   topPages: { page: string; clicks: number; impressions: number }[];
+  queryPagePairs: GscQueryPagePair[];
   topCountries: { country: string; clicks: number; impressions: number; ctr: number; position: number }[];
   topDevices: { device: string; clicks: number; impressions: number; ctr: number; position: number }[];
 };
@@ -180,7 +181,7 @@ export async function fetchGscQueryPagePairs(
 }
 
 /**
- * Batch-fetches GSC data for a full date range in 5 API calls (vs 3 per day).
+ * Batch-fetches GSC data for a full date range in 6 API calls (vs 3 per day).
  * Returns a Map keyed by date string (YYYY-MM-DD).
  */
 export async function fetchGscMetricsBatch(
@@ -191,8 +192,8 @@ export async function fetchGscMetricsBatch(
 ): Promise<Map<string, GscDayMetrics>> {
   const searchConsole = google.webmasters({ version: "v3", auth: authClient });
 
-  // Run all 5 dimension queries in parallel
-  const [dailyRes, queriesRes, pagesRes, countriesRes, devicesRes] = await Promise.all([
+  // Run all dimension queries in parallel.
+  const [dailyRes, queriesRes, pagesRes, queryPageRes, countriesRes, devicesRes] = await Promise.all([
     // 1. Daily summary
     searchConsole.searchanalytics.query({
       siteUrl,
@@ -208,12 +209,17 @@ export async function fetchGscMetricsBatch(
       siteUrl,
       requestBody: { startDate: dateStart, endDate: dateEnd, dimensions: ["date", "page"], rowLimit: 25000 },
     }),
-    // 4. Daily country breakdown
+    // 4. Daily query-page pairs for intent and cannibalization evidence
+    searchConsole.searchanalytics.query({
+      siteUrl,
+      requestBody: { startDate: dateStart, endDate: dateEnd, dimensions: ["date", "query", "page"], rowLimit: 25000 },
+    }),
+    // 5. Daily country breakdown
     searchConsole.searchanalytics.query({
       siteUrl,
       requestBody: { startDate: dateStart, endDate: dateEnd, dimensions: ["date", "country"], rowLimit: 25000 },
     }),
-    // 5. Daily device breakdown
+    // 6. Daily device breakdown
     searchConsole.searchanalytics.query({
       siteUrl,
       requestBody: { startDate: dateStart, endDate: dateEnd, dimensions: ["date", "device"], rowLimit: 25000 },
@@ -232,6 +238,7 @@ export async function fetchGscMetricsBatch(
       position: (row as any).position ?? 0,
       topQueries: [],
       topPages: [],
+      queryPagePairs: [],
       topCountries: [],
       topDevices: [],
     });
@@ -260,6 +267,20 @@ export async function fetchGscMetricsBatch(
       page,
       clicks: (row as any).clicks ?? 0,
       impressions: (row as any).impressions ?? 0,
+    });
+  }
+
+  const queryPagePairsByDay = new Map<string, GscQueryPagePair[]>();
+  for (const row of (queryPageRes.data.rows ?? [])) {
+    const [date, query, page] = (row as any).keys as string[];
+    if (!queryPagePairsByDay.has(date)) queryPagePairsByDay.set(date, []);
+    queryPagePairsByDay.get(date)!.push({
+      query,
+      page,
+      clicks: (row as any).clicks ?? 0,
+      impressions: (row as any).impressions ?? 0,
+      ctr: (row as any).ctr ?? 0,
+      position: (row as any).position ?? 0,
     });
   }
 
@@ -298,6 +319,9 @@ export async function fetchGscMetricsBatch(
 
     const pages = pagesByDay.get(date) ?? [];
     entry.topPages = pages.sort((a, b) => b.clicks - a.clicks).slice(0, 25);
+
+    const pairs = queryPagePairsByDay.get(date) ?? [];
+    entry.queryPagePairs = pairs.sort((a, b) => b.clicks - a.clicks).slice(0, 50);
 
     entry.topCountries = countriesByDay.get(date) ?? [];
     entry.topDevices = devicesByDay.get(date) ?? [];
@@ -521,6 +545,21 @@ async function fetchGa4ProfileForPeriod(
       users: parseInt(mets[0]),
     })),
   };
+}
+
+export async function fetchGa4ReportProfileForRange(
+  authClient: any,
+  propertyId: string,
+  startDate: string,
+  endDate: string
+): Promise<Ga4ReportProfile> {
+  const analyticsData = google.analyticsdata({ version: "v1beta", auth: authClient });
+  return fetchGa4ProfileForPeriod(
+    analyticsData,
+    `properties/${propertyId}`,
+    startDate,
+    endDate
+  );
 }
 
 /**
