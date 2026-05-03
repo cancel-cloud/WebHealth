@@ -30,8 +30,16 @@ export {
   type PropertyRefreshTriggerSource,
 } from "@webhealth/shared/lib/property-refresh-policy";
 
-export type PropertyRefreshJobType = "crawl_refresh" | "decision_refresh" | "metrics_refresh";
-export type PropertyRefreshJobStatus = "queued" | "processing" | "complete" | "failed" | "partial";
+export type PropertyRefreshJobType =
+  | "crawl_refresh"
+  | "decision_refresh"
+  | "metrics_refresh";
+export type PropertyRefreshJobStatus =
+  | "queued"
+  | "processing"
+  | "complete"
+  | "failed"
+  | "partial";
 
 export type PropertyRefreshState = {
   id: string;
@@ -45,7 +53,9 @@ export type PropertyRefreshState = {
   updatedAt: string;
 };
 
-function normalizePropertyRefreshRow(row: typeof propertyRefreshJobs.$inferSelect): PropertyRefreshState {
+function normalizePropertyRefreshRow(
+  row: typeof propertyRefreshJobs.$inferSelect,
+): PropertyRefreshState {
   return {
     id: row.id,
     jobType: row.jobType as PropertyRefreshJobType,
@@ -67,15 +77,16 @@ export async function enqueuePropertyRefreshJob(input: {
   payload?: PropertyRefreshPayload;
   triggerSource?: PropertyRefreshTriggerSource;
 }) {
-  const triggerSource = input.triggerSource ?? getPropertyRefreshTriggerSource(input.payload);
+  const triggerSource =
+    input.triggerSource ?? getPropertyRefreshTriggerSource(input.payload);
   const supersededAt = new Date();
   const activeJobs = await db.query.propertyRefreshJobs.findMany({
     where: and(
-        eq(propertyRefreshJobs.teamId, input.teamId),
-        eq(propertyRefreshJobs.propertyId, input.propertyId),
-        eq(propertyRefreshJobs.jobType, input.jobType),
-        isNull(propertyRefreshJobs.supersededAt),
-        inArray(propertyRefreshJobs.status, ["queued", "processing"]),
+      eq(propertyRefreshJobs.teamId, input.teamId),
+      eq(propertyRefreshJobs.propertyId, input.propertyId),
+      eq(propertyRefreshJobs.jobType, input.jobType),
+      isNull(propertyRefreshJobs.supersededAt),
+      inArray(propertyRefreshJobs.status, ["queued", "processing"]),
     ),
     columns: { id: true, payload: true },
   });
@@ -83,8 +94,11 @@ export async function enqueuePropertyRefreshJob(input: {
     .filter((job) =>
       shouldSupersedePropertyRefreshJob({
         incomingSource: triggerSource,
-        existingSource: getPropertyRefreshTriggerSource((job.payload as Record<string, unknown> | null | undefined) ?? null),
-      }))
+        existingSource: getPropertyRefreshTriggerSource(
+          (job.payload as Record<string, unknown> | null | undefined) ?? null,
+        ),
+      }),
+    )
     .map((job) => job.id);
 
   if (supersededIds.length > 0) {
@@ -107,9 +121,14 @@ export async function enqueuePropertyRefreshJob(input: {
       jobType: input.jobType,
       status: "queued",
       phase: "queued",
-      message: input.jobType === "crawl_refresh"
-        ? triggerSource === "automation" ? "Background technical refresh queued" : "Technical refresh queued"
-        : triggerSource === "automation" ? "Background decision refresh queued" : "Decision refresh queued",
+      message:
+        input.jobType === "crawl_refresh"
+          ? triggerSource === "automation"
+            ? "Background technical refresh queued"
+            : "Technical refresh queued"
+          : triggerSource === "automation"
+            ? "Background decision refresh queued"
+            : "Decision refresh queued",
       payload: {
         ...(input.payload ?? {}),
         triggerSource,
@@ -141,22 +160,29 @@ function normalizeClaimedPropertyRefreshJobRow(
     id: String(row.id ?? ""),
     teamId: String(row.team_id ?? row.teamId ?? ""),
     propertyId: String(row.property_id ?? row.propertyId ?? ""),
-    triggeredByUserId: readString(row.triggered_by_user_id ?? row.triggeredByUserId),
+    triggeredByUserId: readString(
+      row.triggered_by_user_id ?? row.triggeredByUserId,
+    ),
     jobType: String(row.job_type ?? row.jobType ?? ""),
     status: String(row.status ?? ""),
     phase: String(row.phase ?? ""),
     message: typeof row.message === "string" ? row.message : null,
-    progressMeta: (row.progress_meta ?? row.progressMeta ?? null) as Record<string, unknown> | null,
+    progressMeta: (row.progress_meta ?? row.progressMeta ?? null) as Record<
+      string,
+      unknown
+    > | null,
     payload: (row.payload ?? null) as Record<string, unknown> | null,
-    lastError: typeof (row.last_error ?? row.lastError) === "string"
-      ? String(row.last_error ?? row.lastError)
-      : null,
+    lastError:
+      typeof (row.last_error ?? row.lastError) === "string"
+        ? String(row.last_error ?? row.lastError)
+        : null,
     availableAt: readDate(row.available_at ?? row.availableAt) ?? new Date(),
     attempts: Number(row.attempts ?? 0),
     maxAttempts: Number(row.max_attempts ?? row.maxAttempts ?? 0),
-    claimedBy: typeof (row.claimed_by ?? row.claimedBy) === "string"
-      ? String(row.claimed_by ?? row.claimedBy)
-      : null,
+    claimedBy:
+      typeof (row.claimed_by ?? row.claimedBy) === "string"
+        ? String(row.claimed_by ?? row.claimedBy)
+        : null,
     claimedAt: readDate(row.claimed_at ?? row.claimedAt),
     claimExpiresAt: readDate(row.claim_expires_at ?? row.claimExpiresAt),
     heartbeatAt: readDate(row.heartbeat_at ?? row.heartbeatAt),
@@ -187,7 +213,10 @@ export async function claimNextPropertyRefreshJob(
   workerId: string,
   options: { lane?: PropertyRefreshClaimLane } = {},
 ): Promise<ClaimedPropertyRefreshJob | null> {
-  const leaseSeconds = parseInt(process.env.PROPERTY_REFRESH_WORKER_LEASE_SECONDS ?? "45", 10);
+  const leaseSeconds = parseInt(
+    process.env.PROPERTY_REFRESH_WORKER_LEASE_SECONDS ?? "45",
+    10,
+  );
   const lane = options.lane ?? "manual";
   const laneSql = buildPropertyRefreshClaimLaneSql(lane);
   const orderSql = buildPropertyRefreshClaimOrderSql(lane);
@@ -213,7 +242,7 @@ export async function claimNextPropertyRefreshJob(
       claimed_at = now(),
       heartbeat_at = now(),
       claim_expires_at = now() + (${leaseSeconds} || ' seconds')::interval,
-      started_at = coalesce(j.started_at, now()),
+      started_at = coalesce(j.started_at, now() at time zone 'utc'),
       attempts = j.attempts + 1,
       updated_at = now()
     from candidate
@@ -225,8 +254,14 @@ export async function claimNextPropertyRefreshJob(
   return normalizeClaimedPropertyRefreshJobRow(claimedRows[0]);
 }
 
-export async function heartbeatPropertyRefreshJob(jobId: string, workerId: string) {
-  const leaseSeconds = parseInt(process.env.PROPERTY_REFRESH_WORKER_LEASE_SECONDS ?? "45", 10);
+export async function heartbeatPropertyRefreshJob(
+  jobId: string,
+  workerId: string,
+) {
+  const leaseSeconds = parseInt(
+    process.env.PROPERTY_REFRESH_WORKER_LEASE_SECONDS ?? "45",
+    10,
+  );
   const [job] = await db
     .update(propertyRefreshJobs)
     .set({
@@ -329,7 +364,10 @@ export async function failPropertyRefreshJob(params: {
   return job ?? null;
 }
 
-export async function getLatestPropertyRefreshState(teamId: string, propertyId: string): Promise<PropertyRefreshState | null> {
+export async function getLatestPropertyRefreshState(
+  teamId: string,
+  propertyId: string,
+): Promise<PropertyRefreshState | null> {
   return getLatestPropertyRefreshStateForWindow({ teamId, propertyId });
 }
 
@@ -371,12 +409,16 @@ export async function getLatestPropertyRefreshStateForWindow(params: {
     matchesPropertyRefreshPayload(
       (candidate.payload as Record<string, unknown> | null | undefined) ?? null,
       params.payload,
-    ));
+    ),
+  );
 
   return matchingRow ? normalizePropertyRefreshRow(matchingRow) : null;
 }
 
-export async function getLatestPropertyRefreshJob(teamId: string, propertyId: string) {
+export async function getLatestPropertyRefreshJob(
+  teamId: string,
+  propertyId: string,
+) {
   return db.query.propertyRefreshJobs.findFirst({
     where: and(
       eq(propertyRefreshJobs.teamId, teamId),
