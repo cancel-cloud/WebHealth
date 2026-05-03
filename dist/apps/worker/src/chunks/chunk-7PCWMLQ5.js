@@ -243,32 +243,50 @@ async function updatePropertyRefreshJobProgress(params) {
     message: params.message ?? null,
     progressMeta: params.progressMeta ?? null,
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq(propertyRefreshJobs.id, params.jobId)).returning();
+  }).where(
+    and(
+      eq(propertyRefreshJobs.id, params.jobId),
+      eq(propertyRefreshJobs.status, "processing"),
+      eq(propertyRefreshJobs.claimedBy, params.workerId)
+    )
+  ).returning();
   return job ?? null;
 }
-async function completePropertyRefreshJob(jobId, message, progressMeta) {
+async function completePropertyRefreshJob(params) {
   const [job] = await db.update(propertyRefreshJobs).set({
     status: "complete",
     phase: "done",
-    message: message ?? "Refresh complete",
-    progressMeta: progressMeta ?? null,
+    message: params.message ?? "Refresh complete",
+    progressMeta: params.progressMeta ?? null,
     finishedAt: /* @__PURE__ */ new Date(),
     claimExpiresAt: null,
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq(propertyRefreshJobs.id, jobId)).returning();
+  }).where(
+    and(
+      eq(propertyRefreshJobs.id, params.jobId),
+      eq(propertyRefreshJobs.status, "processing"),
+      eq(propertyRefreshJobs.claimedBy, params.workerId)
+    )
+  ).returning();
   return job ?? null;
 }
-async function failPropertyRefreshJob(jobId, errorMessage, phase = "failed", progressMeta) {
+async function failPropertyRefreshJob(params) {
   const [job] = await db.update(propertyRefreshJobs).set({
     status: "failed",
-    phase,
+    phase: params.phase ?? "failed",
     message: "Refresh failed",
-    progressMeta: progressMeta ?? null,
-    lastError: errorMessage,
+    progressMeta: params.progressMeta ?? null,
+    lastError: params.errorMessage,
     finishedAt: /* @__PURE__ */ new Date(),
     claimExpiresAt: null,
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq(propertyRefreshJobs.id, jobId)).returning();
+  }).where(
+    and(
+      eq(propertyRefreshJobs.id, params.jobId),
+      eq(propertyRefreshJobs.status, "processing"),
+      eq(propertyRefreshJobs.claimedBy, params.workerId)
+    )
+  ).returning();
   return job ?? null;
 }
 async function getLatestPropertyRefreshState(teamId, propertyId) {

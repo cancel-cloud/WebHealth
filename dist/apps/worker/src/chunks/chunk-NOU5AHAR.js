@@ -304,6 +304,43 @@ async function fetchGa4ReportProfileForRange(authClient, propertyId, startDate, 
   );
 }
 
+// packages/shared/src/lib/metrics-window-policy.ts
+var MAX_METRICS_REFRESH_WINDOW_DAYS = 90;
+var DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+var DAY_MS = 24 * 60 * 60 * 1e3;
+function parseDateString(value) {
+  if (typeof value !== "string" || !DATE_PATTERN.test(value)) return null;
+  const date = /* @__PURE__ */ new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10) === value ? date : null;
+}
+function metricsWindowDaysInclusive(start, end) {
+  const startDate = parseDateString(start);
+  const endDate = parseDateString(end);
+  if (!startDate || !endDate) return Number.NaN;
+  return Math.floor((endDate.getTime() - startDate.getTime()) / DAY_MS) + 1;
+}
+function validateMetricsRefreshWindow(window) {
+  const startDate = parseDateString(window.dateStart);
+  const endDate = parseDateString(window.dateEnd);
+  if (!startDate || !endDate) {
+    return { ok: false, message: "A valid refresh window is required." };
+  }
+  if (startDate.getTime() > endDate.getTime()) {
+    return { ok: false, message: "Refresh start date must be on or before end date." };
+  }
+  const days = metricsWindowDaysInclusive(window.dateStart, window.dateEnd);
+  if (days > MAX_METRICS_REFRESH_WINDOW_DAYS) {
+    return { ok: false, message: `Refresh windows cannot exceed ${MAX_METRICS_REFRESH_WINDOW_DAYS} days.` };
+  }
+  return { ok: true, days };
+}
+function assertMetricsRefreshWindow(window) {
+  const validation = validateMetricsRefreshWindow(window);
+  if (!validation.ok) throw new Error(validation.message);
+  return window;
+}
+
 // packages/shared/src/lib/provider-tokens.ts
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
@@ -396,9 +433,7 @@ function eachDateInRange(start, end) {
   return out;
 }
 function rangeDaysInclusive(start, end) {
-  const a = (/* @__PURE__ */ new Date(`${start}T00:00:00.000Z`)).getTime();
-  const b = (/* @__PURE__ */ new Date(`${end}T00:00:00.000Z`)).getTime();
-  return Math.floor((b - a) / (1e3 * 60 * 60 * 24)) + 1;
+  return metricsWindowDaysInclusive(start, end);
 }
 function isWithinFreshWindow(sourceDate, refreshRecentDays) {
   const cutoff = /* @__PURE__ */ new Date();
@@ -550,6 +585,7 @@ async function upsertGa4ReportArtifact(params) {
   });
 }
 async function createMetricsBackfillJob(input) {
+  assertMetricsRefreshWindow({ dateStart: input.dateStart, dateEnd: input.dateEnd });
   const [job] = await db.insert(metricsBackfillJobs).values({
     id: `mbj_${nanoid(12)}`,
     teamId: input.teamId,
@@ -674,18 +710,35 @@ async function existingGa4DateSet(ga4PropertyId, start, end) {
   return new Set(rows.map((r) => normalizeDateStr(r.sourceDate)));
 }
 async function processMetricsBackfillJob(args) {
-  const job = await db.query.metricsBackfillJobs.findFirst({
+  const existingJob = await db.query.metricsBackfillJobs.findFirst({
     where: (j, { eq: eq3 }) => eq3(j.id, args.jobId)
   });
-  if (!job) throw new Error("Metrics backfill job not found");
+  if (!existingJob) throw new Error("Metrics backfill job not found");
+  const ownerId = args.workerId ?? `mbi_${nanoid(8)}`;
+  const [job] = await db.update(metricsBackfillJobs).set({
+    status: "processing",
+    claimedBy: ownerId,
+    claimedAt: existingJob.claimedAt ?? /* @__PURE__ */ new Date(),
+    heartbeatAt: /* @__PURE__ */ new Date(),
+    claimExpiresAt: sql`now() + (${parseInt(process.env.METRICS_BACKFILL_WORKER_LEASE_SECONDS ?? "90", 10)} || ' seconds')::interval`,
+    startedAt: existingJob.startedAt ?? /* @__PURE__ */ new Date(),
+    error: null
+  }).where(
+    args.workerId ? and2(
+      eq2(metricsBackfillJobs.id, existingJob.id),
+      eq2(metricsBackfillJobs.status, "processing"),
+      eq2(metricsBackfillJobs.claimedBy, ownerId)
+    ) : and2(eq2(metricsBackfillJobs.id, existingJob.id), eq2(metricsBackfillJobs.status, "queued"))
+  ).returning();
+  if (!job) throw new Error("Metrics backfill job lease was lost");
   const totals = ZERO_TOTALS();
   const gscValidatedProps = /* @__PURE__ */ new Set();
   const gscValidationFailedProps = /* @__PURE__ */ new Set();
   const ga4ValidatedProps = /* @__PURE__ */ new Set();
   const ga4ValidationFailedProps = /* @__PURE__ */ new Set();
-  await db.update(metricsBackfillJobs).set({ status: "processing", startedAt: /* @__PURE__ */ new Date(), error: null }).where(eq2(metricsBackfillJobs.id, job.id));
   const dateStart = String(job.dateStart);
   const dateEnd = String(job.dateEnd);
+  assertMetricsRefreshWindow({ dateStart, dateEnd });
   const dates = eachDateInRange(dateStart, dateEnd);
   try {
     const gscProps = await getGscPropertiesForJob(job);
@@ -808,12 +861,19 @@ async function processMetricsBackfillJob(args) {
     totals.gscValidationFailed = gscValidationFailedProps.size;
     totals.ga4ValidationFailed = ga4ValidationFailedProps.size;
     const finalStatus = totals.gscFailedDates > 0 || totals.ga4FailedDates > 0 ? "partial" : "complete";
-    await db.update(metricsBackfillJobs).set({
+    const [finalJob] = await db.update(metricsBackfillJobs).set({
       status: finalStatus,
       totals,
       finishedAt: /* @__PURE__ */ new Date(),
       claimExpiresAt: null
-    }).where(eq2(metricsBackfillJobs.id, job.id));
+    }).where(
+      and2(
+        eq2(metricsBackfillJobs.id, job.id),
+        eq2(metricsBackfillJobs.status, "processing"),
+        eq2(metricsBackfillJobs.claimedBy, ownerId)
+      )
+    ).returning();
+    if (!finalJob) throw new Error("Metrics backfill job lease was lost");
     await db.insert(systemLogs).values({
       id: `log_${nanoid(12)}`,
       action: "metrics_sync",
@@ -839,7 +899,13 @@ async function processMetricsBackfillJob(args) {
       totals,
       finishedAt: /* @__PURE__ */ new Date(),
       claimExpiresAt: null
-    }).where(eq2(metricsBackfillJobs.id, job.id));
+    }).where(
+      and2(
+        eq2(metricsBackfillJobs.id, job.id),
+        eq2(metricsBackfillJobs.status, "processing"),
+        eq2(metricsBackfillJobs.claimedBy, ownerId)
+      )
+    );
     throw error;
   }
 }
@@ -879,7 +945,7 @@ async function runSingleMetricsBackfillWorkerTick(workerId = `mbw_${nanoid(8)}`)
       void heartbeatMetricsBackfillJob(job.id, workerId);
     }, 1e4);
     const authClient = await getMetricsBackfillAuthClient(job);
-    await processMetricsBackfillJob({ jobId: job.id, authClient });
+    await processMetricsBackfillJob({ jobId: job.id, authClient, workerId });
     return { processed: true, jobId: job.id };
   } finally {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
@@ -954,6 +1020,7 @@ function uniqueDateStrings(values) {
   return [...new Set(values)].sort();
 }
 async function getPropertyMetricsCoverage(params) {
+  assertMetricsRefreshWindow({ dateStart: params.dateStart, dateEnd: params.dateEnd });
   const refreshRecentDays = params.refreshRecentDays ?? 7;
   const requiredDates = eachDateInRange(params.dateStart, params.dateEnd);
   const [gscFactRows, gscRawRows] = await Promise.all([
@@ -1226,43 +1293,54 @@ async function ensureMetricsCoverageForReport(params) {
     throw new Error(`ensureMetricsCoverageForReport requires a GSC property; received ${params.property.id}`);
   }
   const refreshRecentDays = params.refreshRecentDays ?? 7;
-  const allDates = [
-    ...eachDateInRange(params.dateRangeStart, params.dateRangeEnd),
-    ...eachDateInRange(params.compareRangeStart, params.compareRangeEnd)
-  ].sort();
-  const dateStart = allDates[0];
-  const dateEnd = allDates[allDates.length - 1];
+  const currentWindow = assertMetricsRefreshWindow({
+    dateStart: params.dateRangeStart,
+    dateEnd: params.dateRangeEnd
+  });
+  const compareWindow = assertMetricsRefreshWindow({
+    dateStart: params.compareRangeStart,
+    dateEnd: params.compareRangeEnd
+  });
   const [currentCoverage, compareCoverage] = await Promise.all([
     getPropertyMetricsCoverage({
       property: params.property,
-      dateStart: params.dateRangeStart,
-      dateEnd: params.dateRangeEnd,
+      dateStart: currentWindow.dateStart,
+      dateEnd: currentWindow.dateEnd,
       refreshRecentDays
     }),
     getPropertyMetricsCoverage({
       property: params.property,
-      dateStart: params.compareRangeStart,
-      dateEnd: params.compareRangeEnd,
+      dateStart: compareWindow.dateStart,
+      dateEnd: compareWindow.dateEnd,
       refreshRecentDays
     })
   ]);
   if (currentCoverage.complete && compareCoverage.complete) {
     return { needed: false, jobId: null, result: null };
   }
-  const job = await createMetricsBackfillJob({
-    teamId: params.teamId,
-    triggeredByUserId: params.triggeredByUserId,
-    targetPropertyId: params.property.id,
-    includeGsc: true,
-    includeGa4: !!params.property.ga4PropertyId,
-    dateStart,
-    dateEnd,
-    reason: "report_preflight",
-    timeframeMode: "custom",
-    refreshRecentDays
-  });
-  const result = await processMetricsBackfillJob({ jobId: job.id, authClient: params.authClient });
-  return { needed: true, jobId: job.id, result };
+  const windowsToRefresh = [
+    currentCoverage.complete ? null : currentWindow,
+    compareCoverage.complete ? null : compareWindow
+  ].filter((window) => Boolean(window));
+  const jobs = [];
+  const results = [];
+  for (const window of windowsToRefresh) {
+    const job = await createMetricsBackfillJob({
+      teamId: params.teamId,
+      triggeredByUserId: params.triggeredByUserId,
+      targetPropertyId: params.property.id,
+      includeGsc: true,
+      includeGa4: !!params.property.ga4PropertyId,
+      dateStart: window.dateStart,
+      dateEnd: window.dateEnd,
+      reason: "report_preflight",
+      timeframeMode: "custom",
+      refreshRecentDays
+    });
+    jobs.push(job);
+    results.push(await processMetricsBackfillJob({ jobId: job.id, authClient: params.authClient }));
+  }
+  return { needed: true, jobId: jobs[0]?.id ?? null, result: results[0] ?? null, jobIds: jobs.map((job) => job.id), results };
 }
 
 export {

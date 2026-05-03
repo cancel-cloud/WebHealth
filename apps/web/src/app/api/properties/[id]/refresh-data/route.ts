@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { badRequest } from "@webhealth/shared/lib/http-errors";
 import { createMetricsBackfillJob } from "@webhealth/shared/lib/metrics-cache";
+import {
+  planMetricsRefreshWindows,
+  summarizeMetricsRefreshWindows,
+} from "@webhealth/shared/lib/metrics-window-policy";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { getGoogleAccountTokensForUser } from "@webhealth/shared/lib/provider-tokens";
 import {
@@ -12,10 +16,6 @@ import { handleRouteError } from "@/lib/server/route-security";
 
 function isDateString(value: string | null | undefined): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
-
-function earlierDate(left: string, right: string) {
-  return left <= right ? left : right;
 }
 
 export async function POST(
@@ -45,30 +45,47 @@ export async function POST(
       throw badRequest("GOOGLE_ACCOUNT_NOT_LINKED", "Google account not linked. Reconnect Google to refresh data.");
     }
 
-    const refreshStart = isDateString(body.compareStartDate)
-      ? earlierDate(body.compareStartDate, body.startDate)
-      : body.startDate;
+    let windows: ReturnType<typeof planMetricsRefreshWindows>;
+    try {
+      windows = planMetricsRefreshWindows({
+        startDate: body.startDate,
+        endDate: body.endDate,
+        compareStartDate: body.compareStartDate,
+        compareEndDate: body.compareEndDate,
+      });
+    } catch (error) {
+      throw badRequest(
+        "INVALID_REFRESH_WINDOW",
+        error instanceof Error ? error.message : "A valid refresh window is required.",
+      );
+    }
 
-    const job = await createMetricsBackfillJob({
-      teamId: membership.teamId,
-      triggeredByUserId: session.user.id,
-      targetUserId: session.user.id,
-      targetPropertyId: resolved.canonicalGscProperty.id,
-      includeGsc: true,
-      includeGa4: Boolean(resolved.canonicalGscProperty.ga4PropertyId),
-      dateStart: refreshStart,
-      dateEnd: body.endDate,
-      reason: "manual_backfill",
-      timeframeMode: "custom",
-      refreshRecentDays: 14,
-      triggerSource: "manual",
-    });
+    const jobs = [];
+    for (const window of windows) {
+      jobs.push(await createMetricsBackfillJob({
+        teamId: membership.teamId,
+        triggeredByUserId: session.user.id,
+        targetUserId: session.user.id,
+        targetPropertyId: resolved.canonicalGscProperty.id,
+        includeGsc: true,
+        includeGa4: Boolean(resolved.canonicalGscProperty.ga4PropertyId),
+        dateStart: window.dateStart,
+        dateEnd: window.dateEnd,
+        reason: "manual_backfill",
+        timeframeMode: "custom",
+        refreshRecentDays: 14,
+        triggerSource: "manual",
+      }));
+    }
+    const summary = summarizeMetricsRefreshWindows(windows);
 
     return NextResponse.json({
-      jobId: job.id,
-      status: job.status,
-      dateStart: refreshStart,
-      dateEnd: body.endDate,
+      jobId: jobs[0]?.id ?? null,
+      jobIds: jobs.map((job) => job.id),
+      status: jobs[0]?.status ?? "queued",
+      dateStart: summary.dateStart,
+      dateEnd: summary.dateEnd,
+      windows,
     });
   } catch (error) {
     return handleRouteError("POST /api/properties/[id]/refresh-data error", error);

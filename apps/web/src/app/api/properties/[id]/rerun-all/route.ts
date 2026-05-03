@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { badRequest } from "@webhealth/shared/lib/http-errors";
 import { createMetricsBackfillJob } from "@webhealth/shared/lib/metrics-cache";
+import { planMetricsRefreshWindows } from "@webhealth/shared/lib/metrics-window-policy";
 import { enqueuePropertyRefreshJob } from "@webhealth/shared/lib/property-refresh";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { getGoogleAccountTokensForUser } from "@webhealth/shared/lib/provider-tokens";
@@ -12,7 +14,6 @@ import { decodeRouteParam } from "@/lib/server/route-params";
 import { handleRouteError } from "@/lib/server/route-security";
 import {
   buildRerunAllResponse,
-  earlierDate,
   normalizeRerunAllRequestBody,
 } from "./route.logic";
 
@@ -28,9 +29,17 @@ export async function POST(
     const body = normalizeRerunAllRequestBody(await req.json() as Record<string, unknown>);
     const resolved = await resolveTeamReportSources(membership.teamId, propertyId);
     const canonicalProperty = resolved.canonicalGscProperty;
-    const refreshStart = body.compareStartDate
-      ? earlierDate(body.compareStartDate, body.startDate)
-      : body.startDate;
+    let windows: ReturnType<typeof planMetricsRefreshWindows>;
+    try {
+      windows = planMetricsRefreshWindows({
+        startDate: body.startDate,
+        endDate: body.endDate,
+        compareStartDate: body.compareStartDate,
+        compareEndDate: body.compareEndDate,
+      });
+    } catch (error) {
+      throw badRequest("INVALID_RERUN_WINDOW", error instanceof Error ? error.message : "A valid rerun window is required.");
+    }
 
     let dataRefresh: ReturnType<typeof buildRerunAllResponse>["dataRefresh"];
     try {
@@ -39,23 +48,28 @@ export async function POST(
         throw new Error("Google account not linked. Reconnect Google to refresh GA4 and Search Console.");
       }
 
-      const job = await createMetricsBackfillJob({
-        teamId: membership.teamId,
-        triggeredByUserId: session.user.id,
-        targetUserId: session.user.id,
-        targetPropertyId: canonicalProperty.id,
-        includeGsc: true,
-        includeGa4: Boolean(canonicalProperty.ga4PropertyId),
-        dateStart: refreshStart,
-        dateEnd: body.endDate,
-        reason: "manual_backfill",
-        timeframeMode: "custom",
-        refreshRecentDays: 14,
-        triggerSource: "manual",
-      });
+      const jobs = [];
+      for (const window of windows) {
+        jobs.push(await createMetricsBackfillJob({
+          teamId: membership.teamId,
+          triggeredByUserId: session.user.id,
+          targetUserId: session.user.id,
+          targetPropertyId: canonicalProperty.id,
+          includeGsc: true,
+          includeGa4: Boolean(canonicalProperty.ga4PropertyId),
+          dateStart: window.dateStart,
+          dateEnd: window.dateEnd,
+          reason: "manual_backfill",
+          timeframeMode: "custom",
+          refreshRecentDays: 14,
+          triggerSource: "manual",
+        }));
+      }
       dataRefresh = {
         status: "queued",
-        jobId: job.id,
+        jobId: jobs[0]?.id ?? null,
+        jobIds: jobs.map((job) => job.id),
+        windows,
         message: "GA4 and Search Console refresh queued.",
       };
     } catch (error) {
