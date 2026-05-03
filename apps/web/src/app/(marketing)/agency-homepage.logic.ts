@@ -19,7 +19,7 @@ export type WorkspaceAction =
   | { type: "show_portfolio" }
   | { type: "show_client"; index: number };
 
-export const DEFAULT_AGENCY_LANGUAGE: AgencyLandingLanguage = "en";
+export const DEFAULT_AGENCY_LANGUAGE: AgencyLandingLanguage = "de";
 export const DEFAULT_AGENCY_HEADLINE: AgencyLandingHeadline = "time";
 export const DEFAULT_AGENCY_HERO_VISUAL: AgencyLandingHeroVisual = "grid";
 export const DEFAULT_AGENCY_DENSITY: AgencyLandingDensity = "spacious";
