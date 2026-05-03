@@ -37,15 +37,21 @@ async function warmDashboardFromPayload(job: ClaimedPropertyRefreshJob) {
   });
 }
 
-async function processCrawlRefreshJob(job: ClaimedPropertyRefreshJob) {
+function assertPropertyRefreshLease<T>(job: T | null): T {
+  if (!job) throw new Error("Property refresh job lease was lost");
+  return job;
+}
+
+async function processCrawlRefreshJob(job: ClaimedPropertyRefreshJob, workerId: string) {
   console.log(`[property-refresh][INFO] starting crawl refresh job=${job.id} property=${job.propertyId}`);
-  await updatePropertyRefreshJobProgress({
+  assertPropertyRefreshLease(await updatePropertyRefreshJobProgress({
     jobId: job.id,
+    workerId,
     phase: "crawl",
       message: job.payload && typeof job.payload === "object" && (job.payload as Record<string, unknown>).triggerSource === "automation"
         ? "Background technical scan refresh running…"
         : "Refreshing technical scan…",
-  });
+  }));
 
   const resolved = await resolveTeamReportSources(job.teamId, job.propertyId);
   const property = resolved.canonicalGscProperty;
@@ -58,20 +64,27 @@ async function processCrawlRefreshJob(job: ClaimedPropertyRefreshJob) {
     crawlData,
   });
 
-  await updatePropertyRefreshJobProgress({
+  assertPropertyRefreshLease(await updatePropertyRefreshJobProgress({
     jobId: job.id,
+    workerId,
     phase: "analysis",
     message: "Recomputing ranked actions…",
     progressMeta: {
       crawlPages: crawlData.pages.length,
     },
-  });
+  }));
 
   await warmDashboardFromPayload(job);
   console.log(`[property-refresh][INFO] completed crawl refresh job=${job.id} property=${job.propertyId} pages=${crawlData.pages.length}`);
-  await completePropertyRefreshJob(job.id, "Technical refresh complete", {
+  const completed = await completePropertyRefreshJob({
+    jobId: job.id,
+    workerId,
+    message: "Technical refresh complete",
+    progressMeta: {
     crawlPages: crawlData.pages.length,
+    },
   });
+  if (!completed) return;
   void recordProductEvent({
     teamId: job.teamId,
     userId: job.triggeredByUserId ?? null,
@@ -91,29 +104,35 @@ async function processClaimedJob(job: ClaimedPropertyRefreshJob, workerId: strin
     }, 10_000);
 
     if (!(await isRefreshPropertyActive(job))) {
-      await completePropertyRefreshJob(job.id, "Property is inactive; refresh skipped");
+      await completePropertyRefreshJob({
+        jobId: job.id,
+        workerId,
+        message: "Property is inactive; refresh skipped",
+      });
       return;
     }
 
     if (job.jobType === "crawl_refresh") {
-      await processCrawlRefreshJob(job);
+      await processCrawlRefreshJob(job, workerId);
       return;
     }
 
     if (job.jobType === "decision_refresh") {
       console.log(`[property-refresh][INFO] starting decision refresh job=${job.id} property=${job.propertyId}`);
-      await updatePropertyRefreshJobProgress({
+      assertPropertyRefreshLease(await updatePropertyRefreshJobProgress({
         jobId: job.id,
+        workerId,
         phase: "analysis",
         message: "Recomputing ranked actions…",
-      });
+      }));
       await warmDashboardFromPayload(job);
       const payload = (job.payload ?? {}) as Record<string, unknown>;
-      await updatePropertyRefreshJobProgress({
+      assertPropertyRefreshLease(await updatePropertyRefreshJobProgress({
         jobId: job.id,
+        workerId,
         phase: "ai_analysis",
         message: "Running AI evidence review…",
-      });
+      }));
       const aiResult = await runAiAnalysisForPropertyWindow({
         teamId: job.teamId,
         propertyId: job.propertyId,
@@ -125,9 +144,15 @@ async function processClaimedJob(job: ClaimedPropertyRefreshJob, workerId: strin
         endDate: typeof payload.endDate === "string" ? payload.endDate : null,
       });
       console.log(`[property-refresh][INFO] completed decision refresh job=${job.id} property=${job.propertyId}`);
-      await completePropertyRefreshJob(job.id, "Decision refresh complete", {
-        aiAnalysis: aiResult,
+      const completed = await completePropertyRefreshJob({
+        jobId: job.id,
+        workerId,
+        message: "Decision refresh complete",
+        progressMeta: {
+          aiAnalysis: aiResult,
+        },
       });
+      if (!completed) return;
       void recordProductEvent({
         teamId: job.teamId,
         userId: job.triggeredByUserId ?? null,
@@ -144,9 +169,16 @@ async function processClaimedJob(job: ClaimedPropertyRefreshJob, workerId: strin
   } catch (error) {
     const message = error instanceof Error ? error.message : "Property refresh failed";
     console.error(`[property-refresh][ERROR] job failed job=${job.id} property=${job.propertyId} message=${message}`);
-    await failPropertyRefreshJob(job.id, message, job.phase, {
-      error: message,
+    const failed = await failPropertyRefreshJob({
+      jobId: job.id,
+      workerId,
+      errorMessage: message,
+      phase: job.phase,
+      progressMeta: {
+        error: message,
+      },
     });
+    if (!failed) return;
     void recordProductEvent({
       teamId: job.teamId,
       userId: job.triggeredByUserId ?? null,

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { authClient } from "@webhealth/shared/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PILOT_BOOKING_URL } from "@/lib/pricing";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,8 +18,8 @@ import { LayoutDashboard, LogOut } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "Features", href: "/#features" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "About", href: "/about" },
+  { label: "Preise", href: "/pricing" },
+  { label: "Über uns", href: "/about" },
   { label: "Dashboard", href: "/dashboard" },
 ];
 
@@ -37,13 +38,6 @@ export function Navbar() {
   const pathname = usePathname();
   const isApp = pathname.startsWith("/dashboard");
   const navLinks = useNavLinks();
-
-  const handleSignIn = async () => {
-    await authClient.signIn.social({
-      provider: "google",
-      callbackURL: "/dashboard",
-    });
-  };
 
   const handleSignOut = async () => {
     await authClient.signOut({
@@ -128,8 +122,8 @@ export function Navbar() {
               </DropdownMenu>
             </div>
           ) : (
-            <Button onClick={handleSignIn} className="rounded-full px-5 shadow-sm shadow-primary/20">
-              Sign in with Google
+            <Button asChild className="rounded-full px-5 shadow-sm shadow-primary/20">
+              <a href={PILOT_BOOKING_URL}>Pilot-Check buchen</a>
             </Button>
           )}
         </div>

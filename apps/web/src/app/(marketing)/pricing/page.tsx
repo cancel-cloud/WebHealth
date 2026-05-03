@@ -3,17 +3,17 @@ import Link from "next/link";
 import { PricingSection } from "@/components/pricing-section";
 
 export const metadata: Metadata = {
-  title: "Pricing — Webhealth Plans for Solo, Pro, and Agency Teams",
+  title: "Preise — WebHealth Founding Agency Pilot",
   description:
-    "Simple, transparent Webhealth pricing — free Solo plan, Pro for growing teams, and Agency for white-label client workspaces. No credit card.",
+    "Founding Agency Pilot: erster Monat kostenlos, danach 149 EUR/Monat. Self-Serve-Pläne bleiben für Einzelprojekte verfügbar.",
   alternates: {
     canonical: "/pricing",
   },
   openGraph: {
     url: "/pricing",
-    title: "Pricing — Webhealth Plans for Solo, Pro, and Agency Teams",
+    title: "Preise — WebHealth Founding Agency Pilot",
     description:
-      "Simple, transparent Webhealth pricing — free Solo plan, Pro for growing teams, and Agency for white-label client workspaces. No credit card.",
+      "Founding Agency Pilot: erster Monat kostenlos, danach 149 EUR/Monat. Self-Serve-Pläne bleiben für Einzelprojekte verfügbar.",
     images: ["/og-image.png"],
   },
 };
@@ -24,42 +24,35 @@ export default function PricingPage() {
       <PricingSection />
       <section className="mx-auto mt-20 max-w-3xl px-6 text-base leading-relaxed">
         <h2 className="font-display text-2xl font-semibold">
-          What is included on every plan
+          Was im Pilot konkret passiert
         </h2>
         <p className="mt-4 text-muted-foreground">
-          Every Webhealth plan includes Google Search Console and Google
-          Analytics 4 connectors, automatic property sync after sign-in, live
-          crawl and deterministic ranked fix lists, encrypted token storage,
-          and access to the dashboard from any device. We do not charge extra
-          for additional users on a single workspace, exporting snapshots, or
-          revisiting historical reports — the price you see at sign-up is the
-          full price.
+          Im ersten Monat richten wir gemeinsam 3-10 Kunden-Websites ein und
+          erstellen einen gebrandeten SEO-Monats-Snapshot: KPI-Veränderungen,
+          Traffic-Drops, auffällige Seiten, Query-Chancen, Crawl-Hinweise und
+          die wichtigsten nächsten Maßnahmen für dein Kundenmeeting.
         </p>
 
         <h2 className="mt-12 font-display text-2xl font-semibold">
-          Choosing between Solo, Pro, and Agency
+          Warum die Agentur zuerst über den Pilot geht
         </h2>
         <p className="mt-4 text-muted-foreground">
-          Solo is designed for a single site owner running one or two
-          properties; it is free and stays free. Pro suits freelancers and
-          small studios who need additional snapshot history, scheduled
-          refreshes, and white-label-ready exports. Agency is for teams who
-          serve multiple clients from one Webhealth workspace, with branded
-          client-facing dashboards, shareable links, and priority support
-          when an audit needs to ship the same day.
+          Der Pilot ist nicht einfach ein Checkout in ein weiteres Dashboard.
+          Er testet mit passenden Agenturen den Schritt nach Ahrefs, Semrush,
+          Screaming Frog oder Looker Studio: aus GSC-, GA4- und Crawl-Signalen
+          entsteht ein priorisierter Maßnahmenplan, den du intern abarbeiten
+          oder mit Kunden besprechen kannst.
         </p>
 
         <h2 className="mt-12 font-display text-2xl font-semibold">
-          Billing, cancellation, and upgrades
+          Zahlung nach dem kostenlosen ersten Monat
         </h2>
         <p className="mt-4 text-muted-foreground">
-          Paid plans are billed monthly through Stripe and can be cancelled at
-          any time inside the billing portal. Upgrades take effect immediately
-          and are pro-rated so you only pay for the time you actually use the
-          higher plan. Downgrades or cancellations remain in effect until the
-          end of the current billing period; your dashboards stay accessible
-          throughout. Refund handling follows the checkout terms and the
-          consumer-rights protections summarised in our{" "}
+          Für den kostenlosen Pilot-Monat ist kein Stripe-Eintrag nötig. Wenn
+          der Workflow nach dem ersten Monats-Snapshot passt, schicken wir den
+          Zahlungslink für den Founder-Preis von 149 EUR/Monat. Normale
+          Self-Serve-Pläne laufen weiterhin über Stripe und folgen den
+          Bedingungen in unseren{" "}
           <Link href="/terms" className="underline">
             Terms of Service
           </Link>
@@ -67,18 +60,18 @@ export default function PricingPage() {
         </p>
 
         <h2 className="mt-12 font-display text-2xl font-semibold">
-          Questions before you sign up?
+          Fragen vor dem Pilot-Check?
         </h2>
         <p className="mt-4 text-muted-foreground">
-          Read more about the team and how we operate Webhealth on the{" "}
+          Lies mehr über das Team und den Betrieb von WebHealth auf der{" "}
           <Link href="/about" className="underline">
-            About page
+            About-Seite
           </Link>
-          , or email{" "}
+          , oder schreib an{" "}
           <a href="mailto:kontakt@devbrew.dev" className="underline">
             kontakt@devbrew.dev
           </a>{" "}
-          and we will reply within one business day.
+          .
         </p>
       </section>
     </div>

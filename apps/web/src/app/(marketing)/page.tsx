@@ -2,17 +2,17 @@ import type { Metadata } from "next";
 import { AgencyHomepageClient } from "./agency-homepage-client";
 
 export const metadata: Metadata = {
-  title: "Webhealth for Agencies — Live SEO & Analytics Snapshots",
+  title: "WebHealth Agentur-Pilot — SEO-Reports in Maßnahmen verwandeln",
   description:
-    "Agency-first SEO and GA4 monitoring with white-label client workspaces, transparent pricing, and ranked fix lists in three minutes.",
+    "Founding Agency Pilot: GSC, GA4 und Crawl-Signale in gebrandete Monats-Snapshots und priorisierte Kunden-Maßnahmen verwandeln.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
     url: "/",
-    title: "Webhealth for Agencies — Live SEO & Analytics Snapshots",
+    title: "WebHealth Agentur-Pilot — SEO-Reports in Maßnahmen verwandeln",
     description:
-      "Agency-first SEO and GA4 monitoring with white-label client workspaces, transparent pricing, and ranked fix lists in three minutes.",
+      "Founding Agency Pilot: GSC, GA4 und Crawl-Signale in gebrandete Monats-Snapshots und priorisierte Kunden-Maßnahmen verwandeln.",
     images: ["/og-image.png"],
   },
 };
