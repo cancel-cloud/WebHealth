@@ -7,6 +7,7 @@ export const LEGAL_DOCUMENT_PATHS = {
   privacy: "/privacy",
   terms: "/terms",
   impressum: "/impressum",
+  dpa: "/dpa",
 } as const;
 
 export type LegalDocumentId = keyof typeof LEGAL_DOCUMENT_PATHS;
@@ -24,11 +25,13 @@ export const LEGAL_NAV_LABELS: Record<
     privacy: "Privacy Policy",
     terms: "Terms of Service",
     impressum: "Impressum",
+    dpa: "Data Processing Agreement",
   },
   de: {
     privacy: "Datenschutzhinweise",
     terms: "Nutzungsbedingungen",
     impressum: "Impressum",
+    dpa: "Auftragsverarbeitungsvertrag",
   },
 };
 

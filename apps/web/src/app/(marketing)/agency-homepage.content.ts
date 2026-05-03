@@ -1,5 +1,10 @@
 import type { AgencyLandingLanguage } from "./agency-homepage.logic";
-import { PUBLIC_PRICING_PLANS } from "@/lib/pricing";
+import {
+  FOUNDING_AGENCY_PILOT_LIMIT,
+  FOUNDING_AGENCY_PILOT_PRICE_EUR,
+  PILOT_BOOKING_URL,
+  PUBLIC_PRICING_PLANS,
+} from "@/lib/pricing";
 
 type LocalizedText = Record<AgencyLandingLanguage, string>;
 type LocalizedTextList = Record<AgencyLandingLanguage, readonly string[]>;
@@ -93,10 +98,37 @@ export interface FaqItem {
   answer: LocalizedText;
 }
 
+export interface QualificationList {
+  title: LocalizedText;
+  items: LocalizedTextList;
+}
+
+export interface PilotStep {
+  number: string;
+  title: LocalizedText;
+  description: LocalizedText;
+}
+
+export interface SnapshotProofCard {
+  title: LocalizedText;
+  description: LocalizedText;
+}
+
+export interface PilotOfferFeature {
+  title: LocalizedText;
+  description: LocalizedText;
+}
+
+export const AGENCY_PILOT = {
+  bookingUrl: PILOT_BOOKING_URL,
+  price: FOUNDING_AGENCY_PILOT_PRICE_EUR,
+  limit: FOUNDING_AGENCY_PILOT_LIMIT,
+} as const;
+
 export const AGENCY_HOME_COPY = {
   brandSuffix: {
-    en: "for Agencies",
-    de: "für Agenturen",
+    en: "Agency Pilot",
+    de: "Agentur-Pilot",
   },
   nav: {
     workspace: { en: "Workspace", de: "Workspace" },
@@ -104,61 +136,106 @@ export const AGENCY_HOME_COPY = {
     integrations: { en: "Integrations", de: "Integrationen" },
     pricing: { en: "Pricing", de: "Preise" },
     faq: { en: "FAQ", de: "FAQ" },
-    signIn: { en: "Sign in with Google", de: "Mit Google anmelden" },
+    signIn: { en: "Sign in", de: "Anmelden" },
+    pilotCta: {
+      en: "Book a 12-min pilot fit check",
+      de: "12-Minuten Pilot-Check buchen",
+    },
     dashboard: { en: "Dashboard", de: "Dashboard" },
     signOut: { en: "Sign out", de: "Abmelden" },
   },
   hero: {
     pill: {
-      en: "Agency beta · Free for one site",
-      de: "Agentur-Beta · Kostenlos für eine Website",
+      en: "Founding Agency Pilot",
+      de: "Founding Agency Pilot",
     },
     title: {
-      en: ["Stop rebuilding the ", "same monthly snapshot", "."],
-      de: ["Baue nicht jeden Monat wieder ", "denselben Snapshot", "."],
+      en: ["Turn GSC, GA4 and crawl data into ", "ranked client SEO actions", "."],
+      de: ["Monatliche SEO-Reports in ", "konkrete Kunden-Maßnahmen", " verwandeln."],
     } satisfies LocalizedSegments,
     lead: {
-      en: "Connect one agency Google login and review every client from a single workspace. Webhealth combines GSC, GA4, and crawl data into ranked next steps, while planned agency delivery features stay clearly marked as preview.",
-      de: "Verbinde ein Agentur-Google-Login und prüfe jeden Kunden in einem Workspace. Webhealth führt GSC-, GA4- und Crawl-Daten zu priorisierten nächsten Schritten zusammen, während geplante Agentur-Features klar als Preview markiert bleiben.",
+      en: "A founder-led pilot for agencies managing multiple client websites. We connect GSC, GA4 and crawl signals, set up 3-10 client sites, and deliver a branded monthly snapshot plus a ranked action backlog for the next client meeting.",
+      de: "Ein founder-led Pilot für Agenturen, die mehrere Kunden-Websites betreuen. Wir verbinden GSC-, GA4- und Crawl-Signale, richten 3-10 Kunden-Websites ein und liefern einen gebrandeten Monats-Snapshot plus priorisierten Maßnahmen-Backlog für das nächste Kundenmeeting.",
     },
     primaryCta: {
-      en: "Connect your Google Workspace",
-      de: "Google Workspace verbinden",
+      en: "Book a 12-min pilot fit check",
+      de: "12-Minuten Pilot-Check buchen",
     },
     secondaryCta: {
-      en: "Jump to workspace",
-      de: "Zum Workspace springen",
+      en: "See example workflow",
+      de: "Beispiel-Workflow ansehen",
     },
     notes: {
-      en: ["No credit card", "2-minute setup", "Agency workflow preview"],
-      de: ["Keine Kreditkarte", "2-Minuten-Setup", "Agentur-Workflow als Preview"],
+      en: [
+        "First month free",
+        "Then EUR 149/month",
+        "10 qualified agencies",
+        "Founder-led setup",
+      ],
+      de: [
+        "Erster Monat kostenlos",
+        "danach 149 EUR/Monat",
+        "10 passende Agenturen",
+        "Founder-led Setup",
+      ],
     } satisfies LocalizedTextList,
+    offerTitle: {
+      en: "Founding Agency Pilot",
+      de: "Founding Agency Pilot",
+    },
+    offerPrice: {
+      en: "First month free, then EUR 149/month",
+      de: "Erster Monat kostenlos, danach 149 EUR/Monat",
+    },
+    offerLimit: {
+      en: "Limited to 10 qualified agencies because setup and feedback are founder-led.",
+      de: "Limitiert auf 10 Agenturen, weil Setup und Feedback founder-led sind.",
+    },
+    offerLock: {
+      en: "Founding Agencies keep EUR 149/month for 12 months. Later agency prices will be higher.",
+      de: "Founding Agencies behalten 149 EUR/Monat für 12 Monate. Spätere Agenturpreise werden höher liegen.",
+    },
+    exchange: {
+      en: "Free pilot month in exchange for honest feedback: one onboarding call, one feedback call, and permission to use anonymized learnings from the pilot.",
+      de: "Kostenloser Pilot-Monat gegen ehrliches Feedback: ein Onboarding-Call, ein Feedback-Call und die Erlaubnis, anonymisierte Learnings aus dem Pilot zu verwenden.",
+    },
     gridTitle: {
-      en: "Your client portfolio",
-      de: "Dein Kunden-Portfolio",
+      en: "Pilot deliverable",
+      de: "Pilot-Deliverable",
     },
     gridCount: {
-      en: "12 clients",
-      de: "12 Kunden",
+      en: "3-10 client sites",
+      de: "3-10 Kunden-Websites",
     },
     sparkPrimary: {
-      en: "Ranked fixes",
-      de: "Priorisierte Fixes",
+      en: "Ranked actions",
+      de: "Priorisierte Maßnahmen",
     },
     sparkSecondary: {
-      en: "Agency-ready workspace",
-      de: "Agentur-tauglicher Workspace",
+      en: "Client-ready monthly snapshot",
+      de: "Kundenfertiger Monats-Snapshot",
     },
   },
   features: {
     eyebrow: { en: "Features", de: "Features" },
     title: {
-      en: "Everything an agency workflow needs.",
-      de: "Alles, was ein Agentur-Workflow braucht.",
+      en: "Not just dashboard access. A usable first agency output.",
+      de: "Nicht nur Software-Zugang. Ein nutzbarer erster Agentur-Output.",
     },
     lead: {
-      en: "Built for the snapshot workflow you would rather not rebuild by hand, and honest about which agency extras are still in preview.",
-      de: "Gebaut für Snapshot-Arbeit, die du nicht mehr per Hand zusammenbauen willst, und ehrlich darüber, welche Agentur-Extras noch Preview sind.",
+      en: "In month one, we set up 3-10 client sites together and deliver a branded SEO monthly snapshot: KPI changes, traffic drops, notable pages, query opportunities, crawl signals, and the next actions to review.",
+      de: "Im ersten Monat richten wir gemeinsam 3-10 Kunden-Websites ein und erstellen einen gebrandeten SEO-Monats-Snapshot: KPI-Veränderungen, Traffic-Drops, auffällige Seiten, Query-Chancen, Crawl-Hinweise und die wichtigsten nächsten Maßnahmen für dein Kundenmeeting.",
+    },
+  },
+  qualification: {
+    eyebrow: { en: "Fit", de: "Für wen / nicht für wen" },
+    title: {
+      en: "This pilot intentionally filters.",
+      de: "Der Pilot filtert bewusst.",
+    },
+    lead: {
+      en: "The first cohort is for agencies with recurring client-reporting pain, not for one-off site checks or tool replacement shopping.",
+      de: "Die erste Kohorte ist für Agenturen mit wiederkehrender Kundenreporting-Arbeit, nicht für einzelne Website-Checks oder Tool-Vergleiche.",
     },
   },
   workspace: {
@@ -215,12 +292,12 @@ export const AGENCY_HOME_COPY = {
   whiteLabel: {
     eyebrow: { en: "White-label snapshots", de: "White-Label-Snapshots" },
     title: {
-      en: "Two snapshots from one export.",
-      de: "Zwei Snapshots aus einem Export.",
+      en: "Agency-branded, but not only a report.",
+      de: "Im Agentur-Branding, aber nicht nur ein Report.",
     },
     lead: {
-      en: "Every snapshot export can carry your branding and the live-dashboard context your client needs: metrics, crawl findings, and plain-language recommendations.",
-      de: "Jeder Snapshot-Export kann dein Branding und den Live-Dashboard-Kontext enthalten, den dein Kunde braucht: Kennzahlen, Crawl-Befunde und klare Empfehlungen.",
+      en: "White-label delivery matters for agencies, so the pilot output is a branded monthly snapshot with client-ready summary copy. The core differentiation stays the ranked action layer above the report.",
+      de: "White-Label-Delivery ist für Agenturen wichtig, deshalb kommt der Pilot-Output als gebrandeter Monats-Snapshot mit kundenfertiger Zusammenfassung. Die eigentliche Differenzierung bleibt die priorisierte Entscheidungsschicht über dem Report.",
     },
     internalLabel: { en: "Internal", de: "Intern" },
     clientLabel: { en: "Client deliverable", de: "Kunden-Deliverable" },
@@ -266,6 +343,28 @@ export const AGENCY_HOME_COPY = {
       de: "Google-Daten und der Site-Crawl sind heute reale Produkt-Eingaben. Agentur-Exportoberflächen wie das Looker-Studio-Paket bleiben klar als geplant markiert.",
     },
   },
+  snapshotProof: {
+    eyebrow: { en: "First snapshot", de: "Erster Snapshot" },
+    title: {
+      en: "What the first snapshot should show.",
+      de: "Was der erste Snapshot zeigen soll.",
+    },
+    lead: {
+      en: "No invented results, no fake case studies. The pilot proves whether the connected data becomes a practical client-meeting agenda.",
+      de: "Keine erfundenen Ergebnisse, keine Fake-Testimonials. Der Pilot zeigt, ob aus den verbundenen Daten eine brauchbare Agenda für dein Kundenmeeting wird.",
+    },
+  },
+  competitor: {
+    eyebrow: { en: "Positioning", de: "Positionierung" },
+    title: {
+      en: "Not another SEO tool. The decision layer above your reports.",
+      de: "Kein Ersatz für deine SEO-Tools. Die Entscheidungsschicht darüber.",
+    },
+    lead: {
+      en: "WebHealth does not replace Ahrefs, Semrush, Screaming Frog or Looker Studio. The pilot tests the step after that: GSC, GA4 and crawl signals become a prioritized action plan you can work through internally or discuss with clients.",
+      de: "WebHealth ersetzt nicht Ahrefs, Semrush, Screaming Frog oder Looker Studio. Der Pilot testet den Schritt danach: Aus GSC-, GA4- und Crawl-Signalen entsteht ein priorisierter Maßnahmenplan, den du intern abarbeiten oder mit Kunden besprechen kannst.",
+    },
+  },
   comparison: {
     eyebrow: {
       en: "Before Webhealth vs. after",
@@ -283,23 +382,27 @@ export const AGENCY_HOME_COPY = {
     webhealthLabel: { en: "With Webhealth", de: "Mit Webhealth" },
   },
   pricing: {
-    eyebrow: { en: "Pricing", de: "Preise" },
+    eyebrow: { en: "Pilot offer", de: "Pilot-Angebot" },
     title: {
-      en: "Start free. Scale per client.",
-      de: "Kostenlos starten. Pro Kunde skalieren.",
+      en: "First month free. Then EUR 149/month.",
+      de: "Erster Monat kostenlos. Danach 149 EUR/Monat.",
     },
     lead: {
-      en: "These homepage prices intentionally mirror the agency concept from the reference. Checkout and billing alignment still require follow-up work before every tier can be sold self-serve.",
-      de: "Diese Homepage-Preise spiegeln bewusst das Agentur-Konzept aus der Referenz wider. Checkout und Billing müssen noch nachgezogen werden, bevor jeder Tarif im Self-Service verkauft werden kann.",
+      en: "The recommended agency path is the pilot call, not checkout. Self-serve plans remain available for individual projects or later product use.",
+      de: "Der empfohlene Agentur-Weg ist der Pilot-Check, nicht Checkout. Self-Serve-Pläne bleiben für Einzelprojekte oder spätere Produktnutzung verfügbar.",
     },
     finePrint: {
-      en: "All plans include the connected-data core today. White-label delivery, Looker export, and advanced agency controls remain staged rollout work until billing and product alignment ship.",
-      de: "Alle Pläne enthalten heute den Kern der verbundenen Daten. White-Label-Deliverables, Looker-Export und erweiterte Agentur-Kontrollen bleiben gestufte Rollout-Arbeit, bis Billing und Produkt angleichen.",
+      en: "No Stripe entry is required for the free pilot month. If the workflow is useful after the first monthly snapshot, we send the payment link for the EUR 149/month founder rate.",
+      de: "Für den kostenlosen Pilot-Monat ist kein Stripe-Eintrag nötig. Wenn der Workflow nach dem ersten Monats-Snapshot passt, schicken wir den Zahlungslink für den Founder-Preis von 149 EUR/Monat.",
     },
     agencySitesLabel: { en: "Client sites", de: "Kunden-Sites" },
     agencyPreviewLabel: {
-      en: "Agency pricing preview",
-      de: "Agentur-Preisvorschau",
+      en: "Self-serve option",
+      de: "Self-Serve-Option",
+    },
+    selfServeLabel: {
+      en: "For individual projects or later self-serve use",
+      de: "Für Einzelprojekte oder spätere Self-Serve-Nutzung",
     },
   },
   faq: {
@@ -311,24 +414,24 @@ export const AGENCY_HOME_COPY = {
   },
   closingCta: {
     title: {
-      en: "Your clients' GSC + GA4 data is already sitting there.",
-      de: "Die GSC- + GA4-Daten deiner Kunden liegen schon bereit.",
+      en: "Turn the next monthly report into an action plan.",
+      de: "Mach aus dem nächsten Monatsreport einen Maßnahmenplan.",
     },
     subtitle: {
-      en: "Put it to work. One Google login for the connected-data core today, with the agency packaging on this page clearly labeled as preview until billing catches up.",
-      de: "Setze sie in Arbeit. Ein Google-Login für den verbundenen Datenkern heute, mit dem Agentur-Paket auf dieser Seite klar als Preview markiert, bis Billing nachgezogen ist.",
+      en: "Book the pilot fit check. We set up the first 1-3 client pages together and turn the workflow into something usable for your next client update.",
+      de: "Buche den Pilot-Check. Wir richten gemeinsam die ersten 1-3 Kundenseiten ein und machen den Workflow für dein nächstes Kunden-Update nutzbar.",
     },
     primaryCta: {
-      en: "Connect your Google Workspace",
-      de: "Google Workspace verbinden",
+      en: "Book a 12-min pilot fit check",
+      de: "12-Minuten Pilot-Check buchen",
     },
     secondaryCta: {
-      en: "See pricing",
-      de: "Preise ansehen",
+      en: "See example workflow",
+      de: "Beispiel-Workflow ansehen",
     },
     notes: {
-      en: ["No credit card", "Agency pricing preview", "EU-hosted core"],
-      de: ["Keine Kreditkarte", "Agentur-Preisvorschau", "EU-gehosteter Kern"],
+      en: ["First month free", "10 agencies", "Founder-led setup"],
+      de: ["Erster Monat kostenlos", "10 Agenturen", "Founder-led Setup"],
     } satisfies LocalizedTextList,
   },
   footer: {
@@ -341,18 +444,127 @@ export const AGENCY_HOME_COPY = {
   },
 } as const;
 
+export const AGENCY_QUALIFICATION: QualificationList[] = [
+  {
+    title: { en: "The pilot fits if ...", de: "Der Pilot passt, wenn ..." },
+    items: {
+      en: [
+        "you manage at least 5 active client websites",
+        "you already have access to your clients' GSC and GA4 properties",
+        "you create monthly SEO updates, reports, or client emails",
+        "you do not only want to show data, but need concrete next actions",
+        "you are willing to give honest feedback in 2 short calls",
+      ],
+      de: [
+        "du mindestens 5 aktive Kunden-Websites betreust",
+        "du bereits Zugriff auf GSC und GA4 deiner Kunden hast",
+        "du monatlich SEO-Updates, Reports oder Kunden-Mails erstellst",
+        "du nicht nur Daten zeigen willst, sondern konkrete nächste Maßnahmen brauchst",
+        "du bereit bist, in 2 kurzen Calls ehrliches Feedback zu geben",
+      ],
+    },
+  },
+  {
+    title: { en: "The pilot does not fit if ...", de: "Der Pilot passt nicht, wenn ..." },
+    items: {
+      en: [
+        "you only want to check one individual website",
+        "you are looking for an Ahrefs, Semrush, or Screaming Frog replacement",
+        "you expect fully automated SEO decisions without review",
+        "you do not have an agency, freelance, or client-reporting situation",
+      ],
+      de: [
+        "du nur eine einzelne Website prüfen willst",
+        "du einen Ahrefs-, Semrush- oder Screaming-Frog-Ersatz suchst",
+        "du vollautomatische SEO-Entscheidungen ohne Prüfung erwartest",
+        "du keine Agentur-, Freelancer- oder Kundenreporting-Situation hast",
+      ],
+    },
+  },
+];
+
+export const AGENCY_PILOT_STEPS: PilotStep[] = [
+  {
+    number: "1",
+    title: { en: "12-min pilot fit check", de: "12-Minuten Pilot-Check" },
+    description: {
+      en: "We confirm whether your client-reporting workflow is a fit before setup starts.",
+      de: "Wir prüfen kurz, ob dein Kundenreporting-Workflow wirklich zum Pilot passt.",
+    },
+  },
+  {
+    number: "2",
+    title: { en: "Pick 3-10 client sites", de: "3-10 Kunden-Websites auswählen" },
+    description: {
+      en: "You choose the client sites where GSC, GA4, and crawl signals should become useful work.",
+      de: "Du wählst die Kunden-Websites, bei denen aus GSC, GA4 und Crawl-Signalen echte Arbeit werden soll.",
+    },
+  },
+  {
+    number: "3",
+    title: {
+      en: "Get the first monthly snapshot and ranked backlog",
+      de: "Ersten Monats-Snapshot + Maßnahmen-Backlog erhalten",
+    },
+    description: {
+      en: "You receive a client-ready snapshot plus the internal actions to review next.",
+      de: "Du erhältst einen kundenfertigen Snapshot plus die internen Maßnahmen, die als Nächstes geprüft werden sollten.",
+    },
+  },
+];
+
+export const AGENCY_SNAPSHOT_PROOF_CARDS: SnapshotProofCard[] = [
+  {
+    title: { en: "Which pages lost?", de: "Welche Seiten haben verloren?" },
+    description: {
+      en: "Spot traffic drops and the supporting analytics context without claiming one magic cause.",
+      de: "Traffic-Drops und Analytics-Kontext sehen, ohne eine einzelne magische Ursache zu behaupten.",
+    },
+  },
+  {
+    title: {
+      en: "Which queries are close to better positions?",
+      de: "Welche Queries sind nah an besseren Positionen?",
+    },
+    description: {
+      en: "Find near-win queries and CTR gaps that deserve review in the next client cycle.",
+      de: "Near-Win-Queries und CTR-Lücken finden, die in den nächsten Kundenzyklus gehören.",
+    },
+  },
+  {
+    title: {
+      en: "Which technical issues support the priority?",
+      de: "Welche technischen Probleme stützen die Priorität?",
+    },
+    description: {
+      en: "Connect traffic drops with supporting crawl, content, and analytics signals.",
+      de: "Traffic-Drops mit Crawl-, Content- und Analytics-Signalen verbinden.",
+    },
+  },
+  {
+    title: {
+      en: "Which 3-5 actions belong in this week's client meeting?",
+      de: "Welche 3-5 Maßnahmen gehören diese Woche ins Kundenmeeting?",
+    },
+    description: {
+      en: "Turn evidence-backed recommendations into a ranked action backlog.",
+      de: "Aus evidence-backed Recommendations wird ein priorisierter Maßnahmen-Backlog.",
+    },
+  },
+];
+
 export const AGENCY_FEATURES: AgencyFeatureItem[] = [
   {
     icon: "users",
     color: "#6366f1",
     availability: "live",
     title: {
-      en: "One login for every client.",
-      de: "Ein Login für jeden Kunden.",
+      en: "3-10 client sites set up with you.",
+      de: "3-10 Kunden-Websites gemeinsam einrichten.",
     },
     description: {
-      en: "Connect your agency Google account once. Every GSC and GA4 property your team can already access appears immediately.",
-      de: "Verbinde dein Agentur-Google-Konto einmal. Jede GSC- und GA4-Property, auf die dein Team bereits Zugriff hat, erscheint sofort.",
+      en: "Founder-led onboarding helps you pick the right properties and turn access into a usable first workflow.",
+      de: "Founder-led Onboarding hilft dir, die richtigen Properties auszuwählen und aus Zugriff einen nutzbaren ersten Workflow zu machen.",
     },
   },
   {
@@ -360,12 +572,12 @@ export const AGENCY_FEATURES: AgencyFeatureItem[] = [
     color: "#0ea5e9",
     availability: "live",
     title: {
-      en: "Comparison snapshots on autopilot.",
-      de: "Vergleichssnapshots auf Autopilot.",
+      en: "A branded monthly snapshot.",
+      de: "Ein gebrandeter Monats-Snapshot.",
     },
     description: {
-      en: "Pick two date ranges per client. Clicks, impressions, CTR, position, sessions, and users stay side-by-side with signed deltas.",
-      de: "Wähle pro Kunde zwei Zeiträume. Klicks, Impressionen, CTR, Position, Sessions und Nutzer bleiben nebeneinander mit vorzeichenbehafteten Deltas.",
+      en: "KPI changes, traffic drops, notable pages, query opportunities, and crawl signals are packaged for the client update.",
+      de: "KPI-Veränderungen, Traffic-Drops, auffällige Seiten, Query-Chancen und Crawl-Hinweise werden für das Kunden-Update gebündelt.",
     },
   },
   {
@@ -373,12 +585,12 @@ export const AGENCY_FEATURES: AgencyFeatureItem[] = [
     color: "#f59e0b",
     availability: "live",
     title: {
-      en: "Ranked fixes with URLs and impact.",
-      de: "Priorisierte Fixes mit URLs und Impact.",
+      en: "A ranked action backlog.",
+      de: "Ein priorisierter Maßnahmen-Backlog.",
     },
     description: {
-      en: "The live dashboard core already ranks opportunities per page using the connected inputs you saw above.",
-      de: "Der Live-Dashboard-Kern priorisiert Chancen bereits pro Seite anhand der verbundenen Eingaben von oben.",
+      en: "WebHealth surfaces likely causes and the next actions to review, using evidence-backed GSC, GA4, and crawl signals.",
+      de: "WebHealth macht wahrscheinliche Ursachen und nächste Maßnahmen sichtbar, gestützt durch GSC-, GA4- und Crawl-Signale.",
     },
   },
   {
@@ -386,12 +598,12 @@ export const AGENCY_FEATURES: AgencyFeatureItem[] = [
     color: "#10b981",
     availability: "preview",
     title: {
-      en: "White-label the client copy.",
-      de: "Die Kunden-Version im White-Label.",
+      en: "White-label delivery in the pilot.",
+      de: "White-Label-Delivery im Pilot.",
     },
     description: {
-      en: "Branded client output is the intended agency layer. This page shows the target packaging, not a claim that every white-label surface ships today.",
-      de: "Gebrandete Kunden-Ausgaben sind die beabsichtigte Agentur-Schicht. Diese Seite zeigt das Zielbild, nicht die Behauptung, dass heute schon jede White-Label-Oberfläche live ist.",
+      en: "The first output is agency-branded and client-ready, without making white-label the whole product story.",
+      de: "Der erste Output ist im Agentur-Branding und kundenfertig, ohne White-Label zur ganzen Produktstory zu machen.",
     },
   },
   {
@@ -410,14 +622,14 @@ export const AGENCY_FEATURES: AgencyFeatureItem[] = [
   {
     icon: "shield",
     color: "#f43f5e",
-    availability: "planned",
+    availability: "live",
     title: {
-      en: "EU-hosted core. Agency controls staged.",
-      de: "EU-gehosteter Kern. Agentur-Kontrollen gestuft.",
+      en: "Germany-hosted data core. Agency controls staged.",
+      de: "Datenhosting in Deutschland. Agentur-Kontrollen gestuft.",
     },
     description: {
-      en: "The connected-data core is EU-hosted today. Granular client permissions and SSO stay clearly labeled as follow-up product work.",
-      de: "Der verbundene Datenkern ist heute EU-gehostet. Granulare Kundenrechte und SSO bleiben klar als nachgelagerte Produktarbeit markiert.",
+      en: "The connected-data core runs in Germany on servers from a local hosting provider. Granular client permissions and SSO stay clearly labeled as follow-up product work.",
+      de: "Der verbundene Datenkern läuft in Deutschland auf Servern eines lokalen Hosting-Providers. Granulare Kundenrechte und SSO bleiben klar als nachgelagerte Produktarbeit markiert.",
     },
   },
 ];
@@ -928,12 +1140,12 @@ export const AGENCY_PRICING_PLANS = PUBLIC_PRICING_PLANS;
 export const AGENCY_FAQ_ITEMS: FaqItem[] = [
   {
     question: {
-      en: "Do my clients need their own Google login?",
-      de: "Brauchen meine Kunden einen eigenen Google-Login?",
+      en: "Do agencies pay before the first month?",
+      de: "Zahlen Agenturen vor dem ersten Monat?",
     },
     answer: {
-      en: "No. The connected-data model starts from your agency Google account and the properties your team can already access.",
-      de: "Nein. Das Modell für verbundene Daten startet bei deinem Agentur-Google-Konto und den Properties, auf die dein Team bereits Zugriff hat.",
+      en: "No. The first month of the Founding Agency Pilot is free for qualified agencies. If the workflow is useful after the first monthly snapshot, we send the payment link for the EUR 149/month founder rate.",
+      de: "Nein. Der erste Monat im Founding Agency Pilot ist für passende Agenturen kostenlos. Wenn der Workflow nach dem ersten Monats-Snapshot passt, schicken wir den Zahlungslink für den Founder-Preis von 149 EUR/Monat.",
     },
   },
   {
@@ -942,8 +1154,8 @@ export const AGENCY_FAQ_ITEMS: FaqItem[] = [
       de: "Was bedeutet White-Label hier genau?",
     },
     answer: {
-      en: "On this homepage it is a roadmap-preview promise: the intended branded client layer shown in the mockups, not a claim that every white-label delivery path is already shipped.",
-      de: "Auf dieser Homepage ist es ein Roadmap-Preview-Versprechen: die beabsichtigte gebrandete Kunden-Schicht aus den Mockups, nicht die Behauptung, dass jeder White-Label-Delivery-Pfad bereits live ist.",
+      en: "In the pilot, the first deliverable is an agency-branded monthly snapshot with client-ready summary copy. White-label is visible because agencies need it, but the pilot is mainly about turning data into a ranked action plan.",
+      de: "Im Pilot ist der erste Deliverable ein Monats-Snapshot im Agentur-Branding mit kundenfertiger Zusammenfassung. White-Label ist sichtbar, weil Agenturen es brauchen, aber der Pilot dreht sich vor allem darum, aus Daten einen priorisierten Maßnahmenplan zu machen.",
     },
   },
   {
@@ -958,12 +1170,12 @@ export const AGENCY_FAQ_ITEMS: FaqItem[] = [
   },
   {
     question: {
-      en: "How does per-client pricing work on Agency?",
-      de: 'Wie funktioniert das "pro Kunde"-Pricing bei Agency?',
+      en: "Does WebHealth replace Ahrefs, Semrush, or Screaming Frog?",
+      de: "Ersetzt WebHealth Ahrefs, Semrush oder Screaming Frog?",
     },
     answer: {
-      en: "This homepage uses the reference pricing model exactly: Agency starts at €149 for up to 25 sites and adds €6 per site above that. Billing alignment still needs follow-up implementation.",
-      de: "Diese Homepage verwendet das Referenz-Pricing exakt: Agency startet bei 149 € für bis zu 25 Sites und addiert 6 € pro weiterer Site. Die Billing-Angleichung braucht noch Folgearbeit.",
+      en: "No. WebHealth sits above the reports and tools you already use. It connects GSC, GA4, and crawl signals into evidence-backed recommendations and a ranked action backlog.",
+      de: "Nein. WebHealth sitzt über den Reports und Tools, die du bereits nutzt. Es verbindet GSC-, GA4- und Crawl-Signale zu evidence-backed Recommendations und einem priorisierten Maßnahmen-Backlog.",
     },
   },
 ];

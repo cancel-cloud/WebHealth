@@ -50,7 +50,7 @@ test("agency slider bounds are clamped to the allowed range", () => {
 });
 
 test("agency landing defaults stay locked to the chosen reference options", () => {
-  assert.equal(DEFAULT_AGENCY_LANGUAGE, "en");
+  assert.equal(DEFAULT_AGENCY_LANGUAGE, "de");
   assert.equal(DEFAULT_AGENCY_HEADLINE, "time");
   assert.equal(DEFAULT_AGENCY_HERO_VISUAL, "grid");
   assert.equal(DEFAULT_AGENCY_DENSITY, "spacious");

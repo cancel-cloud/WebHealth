@@ -5,6 +5,7 @@ import {
   getImpressumProviderParagraphs,
   getOperatorDisplayName,
   getPrivacyContactSentence,
+  getPrivacyContactEmail,
   getRegisterEntryParagraphs,
   getTaxIdentifierParagraphs,
   legalProfile,
@@ -23,6 +24,7 @@ export const legalDictionaryEn = {
       privacy: "Privacy Policy",
       terms: "Terms of Service",
       impressum: "Impressum",
+      dpa: "Data Processing Agreement",
     },
     relatedDocumentsLabel: "Related legal documents",
   },
@@ -94,13 +96,21 @@ export const legalDictionaryEn = {
         {
           title: "Recipients and processors",
           bullets: [
-            "Google, for OAuth sign-in, as the connected data source for Search Console and GA4, and as the provider of Google Analytics 4 website analytics after consent.",
-            "OpenAI, to process imported OpenAI billing data where configured in order to generate admin billing and usage summaries.",
-            "Stripe, to create customer records, process subscriptions, and manage the billing portal.",
-            "Vercel, to host and serve the web application.",
-            "Hetzner/PostgreSQL, to host the application database and worker infrastructure in the EU.",
-            "GlitchTip, to capture operational errors and security-relevant exceptions.",
+            "Google Ireland Ltd. (Gordon House, Barrow Street, Dublin 4, Ireland) and/or Google LLC, for OAuth sign-in, as the connected data source for Search Console and GA4, and as the provider of Google Analytics 4 website analytics after consent.",
+            "OpenAI, L.L.C. (San Francisco, USA) to generate AI-assisted snapshot recommendations and to process imported OpenAI billing data where configured. A data processing addendum is in place.",
+            "Stripe Payments Europe Ltd. (Dublin, Ireland) and Stripe Inc. (USA), to create customer records, process subscriptions, manage the billing portal, and deliver transactional payment and receipt emails.",
+            "Vercel Inc. (San Francisco, USA), to host and serve the web application; the frontend runs in the Vercel Frankfurt (EU) region.",
+            "Hetzner Online GmbH (Industriestraße 25, 91710 Gunzenhausen, Germany), to host the self-managed PostgreSQL database and the worker infrastructure in the Nuremberg (EU) data center. A data processing agreement with Hetzner is in place.",
+            "GlitchTip, to capture operational errors and security-relevant exceptions — self-hosted on Hetzner infrastructure in Nuremberg, with no transfer to any third party.",
+            "PostHog Inc. (San Francisco, USA), operated via the EU instance in Frankfurt, for server-side product analytics (e.g., snapshot-creation and plan events). PostHog does not set its own browser cookies; data is sent server-side to the EU instance. A data processing addendum is in place.",
             "Vercel Analytics, for cookieless measurement of page views, referrers, device type, and country of origin. Vercel processes this data on its own infrastructure; IP addresses are not stored persistently.",
+          ],
+        },
+        {
+          title: "Processing of customer data sources (GSC & GA4)",
+          paragraphs: [
+            "When you connect your Google Search Console or Google Analytics 4 property to Webhealth as a business customer, we process the search, click, impression, and usage data associated with your property on your behalf. To the extent that this data contains personal data of your end users, you are the controller within the meaning of the GDPR and Webhealth acts as a processor under Article 28 GDPR.",
+            "A data processing agreement (Auftragsverarbeitungsvertrag / DPA) is available on request — please contact the email address listed under “Controller and contact”. The list of sub-processors corresponds to the providers listed above under “Recipients and processors”.",
           ],
         },
         {
@@ -248,17 +258,23 @@ export const legalDictionaryEn = {
     },
     impressum: {
       title: "Impressum (Legal Notice)",
-      description: "Provider identification, contact details, and mandatory legal information for the Webhealth SEO and analytics service operated by DevBrew.",
+      description: "Provider identification, contact details, and mandatory legal information per § 5 DDG and § 18(2) MStV for the Webhealth SEO and analytics service operated by DevBrew.",
       lastUpdatedLabel: "Last updated: March 2026",
       languageNotice:
-        "“Impressum” is the German legal notice / provider identification page.",
+        "“Impressum” is the German legal notice / provider identification page required under § 5 DDG (formerly § 5 TMG).",
       intro: [
-        "This page contains the provider identification and consumer-dispute statement for Webhealth.",
+        "This page contains the provider identification per § 5 DDG (formerly § 5 TMG), the editorial-content responsibility statement under § 18(2) MStV, and the consumer-dispute information for Webhealth.",
       ],
       sections: [
         {
           title: "Provider",
           paragraphs: getImpressumProviderParagraphs("en"),
+        },
+        {
+          title: "Represented by",
+          paragraphs: [
+            `${legalProfile.legalName} (sole proprietor of “${legalProfile.businessName}”)`,
+          ],
         },
         {
           title: "Contact",
@@ -280,6 +296,12 @@ export const legalDictionaryEn = {
               },
             ]
           : []),
+        {
+          title: "Responsible for editorial content per § 18(2) MStV",
+          paragraphs: [
+            `${legalProfile.legalName}, ${legalProfile.streetAddress}, ${legalProfile.postalCode} ${legalProfile.city}, ${legalProfile.country}.`,
+          ],
+        },
         ...(getDataProtectionOfficerParagraphs("en").length
           ? [
               {
@@ -289,8 +311,150 @@ export const legalDictionaryEn = {
             ]
           : []),
         {
+          title: "EU online dispute resolution",
+          paragraphs: [
+            "The European Commission provides a platform for online dispute resolution (ODR), which you can reach at https://ec.europa.eu/consumers/odr/. Our consumer-contact email address is listed under “Contact” above.",
+          ],
+        },
+        {
           title: "Consumer dispute resolution",
           paragraphs: [getDisputeResolutionStatement("en")],
+        },
+        {
+          title: "Liability for content",
+          paragraphs: [
+            "As a service provider, we are responsible for our own content on these pages under general law per § 7(1) DDG. However, under §§ 8–10 DDG, service providers are not obliged to monitor third-party information that is transmitted or stored, or to investigate circumstances that suggest unlawful activity. Obligations to remove or block the use of information under general law remain unaffected.",
+          ],
+        },
+        {
+          title: "Liability for links",
+          paragraphs: [
+            "Our offering may contain links to external third-party websites whose content we do not control. We therefore cannot accept liability for that third-party content. The respective provider or operator of the linked pages is always responsible for their content. Linked pages are reviewed at the time of linking; upon notification of a legal violation, we will remove such links promptly.",
+          ],
+        },
+        {
+          title: "Copyright",
+          paragraphs: [
+            "Content created by the operator on these pages is subject to German copyright law. Third-party contributions are identified as such. Any duplication, modification, distribution, or commercial use beyond the limits of copyright law requires the prior written consent of the relevant rights holder.",
+          ],
+        },
+      ],
+    },
+    dpa: {
+      title: "Data Processing Agreement",
+      description:
+        "Data Processing Agreement for Webhealth business customers using connected Google Search Console, Google Analytics 4, crawl, snapshot, and report data.",
+      lastUpdatedLabel: "Last updated: May 2026",
+      intro: [
+        `This Data Processing Agreement (DPA) forms part of the Terms of Service or other principal agreement between a business customer using ${legalProfile.productName} and ${getOperatorDisplayName("en")}.`,
+        "It applies only where Webhealth processes personal data on behalf of a business customer as processor under Article 28 GDPR. Webhealth remains an independent controller for account, billing, security, website analytics, product analytics, and support data processed for its own purposes.",
+      ],
+      sections: [
+        {
+          title: "Parties and roles",
+          paragraphs: [
+            "The business customer is the controller for Customer Personal Data submitted to, connected with, or generated from the service. Webhealth acts as processor under Article 28 GDPR for that Customer Personal Data only to the extent required to provide the service.",
+            `The processor is ${getOperatorDisplayName("en")}, ${legalProfile.streetAddress}, ${legalProfile.postalCode} ${legalProfile.city}, ${legalProfile.country}. Privacy and DPA notices may be sent to ${getPrivacyContactEmail()}.`,
+          ],
+        },
+        {
+          title: "Subject matter and processing instructions",
+          paragraphs: [
+            "The customer instructs Webhealth to process Customer Personal Data for the duration of the principal agreement and only as needed to provide, secure, maintain, and support the service.",
+            "Webhealth will process Customer Personal Data only on documented instructions from the customer, including the principal agreement, this DPA, the customer's product configuration, and lawful support or deletion requests, unless Union or Member State law requires otherwise.",
+          ],
+        },
+        {
+          title: "Service scope",
+          bullets: [
+            "Connecting and reading Google Search Console and Google Analytics 4 properties authorized by the customer.",
+            "Crawling publicly accessible customer websites and storing technical crawl findings.",
+            "Creating dashboards, snapshots, share links, exports, deterministic action items, and AI-assisted recommendations.",
+            "Operating authentication, access control, support, security monitoring, abuse prevention, backups, and operational logging needed for the service.",
+          ],
+        },
+        {
+          title: "Categories of data subjects and personal data",
+          bullets: [
+            "Data subjects may include customer account users, team members, agency or client contacts, support request senders, and customer website visitors or end users represented in connected GSC or GA4 data.",
+            "Personal data may include names, email addresses, profile images, user and team identifiers, IP addresses, user agents, property URLs, page paths, search queries, traffic-source data, country/device metrics, event or session metrics, crawl findings, snapshots, AI prompts and outputs, share-link payloads, support messages, and operational logs.",
+            "Customers must not intentionally submit special-category data, criminal-offense data, payment-card data, government identifiers, or similarly sensitive personal data. Webhealth is not designed to process those data categories.",
+          ],
+        },
+        {
+          title: "Confidentiality and personnel access",
+          paragraphs: [
+            "Webhealth will ensure that persons authorized to process Customer Personal Data are bound by confidentiality obligations and access the data only where needed to provide, secure, support, or maintain the service.",
+            "Production infrastructure, database access, encryption keys, and administrative tooling are restricted to authorized personnel and protected by strong authentication and access controls.",
+          ],
+        },
+        {
+          title: "Security measures",
+          bullets: [
+            "TLS encryption for data in transit between browsers, application services, processors, and third-party APIs.",
+            "AES-256-GCM encryption at rest for Google OAuth access tokens, refresh tokens, and ID tokens before database storage.",
+            "EU-hosted self-managed PostgreSQL and worker infrastructure on Hetzner with restricted network exposure, authenticated administrative access, backups, WAL archiving, and operational monitoring.",
+            "Error monitoring configured without default PII collection, secret/token redaction for logs, Stripe webhook signature verification, and crawl safeguards that restrict unsafe targets.",
+            "Procedures to detect, investigate, mitigate, and respond to personal data breaches affecting Customer Personal Data.",
+          ],
+        },
+        {
+          title: "Subprocessors",
+          paragraphs: [
+            "The customer generally authorizes Webhealth to use subprocessors needed to provide the service. Webhealth will impose data-protection obligations on subprocessors that are materially equivalent to this DPA where the subprocessor processes Customer Personal Data.",
+            "Webhealth will publish updates on this page or the related subprocessor section and provide reasonable email or in-product notice for material new subprocessors where practicable. Customers may object on reasonable data-protection grounds before the change takes effect, and the parties will work in good faith on a commercially reasonable resolution.",
+          ],
+          bullets: [
+            "Google: OAuth sign-in, Google Search Console, Google Analytics 4, and Google Analytics website measurement after consent.",
+            "Vercel: hosting and delivery of the web application and cookieless Vercel Analytics.",
+            "Hetzner: self-managed PostgreSQL database, worker infrastructure, backups, monitoring, and self-hosted services in the EU.",
+            "OpenAI: AI-assisted snapshot and recommendation processing and imported OpenAI billing summaries where configured.",
+            "Stripe: customer records, subscription processing, billing portal, and transactional billing communications.",
+            "PostHog: optional server-side product analytics using the EU instance.",
+            "GlitchTip: self-hosted error monitoring on Hetzner infrastructure, without transfer to a third-party hosted GlitchTip service.",
+          ],
+        },
+        {
+          title: "International transfers",
+          paragraphs: [
+            "Some subprocessors may process or make Customer Personal Data accessible outside the EU/EEA, including in the United States. This may apply in particular to Google, OpenAI, Stripe, Vercel, and PostHog depending on the service flow and their subprocessors.",
+            "Where required, Webhealth relies on adequacy decisions, the EU-U.S. Data Privacy Framework where applicable, standard contractual clauses, and supplementary safeguards appropriate to the transfer.",
+          ],
+        },
+        {
+          title: "Data subject requests and compliance assistance",
+          paragraphs: [
+            "Taking into account the nature of processing and information available to Webhealth, Webhealth will provide reasonable assistance for customer obligations relating to data subject requests, data protection impact assessments, supervisory authority consultations, and security inquiries.",
+            "If Webhealth receives a data subject request relating to Customer Personal Data, Webhealth will notify the customer where legally permitted and will not respond on the customer's behalf except on documented instruction or where legally required.",
+          ],
+        },
+        {
+          title: "Personal data breaches",
+          paragraphs: [
+            "Webhealth will notify the customer without undue delay after becoming aware of a personal data breach affecting Customer Personal Data and will provide information reasonably available to help the customer meet its notification obligations.",
+            "Webhealth will take reasonable steps to investigate, mitigate, and remediate such breaches, taking into account the nature of the service and the information available to Webhealth.",
+          ],
+        },
+        {
+          title: "Deletion and return",
+          paragraphs: [
+            "After the end of the service or a valid deletion request, Webhealth will delete active production copies of Customer Personal Data within 30 days unless continued retention is required by law, security, dispute resolution, or legitimate operational needs.",
+            "Backup copies are protected against ordinary access and will age out under the normal backup retention cycle unless restoration is required for security, continuity, or legal reasons. If backups are restored, deleted Customer Personal Data will be re-deleted where technically feasible.",
+          ],
+        },
+        {
+          title: "Audit rights",
+          paragraphs: [
+            "Webhealth will make available information reasonably necessary to demonstrate compliance with this DPA, usually through documentation, security summaries, written responses, or equivalent materials.",
+            "Direct audits or inspections are available only where legally required, reasonable, scoped to Customer Personal Data, subject to confidentiality, scheduled with reasonable notice, and normally no more than once per calendar year unless a verified personal data breach justifies additional review.",
+          ],
+        },
+        {
+          title: "Term, conflict, and governing law",
+          paragraphs: [
+            "This DPA remains in effect for as long as Webhealth processes Customer Personal Data on behalf of the customer. If this DPA conflicts with the principal agreement, this DPA controls for the processing of Customer Personal Data.",
+            `This DPA is governed by German law. For business customers, the courts competent for ${legalProfile.city}, Germany, have jurisdiction to the extent legally permitted.`,
+          ],
         },
       ],
     },
