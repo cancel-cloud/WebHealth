@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   assertSafeCrawlUrl,
+  createPinnedCrawlLookup,
   crawlWebsite,
   createCrawlScope,
   isBlockedCrawlIpAddress,
@@ -73,6 +74,18 @@ test("allows subdomains for verified sc-domain properties", async () => {
   );
 
   assert.equal(allowedUrl.toString(), "https://blog.example.com/about");
+});
+
+test("createPinnedCrawlLookup resolves only vetted crawl addresses", async () => {
+  const lookup = createPinnedCrawlLookup([{ address: "93.184.216.34", family: 4 }]);
+
+  assert.deepEqual(await lookup("example.com", { all: true }), [
+    { address: "93.184.216.34", family: 4 },
+  ]);
+  assert.deepEqual(await lookup("example.com", {}), {
+    address: "93.184.216.34",
+    family: 4,
+  });
 });
 
 test("crawlWebsite only visits in-scope pages", async () => {

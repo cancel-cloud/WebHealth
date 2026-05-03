@@ -247,6 +247,7 @@ export async function heartbeatPropertyRefreshJob(jobId: string, workerId: strin
 
 export async function updatePropertyRefreshJobProgress(params: {
   jobId: string;
+  workerId: string;
   phase: string;
   message?: string | null;
   progressMeta?: Record<string, unknown> | null;
@@ -259,42 +260,71 @@ export async function updatePropertyRefreshJobProgress(params: {
       progressMeta: params.progressMeta ?? null,
       updatedAt: new Date(),
     })
-    .where(eq(propertyRefreshJobs.id, params.jobId))
+    .where(
+      and(
+        eq(propertyRefreshJobs.id, params.jobId),
+        eq(propertyRefreshJobs.status, "processing"),
+        eq(propertyRefreshJobs.claimedBy, params.workerId),
+      ),
+    )
     .returning();
   return job ?? null;
 }
 
-export async function completePropertyRefreshJob(jobId: string, message?: string | null, progressMeta?: Record<string, unknown> | null) {
+export async function completePropertyRefreshJob(params: {
+  jobId: string;
+  workerId: string;
+  message?: string | null;
+  progressMeta?: Record<string, unknown> | null;
+}) {
   const [job] = await db
     .update(propertyRefreshJobs)
     .set({
       status: "complete",
       phase: "done",
-      message: message ?? "Refresh complete",
-      progressMeta: progressMeta ?? null,
+      message: params.message ?? "Refresh complete",
+      progressMeta: params.progressMeta ?? null,
       finishedAt: new Date(),
       claimExpiresAt: null,
       updatedAt: new Date(),
     })
-    .where(eq(propertyRefreshJobs.id, jobId))
+    .where(
+      and(
+        eq(propertyRefreshJobs.id, params.jobId),
+        eq(propertyRefreshJobs.status, "processing"),
+        eq(propertyRefreshJobs.claimedBy, params.workerId),
+      ),
+    )
     .returning();
   return job ?? null;
 }
 
-export async function failPropertyRefreshJob(jobId: string, errorMessage: string, phase = "failed", progressMeta?: Record<string, unknown> | null) {
+export async function failPropertyRefreshJob(params: {
+  jobId: string;
+  workerId: string;
+  errorMessage: string;
+  phase?: string;
+  progressMeta?: Record<string, unknown> | null;
+}) {
   const [job] = await db
     .update(propertyRefreshJobs)
     .set({
       status: "failed",
-      phase,
+      phase: params.phase ?? "failed",
       message: "Refresh failed",
-      progressMeta: progressMeta ?? null,
-      lastError: errorMessage,
+      progressMeta: params.progressMeta ?? null,
+      lastError: params.errorMessage,
       finishedAt: new Date(),
       claimExpiresAt: null,
       updatedAt: new Date(),
     })
-    .where(eq(propertyRefreshJobs.id, jobId))
+    .where(
+      and(
+        eq(propertyRefreshJobs.id, params.jobId),
+        eq(propertyRefreshJobs.status, "processing"),
+        eq(propertyRefreshJobs.claimedBy, params.workerId),
+      ),
+    )
     .returning();
   return job ?? null;
 }

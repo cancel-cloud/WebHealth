@@ -2,6 +2,11 @@ export type PublicPricingLanguage = "en" | "de";
 export type PublicPricingTier = "solo" | "starter" | "studio" | "agency";
 export type PublicPricingText = Record<PublicPricingLanguage, string>;
 
+export const PILOT_BOOKING_URL =
+  "https://cal.com/lukas-devbrew/webhealth-pilot-check";
+export const FOUNDING_AGENCY_PILOT_PRICE_EUR = 149;
+export const FOUNDING_AGENCY_PILOT_LIMIT = 10;
+
 export interface PublicPricingPlan {
   tier: PublicPricingTier;
   highlight: boolean;
