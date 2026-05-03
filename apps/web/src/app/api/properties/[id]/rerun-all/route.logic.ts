@@ -3,6 +3,8 @@ import { badRequest } from "@webhealth/shared/lib/http-errors";
 type StepResult = {
   status: "queued" | "complete" | "failed" | "skipped";
   jobId?: string | null;
+  jobIds?: string[];
+  windows?: Array<{ dateStart: string; dateEnd: string }>;
   message?: string | null;
 };
 
@@ -50,8 +52,4 @@ export function buildRerunAllResponse(params: {
     decisionRefresh: params.decisionRefresh,
     warnings: failed.map((step) => step.message).filter((message): message is string => Boolean(message)),
   };
-}
-
-export function earlierDate(left: string, right: string) {
-  return left <= right ? left : right;
 }
