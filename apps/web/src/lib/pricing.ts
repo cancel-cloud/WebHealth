@@ -27,7 +27,7 @@ export const PRICING_PLANS = {
     periodLabel: "forever",
     description: "For developers auditing their own sites.",
     features: [
-      "Unlimited properties",
+      "1 property",
       "Live property dashboard",
       "Snapshot exports",
       "Ranked fix list",

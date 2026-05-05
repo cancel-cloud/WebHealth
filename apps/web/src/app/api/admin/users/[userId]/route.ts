@@ -12,6 +12,9 @@ import { nanoid } from "nanoid";
 import { requireAdminSession } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";
 import { getStripe } from "@/lib/server/stripe";
+import { cleanupAfterTierChange } from "@webhealth/shared/lib/tier-change-cleanup";
+import { isPublishedPlanTier } from "@webhealth/shared/db/plan-settings-defaults";
+import { badRequest } from "@webhealth/shared/lib/http-errors";
 import { deleteUserAccount } from "../../../account/route.logic";
 
 export async function PATCH(
@@ -25,7 +28,20 @@ export async function PATCH(
     const body = await req.json() as Record<string, unknown>;
 
     if ("tier" in body && typeof body.tier === "string") {
+      if (!isPublishedPlanTier(body.tier)) {
+        throw badRequest("TIER_INVALID", "tier is not a published plan");
+      }
+
+      const team = await db.query.teams.findFirst({
+        where: (t, { eq }) => eq(t.ownerId, userId),
+        columns: { id: true, tier: true },
+      });
+      const oldTier = team?.tier ?? "free";
       await db.update(teams).set({ tier: body.tier }).where(eq(teams.ownerId, userId));
+
+      if (team && body.tier !== oldTier) {
+        await cleanupAfterTierChange({ teamId: team.id, oldTier, newTier: body.tier });
+      }
     }
 
     if ("isRestricted" in body || "restrictionMessage" in body) {

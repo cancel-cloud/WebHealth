@@ -277,7 +277,7 @@ export default function SettingsPage() {
                     Manage export branding in one place
                   </h2>
                   <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                    Agency name, contact details, logo, icon, and export colors now live on a dedicated page instead of being hidden inside snapshot artifacts.
+                    Agency name, contact details, logo, icon, and export colors now live on a dedicated page instead of being hidden inside snapshot payloads.
                   </p>
                 </div>
               </div>
@@ -358,7 +358,6 @@ export default function SettingsPage() {
                   {PUBLIC_PRICING_PLANS.map((plan) => {
                     const isCurrent =
                       (settings.teamTier === "free" && plan.tier === "solo") ||
-                      (settings.teamTier === "pro" && plan.tier === "studio") ||
                       settings.teamTier === plan.tier;
                     const price =
                       plan.tier === "agency"

@@ -24,9 +24,15 @@ export {
 } from "@webhealth/shared/lib/active-property-automation-policy";
 
 async function loadAutomationProperties(): Promise<ActiveAutomationProperty[]> {
-  const rows = await db.query.properties.findMany({
-    where: (property, { eq: eqFn }) => eqFn(property.active, true),
-  });
+  const [rows, teamRows] = await Promise.all([
+    db.query.properties.findMany({
+      where: (property, { eq: eqFn }) => eqFn(property.active, true),
+    }),
+    db.query.teams.findMany({
+      columns: { id: true, tier: true },
+    }),
+  ]);
+  const tierByTeamId = new Map(teamRows.map((team) => [team.id, team.tier] as const));
 
   return Promise.all(rows.map(async (property) => {
     const [latestCrawl, refreshJobs, metricsJob] = await Promise.all([
@@ -66,6 +72,7 @@ async function loadAutomationProperties(): Promise<ActiveAutomationProperty[]> {
     return {
       id: property.id,
       teamId: property.teamId,
+      teamTier: tierByTeamId.get(property.teamId) ?? "free",
       type: property.type,
       name: property.name,
       url: property.url,

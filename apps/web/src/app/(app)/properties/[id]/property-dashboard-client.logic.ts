@@ -10,7 +10,8 @@ export type ActionFilter =
   | "crawl"
   | "seo"
   | "content"
-  | "performance";
+  | "performance"
+  | "ai";
 
 export function buildDashboardHref(next: {
   propertyId: string;
@@ -194,6 +195,7 @@ export function filterDashboardActions<T extends {
   rank: number;
   recommendationClass: string;
   causeFamily: string;
+  source?: string | null;
 }>(actions: T[], filter: ActionFilter): T[] {
   if (filter === "all") return actions;
   if (filter === "critical") return actions.filter((action) => action.rank <= 2);
@@ -223,6 +225,9 @@ export function filterDashboardActions<T extends {
       action.causeFamily.includes("content") ||
       action.recommendationClass.includes("content"),
     );
+  }
+  if (filter === "ai") {
+    return actions.filter((action) => action.source === "ai" || action.source === "rules_ai");
   }
   return actions.filter((action) =>
     action.causeFamily.includes("performance") ||

@@ -647,7 +647,7 @@ export const userFeatureFlags = pgTable("user_feature_flags", {
 
 export const planSettings = pgTable("plan_settings", {
   id: text("id").primaryKey(),
-  tier: text("tier").unique().notNull(), // 'free' | 'pro' | 'agency'
+  tier: text("tier").unique().notNull(), // 'free' | 'starter' | 'studio' | 'agency'
   displayName: text("display_name").notNull(),
   maxProperties: integer("max_properties"), // null = unlimited
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

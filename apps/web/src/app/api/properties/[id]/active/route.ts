@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@webhealth/shared/db";
-import { properties } from "@webhealth/shared/db/schema";
-import { notFound } from "@webhealth/shared/lib/http-errors";
+import { planSettings, properties, teams } from "@webhealth/shared/db/schema";
+import { badRequest, notFound } from "@webhealth/shared/lib/http-errors";
 import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import { requireTeamOwner, requireUnrestrictedSession } from "@/lib/server/authz";
 import { decodeRouteParam } from "@/lib/server/route-params";
 import { handleRouteError } from "@/lib/server/route-security";
-import { buildPropertyActiveUpdate } from "./route.logic";
+import { buildPropertyActiveGroupPlan } from "./route.logic";
 
 export async function PATCH(
   req: Request,
@@ -29,33 +29,66 @@ export async function PATCH(
     const targetProperties = await db.query.properties.findMany({
       where: (p, { and: andFn, eq: eqFn, inArray: inArrayFn }) =>
         andFn(eqFn(p.teamId, teamId), inArrayFn(p.id, propertyIds)),
-      columns: { id: true, name: true, active: true },
+      columns: { id: true, name: true, type: true, active: true, ga4PropertyId: true },
     });
     if (targetProperties.length !== propertyIds.length) {
       throw notFound("Property not found or unauthorized", "PROPERTY_NOT_FOUND");
     }
     const property = targetProperties.find((item) => item.id === propertyId) ?? targetProperties[0];
 
-    const activeRows = await db.query.properties.findMany({
-      where: (p, { and: andFn, eq: eqFn }) =>
-        andFn(eqFn(p.teamId, teamId), eqFn(p.active, true)),
-      columns: { id: true },
-    });
+    const [team, allTeamProperties] = await Promise.all([
+      db.query.teams.findFirst({
+        where: eq(teams.id, teamId),
+        columns: { tier: true },
+      }),
+      db.query.properties.findMany({
+        where: (p, { eq: eqFn }) => eqFn(p.teamId, teamId),
+        columns: { id: true, type: true, active: true, ga4PropertyId: true },
+      }),
+    ]);
+    const planSetting = team
+      ? await db.query.planSettings.findFirst({
+          where: eq(planSettings.tier, team.tier),
+          columns: { maxProperties: true },
+        })
+      : null;
 
-    const update = buildPropertyActiveUpdate({
-      enabled,
-      activePropertiesBefore: activeRows.length,
-      propertyWasActive: property.active,
-    });
-    const activePropertiesAfter = activeRows.length + targetProperties.reduce((delta, target) => {
-      if (target.active === update.nextActive) return delta;
-      return delta + (update.nextActive ? 1 : -1);
-    }, 0);
+    let update;
+    try {
+      update = buildPropertyActiveGroupPlan({
+        enabled,
+        propertyId,
+        requestedProperties: targetProperties,
+        allTeamProperties,
+        maxActiveProperties: planSetting?.maxProperties ?? null,
+      });
+    } catch (error) {
+      throw badRequest(
+        "PROPERTY_ACTIVATION_INVALID",
+        error instanceof Error ? error.message : "Property activation is invalid.",
+      );
+    }
 
-    await db
-      .update(properties)
-      .set({ active: update.nextActive })
-      .where(and(inArray(properties.id, propertyIds), eq(properties.teamId, teamId)));
+    if (update.activateIds.length) {
+      await db
+        .update(properties)
+        .set({ active: true })
+        .where(and(inArray(properties.id, update.activateIds), eq(properties.teamId, teamId)));
+    }
+
+    if (update.deactivateIds.length) {
+      await db
+        .update(properties)
+        .set({ active: false })
+        .where(and(inArray(properties.id, update.deactivateIds), eq(properties.teamId, teamId)));
+    }
+
+    if (!update.activateIds.length && !update.deactivateIds.length) {
+      await db
+        .update(properties)
+        .set({ active: update.nextActive })
+        .where(and(inArray(properties.id, propertyIds), eq(properties.teamId, teamId)));
+    }
 
     void recordProductEvent({
       teamId,
@@ -67,15 +100,17 @@ export async function PATCH(
       properties: {
         propertyId,
         propertyName: property.name,
-        activePropertiesAfter,
+        activePropertiesAfter: update.activePropertiesAfter,
         propertyIds,
+        activateIds: update.activateIds,
+        deactivateIds: update.deactivateIds,
       },
     }).catch(() => {});
 
     return NextResponse.json({
       success: true,
       active: update.nextActive,
-      activePropertiesCount: activePropertiesAfter,
+      activePropertiesCount: update.activePropertiesAfter,
     });
   } catch (error) {
     return handleRouteError("Error updating property active state", error);

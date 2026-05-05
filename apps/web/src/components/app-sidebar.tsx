@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { authClient } from "@webhealth/shared/lib/auth-client";
 import { cn } from "@webhealth/shared/lib/utils";
 import {
+  APP_SIDEBAR_PROPERTIES_REFRESH_EVENT,
   getAppSidebarFooterThemeOptions,
   getAppSidebarItemClasses,
   getAppSidebarModel,
@@ -287,14 +288,14 @@ export function AppSidebar({
     view: searchParams.get("view"),
   });
 
-  useEffect(() => {
+  const loadMeta = useCallback(() => {
     Promise.all([
       requestJson<Record<string, unknown>>("/api/settings").catch(
         () => ({}) as Record<string, unknown>,
       ),
-      requestJson<Record<string, unknown>>("/api/properties").catch(
-        () => ({}) as Record<string, unknown>,
-      ),
+      requestJson<Record<string, unknown>>("/api/properties", {
+        cache: "no-store",
+      }).catch(() => ({}) as Record<string, unknown>),
     ])
       .then(([settingsData, propertiesData]) => {
         const source = settingsData ?? {};
@@ -333,6 +334,17 @@ export function AppSidebar({
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    loadMeta();
+  }, [loadMeta]);
+
+  useEffect(() => {
+    window.addEventListener(APP_SIDEBAR_PROPERTIES_REFRESH_EVENT, loadMeta);
+    return () => {
+      window.removeEventListener(APP_SIDEBAR_PROPERTIES_REFRESH_EVENT, loadMeta);
+    };
+  }, [loadMeta]);
 
   const handleSignOut = async () => {
     onNavigate?.();
