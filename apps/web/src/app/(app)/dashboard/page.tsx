@@ -254,7 +254,7 @@ function AiRunCenterView({ data, isAdmin }: { data: AiRunCenterData; isAdmin: bo
             <p className="text-sm text-muted-foreground">Latest source-summary and analyzer jobs by property.</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
+            <table className={`w-full text-left text-sm ${isAdmin ? "min-w-[760px]" : "min-w-[520px]"}`}>
               <thead className="border-b text-xs uppercase tracking-[0.12em] text-muted-foreground">
                 <tr>
                   <th className="py-2 pr-4">Property</th>
@@ -262,7 +262,7 @@ function AiRunCenterView({ data, isAdmin }: { data: AiRunCenterData; isAdmin: bo
                   <th className="py-2 pr-4">Phase</th>
                   {isAdmin ? <th className="py-2 pr-4">Model</th> : null}
                   {isAdmin ? <th className="py-2 pr-4">Cost</th> : null}
-                  <th className="py-2 pr-4">Updated</th>
+                  {isAdmin ? <th className="py-2 pr-4">Updated</th> : null}
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -285,13 +285,13 @@ function AiRunCenterView({ data, isAdmin }: { data: AiRunCenterData; isAdmin: bo
                       <td className="py-3 pr-4">{phaseLabel}</td>
                       {isAdmin ? <td className="py-3 pr-4">{run.analyzerModel ?? "-"}</td> : null}
                       {isAdmin ? <td className="py-3 pr-4">{run.costEstimateUsd ? formatUsd(Number(run.costEstimateUsd)) : "-"}</td> : null}
-                      <td className="py-3 pr-4">{formatDate(run.updatedAt)}</td>
+                      {isAdmin ? <td className="py-3 pr-4">{formatDate(run.updatedAt)}</td> : null}
                     </tr>
                   );
                 })}
                 {!visibleRuns.length ? (
                   <tr>
-                    <td colSpan={isAdmin ? 6 : 4} className="py-8 text-center text-muted-foreground">
+                    <td colSpan={isAdmin ? 6 : 3} className="py-8 text-center text-muted-foreground">
                       No AI runs have been recorded yet.
                     </td>
                   </tr>

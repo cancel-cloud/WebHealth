@@ -115,10 +115,12 @@ const ACTION_FILTERS: Array<{ value: ActionFilter; label: string }> = [
   { value: "seo", label: "SEO" },
   { value: "content", label: "Content" },
   { value: "performance", label: "Performance" },
+  { value: "ai", label: "AI" },
 ];
 
 const RANKED_ACTION_FILTERS: Array<{ value: ActionFilter; label: string }> = [
   { value: "all", label: "All" },
+  { value: "ai", label: "AI" },
   { value: "crawl", label: "Crawl" },
   { value: "performance", label: "Perf" },
   { value: "seo", label: "SEO" },

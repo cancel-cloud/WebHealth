@@ -11,6 +11,7 @@ function property(overrides: Partial<ActiveAutomationProperty> & Pick<ActiveAuto
   return {
     id: overrides.id,
     teamId: overrides.teamId ?? "team_1",
+    teamTier: overrides.teamTier ?? "starter",
     type: overrides.type,
     name: overrides.name ?? overrides.id,
     url: overrides.url ?? overrides.id,
@@ -38,6 +39,31 @@ test("buildActivePropertyAutomationPlan includes only active linked website comb
 
   assert.deepEqual(plan.metricsRefreshes.map((item) => item.propertyId), ["gsc_sc-domain:active.example"]);
   assert.deepEqual(plan.crawlRefreshes.map((item) => item.propertyId), ["gsc_sc-domain:active.example"]);
+});
+
+test("buildActivePropertyAutomationPlan skips Solo free properties", () => {
+  const plan = buildActivePropertyAutomationPlan({
+    now: new Date("2026-04-27T08:00:00.000Z"),
+    properties: [
+      property({
+        id: "gsc_sc-domain:solo.example",
+        type: "gsc",
+        ga4PropertyId: "111",
+        teamTier: "free",
+      }),
+      property({ id: "ga4_111", type: "ga4", teamTier: "free" }),
+      property({
+        id: "gsc_sc-domain:paid.example",
+        type: "gsc",
+        ga4PropertyId: "222",
+        teamTier: "starter",
+      }),
+      property({ id: "ga4_222", type: "ga4", teamTier: "starter" }),
+    ],
+  });
+
+  assert.deepEqual(plan.metricsRefreshes.map((item) => item.propertyId), ["gsc_sc-domain:paid.example"]);
+  assert.deepEqual(plan.crawlRefreshes.map((item) => item.propertyId), ["gsc_sc-domain:paid.example"]);
 });
 
 test("buildActivePropertyAutomationPlan skips fresh crawls and manual refreshes", () => {

@@ -1,6 +1,7 @@
 export type ActiveAutomationProperty = {
   id: string;
   teamId: string;
+  teamTier?: string | null;
   type: string;
   name: string;
   url: string;
@@ -53,6 +54,7 @@ export function buildActivePropertyAutomationPlan(input: {
 
   for (const property of input.properties) {
     if (property.type !== "gsc" || !property.active || !property.ga4PropertyId) continue;
+    if ((property.teamTier ?? "free") === "free") continue;
     const linkedGa4 = ga4ById.get(`ga4_${property.ga4PropertyId}`);
     if (!linkedGa4?.active) continue;
 

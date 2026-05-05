@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  APP_SIDEBAR_PROPERTIES_REFRESH_EVENT,
+  dispatchAppSidebarPropertiesRefresh,
   getAppSidebarFooterThemeOptions,
   getAppSidebarThemeChoiceClasses,
   getAppSidebarItemClasses,
@@ -14,7 +16,6 @@ test("settings route marks settings current and keeps support links grouped", ()
   assert.deepEqual(model.primaryItems.map((item) => item.label), [
     "Overview",
     "Properties",
-    "Reports",
     "AI Insights",
     "Settings",
   ]);
@@ -109,4 +110,17 @@ test("sidebar theme choices use stacked full-width segments with one active surf
   assert.match(inactiveClasses, /\bborder-t\b/);
   assert.match(inactiveClasses, /\bpy-2\b/);
   assert.ok(!inactiveClasses.includes("py-3"));
+});
+
+test("sidebar property refresh dispatches the shared refresh event", () => {
+  const dispatchedTypes: string[] = [];
+
+  dispatchAppSidebarPropertiesRefresh({
+    dispatchEvent(event) {
+      dispatchedTypes.push(event.type);
+      return true;
+    },
+  });
+
+  assert.deepEqual(dispatchedTypes, [APP_SIDEBAR_PROPERTIES_REFRESH_EVENT]);
 });

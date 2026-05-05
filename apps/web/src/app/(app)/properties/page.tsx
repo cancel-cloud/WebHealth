@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { getSyncStatusBadge } from "@/lib/status-badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +44,11 @@ import {
   getGoogleAccessDialogModel,
   getGoogleAccessIssueFromCode,
 } from "@/components/google-access-recovery.logic";
+import {
+  buildManagedPropertyRows,
+  getManagedPropertyToggleTargets,
+  type ManagedPropertyRow,
+} from "../dashboard/manage-properties-dialog.logic";
 
 type Property = {
   id: string;
@@ -147,6 +153,7 @@ export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAutoSyncing, setIsAutoSyncing] = useState(false);
+  const [pendingActivationId, setPendingActivationId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const hasAttemptedAutoSync = useRef(false);
   const { issue, hasBlockingIssue, openDialog, refreshHealth } = useGoogleAccessRecovery();
@@ -205,6 +212,13 @@ export default function PropertiesPage() {
   }, [hasBlockingIssue, isAutoSyncing, loading, loadProperties, properties.length, refreshHealth]);
 
   const ga4Properties = properties.filter((p) => p.type === "ga4");
+  const managedRows = buildManagedPropertyRows(properties);
+  const activationRowBySourceId = new Map<string, ManagedPropertyRow>();
+  for (const row of managedRows) {
+    for (const sourceId of row.sourceIds) {
+      activationRowBySourceId.set(sourceId, row);
+    }
+  }
   const filteredProperties = searchQuery.trim()
     ? properties.filter((p) => {
         const q = searchQuery.trim().toLowerCase();
@@ -218,20 +232,79 @@ export default function PropertiesPage() {
   );
   const recoveryModel = issue ? getGoogleAccessDialogModel(issue) : null;
 
+  const updateActiveProperty = async (row: ManagedPropertyRow, active: boolean) => {
+    const targetIds = getManagedPropertyToggleTargets(row);
+    setPendingActivationId(row.id);
+    try {
+      await requestJson(`/api/properties/${encodeURIComponent(targetIds[0])}/active`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active, propertyIds: targetIds }),
+      });
+      toast.success(active ? "Property activated" : "Property deactivated");
+      await loadProperties();
+    } catch (error) {
+      toast.error(getAppErrorMessage(error, "Could not update property activation"));
+    } finally {
+      setPendingActivationId(null);
+    }
+  };
+
+  function renderActivationControl(property: Property) {
+    const row = activationRowBySourceId.get(property.id);
+    if (!row?.linked) {
+      return (
+        <div className="min-w-0 space-y-1">
+          <Badge variant="outline" className="border-amber-200 text-amber-700">Setup</Badge>
+          <p className="max-w-44 whitespace-normal text-xs leading-snug text-muted-foreground">
+            Link GSC + GA4 to activate.
+          </p>
+        </div>
+      );
+    }
+
+    if (property.id !== row.sourceIds[0]) {
+      return (
+        <div className="min-w-0 space-y-1">
+          <Badge variant="outline">Included</Badge>
+          <p className="max-w-44 whitespace-normal break-words text-xs leading-snug text-muted-foreground">
+            Managed by the canonical dashboard.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <Switch
+          checked={row.active}
+          disabled={pendingActivationId === row.id}
+          onCheckedChange={(active) => void updateActiveProperty(row, active)}
+          aria-label={`Toggle ${row.name}`}
+        />
+        <span className="whitespace-normal text-xs leading-snug text-muted-foreground">
+          {row.active ? "Active dashboard" : "Inactive"}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-end">
-        <div>
+      <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div className="min-w-0">
           <h1 className="text-3xl font-extrabold tracking-tight font-display" style={{ textWrap: "balance" }}>
             Properties
           </h1>
-          <p className="text-muted-foreground mt-1">Google Search Console and Analytics properties synced to your account.</p>
+          <p className="mt-1 max-w-3xl text-muted-foreground">Google Search Console and Analytics properties synced to your account.</p>
         </div>
-        <SyncButton
-          onSynced={loadProperties}
-          externalIsSyncing={isAutoSyncing}
-          refreshStrategy="callback"
-        />
+        <div className="shrink-0 self-start xl:self-auto">
+          <SyncButton
+            onSynced={loadProperties}
+            externalIsSyncing={isAutoSyncing}
+            refreshStrategy="callback"
+          />
+        </div>
       </div>
 
       {issue ? (
@@ -254,6 +327,10 @@ export default function PropertiesPage() {
           </div>
         </div>
       ) : null}
+
+      <div className="rounded-lg border border-border/70 bg-muted/25 p-4 text-sm text-muted-foreground">
+        Activate only complete GSC + GA4 website dashboards. Paid plans can refresh the default 28-day Google data in the background and send relevant source evidence to OpenAI for AI insights. Solo users stay manual: open the property and press Re-run to fetch fresh Google data and AI recommendations.
+      </div>
 
       {loading ? (
         <div className="border border-border/50 rounded-lg p-8 bg-card">
@@ -285,23 +362,24 @@ export default function PropertiesPage() {
             />
           </div>
         <div className="border border-border/50 rounded-lg overflow-hidden bg-card shadow-sm">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader className="bg-muted/30">
               <TableRow className="hover:bg-transparent border-border/50">
-                <TableHead className="py-4 font-medium">Name</TableHead>
-                <TableHead className="py-4 font-medium">URL</TableHead>
-                <TableHead className="py-4 font-medium">Type</TableHead>
-                <TableHead className="py-4 font-medium">GA4</TableHead>
-                <TableHead className="py-4 font-medium">Sync Status</TableHead>
-                <TableHead className="py-4 font-medium text-right">Last Synced</TableHead>
+                <TableHead className="w-[30%] py-4 font-medium">Name</TableHead>
+                <TableHead className="w-[18%] py-4 font-medium">URL</TableHead>
+                <TableHead className="w-[5%] py-4 font-medium">Type</TableHead>
+                <TableHead className="w-[12%] py-4 font-medium">GA4</TableHead>
+                <TableHead className="w-[18%] py-4 font-medium">Active</TableHead>
+                <TableHead className="w-[9%] py-4 font-medium">Status</TableHead>
+                <TableHead className="w-[8%] py-4 text-right font-medium">Synced</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProperties.map((property) => (
                 <TableRow key={property.id} className="border-border/50 hover:bg-muted/20 transition-colors">
-                  <TableCell className="py-4">
-                    <div className="space-y-1">
-                      <div className="font-medium">{property.name}</div>
+                  <TableCell className="py-4 align-top whitespace-normal">
+                    <div className="min-w-0 space-y-1.5">
+                      <div className="break-words font-medium leading-snug">{property.name}</div>
                       {!property.active ? (
                         <Badge variant="outline" className="border-amber-200 text-amber-700">Inactive</Badge>
                       ) : null}
@@ -313,24 +391,24 @@ export default function PropertiesPage() {
                           Open live dashboard
                         </Link>
                       ) : property.type === "gsc" ? (
-                        <span className="text-xs text-muted-foreground">Activate from dashboard to open live view</span>
+                        <span className="block text-xs leading-snug text-muted-foreground">Link GA4, then activate.</span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">GA4 rows stay secondary to the website dashboard</span>
+                        <span className="block text-xs leading-snug text-muted-foreground">Secondary to the website dashboard.</span>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="py-4 text-muted-foreground text-sm truncate max-w-[200px]">
+                  <TableCell className="py-4 align-top whitespace-normal break-words text-sm text-muted-foreground">
                     {property.url}
                   </TableCell>
-                  <TableCell className="py-4">
+                  <TableCell className="py-4 align-top whitespace-normal">
                     <Badge variant="outline" className="uppercase text-xs font-mono">
                       {property.type}
                     </Badge>
                   </TableCell>
-                  <TableCell className="py-4">
+                  <TableCell className="py-4 align-top whitespace-normal">
                     {property.type === "gsc" ? (
                       property.ga4PropertyId ? (
-                        <span className="text-sm text-muted-foreground">
+                        <span className="block break-words text-sm leading-snug text-muted-foreground">
                           {ga4ById[property.ga4PropertyId] ?? property.ga4PropertyId}
                         </span>
                       ) : (
@@ -344,8 +422,11 @@ export default function PropertiesPage() {
                       <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
-                  <TableCell className="py-4">{getSyncStatusBadge(property.syncStatus)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground text-sm py-4">
+                  <TableCell className="py-4 align-top whitespace-normal">
+                    {renderActivationControl(property)}
+                  </TableCell>
+                  <TableCell className="py-4 align-top whitespace-normal">{getSyncStatusBadge(property.syncStatus)}</TableCell>
+                  <TableCell className="py-4 text-right align-top text-sm whitespace-normal text-muted-foreground">
                     {property.lastSyncedAt
                       ? new Date(property.lastSyncedAt).toLocaleDateString()
                       : "—"}

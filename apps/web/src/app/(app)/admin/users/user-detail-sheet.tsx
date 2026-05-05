@@ -176,7 +176,7 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="free">Free</SelectItem>
+                      <SelectItem value="free">Solo</SelectItem>
                       <SelectItem value="starter">Starter</SelectItem>
                       <SelectItem value="studio">Studio</SelectItem>
                       <SelectItem value="agency">Agency</SelectItem>

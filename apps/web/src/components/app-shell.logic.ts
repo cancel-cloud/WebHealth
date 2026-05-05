@@ -49,6 +49,15 @@ export type AppSidebarModel = {
   supportGroup: AppSidebarGroup;
 };
 
+export const APP_SIDEBAR_PROPERTIES_REFRESH_EVENT = "webhealth:sidebar-properties-refresh";
+
+export function dispatchAppSidebarPropertiesRefresh(
+  target: Pick<Window, "dispatchEvent"> | null | undefined =
+    typeof window === "undefined" ? undefined : window,
+) {
+  target?.dispatchEvent(new Event(APP_SIDEBAR_PROPERTIES_REFRESH_EVENT));
+}
+
 export function getAppSidebarFooterThemeOptions() {
   return [
     { value: "system" as const, label: "System" },

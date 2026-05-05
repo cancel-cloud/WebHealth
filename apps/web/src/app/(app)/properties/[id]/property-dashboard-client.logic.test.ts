@@ -79,12 +79,14 @@ test("filterDashboardActions supports workflow and source/category chips", () =>
     baseAction,
     { ...baseAction, fingerprint: "b", state: "done", recommendationClass: "content", causeFamily: "content_decay" },
     { ...baseAction, fingerprint: "c", state: "in_progress", recommendationClass: "seo", causeFamily: "ctr_gap" },
+    { ...baseAction, fingerprint: "d", source: "ai" as const, recommendationClass: "lift", causeFamily: "ai_review" },
   ];
 
   assert.deepEqual(filterDashboardActions(actions, "in_progress").map((action) => action.fingerprint), ["c"]);
   assert.deepEqual(filterDashboardActions(actions, "done").map((action) => action.fingerprint), ["b"]);
   assert.deepEqual(filterDashboardActions(actions, "crawl").map((action) => action.fingerprint), ["a"]);
   assert.deepEqual(filterDashboardActions(actions, "content").map((action) => action.fingerprint), ["b"]);
+  assert.deepEqual(filterDashboardActions(actions, "ai").map((action) => action.fingerprint), ["d"]);
 });
 
 test("getPriorityModel maps ranks to compact priority badges", () => {
