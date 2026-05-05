@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LayoutDashboard, LogOut } from "lucide-react";
+import { LayoutDashboard, LogIn, LogOut } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "Features", href: "/#features" },
@@ -44,6 +44,13 @@ export function Navbar() {
       fetchOptions: {
         onSuccess: () => { window.location.href = "/"; },
       },
+    });
+  };
+
+  const handleSignIn = async () => {
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/dashboard",
     });
   };
 
@@ -122,9 +129,21 @@ export function Navbar() {
               </DropdownMenu>
             </div>
           ) : (
-            <Button asChild className="rounded-full px-5 shadow-sm shadow-primary/20">
-              <a href={PILOT_BOOKING_URL}>Pilot-Check buchen</a>
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="hidden rounded-full px-3 sm:inline-flex"
+                onClick={handleSignIn}
+              >
+                <LogIn className="h-4 w-4" />
+                Login
+              </Button>
+              <Button asChild className="rounded-full px-4 shadow-sm shadow-primary/20 sm:px-5">
+                <a href={PILOT_BOOKING_URL}>Pilot-Check buchen</a>
+              </Button>
+            </>
           )}
         </div>
       </div>
