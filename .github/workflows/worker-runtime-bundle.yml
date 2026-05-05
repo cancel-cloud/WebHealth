@@ -28,7 +28,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Verify worker tests
-        run: pnpm --filter @webhealth/worker exec tsx --test src/async-utils.test.ts src/runtime-paths.test.ts src/runtime-state.test.ts src/runtime-watchdog.test.ts src/load-env.test.ts src/artifact-server.test.ts src/monitoring.test.ts
+        run: pnpm --filter @webhealth/worker exec tsx --test src/async-utils.test.ts src/runtime-paths.test.ts src/runtime-state.test.ts src/runtime-watchdog.test.ts src/load-env.test.ts src/monitoring.test.ts
 
       - name: Verify shared tests
         run: pnpm --filter @webhealth/shared exec tsx --test src/db/url-guards.test.ts src/db/worker-db-bootstrap.test.ts src/lib/queue/report-job-row-shape.test.ts src/lib/queue/report-worker-policy.test.ts

@@ -153,7 +153,7 @@ After envs are switched:
    - sign-in
    - report creation
    - worker claim/process lifecycle
-   - XLSX download
+   - snapshot creation
 
 ## 11) Rollback
 

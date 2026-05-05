@@ -1,11 +1,11 @@
 import {
   db
-} from "./chunk-MKUBJP65.js";
+} from "./chunk-MHPXHZHS.js";
 import {
   propertyCrawlSnapshots,
   propertyPageRegistry,
   propertyRefreshJobs
-} from "./chunk-IZCFPQU7.js";
+} from "./chunk-LQXSOOFX.js";
 
 // packages/shared/src/lib/property-refresh.ts
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
@@ -111,10 +111,14 @@ async function enqueuePropertyRefreshJob(input) {
     ),
     columns: { id: true, payload: true }
   });
-  const supersededIds = activeJobs.filter((job2) => shouldSupersedePropertyRefreshJob({
-    incomingSource: triggerSource,
-    existingSource: getPropertyRefreshTriggerSource(job2.payload ?? null)
-  })).map((job2) => job2.id);
+  const supersededIds = activeJobs.filter(
+    (job2) => shouldSupersedePropertyRefreshJob({
+      incomingSource: triggerSource,
+      existingSource: getPropertyRefreshTriggerSource(
+        job2.payload ?? null
+      )
+    })
+  ).map((job2) => job2.id);
   if (supersededIds.length > 0) {
     await db.update(propertyRefreshJobs).set({
       supersededAt,
@@ -151,7 +155,9 @@ function normalizeClaimedPropertyRefreshJobRow(row) {
     id: String(row.id ?? ""),
     teamId: String(row.team_id ?? row.teamId ?? ""),
     propertyId: String(row.property_id ?? row.propertyId ?? ""),
-    triggeredByUserId: readString(row.triggered_by_user_id ?? row.triggeredByUserId),
+    triggeredByUserId: readString(
+      row.triggered_by_user_id ?? row.triggeredByUserId
+    ),
     jobType: String(row.job_type ?? row.jobType ?? ""),
     status: String(row.status ?? ""),
     phase: String(row.phase ?? ""),
@@ -187,7 +193,10 @@ function buildPropertyRefreshClaimOrderSql(lane) {
   return sql`case when coalesce(j.payload->>'triggerSource', 'manual') in ('automation', 'scheduler') then 1 else 0 end asc, j.created_at asc`;
 }
 async function claimNextPropertyRefreshJob(workerId, options = {}) {
-  const leaseSeconds = parseInt(process.env.PROPERTY_REFRESH_WORKER_LEASE_SECONDS ?? "45", 10);
+  const leaseSeconds = parseInt(
+    process.env.PROPERTY_REFRESH_WORKER_LEASE_SECONDS ?? "45",
+    10
+  );
   const lane = options.lane ?? "manual";
   const laneSql = buildPropertyRefreshClaimLaneSql(lane);
   const orderSql = buildPropertyRefreshClaimOrderSql(lane);
@@ -212,7 +221,7 @@ async function claimNextPropertyRefreshJob(workerId, options = {}) {
       claimed_at = now(),
       heartbeat_at = now(),
       claim_expires_at = now() + (${leaseSeconds} || ' seconds')::interval,
-      started_at = coalesce(j.started_at, now()),
+      started_at = coalesce(j.started_at, now() at time zone 'utc'),
       attempts = j.attempts + 1,
       updated_at = now()
     from candidate
@@ -223,7 +232,10 @@ async function claimNextPropertyRefreshJob(workerId, options = {}) {
   return normalizeClaimedPropertyRefreshJobRow(claimedRows[0]);
 }
 async function heartbeatPropertyRefreshJob(jobId, workerId) {
-  const leaseSeconds = parseInt(process.env.PROPERTY_REFRESH_WORKER_LEASE_SECONDS ?? "45", 10);
+  const leaseSeconds = parseInt(
+    process.env.PROPERTY_REFRESH_WORKER_LEASE_SECONDS ?? "45",
+    10
+  );
   const [job] = await db.update(propertyRefreshJobs).set({
     heartbeatAt: /* @__PURE__ */ new Date(),
     claimExpiresAt: sql`now() + (${leaseSeconds} || ' seconds')::interval`,
@@ -319,10 +331,12 @@ async function getLatestPropertyRefreshStateForWindow(params) {
       ascOrder(table.createdAt)
     ]
   });
-  const matchingRow = matchingRows.find((candidate) => matchesPropertyRefreshPayload(
-    candidate.payload ?? null,
-    params.payload
-  ));
+  const matchingRow = matchingRows.find(
+    (candidate) => matchesPropertyRefreshPayload(
+      candidate.payload ?? null,
+      params.payload
+    )
+  );
   return matchingRow ? normalizePropertyRefreshRow(matchingRow) : null;
 }
 async function storePropertyCrawlSnapshot(params) {
