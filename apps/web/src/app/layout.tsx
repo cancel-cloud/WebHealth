@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter, Outfit } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
-import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -9,6 +9,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { CookieConsentProvider } from "@/components/cookie-consent";
 import { GoogleConsentDefault } from "@/components/google-consent-default";
 import { GOOGLE_ANALYTICS_MEASUREMENT_ID } from "@/components/cookie-consent.logic";
+import { PosthogAnalytics } from "@/components/posthog-analytics";
+import { VercelAnalytics } from "@/components/vercel-analytics";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -95,8 +97,15 @@ export default function RootLayout({
         className={`${inter.variable} ${outfit.variable} font-sans antialiased min-h-screen flex flex-col`}
       >
         <GoogleAnalytics gaId={GOOGLE_ANALYTICS_MEASUREMENT_ID} />
-        <Analytics />
+        <VercelAnalytics />
         <CookieConsentProvider>
+          <Suspense fallback={null}>
+            <PosthogAnalytics
+              projectKey={process.env.NEXT_PUBLIC_POSTHOG_KEY}
+              captureHost={process.env.POSTHOG_CAPTURE_HOST ?? process.env.POSTHOG_HOST}
+              uiHost={process.env.POSTHOG_UI_HOST}
+            />
+          </Suspense>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"

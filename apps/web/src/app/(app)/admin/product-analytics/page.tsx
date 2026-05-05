@@ -1,12 +1,16 @@
-import { sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import { db } from "@webhealth/shared/db";
+import { productEvents } from "@webhealth/shared/db/schema";
 import { ProductAnalyticsCharts } from "./product-analytics-charts";
+import { PosthogInstallCheck } from "./posthog-install-check";
 import {
   buildActualSpendSeries,
   buildActualSpendSummary,
   buildJobThroughputSeries,
   type JobThroughputRow,
 } from "./page.logic";
+import { buildPosthogInstallCheckConfigStatus } from "@/app/api/admin/posthog/install-check/route.logic";
+import { resolvePosthogProjectToken } from "@webhealth/shared/lib/product-events";
 
 type MetricRow = {
   label: string;
@@ -27,6 +31,12 @@ type TeamUsageRow = {
 };
 
 type DailyActualCostRow = { sourceDate: string; totalUsd: string | null };
+type RecentProductEvent = {
+  id: string;
+  name: string;
+  source: string;
+  createdAt: Date;
+};
 
 function formatUsdDisplay(amount: string | number) {
   const value = Number(amount);
@@ -47,6 +57,7 @@ export default async function ProductAnalyticsPage() {
     snapshotStatusRows,
     metricRows,
     teamActivityRows,
+    recentProductEventRows,
   ] = await Promise.all([
     db.execute(sql<DailyActualCostRow>`
       select source_date::text as "sourceDate", sum(amount_usd)::text as "totalUsd"
@@ -148,6 +159,16 @@ export default async function ProductAnalyticsPage() {
       order by last_activity_at desc, t.name asc
       limit 50
     `),
+    db
+      .select({
+        id: productEvents.id,
+        name: productEvents.name,
+        source: productEvents.source,
+        createdAt: productEvents.createdAt,
+      })
+      .from(productEvents)
+      .orderBy(desc(productEvents.createdAt))
+      .limit(8),
   ]);
 
   const actualDailyCosts = Array.from(actualDailyCostRows).map((row) => ({
@@ -177,6 +198,19 @@ export default async function ProductAnalyticsPage() {
     property_open_count: Number(row.property_open_count ?? 0),
     last_activity_at: row.last_activity_at == null ? null : String(row.last_activity_at),
   }));
+  const recentProductEvents: RecentProductEvent[] = recentProductEventRows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    source: row.source,
+    createdAt: row.createdAt,
+  }));
+  const posthogConfig = buildPosthogInstallCheckConfigStatus({
+    projectToken: resolvePosthogProjectToken(process.env),
+    browserKey: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+    captureHost: process.env.POSTHOG_CAPTURE_HOST ?? process.env.POSTHOG_HOST,
+    projectId: process.env.POSTHOG_PROJECT_ID,
+    uiHost: process.env.POSTHOG_UI_HOST,
+  });
 
   return (
     <div className="space-y-8">
@@ -204,6 +238,39 @@ export default async function ProductAnalyticsPage() {
         actualSpend={actualSpendSeries}
         jobThroughput={jobThroughputSeries}
       />
+
+      <PosthogInstallCheck initialConfig={posthogConfig} />
+
+      <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
+        <h2 className="text-xl font-bold font-display">Recent Product Events</h2>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-muted-foreground">
+                <th className="py-2 pr-4 font-medium">Event</th>
+                <th className="py-2 pr-4 font-medium">Source</th>
+                <th className="py-2 font-medium">Created</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {recentProductEvents.map((event) => (
+                <tr key={event.id}>
+                  <td className="py-3 pr-4 font-medium text-foreground">{event.name}</td>
+                  <td className="py-3 pr-4">{event.source}</td>
+                  <td className="py-3">{event.createdAt.toLocaleString()}</td>
+                </tr>
+              ))}
+              {!recentProductEvents.length ? (
+                <tr>
+                  <td className="py-3 text-muted-foreground" colSpan={3}>
+                    No product events have been stored locally yet.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <div className="grid gap-4 md:grid-cols-3">
         {metrics.slice(3).map((metric) => (

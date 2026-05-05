@@ -1,4 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
+import posthog from "posthog-js";
+import { buildPosthogErrorEventProperties } from "@webhealth/shared/lib/product-events";
 
 import { isAppError } from "./app-error";
 
@@ -24,4 +26,9 @@ export function reportClientError(error: unknown, extra?: Record<string, unknown
     }
     Sentry.captureException(error);
   });
+  posthog.capture("app_error_reported", buildPosthogErrorEventProperties({
+    surface: "client-request",
+    message: error instanceof Error ? error.message : "Client error",
+    context: extra,
+  }));
 }
