@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { getStripe, tierFromPriceId } from "@/lib/server/stripe";
 import { requireSession, requireTeamOwner } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";
+import { cleanupAfterTierChange } from "@webhealth/shared/lib/tier-change-cleanup";
 
 /**
  * POST /api/stripe/sync-plan
@@ -21,7 +22,7 @@ export async function POST() {
 
     const team = await db.query.teams.findFirst({
       where: (t, { eq }) => eq(t.id, teamId),
-      columns: { stripeCustomerId: true, stripeSubscriptionId: true },
+      columns: { stripeCustomerId: true, stripeSubscriptionId: true, tier: true },
     });
 
     if (!team?.stripeCustomerId) {
@@ -55,11 +56,14 @@ export async function POST() {
 
     if (!subscription) {
       // No active subscription — downgrade to free
+      const oldTier = team.tier;
       await db.update(teams).set({
         tier: "free",
         stripeSubscriptionId: null,
         subscriptionCancelAt: null,
       }).where(eq(teams.id, teamId));
+
+      await cleanupAfterTierChange({ teamId, oldTier, newTier: "free" });
       return NextResponse.json({ synced: true, tier: "free", reason: "no_active_subscription" });
     }
 
@@ -73,6 +77,9 @@ export async function POST() {
       subscriptionCancelAt: cancelAt,
     }).where(eq(teams.id, teamId));
 
+    if (tier !== team.tier) {
+      await cleanupAfterTierChange({ teamId, oldTier: team.tier, newTier: tier });
+    }
     return NextResponse.json({ synced: true, tier });
   } catch (error) {
     return handleRouteError("Stripe plan sync error", error);

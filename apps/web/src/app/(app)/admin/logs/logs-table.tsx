@@ -14,34 +14,24 @@ import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
 import { requestJson } from "@/lib/client/api";
-
-interface LogEntry {
-  id: string;
-  action: string;
-  status: string;
-  details: Record<string, unknown> | null;
-  createdAt: string;
-  triggeredByEmail: string | null;
-  targetUserEmail: string | null;
-}
-
-const ACTION_OPTIONS = [
-  "user_signin",
-  "property_sync",
-  "report_create",
-  "report_process",
-  "property_link_ga4",
-  "user_deleted",
-  "metrics_sync",
-];
-const STATUS_OPTIONS = ["started", "success", "failed"];
+import {
+  ACTION_GROUPS,
+  ACTION_OPTIONS,
+  STATUS_OPTIONS,
+  getActionLabel,
+  getStatusLabel,
+  type LogEntry,
+} from "./logs-table.logic";
 
 const statusVariant = (status: string) => {
   if (status === "success") return "default";
@@ -86,18 +76,23 @@ export function LogsTable({ initialLogs }: { initialLogs: LogEntry[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Filter bar */}
       <div className="flex flex-wrap gap-2 items-end">
         <Select value={action} onValueChange={setAction}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-56">
             <SelectValue placeholder="All actions" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All actions</SelectItem>
-            {ACTION_OPTIONS.map((a) => (
-              <SelectItem key={a} value={a}>
-                {a}
-              </SelectItem>
+            <SelectSeparator />
+            {ACTION_GROUPS.map((group) => (
+              <SelectGroup key={group}>
+                <SelectLabel>{group}</SelectLabel>
+                {ACTION_OPTIONS.filter((option) => option.group === group).map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             ))}
           </SelectContent>
         </Select>
@@ -108,9 +103,9 @@ export function LogsTable({ initialLogs }: { initialLogs: LogEntry[] }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
-            {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s}
+            {STATUS_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -160,7 +155,7 @@ export function LogsTable({ initialLogs }: { initialLogs: LogEntry[] }) {
           {logs.length === 0 && (
             <TableRow>
               <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                No logs found
+                No activity found
               </TableCell>
             </TableRow>
           )}
@@ -183,12 +178,12 @@ export function LogsTable({ initialLogs }: { initialLogs: LogEntry[] }) {
                   {new Date(log.createdAt).toLocaleString()}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{log.action}</Badge>
+                  <Badge variant="outline">{getActionLabel(log.action)}</Badge>
                 </TableCell>
                 <TableCell className="text-sm">{log.triggeredByEmail ?? "—"}</TableCell>
                 <TableCell className="text-sm">{log.targetUserEmail ?? "—"}</TableCell>
                 <TableCell>
-                  <Badge variant={statusVariant(log.status)}>{log.status}</Badge>
+                  <Badge variant={statusVariant(log.status)}>{getStatusLabel(log.status)}</Badge>
                 </TableCell>
               </TableRow>
               {expanded.has(log.id) && log.details && (

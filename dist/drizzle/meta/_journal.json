@@ -5,120 +5,127 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1771868510615,
-      "tag": "0000_faithful_johnny_blaze",
+      "when": 1773770400000,
+      "tag": "0000_baseline",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1771946758145,
-      "tag": "0001_free_wild_child",
+      "when": 1773849600000,
+      "tag": "0001_live_dashboard_foundation",
       "breakpoints": true
     },
     {
       "idx": 2,
       "version": "7",
-      "when": 1771977600000,
-      "tag": "0002_tiny_metric_cache",
+      "when": 1773936000000,
+      "tag": "0002_team_branding_profiles",
       "breakpoints": true
     },
     {
       "idx": 3,
       "version": "7",
-      "when": 1772016989999,
-      "tag": "0003_worried_maelstrom",
+      "when": 1774022400000,
+      "tag": "0003_live_decision_engine_unification",
       "breakpoints": true
     },
     {
       "idx": 4,
       "version": "7",
-      "when": 1772100000000,
-      "tag": "0004_batch_metrics",
+      "when": 1774108800000,
+      "tag": "0004_property_share_links",
       "breakpoints": true
     },
     {
       "idx": 5,
       "version": "7",
-      "when": 1772129673000,
-      "tag": "0005_hardened_report_queue",
+      "when": 1774195200000,
+      "tag": "0005_property_setup_dismissals",
       "breakpoints": true
     },
     {
       "idx": 6,
       "version": "7",
-      "when": 1772138289327,
-      "tag": "0006_fancy_rawhide_kid",
+      "when": 1774281600000,
+      "tag": "0006_properties_default_inactive",
       "breakpoints": true
     },
     {
       "idx": 7,
       "version": "7",
-      "when": 1772191200000,
-      "tag": "0007_report_language_setting",
+      "when": 1774368000000,
+      "tag": "0007_active_property_automation",
       "breakpoints": true
     },
     {
       "idx": 8,
       "version": "7",
-      "when": 1772198400000,
-      "tag": "0008_ai_report_settings_strict_toggle",
+      "when": 1774454400000,
+      "tag": "0008_retire_legacy_reports",
       "breakpoints": true
     },
     {
       "idx": 9,
       "version": "7",
-      "when": 1772712000000,
-      "tag": "0009_report_detail_ai_expansions",
+      "when": 1774540800000,
+      "tag": "0009_ai_analysis_foundation",
       "breakpoints": true
     },
     {
       "idx": 10,
       "version": "7",
-      "when": 1772829300000,
-      "tag": "0010_security_foundations",
+      "when": 1774627200000,
+      "tag": "0010_ga4_link_confidence",
       "breakpoints": true
     },
     {
       "idx": 11,
       "version": "7",
-      "when": 1772829400000,
-      "tag": "0011_stripe_billing",
+      "when": 1774713600000,
+      "tag": "0011_gsc_query_page_pairs",
       "breakpoints": true
     },
     {
       "idx": 12,
       "version": "7",
-      "when": 1772829500000,
-      "tag": "0012_subscription_cancel_at",
+      "when": 1774800000000,
+      "tag": "0012_ga4_report_artifacts",
       "breakpoints": true
     },
     {
       "idx": 13,
       "version": "7",
-      "when": 1772829600000,
-      "tag": "0013_team_usage_and_detail_limits",
+      "when": 1774886400000,
+      "tag": "0013_ai_runtime_settings",
       "breakpoints": true
     },
     {
       "idx": 14,
       "version": "7",
-      "when": 1772829700000,
-      "tag": "0014_feedback_submissions",
+      "when": 1774972800000,
+      "tag": "0014_gpt5_mini_runtime_defaults",
       "breakpoints": true
     },
     {
       "idx": 15,
       "version": "7",
-      "when": 1772829800000,
-      "tag": "0015_weekly_reviews_and_product_events",
+      "when": 1775059200000,
+      "tag": "0015_solo_property_limit",
       "breakpoints": true
     },
     {
       "idx": 16,
       "version": "7",
-      "when": 1772829900000,
-      "tag": "0016_properties_gsc_data_start_date",
+      "when": 1775145600000,
+      "tag": "0016_cleanup_solo_active_properties",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1777939200000,
+      "tag": "0017_remove_pro_plan_settings",
       "breakpoints": true
     }
   ]

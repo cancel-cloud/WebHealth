@@ -16,11 +16,11 @@ export function getStripe(): Stripe {
 }
 
 export const STRIPE_PRICE_IDS: Record<string, string | undefined> = {
-  pro: process.env.STRIPE_PRO_PRICE_ID,
-  agency: process.env.STRIPE_AGENCY_PRICE_ID,
+  starter: process.env.STRIPE_STARTER_PRICE_ID,
+  studio: process.env.STRIPE_STUDIO_PRICE_ID,
 };
 
-export type StripePlan = "pro" | "agency";
+export type StripePlan = "starter" | "studio";
 
 /** Maps Stripe price ID → internal tier name */
 export function tierFromPriceId(priceId: string): string {

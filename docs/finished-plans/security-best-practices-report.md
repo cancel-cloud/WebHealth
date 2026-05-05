@@ -173,15 +173,14 @@ Improvement plan:
 - Standardize an error wrapper so only safe error codes/messages cross the HTTP boundary.
 - Redact provider tokens, request bodies, and SQL details from worker logs.
 
-### SEC-08 Medium: Worker artifact service relies on one static shared bearer secret
+### SEC-08 Retired: Worker download service relied on one static shared bearer secret
 
-Impact: If `WORKER_API_SECRET` is exposed anywhere in the environment, an attacker can request any artifact key the service will accept, across all teams handled by that worker.
+Impact: Before the download service was retired, exposing the worker API secret could allow broad cross-tenant download access.
 
 Evidence:
 
-- `apps/worker/src/artifact-server.ts:7-15` authenticates requests with a single static secret.
-- `apps/worker/src/artifact-server.ts:44-80` authorizes artifact downloads solely through that bearer token.
-- `apps/worker/src/main.ts:13-18` starts the HTTP artifact server whenever that secret is present.
+- The old worker download service authenticated requests with a single static secret.
+- The current worker source no longer contains that server.
 
 Why this is insecure:
 

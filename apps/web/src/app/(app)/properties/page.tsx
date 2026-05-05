@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Table,
@@ -12,7 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { getSyncStatusBadge } from "@/lib/status-badge";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Globe, HelpCircle, Link2, Search } from "lucide-react";
+import { Globe, Link2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   SyncButton,
@@ -43,6 +44,11 @@ import {
   getGoogleAccessDialogModel,
   getGoogleAccessIssueFromCode,
 } from "@/components/google-access-recovery.logic";
+import {
+  buildManagedPropertyRows,
+  getManagedPropertyToggleTargets,
+  type ManagedPropertyRow,
+} from "../dashboard/manage-properties-dialog.logic";
 
 type Property = {
   id: string;
@@ -52,74 +58,8 @@ type Property = {
   syncStatus: string;
   lastSyncedAt: string | null;
   ga4PropertyId: string | null;
-  weeklyReviewEnabled?: boolean;
-  weeklyReviewLimit?: number;
-  weeklyReviewWatchedCount?: number;
+  active: boolean;
 };
-
-type WeeklyReviewMeta = {
-  limit: number;
-  watchedCount: number;
-};
-
-function WeeklyReviewInfoTooltip() {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          aria-label="What weekly reviews do"
-          className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <HelpCircle className="h-3.5 w-3.5" />
-        </button>
-      </TooltipTrigger>
-      <TooltipContent sideOffset={8} className="max-w-xs">
-        Weekly reviews create an automatic report every Sunday for the latest complete Mon-Sun Search Console week. They count against your monthly report limit.
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
-function WeeklyReviewToggle({
-  property,
-  weeklyReview,
-  updatingWeeklyReviewId,
-  onToggle,
-}: {
-  property: Property;
-  weeklyReview: WeeklyReviewMeta;
-  updatingWeeklyReviewId: string | null;
-  onToggle: (property: Property) => void;
-}) {
-  const atLimit = !property.weeklyReviewEnabled && weeklyReview.watchedCount >= weeklyReview.limit;
-  const isUpdating = updatingWeeklyReviewId === property.id;
-  const disabled = isUpdating || atLimit;
-  const button = (
-    <Button
-      variant={property.weeklyReviewEnabled ? "default" : "outline"}
-      size="sm"
-      className="h-7 text-xs"
-      onClick={() => onToggle(property)}
-      disabled={disabled}
-    >
-      {property.weeklyReviewEnabled ? "Watching" : "Watch"}
-    </Button>
-  );
-
-  if (!atLimit) return button;
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="inline-flex cursor-not-allowed">{button}</span>
-      </TooltipTrigger>
-      <TooltipContent sideOffset={8} className="max-w-xs">
-        Weekly review limit reached ({weeklyReview.watchedCount}/{weeklyReview.limit}). Disable another watched property or upgrade for more weekly auto reports.
-      </TooltipContent>
-    </Tooltip>
-  );
-}
 
 
 function LinkGa4Dialog({
@@ -142,20 +82,15 @@ function LinkGa4Dialog({
     if (!selectedGa4Id) return;
     setIsSubmitting(true);
     try {
-      const data = await requestJson<{ scheduledReportsStarted?: number }>(
+      await requestJson(
         `/api/properties/${encodeURIComponent(gscProperty.id)}/link-ga4`,
         {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ga4PropertyId: selectedGa4Id }),
-        }
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ga4PropertyId: selectedGa4Id }),
+        },
       );
-
-      const msg =
-        (data?.scheduledReportsStarted ?? 0) > 0
-          ? `GA4 linked! ${data?.scheduledReportsStarted} scheduled report${(data?.scheduledReportsStarted ?? 0) > 1 ? "s have" : " has"} started.`
-          : "GA4 linked!";
-      toast.success(msg);
+      toast.success("GA4 linked!");
       setOpen(false);
       onLinked();
     } catch (err) {
@@ -218,20 +153,17 @@ export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAutoSyncing, setIsAutoSyncing] = useState(false);
-  const [weeklyReview, setWeeklyReview] = useState<WeeklyReviewMeta>({ limit: 1, watchedCount: 0 });
-  const [updatingWeeklyReviewId, setUpdatingWeeklyReviewId] = useState<string | null>(null);
+  const [pendingActivationId, setPendingActivationId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const hasAttemptedAutoSync = useRef(false);
   const { issue, hasBlockingIssue, openDialog, refreshHealth } = useGoogleAccessRecovery();
 
   const loadProperties = useCallback(async () => {
     try {
-      const data = await requestJson<{ properties?: Property[]; weeklyReview?: WeeklyReviewMeta }>("/api/properties");
+      const data = await requestJson<{ properties?: Property[] }>("/api/properties");
       setProperties(data?.properties ?? []);
-      setWeeklyReview(data?.weeklyReview ?? { limit: 1, watchedCount: 0 });
     } catch {
       setProperties([]);
-      setWeeklyReview({ limit: 1, watchedCount: 0 });
     } finally {
       setLoading(false);
     }
@@ -280,6 +212,13 @@ export default function PropertiesPage() {
   }, [hasBlockingIssue, isAutoSyncing, loading, loadProperties, properties.length, refreshHealth]);
 
   const ga4Properties = properties.filter((p) => p.type === "ga4");
+  const managedRows = buildManagedPropertyRows(properties);
+  const activationRowBySourceId = new Map<string, ManagedPropertyRow>();
+  for (const row of managedRows) {
+    for (const sourceId of row.sourceIds) {
+      activationRowBySourceId.set(sourceId, row);
+    }
+  }
   const filteredProperties = searchQuery.trim()
     ? properties.filter((p) => {
         const q = searchQuery.trim().toLowerCase();
@@ -293,56 +232,79 @@ export default function PropertiesPage() {
   );
   const recoveryModel = issue ? getGoogleAccessDialogModel(issue) : null;
 
-  const toggleWeeklyReview = async (property: Property) => {
-    const enabled = !property.weeklyReviewEnabled;
-    setUpdatingWeeklyReviewId(property.id);
+  const updateActiveProperty = async (row: ManagedPropertyRow, active: boolean) => {
+    const targetIds = getManagedPropertyToggleTargets(row);
+    setPendingActivationId(row.id);
     try {
-      const result = await requestJson<{
-        weeklyReviewEnabled: boolean;
-        weeklyReviewLimit: number;
-        weeklyReviewWatchedCount: number;
-      }>(`/api/properties/${encodeURIComponent(property.id)}/weekly-review`, {
+      await requestJson(`/api/properties/${encodeURIComponent(targetIds[0])}/active`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled }),
+        body: JSON.stringify({ active, propertyIds: targetIds }),
       });
-      if (!result) throw new Error("No response from weekly review update");
-
-      setProperties((current) =>
-        current.map((item) => ({
-          ...item,
-          weeklyReviewEnabled:
-            item.id === property.id ? result.weeklyReviewEnabled : item.weeklyReviewEnabled,
-          weeklyReviewLimit: result.weeklyReviewLimit,
-          weeklyReviewWatchedCount: result.weeklyReviewWatchedCount,
-        })),
-      );
-      setWeeklyReview({
-        limit: result.weeklyReviewLimit,
-        watchedCount: result.weeklyReviewWatchedCount,
-      });
-      toast.success(enabled ? "Weekly review enabled" : "Weekly review disabled");
-    } catch (err) {
-      toast.error(getAppErrorMessage(err, "Could not update weekly review"));
+      toast.success(active ? "Property activated" : "Property deactivated");
+      await loadProperties();
+    } catch (error) {
+      toast.error(getAppErrorMessage(error, "Could not update property activation"));
     } finally {
-      setUpdatingWeeklyReviewId(null);
+      setPendingActivationId(null);
     }
   };
 
+  function renderActivationControl(property: Property) {
+    const row = activationRowBySourceId.get(property.id);
+    if (!row?.linked) {
+      return (
+        <div className="min-w-0 space-y-1">
+          <Badge variant="outline" className="border-amber-200 text-amber-700">Setup</Badge>
+          <p className="max-w-44 whitespace-normal text-xs leading-snug text-muted-foreground">
+            Link GSC + GA4 to activate.
+          </p>
+        </div>
+      );
+    }
+
+    if (property.id !== row.sourceIds[0]) {
+      return (
+        <div className="min-w-0 space-y-1">
+          <Badge variant="outline">Included</Badge>
+          <p className="max-w-44 whitespace-normal break-words text-xs leading-snug text-muted-foreground">
+            Managed by the canonical dashboard.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <Switch
+          checked={row.active}
+          disabled={pendingActivationId === row.id}
+          onCheckedChange={(active) => void updateActiveProperty(row, active)}
+          aria-label={`Toggle ${row.name}`}
+        />
+        <span className="whitespace-normal text-xs leading-snug text-muted-foreground">
+          {row.active ? "Active dashboard" : "Inactive"}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-end">
-        <div>
+      <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div className="min-w-0">
           <h1 className="text-3xl font-extrabold tracking-tight font-display" style={{ textWrap: "balance" }}>
             Properties
           </h1>
-          <p className="text-muted-foreground mt-1">Google Search Console and Analytics properties synced to your account.</p>
+          <p className="mt-1 max-w-3xl text-muted-foreground">Google Search Console and Analytics properties synced to your account.</p>
         </div>
-        <SyncButton
-          onSynced={loadProperties}
-          externalIsSyncing={isAutoSyncing}
-          refreshStrategy="callback"
-        />
+        <div className="shrink-0 self-start xl:self-auto">
+          <SyncButton
+            onSynced={loadProperties}
+            externalIsSyncing={isAutoSyncing}
+            refreshStrategy="callback"
+          />
+        </div>
       </div>
 
       {issue ? (
@@ -366,6 +328,10 @@ export default function PropertiesPage() {
         </div>
       ) : null}
 
+      <div className="rounded-lg border border-border/70 bg-muted/25 p-4 text-sm text-muted-foreground">
+        Activate only complete GSC + GA4 website dashboards. Paid plans can refresh the default 28-day Google data in the background and send relevant source evidence to OpenAI for AI insights. Solo users stay manual: open the property and press Re-run to fetch fresh Google data and AI recommendations.
+      </div>
+
       {loading ? (
         <div className="border border-border/50 rounded-lg p-8 bg-card">
           <div className="space-y-3">
@@ -386,17 +352,6 @@ export default function PropertiesPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="flex flex-col gap-1 rounded-lg border border-border/50 bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-medium">Weekly reviews</p>
-              <p className="text-sm text-muted-foreground">
-                Watch GSC properties for automatic Mon-Sun reviews every Sunday.
-              </p>
-            </div>
-            <Badge variant="outline" className="w-fit">
-              {weeklyReview.watchedCount}/{weeklyReview.limit} watched
-            </Badge>
-          </div>
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
@@ -407,34 +362,53 @@ export default function PropertiesPage() {
             />
           </div>
         <div className="border border-border/50 rounded-lg overflow-hidden bg-card shadow-sm">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader className="bg-muted/30">
               <TableRow className="hover:bg-transparent border-border/50">
-                <TableHead className="py-4 font-medium">Name</TableHead>
-                <TableHead className="py-4 font-medium">URL</TableHead>
-                <TableHead className="py-4 font-medium">Type</TableHead>
-                <TableHead className="py-4 font-medium">GA4</TableHead>
-                <TableHead className="py-4 font-medium">Weekly Review</TableHead>
-                <TableHead className="py-4 font-medium">Sync Status</TableHead>
-                <TableHead className="py-4 font-medium text-right">Last Synced</TableHead>
+                <TableHead className="w-[30%] py-4 font-medium">Name</TableHead>
+                <TableHead className="w-[18%] py-4 font-medium">URL</TableHead>
+                <TableHead className="w-[5%] py-4 font-medium">Type</TableHead>
+                <TableHead className="w-[12%] py-4 font-medium">GA4</TableHead>
+                <TableHead className="w-[18%] py-4 font-medium">Active</TableHead>
+                <TableHead className="w-[9%] py-4 font-medium">Status</TableHead>
+                <TableHead className="w-[8%] py-4 text-right font-medium">Synced</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProperties.map((property) => (
                 <TableRow key={property.id} className="border-border/50 hover:bg-muted/20 transition-colors">
-                  <TableCell className="font-medium py-4">{property.name}</TableCell>
-                  <TableCell className="py-4 text-muted-foreground text-sm truncate max-w-[200px]">
+                  <TableCell className="py-4 align-top whitespace-normal">
+                    <div className="min-w-0 space-y-1.5">
+                      <div className="break-words font-medium leading-snug">{property.name}</div>
+                      {!property.active ? (
+                        <Badge variant="outline" className="border-amber-200 text-amber-700">Inactive</Badge>
+                      ) : null}
+                      {property.type === "gsc" && property.active ? (
+                        <Link
+                          href={`/properties/${encodeURIComponent(property.id)}`}
+                          className="inline-flex items-center text-xs font-medium text-primary hover:text-primary/80"
+                        >
+                          Open live dashboard
+                        </Link>
+                      ) : property.type === "gsc" ? (
+                        <span className="block text-xs leading-snug text-muted-foreground">Link GA4, then activate.</span>
+                      ) : (
+                        <span className="block text-xs leading-snug text-muted-foreground">Secondary to the website dashboard.</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-4 align-top whitespace-normal break-words text-sm text-muted-foreground">
                     {property.url}
                   </TableCell>
-                  <TableCell className="py-4">
+                  <TableCell className="py-4 align-top whitespace-normal">
                     <Badge variant="outline" className="uppercase text-xs font-mono">
                       {property.type}
                     </Badge>
                   </TableCell>
-                  <TableCell className="py-4">
+                  <TableCell className="py-4 align-top whitespace-normal">
                     {property.type === "gsc" ? (
                       property.ga4PropertyId ? (
-                        <span className="text-sm text-muted-foreground">
+                        <span className="block break-words text-sm leading-snug text-muted-foreground">
                           {ga4ById[property.ga4PropertyId] ?? property.ga4PropertyId}
                         </span>
                       ) : (
@@ -448,23 +422,11 @@ export default function PropertiesPage() {
                       <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
-                  <TableCell className="py-4">
-                    {property.type === "gsc" ? (
-                      <div className="flex items-center gap-1.5">
-                        <WeeklyReviewToggle
-                          property={property}
-                          weeklyReview={weeklyReview}
-                          updatingWeeklyReviewId={updatingWeeklyReviewId}
-                          onToggle={toggleWeeklyReview}
-                        />
-                        <WeeklyReviewInfoTooltip />
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
+                  <TableCell className="py-4 align-top whitespace-normal">
+                    {renderActivationControl(property)}
                   </TableCell>
-                  <TableCell className="py-4">{getSyncStatusBadge(property.syncStatus)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground text-sm py-4">
+                  <TableCell className="py-4 align-top whitespace-normal">{getSyncStatusBadge(property.syncStatus)}</TableCell>
+                  <TableCell className="py-4 text-right align-top text-sm whitespace-normal text-muted-foreground">
                     {property.lastSyncedAt
                       ? new Date(property.lastSyncedAt).toLocaleDateString()
                       : "—"}

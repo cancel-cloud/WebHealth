@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -19,19 +19,19 @@ jobs:
           version: 10.18.2
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Verify worker tests
-        run: pnpm --filter @webhealth/worker exec tsx --test src/async-utils.test.ts src/runtime-paths.test.ts src/runtime-state.test.ts src/runtime-watchdog.test.ts src/load-env.test.ts src/artifact-server.test.ts src/monitoring.test.ts
+        run: pnpm --filter @webhealth/worker exec tsx --test src/async-utils.test.ts src/runtime-paths.test.ts src/runtime-state.test.ts src/runtime-watchdog.test.ts src/load-env.test.ts src/monitoring.test.ts
 
       - name: Verify shared tests
-        run: pnpm --filter @webhealth/shared exec tsx --test src/db/url-guards.test.ts src/db/worker-db-bootstrap.test.ts src/lib/queue/report-job-row-shape.test.ts src/lib/queue/report-worker-policy.test.ts
+        run: pnpm --filter @webhealth/shared exec tsx --test src/db/url-guards.test.ts src/db/worker-db-bootstrap.test.ts src/db/plan-settings-defaults.test.ts src/lib/active-property-automation.test.ts src/lib/product-events.test.ts src/lib/property-refresh.test.ts src/lib/tier-change-cleanup.test.ts
 
       - name: Verify worker typecheck
         run: pnpm --filter @webhealth/worker exec tsc --noEmit

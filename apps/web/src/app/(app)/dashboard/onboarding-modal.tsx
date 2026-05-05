@@ -45,7 +45,7 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
     if (hasBlockingIssue) return;
     requestJson<PropertiesSyncResult>("/api/properties/sync", { method: "POST" })
       .then((data) => {
-        setPropertyCount((data?.gscCount ?? 0) + (data?.ga4Count ?? 0));
+        setPropertyCount((data?.discoveredGscCount ?? data?.gscCount ?? 0) + (data?.discoveredGa4Count ?? data?.ga4Count ?? 0));
         setSyncAttemptState("success");
       })
       .catch(async (error) => {
@@ -128,8 +128,8 @@ export function OnboardingModal({ hasProperties }: { hasProperties: boolean }) {
                   },
                   {
                     n: "②",
-                    title: "Reports",
-                    desc: "Create a new report for any property",
+                    title: "Snapshots",
+                    desc: "Open a property dashboard and export a snapshot",
                   },
                   {
                     n: "③",

@@ -68,8 +68,8 @@ function CookieConsentBanner({
         </CardHeader>
         <CardContent className="px-4 pb-4">
           <p className="text-sm leading-relaxed text-muted-foreground">
-            We use Google Analytics 4 only if you accept analytics cookies. Read
-            our{" "}
+            We use Google Analytics 4 and PostHog browser analytics only if you
+            accept analytics cookies. Read our{" "}
             <Link href="/privacy" className="font-medium text-foreground underline underline-offset-4">
               privacy policy
             </Link>{" "}
@@ -142,11 +142,7 @@ export function CookieConsentProvider({ children }: PropsWithChildren) {
 }
 
 export function CookieSettingsButton() {
-  const context = useContext(CookieConsentContext);
-
-  if (!context) {
-    throw new Error("CookieSettingsButton must be rendered inside CookieConsentProvider");
-  }
+  const context = useCookieConsent();
 
   return (
     <Button
@@ -159,4 +155,14 @@ export function CookieSettingsButton() {
       Cookie settings
     </Button>
   );
+}
+
+export function useCookieConsent() {
+  const context = useContext(CookieConsentContext);
+
+  if (!context) {
+    throw new Error("useCookieConsent must be rendered inside CookieConsentProvider");
+  }
+
+  return context;
 }

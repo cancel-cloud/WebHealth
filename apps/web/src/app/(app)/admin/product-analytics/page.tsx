@@ -1,112 +1,132 @@
-import { sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import { db } from "@webhealth/shared/db";
+import { productEvents } from "@webhealth/shared/db/schema";
+import { ProductAnalyticsCharts } from "./product-analytics-charts";
+import { PosthogInstallCheck } from "./posthog-install-check";
+import {
+  buildActualSpendSeries,
+  buildActualSpendSummary,
+  buildJobThroughputSeries,
+  type JobThroughputRow,
+} from "./page.logic";
+import { buildPosthogInstallCheckConfigStatus } from "@/app/api/admin/posthog/install-check/route.logic";
+import { resolvePosthogProjectToken } from "@webhealth/shared/lib/product-events";
 
 type MetricRow = {
   label: string;
   value: number;
 };
 
-type WatchedTeamRow = {
-  team_name: string;
-  watched_count: number;
-};
-
 type TeamUsageRow = {
   team_id: string;
   team_name: string;
-  watched_count: number;
-  auto_generated_count: number;
-  auto_skipped_count: number;
-  manual_report_count: number;
-  report_open_count: number;
-  monday_usage_count: number;
-  quota_skip_count: number;
-  detail_request_count: number;
-  last_event_at: Date | string | null;
+  snapshot_count: number;
+  share_link_count: number;
+  action_count: number;
+  action_done_count: number;
+  source_data_refresh_count: number;
+  property_refresh_count: number;
+  property_open_count: number;
+  last_activity_at: Date | string | null;
 };
+
+type DailyActualCostRow = { sourceDate: string; totalUsd: string | null };
+type RecentProductEvent = {
+  id: string;
+  name: string;
+  source: string;
+  createdAt: Date;
+};
+
+function formatUsdDisplay(amount: string | number) {
+  const value = Number(amount);
+  if (!Number.isFinite(value)) return "$0.00";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: value >= 1 ? 2 : 4,
+    maximumFractionDigits: value >= 1 ? 2 : 4,
+  }).format(value);
+}
 
 export default async function ProductAnalyticsPage() {
   const [
-    watchedRows,
-    autoRows,
-    manualRows,
-    reportOpenRows,
-    mondayRows,
-    quotaRows,
-    detailRows,
-    teamUsageRows,
+    actualDailyCostRows,
+    metricsJobStatusRows,
+    propertyRefreshStatusRows,
+    snapshotStatusRows,
+    metricRows,
+    teamActivityRows,
+    recentProductEventRows,
   ] = await Promise.all([
-    db.execute(sql<{ team_name: string; watched_count: number }>`
-      select t.name as team_name, count(pwr.id)::int as watched_count
-      from teams t
-      left join property_weekly_reviews pwr on pwr.team_id = t.id and pwr.enabled = true
-      group by t.id, t.name
-      order by watched_count desc, t.name asc
-      limit 20
+    db.execute(sql<DailyActualCostRow>`
+      select source_date::text as "sourceDate", sum(amount_usd)::text as "totalUsd"
+      from openai_daily_costs
+      group by source_date
+      order by source_date asc
+      limit 60
     `),
-    db.execute(sql<{ status: string; count: number }>`
-      select status, count(*)::int as count
-      from weekly_review_runs
+    db.execute(sql<{ family: "source_data"; status: string; count: number }>`
+      select 'source_data' as family, status, count(*)::int as count
+      from metrics_backfill_jobs
       group by status
-      order by status asc
     `),
-    db.execute(sql<{ count: number }>`
-      select count(*)::int as count
-      from reports
-      where source = 'manual'
+    db.execute(sql<{ family: "property_refresh"; status: string; count: number }>`
+      select 'property_refresh' as family, status, count(*)::int as count
+      from property_refresh_jobs
+      group by status
     `),
-    db.execute(sql<{ count: number }>`
-      select count(*)::int as count
-      from product_events
-      where name in ('manual_report_opened', 'weekly_report_opened')
+    db.execute(sql<{ family: "snapshot"; status: string; count: number }>`
+      select 'snapshot' as family, 'complete' as status, count(*)::int as count
+      from snapshot_exports
     `),
-    db.execute(sql<{ count: number }>`
-      select count(*)::int as count
-      from product_events
-      where name = 'weekly_dashboard_card_viewed'
-        and extract(isodow from created_at) = 1
-    `),
-    db.execute(sql<{ count: number }>`
-      select count(*)::int as count
-      from weekly_review_runs
-      where status = 'skipped' and skip_reason = 'quota'
-    `),
-    db.execute(sql<{ count: number }>`
-      select count(*)::int as count
-      from product_events
-      where name = 'report_detail_requested'
+    db.execute(sql<MetricRow>`
+      select 'Snapshots captured' as label, count(*)::int as value from snapshot_exports
+      union all
+      select 'Share links created' as label, count(*)::int as value from property_share_links
+      union all
+      select 'Source-data refresh jobs' as label, count(*)::int as value from metrics_backfill_jobs
+      union all
+      select 'Property refresh jobs' as label, count(*)::int as value from property_refresh_jobs
+      union all
+      select 'Open action items' as label, count(*)::int as value from action_items where state = 'open'
+      union all
+      select 'Completed action items' as label, count(*)::int as value from action_items where state = 'done'
     `),
     db.execute(sql<TeamUsageRow>`
-      with watched as (
-        select team_id, count(*)::int as watched_count
-        from property_weekly_reviews
-        where enabled = true
+      with snapshots as (
+        select team_id, count(*)::int as snapshot_count, max(created_at) as last_snapshot_at
+        from snapshot_exports
         group by team_id
       ),
-      auto_runs as (
+      shares as (
+        select team_id, count(*)::int as share_link_count, max(created_at) as last_share_at
+        from property_share_links
+        group by team_id
+      ),
+      actions as (
         select
           team_id,
-          count(*) filter (where status = 'complete')::int as auto_generated_count,
-          count(*) filter (where status = 'skipped')::int as auto_skipped_count,
-          count(*) filter (where status = 'skipped' and skip_reason = 'quota')::int as quota_skip_count
-        from weekly_review_runs
+          count(*)::int as action_count,
+          count(*) filter (where state = 'done')::int as action_done_count,
+          max(updated_at) as last_action_at
+        from action_items
         group by team_id
       ),
-      manual_reports as (
-        select team_id, count(*)::int as manual_report_count
-        from reports
-        where source = 'manual'
+      source_refreshes as (
+        select team_id, count(*)::int as source_data_refresh_count, max(created_at) as last_source_refresh_at
+        from metrics_backfill_jobs
+        group by team_id
+      ),
+      property_refreshes as (
+        select team_id, count(*)::int as property_refresh_count, max(created_at) as last_property_refresh_at
+        from property_refresh_jobs
         group by team_id
       ),
       events as (
         select
           team_id,
-          count(*) filter (where name in ('manual_report_opened', 'weekly_report_opened'))::int as report_open_count,
-          count(*) filter (
-            where name = 'weekly_dashboard_card_viewed'
-              and extract(isodow from created_at) = 1
-          )::int as monday_usage_count,
-          count(*) filter (where name = 'report_detail_requested')::int as detail_request_count,
+          count(*) filter (where name in ('snapshot_opened', 'snapshot_captured', 'snapshot_share_created'))::int as property_open_count,
           max(created_at) as last_event_at
         from product_events
         group by team_id
@@ -114,69 +134,146 @@ export default async function ProductAnalyticsPage() {
       select
         t.id as team_id,
         t.name as team_name,
-        coalesce(watched.watched_count, 0)::int as watched_count,
-        coalesce(auto_runs.auto_generated_count, 0)::int as auto_generated_count,
-        coalesce(auto_runs.auto_skipped_count, 0)::int as auto_skipped_count,
-        coalesce(manual_reports.manual_report_count, 0)::int as manual_report_count,
-        coalesce(events.report_open_count, 0)::int as report_open_count,
-        coalesce(events.monday_usage_count, 0)::int as monday_usage_count,
-        coalesce(auto_runs.quota_skip_count, 0)::int as quota_skip_count,
-        coalesce(events.detail_request_count, 0)::int as detail_request_count,
-        events.last_event_at
+        coalesce(snapshots.snapshot_count, 0)::int as snapshot_count,
+        coalesce(shares.share_link_count, 0)::int as share_link_count,
+        coalesce(actions.action_count, 0)::int as action_count,
+        coalesce(actions.action_done_count, 0)::int as action_done_count,
+        coalesce(source_refreshes.source_data_refresh_count, 0)::int as source_data_refresh_count,
+        coalesce(property_refreshes.property_refresh_count, 0)::int as property_refresh_count,
+        coalesce(events.property_open_count, 0)::int as property_open_count,
+        greatest(
+          coalesce(snapshots.last_snapshot_at, t.created_at),
+          coalesce(shares.last_share_at, t.created_at),
+          coalesce(actions.last_action_at, t.created_at),
+          coalesce(source_refreshes.last_source_refresh_at, t.created_at),
+          coalesce(property_refreshes.last_property_refresh_at, t.created_at),
+          coalesce(events.last_event_at, t.created_at)
+        ) as last_activity_at
       from teams t
-      left join watched on watched.team_id = t.id
-      left join auto_runs on auto_runs.team_id = t.id
-      left join manual_reports on manual_reports.team_id = t.id
+      left join snapshots on snapshots.team_id = t.id
+      left join shares on shares.team_id = t.id
+      left join actions on actions.team_id = t.id
+      left join source_refreshes on source_refreshes.team_id = t.id
+      left join property_refreshes on property_refreshes.team_id = t.id
       left join events on events.team_id = t.id
-      order by
-        coalesce(events.last_event_at, t.created_at) desc,
-        manual_report_count desc,
-        report_open_count desc,
-        t.name asc
+      order by last_activity_at desc, t.name asc
       limit 50
     `),
+    db
+      .select({
+        id: productEvents.id,
+        name: productEvents.name,
+        source: productEvents.source,
+        createdAt: productEvents.createdAt,
+      })
+      .from(productEvents)
+      .orderBy(desc(productEvents.createdAt))
+      .limit(8),
   ]);
 
-  const autoGenerated = Number(autoRows.find((row) => row.status === "complete")?.count ?? 0);
-  const autoSkipped = Number(autoRows.find((row) => row.status === "skipped")?.count ?? 0);
-  const metrics: MetricRow[] = [
-    { label: "Auto reports generated", value: autoGenerated },
-    { label: "Auto reports skipped", value: autoSkipped },
-    { label: "Manual reports generated", value: Number(manualRows[0]?.count ?? 0) },
-    { label: "Report opens", value: Number(reportOpenRows[0]?.count ?? 0) },
-    { label: "Repeat Monday usage", value: Number(mondayRows[0]?.count ?? 0) },
-    { label: "Quota skips", value: Number(quotaRows[0]?.count ?? 0) },
-    { label: "Detail requests", value: Number(detailRows[0]?.count ?? 0) },
-  ];
-  const watchedTeams: WatchedTeamRow[] = Array.from(watchedRows).map((row) => ({
-    team_name: String(row.team_name ?? ""),
-    watched_count: Number(row.watched_count ?? 0),
+  const actualDailyCosts = Array.from(actualDailyCostRows).map((row) => ({
+    sourceDate: String(row.sourceDate ?? ""),
+    totalUsd: row.totalUsd == null ? null : String(row.totalUsd),
   }));
-  const teamUsage: TeamUsageRow[] = Array.from(teamUsageRows).map((row) => ({
+  const actualSpendSeries = buildActualSpendSeries(actualDailyCosts);
+  const actualSpendTotal = buildActualSpendSummary(actualDailyCosts);
+  const jobThroughputSeries = buildJobThroughputSeries([
+    ...Array.from(metricsJobStatusRows),
+    ...Array.from(propertyRefreshStatusRows),
+    ...Array.from(snapshotStatusRows),
+  ] as JobThroughputRow[]);
+  const metrics = Array.from(metricRows).map((row) => ({
+    label: String(row.label ?? ""),
+    value: Number(row.value ?? 0),
+  }));
+  const teamActivity = Array.from(teamActivityRows).map((row) => ({
     team_id: String(row.team_id ?? ""),
     team_name: String(row.team_name ?? ""),
-    watched_count: Number(row.watched_count ?? 0),
-    auto_generated_count: Number(row.auto_generated_count ?? 0),
-    auto_skipped_count: Number(row.auto_skipped_count ?? 0),
-    manual_report_count: Number(row.manual_report_count ?? 0),
-    report_open_count: Number(row.report_open_count ?? 0),
-    monday_usage_count: Number(row.monday_usage_count ?? 0),
-    quota_skip_count: Number(row.quota_skip_count ?? 0),
-    detail_request_count: Number(row.detail_request_count ?? 0),
-    last_event_at: row.last_event_at as TeamUsageRow["last_event_at"],
+    snapshot_count: Number(row.snapshot_count ?? 0),
+    share_link_count: Number(row.share_link_count ?? 0),
+    action_count: Number(row.action_count ?? 0),
+    action_done_count: Number(row.action_done_count ?? 0),
+    source_data_refresh_count: Number(row.source_data_refresh_count ?? 0),
+    property_refresh_count: Number(row.property_refresh_count ?? 0),
+    property_open_count: Number(row.property_open_count ?? 0),
+    last_activity_at: row.last_activity_at == null ? null : String(row.last_activity_at),
   }));
+  const recentProductEvents: RecentProductEvent[] = recentProductEventRows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    source: row.source,
+    createdAt: row.createdAt,
+  }));
+  const posthogConfig = buildPosthogInstallCheckConfigStatus({
+    projectToken: resolvePosthogProjectToken(process.env),
+    browserKey: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+    captureHost: process.env.POSTHOG_CAPTURE_HOST ?? process.env.POSTHOG_HOST,
+    projectId: process.env.POSTHOG_PROJECT_ID,
+    uiHost: process.env.POSTHOG_UI_HOST,
+  });
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight font-display">Product Analytics</h1>
         <p className="mt-1 text-muted-foreground">
-          Weekly review adoption and report usage from authenticated events.
+          Product usage, snapshots, source-data jobs, property refreshes, and actual OpenAI billing.
         </p>
       </div>
 
+      <div className="grid gap-4 md:grid-cols-4">
+        <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <p className="text-sm text-muted-foreground">Actual OpenAI billing</p>
+          <p className="mt-2 text-3xl font-bold font-display">{formatUsdDisplay(actualSpendTotal)}</p>
+        </div>
+        {metrics.slice(0, 3).map((metric) => (
+          <div key={metric.label} className="rounded-lg border border-border bg-card p-5 shadow-sm">
+            <p className="text-sm text-muted-foreground">{metric.label}</p>
+            <p className="mt-2 text-3xl font-bold font-display">{metric.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <ProductAnalyticsCharts
+        actualSpend={actualSpendSeries}
+        jobThroughput={jobThroughputSeries}
+      />
+
+      <PosthogInstallCheck initialConfig={posthogConfig} />
+
+      <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
+        <h2 className="text-xl font-bold font-display">Recent Product Events</h2>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-muted-foreground">
+                <th className="py-2 pr-4 font-medium">Event</th>
+                <th className="py-2 pr-4 font-medium">Source</th>
+                <th className="py-2 font-medium">Created</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {recentProductEvents.map((event) => (
+                <tr key={event.id}>
+                  <td className="py-3 pr-4 font-medium text-foreground">{event.name}</td>
+                  <td className="py-3 pr-4">{event.source}</td>
+                  <td className="py-3">{event.createdAt.toLocaleString()}</td>
+                </tr>
+              ))}
+              {!recentProductEvents.length ? (
+                <tr>
+                  <td className="py-3 text-muted-foreground" colSpan={3}>
+                    No product events have been stored locally yet.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <div className="grid gap-4 md:grid-cols-3">
-        {metrics.map((metric) => (
+        {metrics.slice(3).map((metric) => (
           <div key={metric.label} className="rounded-lg border border-border bg-card p-5 shadow-sm">
             <p className="text-sm text-muted-foreground">{metric.label}</p>
             <p className="mt-2 text-3xl font-bold font-display">{metric.value}</p>
@@ -185,52 +282,38 @@ export default async function ProductAnalyticsPage() {
       </div>
 
       <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
-        <h2 className="text-xl font-bold font-display">Watched Properties Per Team</h2>
-        <div className="mt-4 divide-y divide-border">
-          {watchedTeams.map((row) => (
-            <div key={String(row.team_name)} className="flex items-center justify-between py-3">
-              <span>{String(row.team_name)}</span>
-              <span className="font-medium">{Number(row.watched_count)}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
         <h2 className="text-xl font-bold font-display">Team Usage</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[960px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="py-2 pr-4 font-medium">Team</th>
-                <th className="py-2 pr-4 font-medium">Watched</th>
-                <th className="py-2 pr-4 font-medium">Auto Generated</th>
-                <th className="py-2 pr-4 font-medium">Auto Skipped</th>
-                <th className="py-2 pr-4 font-medium">Manual Reports</th>
-                <th className="py-2 pr-4 font-medium">Report Opens</th>
-                <th className="py-2 pr-4 font-medium">Monday Usage</th>
-                <th className="py-2 pr-4 font-medium">Quota Skips</th>
-                <th className="py-2 pr-4 font-medium">Detail Requests</th>
-                <th className="py-2 font-medium">Last Event</th>
+                <th className="py-2 pr-4 font-medium">Snapshots</th>
+                <th className="py-2 pr-4 font-medium">Share Links</th>
+                <th className="py-2 pr-4 font-medium">Actions</th>
+                <th className="py-2 pr-4 font-medium">Done</th>
+                <th className="py-2 pr-4 font-medium">Source Jobs</th>
+                <th className="py-2 pr-4 font-medium">Refresh Jobs</th>
+                <th className="py-2 pr-4 font-medium">Opens</th>
+                <th className="py-2 font-medium">Last Activity</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {teamUsage.map((row) => (
+              {teamActivity.map((row) => (
                 <tr key={row.team_id}>
                   <td className="py-3 pr-4">
-                    <div className="font-medium text-foreground">{String(row.team_name)}</div>
-                    <div className="text-xs text-muted-foreground">{String(row.team_id)}</div>
+                    <div className="font-medium text-foreground">{row.team_name}</div>
+                    <div className="text-xs text-muted-foreground">{row.team_id}</div>
                   </td>
-                  <td className="py-3 pr-4">{row.watched_count}</td>
-                  <td className="py-3 pr-4">{row.auto_generated_count}</td>
-                  <td className="py-3 pr-4">{row.auto_skipped_count}</td>
-                  <td className="py-3 pr-4">{row.manual_report_count}</td>
-                  <td className="py-3 pr-4">{row.report_open_count}</td>
-                  <td className="py-3 pr-4">{row.monday_usage_count}</td>
-                  <td className="py-3 pr-4">{row.quota_skip_count}</td>
-                  <td className="py-3 pr-4">{row.detail_request_count}</td>
+                  <td className="py-3 pr-4">{row.snapshot_count}</td>
+                  <td className="py-3 pr-4">{row.share_link_count}</td>
+                  <td className="py-3 pr-4">{row.action_count}</td>
+                  <td className="py-3 pr-4">{row.action_done_count}</td>
+                  <td className="py-3 pr-4">{row.source_data_refresh_count}</td>
+                  <td className="py-3 pr-4">{row.property_refresh_count}</td>
+                  <td className="py-3 pr-4">{row.property_open_count}</td>
                   <td className="py-3">
-                    {row.last_event_at ? new Date(row.last_event_at).toLocaleString() : "Never"}
+                    {row.last_activity_at ? new Date(row.last_activity_at).toLocaleString() : "Never"}
                   </td>
                 </tr>
               ))}

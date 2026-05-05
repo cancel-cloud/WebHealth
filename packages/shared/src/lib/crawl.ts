@@ -1,4 +1,6 @@
 import { lookup } from "node:dns/promises";
+import http from "node:http";
+import https from "node:https";
 import { isIP } from "node:net";
 import * as cheerio from "cheerio";
 
@@ -11,6 +13,12 @@ export type PageIssue = {
   h1Count: number;
   h1Texts?: string[];
   visibleTextExcerpt?: string;
+  noindex?: boolean;
+  nofollow?: boolean;
+  imageMissingAltCount?: number;
+  hasStructuredData?: boolean;
+  hasViewportMeta?: boolean;
+  visibleWordCount?: number;
 };
 
 export type CrawlResult = {
@@ -22,6 +30,12 @@ export type CrawlResult = {
     missingH1: number;
     multipleH1: number;
     brokenLinks: number;
+    noindexPages: number;
+    canonicalMismatch: number;
+    imageMissingAlt: number;
+    missingStructuredData: number;
+    missingViewportMeta: number;
+    thinContent: number;
   };
 };
 
@@ -49,6 +63,7 @@ const DEFAULT_MAX_PAGES = 50;
 const DEFAULT_MAX_REDIRECTS = 5;
 const CRAWLER_USER_AGENT = "WebAubit-Crawler/1.0";
 const METADATA_IPV4 = "169.254.169.254";
+const MAX_CRAWL_RESPONSE_BYTES = 2 * 1024 * 1024;
 
 async function resolveHostAddresses(hostname: string): Promise<LookupAddress[]> {
   const results = await lookup(hostname, { all: true, verbatim: true });
@@ -272,6 +287,14 @@ export async function assertSafeCrawlUrl(
   scope: CrawlScope,
   options?: CrawlSecurityOptions
 ): Promise<URL> {
+  return (await assertSafeCrawlTarget(input, scope, options)).url;
+}
+
+async function assertSafeCrawlTarget(
+  input: string,
+  scope: CrawlScope,
+  options?: CrawlSecurityOptions
+): Promise<{ url: URL; addresses: LookupAddress[] }> {
   const url = new URL(input);
 
   if (!isAllowedCrawlProtocol(url, options)) {
@@ -299,7 +322,76 @@ export async function assertSafeCrawlUrl(
     }
   }
 
-  return url;
+  return { url, addresses };
+}
+
+export function createPinnedCrawlLookup(addresses: LookupAddress[]) {
+  return async (_hostname: string, options: { all?: boolean } = {}) => {
+    if (!addresses.length) throw new Error("No vetted crawl addresses available.");
+    if (options.all) return addresses;
+    return addresses[0]!;
+  };
+}
+
+function headersToRecord(headers: http.IncomingHttpHeaders): Headers {
+  const result = new Headers();
+  for (const [name, value] of Object.entries(headers)) {
+    if (Array.isArray(value)) {
+      for (const item of value) result.append(name, item);
+    } else if (typeof value === "string") {
+      result.set(name, value);
+    }
+  }
+  return result;
+}
+
+async function fetchPinnedCrawlTarget(target: { url: URL; addresses: LookupAddress[] }): Promise<Response> {
+  const client = target.url.protocol === "https:" ? https : http;
+  const lookupPinned = createPinnedCrawlLookup(target.addresses);
+
+  return new Promise<Response>((resolve, reject) => {
+    const req = client.request(
+      target.url,
+      {
+        method: "GET",
+        headers: { "User-Agent": CRAWLER_USER_AGENT },
+        lookup: (hostname, options, callback) => {
+          void lookupPinned(hostname, options as { all?: boolean })
+            .then((result) => {
+              if (Array.isArray(result)) {
+                callback(null, result as never, undefined as never);
+              } else {
+                callback(null, result.address, result.family);
+              }
+            })
+            .catch((error) => callback(error, "", 0));
+        },
+        servername: target.url.hostname,
+        timeout: 8000,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        let size = 0;
+        res.on("data", (chunk: Buffer) => {
+          size += chunk.length;
+          if (size > MAX_CRAWL_RESPONSE_BYTES) {
+            req.destroy(new Error("Crawl response exceeded size limit."));
+            return;
+          }
+          chunks.push(chunk);
+        });
+        res.on("end", () => {
+          resolve(new Response(Buffer.concat(chunks), {
+            status: res.statusCode ?? 0,
+            headers: headersToRecord(res.headers),
+          }));
+        });
+      },
+    );
+    req.on("timeout", () => req.destroy(new Error("Crawl request timed out.")));
+    req.on("error", reject);
+    req.end();
+  });
 }
 
 async function fetchPage(
@@ -309,12 +401,15 @@ async function fetchPage(
   redirectsRemaining = options?.maxRedirects ?? DEFAULT_MAX_REDIRECTS
 ): Promise<{ html: string; status: number } | null> {
   try {
-    const safeUrl = await assertSafeCrawlUrl(url, scope, options);
-    const res = await (options?.fetchImpl ?? fetch)(safeUrl, {
-      headers: { "User-Agent": CRAWLER_USER_AGENT },
-      signal: AbortSignal.timeout(8000),
-      redirect: "manual",
-    });
+    const safeTarget = await assertSafeCrawlTarget(url, scope, options);
+    const safeUrl = safeTarget.url;
+    const res = options?.fetchImpl
+      ? await options.fetchImpl(safeUrl, {
+          headers: { "User-Agent": CRAWLER_USER_AGENT },
+          signal: AbortSignal.timeout(8000),
+          redirect: "manual",
+        })
+      : await fetchPinnedCrawlTarget(safeTarget);
 
     if (res.status >= 300 && res.status < 400 && redirectsRemaining > 0) {
       const location = res.headers.get("location");
@@ -335,6 +430,11 @@ async function fetchPage(
 
 function normalizeText(input: string) {
   return input.replace(/\s+/g, " ").trim();
+}
+
+function countWords(input: string): number {
+  if (!input) return 0;
+  return input.split(/\s+/).filter(Boolean).length;
 }
 
 export async function crawlWebsite(
@@ -387,11 +487,36 @@ export async function crawlWebsite(
 
     const bodyText = normalizeText($("body").text());
     const visibleTextExcerpt = bodyText.slice(0, 4000);
+    const visibleWordCount = countWords(bodyText);
+    const robotsContent = [
+      $("meta[name=\"robots\"]").attr("content") ?? "",
+      $("meta[name=\"googlebot\"]").attr("content") ?? "",
+    ]
+      .join(",")
+      .toLowerCase();
+    const noindex = robotsContent.split(",").map((value) => value.trim()).includes("noindex");
+    const nofollow = robotsContent.split(",").map((value) => value.trim()).includes("nofollow");
+    const imageMissingAltCount = $("img")
+      .filter((_, el) => !(($(el).attr("alt") ?? "").trim()))
+      .length;
+    const hasStructuredData = $("script[type=\"application/ld+json\"]").length > 0;
+    const hasViewportMeta = Boolean($("meta[name=\"viewport\"]").attr("content")?.trim());
 
     if (!title) issues.push("Missing <title> tag");
     if (!metaDescription) issues.push("Missing meta description");
     if (h1Count === 0) issues.push("Missing <h1> tag");
     if (h1Count > 1) issues.push(`Multiple <h1> tags (${h1Count} found)`);
+    if (canonicalUrl !== url) issues.push("Canonical URL points to a different URL");
+    if (noindex) issues.push("Page is marked noindex");
+    if (nofollow) issues.push("Page is marked nofollow");
+    if (imageMissingAltCount > 0) {
+      issues.push(`Images missing alt text (${imageMissingAltCount} found)`);
+    }
+    if (!hasViewportMeta) issues.push("Missing viewport meta tag");
+    if (!hasStructuredData) issues.push("Missing structured data");
+    if (visibleWordCount > 0 && visibleWordCount < 150) {
+      issues.push(`Thin visible text (${visibleWordCount} words)`);
+    }
 
     pages.push({
       url,
@@ -402,6 +527,12 @@ export async function crawlWebsite(
       h1Count,
       h1Texts,
       visibleTextExcerpt,
+      noindex,
+      nofollow,
+      imageMissingAltCount,
+      hasStructuredData,
+      hasViewportMeta,
+      visibleWordCount,
     });
 
     $("a[href]").each((_, el) => {
@@ -419,6 +550,17 @@ export async function crawlWebsite(
     missingH1: pages.filter((page) => page.h1Count === 0).length,
     multipleH1: pages.filter((page) => page.h1Count > 1).length,
     brokenLinks: brokenLinks.length,
+    noindexPages: pages.filter((page) => page.noindex).length,
+    canonicalMismatch: pages.filter((page) => page.canonicalUrl !== page.url).length,
+    imageMissingAlt: pages.reduce(
+      (total, page) => total + (page.imageMissingAltCount ?? 0),
+      0
+    ),
+    missingStructuredData: pages.filter((page) => !page.hasStructuredData).length,
+    missingViewportMeta: pages.filter((page) => !page.hasViewportMeta).length,
+    thinContent: pages.filter(
+      (page) => (page.visibleWordCount ?? Number.POSITIVE_INFINITY) < 150
+    ).length,
   };
 
   return { pages, brokenLinks, summary };

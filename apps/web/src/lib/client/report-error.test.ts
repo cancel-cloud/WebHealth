@@ -7,6 +7,7 @@ import { reportClientError } from "./report-error";
 
 const require = createRequire(import.meta.url);
 const Sentry = require("@sentry/nextjs") as typeof import("@sentry/nextjs");
+const posthog = require("posthog-js").default as typeof import("posthog-js").default;
 
 test("reportClientError skips handled app errors", () => {
   const captureException = mock.method(Sentry, "captureException", () => "ignored");
@@ -49,4 +50,31 @@ test("shouldReportClientError skips abort-like errors", () => {
 
   assert.equal(captureException.mock.calls.length, 0);
   captureException.mock.restore();
+});
+
+test("reportClientError emits a sanitized PostHog app error event", () => {
+  const captureException = mock.method(Sentry, "captureException", () => "reported");
+  const capture = mock.method(posthog, "capture", (eventName: string, properties?: Record<string, unknown>) => ({
+    eventName,
+    properties,
+  }));
+
+  reportClientError(new Error("Request password=s3cret failed at /Users/person/app.ts"), {
+    route: "/dashboard",
+    stack: "raw stack",
+    token: "secret",
+  });
+
+  assert.equal(capture.mock.calls.length, 1);
+  assert.deepEqual(capture.mock.calls[0]?.arguments, [
+    "app_error_reported",
+    {
+      errorSurface: "client-request",
+      message: "Request password=[REDACTED] failed at [REDACTED_PATH]",
+      route: "/dashboard",
+    },
+  ]);
+
+  captureException.mock.restore();
+  capture.mock.restore();
 });

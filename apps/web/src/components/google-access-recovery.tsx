@@ -198,7 +198,7 @@ export function GoogleAccessRecoveryProvider({
               {dialogModel?.title ?? "Review Google access"}
             </DialogTitle>
             <DialogDescription>
-              {dialogModel?.description ?? "Reconnect Google to restore property sync and report actions."}
+              {dialogModel?.description ?? "Reconnect Google to restore property sync and refresh actions."}
             </DialogDescription>
           </DialogHeader>
 

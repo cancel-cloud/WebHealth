@@ -14,7 +14,7 @@ async function seed() {
   console.log("Ensuring default plan settings...");
   const result = await ensurePlanSettingsSeeded(db);
   if (result.inserted) {
-    console.log(`  ✓ Inserted ${result.rowCount} default tiers (Free, Pro, Team)`);
+    console.log(`  ✓ Reconciled default tiers (Solo, Starter, Studio, Agency)`);
   } else {
     console.log(`  ↷ Skipped (plan_settings already has ${result.rowCount} row(s))`);
   }

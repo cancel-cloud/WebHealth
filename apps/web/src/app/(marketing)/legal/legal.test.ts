@@ -26,13 +26,15 @@ test("resolveLegalLocale defaults to English and accepts German", async () => {
 test("buildLegalHref keeps the base slug and adds the German query param only when needed", async () => {
   const legal = await importModule("./legal");
   const buildLegalHref = (legal as {
-    buildLegalHref?: (documentId: "privacy" | "terms" | "impressum", locale: "en" | "de") => string;
+    buildLegalHref?: (documentId: "privacy" | "terms" | "impressum" | "dpa", locale: "en" | "de") => string;
   } | null)?.buildLegalHref;
 
   assert.equal(typeof buildLegalHref, "function");
   assert.equal(buildLegalHref?.("privacy", "en"), "/privacy");
   assert.equal(buildLegalHref?.("privacy", "de"), "/privacy?lang=de");
   assert.equal(buildLegalHref?.("impressum", "de"), "/impressum?lang=de");
+  assert.equal(buildLegalHref?.("dpa", "en"), "/dpa");
+  assert.equal(buildLegalHref?.("dpa", "de"), "/dpa?lang=de");
 });
 
 test("resolveLegalNavLocale only preserves language on legal pages", async () => {
@@ -50,7 +52,7 @@ test("resolveLegalNavLocale only preserves language on legal pages", async () =>
 test("buildLegalMetadata exposes canonical base URLs and German alternates", async () => {
   const legal = await importModule("./legal");
   const buildLegalMetadata = (legal as {
-    buildLegalMetadata?: (documentId: "privacy" | "terms" | "impressum", locale: "en" | "de") => {
+    buildLegalMetadata?: (documentId: "privacy" | "terms" | "impressum" | "dpa", locale: "en" | "de") => {
       alternates?: {
         canonical?: string;
         languages?: Record<string, string>;
@@ -61,10 +63,17 @@ test("buildLegalMetadata exposes canonical base URLs and German alternates", asy
   assert.equal(typeof buildLegalMetadata, "function");
 
   const metadata = buildLegalMetadata?.("terms", "de");
-  assert.equal(metadata?.alternates?.canonical, "/terms");
+  assert.equal(metadata?.alternates?.canonical, "/terms?lang=de");
   assert.deepEqual(metadata?.alternates?.languages, {
     en: "/terms",
     de: "/terms?lang=de",
+  });
+
+  const dpaMetadata = buildLegalMetadata?.("dpa", "de");
+  assert.equal(dpaMetadata?.alternates?.canonical, "/dpa?lang=de");
+  assert.deepEqual(dpaMetadata?.alternates?.languages, {
+    en: "/dpa",
+    de: "/dpa?lang=de",
   });
 });
 
@@ -82,6 +91,7 @@ test("legal dictionaries stay aligned across English and German", async () => {
     "privacy",
     "terms",
     "impressum",
+    "dpa",
   ]);
   assert.deepEqual(
     Object.keys(legalDictionaries.en.documents),
@@ -159,9 +169,52 @@ test("legal document chrome shows centered document/language buttons without an 
   assert.match(markup, /Privacy Policy/);
   assert.match(markup, /Terms of Service/);
   assert.match(markup, /Impressum/);
+  assert.match(markup, /Data Processing Agreement/);
   assert.match(markup, />English</);
   assert.match(markup, />Deutsch</);
   assert.doesNotMatch(markup, /Read this document in/);
+});
+
+test("DPA dictionaries cover processor scope, subprocessors, deletion, audits, and sensitive data", async () => {
+  const content = await importModule("./legal-content");
+  const legalDictionaries = (content as {
+    legalDictionaries?: {
+      en: { documents: { dpa: { sections: Array<{ title: string; paragraphs?: string[]; bullets?: string[] }> } } };
+      de: { documents: { dpa: { sections: Array<{ title: string; paragraphs?: string[]; bullets?: string[] }> } } };
+    };
+  } | null)?.legalDictionaries;
+
+  assert.ok(legalDictionaries);
+
+  const flatten = (sections: Array<{ title: string; paragraphs?: string[]; bullets?: string[] }>) =>
+    sections
+      .flatMap((section) => [section.title, ...(section.paragraphs ?? []), ...(section.bullets ?? [])])
+      .join(" ");
+
+  const enDpa = flatten(legalDictionaries.en.documents.dpa.sections);
+  const deDpa = flatten(legalDictionaries.de.documents.dpa.sections);
+
+  assert.match(enDpa, /business customers/i);
+  assert.match(enDpa, /Article 28 GDPR/);
+  assert.match(enDpa, /Google Search Console/);
+  assert.match(enDpa, /Google Analytics 4/);
+  assert.match(enDpa, /OpenAI/);
+  assert.match(enDpa, /PostHog/);
+  assert.match(enDpa, /30 days/);
+  assert.match(enDpa, /backup/i);
+  assert.match(enDpa, /special-category/i);
+  assert.match(enDpa, /audits/i);
+
+  assert.match(deDpa, /Geschäftskunden/);
+  assert.match(deDpa, /Art\.\s*28\s*DSGVO/);
+  assert.match(deDpa, /Google Search Console/);
+  assert.match(deDpa, /Google Analytics 4/);
+  assert.match(deDpa, /OpenAI/);
+  assert.match(deDpa, /PostHog/);
+  assert.match(deDpa, /30\s*Tagen/);
+  assert.match(deDpa, /Backup/i);
+  assert.match(deDpa, /besonderer Kategorien/i);
+  assert.match(deDpa, /Audits/i);
 });
 
 test("legal profile formats the sole-trader operator name per locale", async () => {
@@ -181,7 +234,67 @@ test("legal profile formats the sole-trader operator name per locale", async () 
   );
 });
 
-test("impressum omits phone, register, VAT, and DPO blocks when those details are absent", async () => {
+test("impressum carries MStV editorial responsibility, EU ODR notice, and DDG liability disclaimers", async () => {
+  const content = await importModule("./legal-content");
+  const legalDictionaries = (content as {
+    legalDictionaries?: {
+      en: { documents: { impressum: { sections: Array<{ title: string; paragraphs?: string[]; bullets?: string[] }> } } };
+      de: { documents: { impressum: { sections: Array<{ title: string; paragraphs?: string[]; bullets?: string[] }> } } };
+    };
+  } | null)?.legalDictionaries;
+
+  assert.ok(legalDictionaries);
+
+  const flatten = (sections: Array<{ title: string; paragraphs?: string[]; bullets?: string[] }>) =>
+    sections
+      .flatMap((section) => [section.title, ...(section.paragraphs ?? []), ...(section.bullets ?? [])])
+      .join(" ");
+
+  const enImpressum = flatten(legalDictionaries.en.documents.impressum.sections);
+  const deImpressum = flatten(legalDictionaries.de.documents.impressum.sections);
+
+  assert.match(enImpressum, /§\s*18\(2\)\s*MStV/);
+  assert.match(deImpressum, /§\s*18\s*Abs\.\s*2\s*MStV/);
+  assert.match(enImpressum, /ec\.europa\.eu\/consumers\/odr/);
+  assert.match(deImpressum, /ec\.europa\.eu\/consumers\/odr/);
+  assert.match(enImpressum, /§\s*7\(1\)\s*DDG|§§?\s*8–?-?10\s*DDG/);
+  assert.match(deImpressum, /§\s*7\s*Abs\.\s*1\s*DDG|§§\s*8\s*bis\s*10\s*DDG/);
+});
+
+test("privacy dictionaries name real processors and the GSC/GA4 Article 28 processor relationship", async () => {
+  const content = await importModule("./legal-content");
+  const legalDictionaries = (content as {
+    legalDictionaries?: {
+      en: { documents: { privacy: { sections: Array<{ title: string; paragraphs?: string[]; bullets?: string[] }> } } };
+      de: { documents: { privacy: { sections: Array<{ title: string; paragraphs?: string[]; bullets?: string[] }> } } };
+    };
+  } | null)?.legalDictionaries;
+
+  assert.ok(legalDictionaries);
+
+  const flatten = (sections: Array<{ title: string; paragraphs?: string[]; bullets?: string[] }>) =>
+    sections
+      .flatMap((section) => [section.title, ...(section.paragraphs ?? []), ...(section.bullets ?? [])])
+      .join(" ");
+
+  const enPrivacy = flatten(legalDictionaries.en.documents.privacy.sections);
+  const dePrivacy = flatten(legalDictionaries.de.documents.privacy.sections);
+
+  for (const text of [enPrivacy, dePrivacy]) {
+    assert.match(text, /Hetzner Online GmbH/);
+    assert.match(text, /PostHog/);
+    assert.match(text, /Stripe Payments Europe Ltd\./);
+    assert.match(text, /OpenAI, L\.L\.C\./);
+    assert.match(text, /Vercel Inc\./);
+  }
+
+  assert.match(enPrivacy, /Nuremberg/);
+  assert.match(dePrivacy, /Nürnberg/);
+  assert.match(enPrivacy, /Article 28 GDPR/);
+  assert.match(dePrivacy, /Art\.\s*28\s*DSGVO/);
+});
+
+test("impressum omits register, VAT, and DPO blocks when those details are absent", async () => {
   const [{ LegalDocumentPage }, { legalDictionaryDe }] = await Promise.all([
     import("./legal-document-page"),
     import("./legal-dictionaries.de"),
@@ -197,7 +310,7 @@ test("impressum omits phone, register, VAT, and DPO blocks when those details ar
 
   assert.match(markup, /Lukas Dienst/);
   assert.match(markup, /DevBrew Development/);
-  assert.doesNotMatch(markup, /Telefon:/);
+  assert.match(markup, /Telefon:/);
   assert.doesNotMatch(markup, /Registergericht:/);
   assert.doesNotMatch(markup, /USt-IdNr/);
   assert.doesNotMatch(markup, /Datenschutzkontakt/);

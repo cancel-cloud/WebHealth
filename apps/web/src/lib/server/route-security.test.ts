@@ -12,10 +12,10 @@ test("reportHandledRouteFailure skips handled 404 responses", () => {
   const captureMessage = mock.method(Sentry, "captureMessage", () => "ignored");
 
   reportHandledRouteFailure({
-    label: "Error downloading report artifact",
+    label: "Error handling property refresh",
     status: 404,
-    code: "ARTIFACT_NOT_FOUND",
-    message: "Artifact not found",
+    code: "PROPERTY_REFRESH_NOT_FOUND",
+    message: "Property refresh not found",
   });
 
   assert.equal(withScope.mock.calls.length, 0);
@@ -50,12 +50,12 @@ test("reportHandledRouteFailure reports handled 5xx responses with route context
   const captureMessage = mock.method(Sentry, "captureMessage", (message: string) => message);
 
   reportHandledRouteFailure({
-    label: "Error downloading report artifact",
+    label: "Error handling property refresh",
     status: 502,
-    code: "ARTIFACT_WORKER_UNREACHABLE",
-    message: "Artifact download failed: ARTIFACT_WORKER_UNREACHABLE",
+    code: "PROPERTY_REFRESH_WORKER_UNREACHABLE",
+    message: "Property refresh failed: PROPERTY_REFRESH_WORKER_UNREACHABLE",
     context: {
-      reportId: "rep_123",
+      propertyId: "prop_123",
       workerConfigured: true,
     },
   });
@@ -63,18 +63,62 @@ test("reportHandledRouteFailure reports handled 5xx responses with route context
   assert.equal(withScope.mock.calls.length, 1);
   assert.equal(captureMessage.mock.calls.length, 1);
   assert.deepEqual(captureMessage.mock.calls[0]?.arguments, [
-    "Artifact download failed: ARTIFACT_WORKER_UNREACHABLE",
+    "Property refresh failed: PROPERTY_REFRESH_WORKER_UNREACHABLE",
   ]);
   assert.equal(tags.get("error_surface"), "route-handler");
-  assert.equal(tags.get("route_error_label"), "Error downloading report artifact");
-  assert.equal(tags.get("handled_route_failure_code"), "ARTIFACT_WORKER_UNREACHABLE");
+  assert.equal(tags.get("route_error_label"), "Error handling property refresh");
+  assert.equal(tags.get("handled_route_failure_code"), "PROPERTY_REFRESH_WORKER_UNREACHABLE");
   assert.equal(level, "error");
   assert.deepEqual(contexts.get("handled_route_failure"), {
     status: 502,
-    code: "ARTIFACT_WORKER_UNREACHABLE",
-    reportId: "rep_123",
+    code: "PROPERTY_REFRESH_WORKER_UNREACHABLE",
+    propertyId: "prop_123",
     workerConfigured: true,
   });
+
+  withScope.mock.restore();
+  captureMessage.mock.restore();
+});
+
+test("reportHandledRouteFailure emits a sanitized PostHog error event for handled 5xx responses", () => {
+  const events: unknown[] = [];
+  const withScope = mock.method(Sentry, "withScope", () => undefined);
+  const captureMessage = mock.method(Sentry, "captureMessage", (message: string) => message);
+
+  reportHandledRouteFailure({
+    label: "Error handling property refresh",
+    status: 502,
+    code: "PROPERTY_REFRESH_WORKER_UNREACHABLE",
+    message: "Property refresh password=s3cret failed at /Users/person/app.ts",
+    context: {
+      teamId: "team_1",
+      userId: "user_pg_123",
+      route: "/api/properties/prop_123/refresh-data",
+      stack: "raw stack",
+      token: "secret",
+    },
+    productEventRecorder: (event) => {
+      events.push(event);
+    },
+  });
+
+  assert.deepEqual(events, [
+    {
+      teamId: "team_1",
+      userId: "user_pg_123",
+      name: "app_error_reported",
+      source: "api",
+      entityType: "route",
+      entityId: "Error handling property refresh",
+      properties: {
+        errorSurface: "route-handler",
+        errorCode: "PROPERTY_REFRESH_WORKER_UNREACHABLE",
+        status: 502,
+        message: "Property refresh password=[REDACTED] failed at [REDACTED_PATH]",
+        route: "/api/properties/prop_123/refresh-data",
+      },
+    },
+  ]);
 
   withScope.mock.restore();
   captureMessage.mock.restore();

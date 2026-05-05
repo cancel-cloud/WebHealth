@@ -3,6 +3,7 @@ import { db } from "@webhealth/shared/db";
 import { teams } from "@webhealth/shared/db/schema";
 import { eq } from "drizzle-orm";
 import { getStripe, tierFromPriceId } from "@/lib/server/stripe";
+import { cleanupAfterTierChange } from "@webhealth/shared/lib/tier-change-cleanup";
 import type Stripe from "stripe";
 
 // Stripe requires the exact raw bytes of the body for signature verification.
@@ -61,16 +62,31 @@ export async function POST(req: Request) {
 
         const updatePayload = { tier, stripeSubscriptionId: sub.id, subscriptionCancelAt: cancelAt };
 
+        let oldTier = "free";
+        let resolvedTeamId: string | null = null;
+
         if (!teamId) {
-          // Look up team by Stripe customer ID
           const team = await db.query.teams.findFirst({
             where: (t, { eq }) => eq(t.stripeCustomerId, sub.customer as string),
+            columns: { id: true, tier: true },
           });
           if (team) {
+            oldTier = team.tier;
+            resolvedTeamId = team.id;
             await db.update(teams).set(updatePayload).where(eq(teams.id, team.id));
           }
         } else {
+          const team = await db.query.teams.findFirst({
+            where: (t, { eq }) => eq(t.id, teamId),
+            columns: { tier: true },
+          });
+          oldTier = team?.tier ?? "free";
+          resolvedTeamId = teamId;
           await db.update(teams).set(updatePayload).where(eq(teams.id, teamId));
+        }
+
+        if (resolvedTeamId && tier !== oldTier) {
+          await cleanupAfterTierChange({ teamId: resolvedTeamId, oldTier, newTier: tier });
         }
         break;
       }
@@ -79,12 +95,16 @@ export async function POST(req: Request) {
         const sub = event.data.object as Stripe.Subscription;
         const team = await db.query.teams.findFirst({
           where: (t, { eq }) => eq(t.stripeCustomerId, sub.customer as string),
+          columns: { id: true, tier: true },
         });
         if (team) {
+          const oldTier = team.tier;
           await db
             .update(teams)
             .set({ tier: "free", stripeSubscriptionId: null, subscriptionCancelAt: null })
             .where(eq(teams.id, team.id));
+
+          await cleanupAfterTierChange({ teamId: team.id, oldTier, newTier: "free" });
         }
         break;
       }

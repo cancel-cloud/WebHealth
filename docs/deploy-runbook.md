@@ -16,7 +16,7 @@ From repo root:
 ```bash
 pnpm install --frozen-lockfile
 pnpm --filter @webhealth/shared exec tsx --test src/db/url-guards.test.ts src/db/worker-db-bootstrap.test.ts
-pnpm --filter @webhealth/worker exec tsx --test src/load-env.test.ts src/runtime-state.test.ts src/runtime-watchdog.test.ts src/artifact-server.test.ts
+pnpm --filter @webhealth/worker exec tsx --test src/load-env.test.ts src/runtime-state.test.ts src/runtime-watchdog.test.ts
 pnpm --filter @webhealth/worker exec tsc --noEmit
 pnpm worker:verify-dist
 pnpm --filter @webhealth/web exec eslint src/app/'(marketing)'/legal/legal-dictionaries.en.ts src/app/'(marketing)'/legal/legal-dictionaries.de.ts
@@ -86,14 +86,16 @@ Required env vars:
 - `BETTER_AUTH_SECRET`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_OAUTH_STATE_SECRET`
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL`
 - `DATABASE_POOL_MAX`
 - `DATABASE_POOL_IDLE_TIMEOUT`
 - `DATABASE_POOL_CONNECT_TIMEOUT`
-- `WORKER_ARTIFACT_URL`
-- `ARTIFACT_TOKEN_SECRET`
+- `POSTHOG_CAPTURE_HOST`
+- `POSTHOG_UI_HOST`
+- `POSTHOG_PROJECT_ID`
+- `POSTHOG_PROJECT_TOKEN`
+- `NEXT_PUBLIC_POSTHOG_KEY`
 
 Keep Vercel project settings:
 
@@ -113,11 +115,11 @@ Set at least:
 - `GOOGLE_CLIENT_SECRET`
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL`
-- `REPORT_ARTIFACTS_DIR`
-- `ARTIFACT_TOKEN_SECRET`
 - `OAUTH_TOKEN_ENCRYPTION_KEY`
-- `REPORT_WORKER_MAX_JOB_RUNTIME_MS`
-- `REPORT_WORKER_WATCHDOG_INTERVAL_MS`
+- `POSTHOG_CAPTURE_HOST`
+- `POSTHOG_PROJECT_TOKEN`
+- `WORKER_MAX_JOB_RUNTIME_MS`
+- `WORKER_WATCHDOG_INTERVAL_MS`
 - `WORKER_READY_STALE_AFTER_MS`
 
 For Coolify worker deployment, follow [docs/coolify-worker-deploy.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/coolify-worker-deploy.md).
@@ -129,8 +131,8 @@ For Coolify worker deployment, follow [docs/coolify-worker-deploy.md](/Users/can
 3. Open the web app and verify sign-in succeeds.
 4. Create a report and confirm the queue lifecycle progresses.
 5. Confirm worker logs show `LISTEN/NOTIFY enabled`.
-6. Confirm the worker `/ready` endpoint reports healthy queue-loop readiness.
-7. Confirm report downloads still work through the worker artifact endpoint.
+6. Confirm the worker logs show queue-loop readiness.
+7. Confirm snapshots can still be created from the web app.
 
 ## 6) Rollback
 

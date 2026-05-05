@@ -16,7 +16,7 @@
 
 - The worker owns long-running report processing.
 - Web routes should enqueue, retry, or read status; they should not execute the full report pipeline inline.
-- Keep deterministic report shaping, OpenAI orchestration, and artifact logic in shared modules where the worker and web can consume the same contracts.
+- Keep deterministic report shaping, OpenAI orchestration, and snapshot/cache logic in shared modules where the worker and web can consume the same contracts.
 
 ## File patterns already in use
 
