@@ -31,7 +31,7 @@ If schema changes are pending, apply them manually with:
 pnpm db:push
 ```
 
-`pnpm db:push` reconciles the live schema to `packages/shared/src/db/schema.ts` directly via `drizzle-kit push`. For production, you normally do **not** need to run this manually — the worker calls `ensureWorkerDatabaseReady` on startup (see [apps/worker/src/main.ts](apps/worker/src/main.ts)), which applies any pending migrations from `drizzle/` via `drizzle-orm` migrator and auto-baselines the `__drizzle_migrations` table on first run. Use `pnpm db:push` when you need to force a schema sync outside the worker boot path.
+`pnpm db:push` reconciles the live schema to `packages/shared/src/db/schema.ts` directly via `drizzle-kit push`. For production, you normally do **not** need to run this manually — the worker calls `ensureWorkerDatabaseReady` on startup (see [apps/worker/src/main.ts](apps/worker/src/main.ts)), which applies any pending migrations from `drizzle/` via `drizzle-orm` migrator. Use `pnpm db:push` when you need to force a schema sync outside the worker boot path.
 
 ## 1) Deploy the DB stack
 
@@ -61,7 +61,7 @@ ssh -L 5050:127.0.0.1:5050 root@178.104.11.44
 
    Then open `http://127.0.0.1:5050` locally.
 9. The default stack now targets PostgreSQL `18.3` via `POSTGRES_BASE_IMAGE=postgres:18.3-bookworm`.
-10. If the first initialization ever failed before creating the `webhealth` database and roles, delete the self-hosted Postgres data volume and redeploy before migrating production data.
+10. If the first initialization ever failed before creating the `webhealth` database and roles, delete the self-hosted Postgres data volume and redeploy before launch data is written.
 
 ## 2) Deploy the monitoring stack
 
@@ -138,4 +138,4 @@ For Coolify worker deployment, follow [docs/coolify-worker-deploy.md](/Users/can
 
 1. Web rollback: redeploy the previous Vercel deployment.
 2. Worker rollback: redeploy the previous worker release or restart the earlier commit.
-3. Database rollback: point `DATABASE_URL` and `DIRECT_DATABASE_URL` back to Neon only if the production cutover checklist in [docs/self-hosted-postgres-migration.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/self-hosted-postgres-migration.md) has not irreversibly advanced writes on the new primary.
+3. Database rollback: restore from the pgBackRest backup set or reset the empty launch database volume before user data exists. Do not point app traffic at an undocumented fallback database.
