@@ -47,6 +47,7 @@ import {
   Check,
   ChevronDown,
   LayoutGrid,
+  LogIn,
   Palette,
   ShieldCheck,
   Sparkles,
@@ -270,20 +271,31 @@ export function AgencyHomepageClient() {
                   </Link>
                 </Button>
               ) : (
-                <Button
-                  asChild
-                  className="rounded-full px-3 shadow-sm shadow-primary/20 sm:px-5"
-                  aria-label={getLocalizedValue(AGENCY_HOME_COPY.nav.pilotCta, language)}
-                >
-                  <a href={AGENCY_PILOT.bookingUrl}>
-                    <span className="sm:hidden">
-                      {language === "de" ? "Pilot-Check" : "Pilot check"}
-                    </span>
-                    <span className="hidden sm:inline">
-                      {getLocalizedValue(AGENCY_HOME_COPY.nav.pilotCta, language)}
-                    </span>
-                  </a>
-                </Button>
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="hidden rounded-full px-3 sm:inline-flex"
+                    onClick={handleGoogleSignIn}
+                  >
+                    <LogIn className="h-4 w-4" aria-hidden="true" />
+                    {getLocalizedValue(AGENCY_HOME_COPY.nav.signIn, language)}
+                  </Button>
+                  <Button
+                    asChild
+                    className="rounded-full px-3 shadow-sm shadow-primary/20 sm:px-5"
+                    aria-label={getLocalizedValue(AGENCY_HOME_COPY.nav.pilotCta, language)}
+                  >
+                    <a href={AGENCY_PILOT.bookingUrl}>
+                      <span className="sm:hidden">
+                        {language === "de" ? "Pilot-Check" : "Pilot check"}
+                      </span>
+                      <span className="hidden sm:inline">
+                        {getLocalizedValue(AGENCY_HOME_COPY.nav.pilotCta, language)}
+                      </span>
+                    </a>
+                  </Button>
+                </>
               )}
               <ThemeToggle />
             </div>
@@ -321,24 +333,12 @@ export function AgencyHomepageClient() {
                 </p>
 
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  {session ? (
-                    <Button asChild size="lg" className="rounded-full px-8">
-                      <Link href="/dashboard">
-                        {getLocalizedValue(
-                          AGENCY_HOME_COPY.nav.dashboard,
-                          language,
-                        )}
-                        <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button asChild size="lg" className="rounded-full px-8">
-                      <a href={AGENCY_PILOT.bookingUrl}>
-                        {getLocalizedValue(AGENCY_HOME_COPY.hero.primaryCta, language)}
-                        <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                      </a>
-                    </Button>
-                  )}
+                  <Button asChild size="lg" className="rounded-full px-8">
+                    <a href={AGENCY_PILOT.bookingUrl}>
+                      {getLocalizedValue(AGENCY_HOME_COPY.hero.primaryCta, language)}
+                      <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                    </a>
+                  </Button>
 
                   <Button asChild variant="ghost" size="lg" className="rounded-full px-8">
                     <a href="#workspace">
