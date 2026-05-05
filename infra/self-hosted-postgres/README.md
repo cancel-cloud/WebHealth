@@ -1,6 +1,6 @@
 # Self-Hosted Postgres Stack
 
-This stack replaces Neon with a Coolify-friendly Docker Compose deployment on Hetzner while preserving WebHealth's split DB contract:
+This stack runs WebHealth's PostgreSQL backend as a Coolify-friendly Docker Compose deployment on Hetzner while preserving the split DB contract:
 
 - `DATABASE_URL`: pooled runtime endpoint through PgBouncer on port `6432`
 - `DIRECT_DATABASE_URL`: private direct Postgres endpoint for Drizzle migrations, worker startup migrations, and `LISTEN/NOTIFY`
@@ -34,7 +34,7 @@ openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
 
 The default image pin is PostgreSQL `18.3` via `POSTGRES_BASE_IMAGE=postgres:18.3-bookworm`.
 
-If the first initialization fails before the init script creates the `webhealth` database and roles, remove the self-hosted Postgres data volume and redeploy before importing production data. The init scripts only run on a fresh cluster.
+If the first initialization fails before the init script creates the `webhealth` database and roles, remove the self-hosted Postgres data volume and redeploy before launch data is written. The init scripts only run on a fresh cluster.
 
 ## Runtime env mapping
 
@@ -80,8 +80,7 @@ docker compose --project-directory . -f infra/self-hosted-postgres/docker-compos
 docker compose --project-directory . -f infra/self-hosted-postgres/docker-compose.yml run --rm postgres bash -lc 'rm -rf "$PGDATA"/* && pgbackrest --stanza=webhealth --delta restore'
 ```
 
-## Migration docs
+## Related docs
 
-- Stack management and cutover guidance: [docs/self-hosted-postgres-operations.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/self-hosted-postgres-operations.md)
-- Neon migration and logical replication flow: [docs/self-hosted-postgres-migration.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/self-hosted-postgres-migration.md)
+- Stack management: [docs/self-hosted-postgres-operations.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/self-hosted-postgres-operations.md)
 - Monitoring deployment: [infra/monitoring/README.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/monitoring/README.md)

@@ -76,7 +76,7 @@ pnpm db:push
 pnpm db:seed:plan-settings
 ```
 
-Worker startup automatically runs any pending migrations from `drizzle/` via `ensureWorkerDatabaseReady` (auto-baselines `__drizzle_migrations` on first run) before entering the job loop, so production typically does not need a manual sync. Use `pnpm db:push` when you want to force-sync the schema from `packages/shared/src/db/schema.ts` outside the worker boot path (common for local dev).
+Worker startup automatically runs any pending migrations from `drizzle/` via `ensureWorkerDatabaseReady` before entering the job loop, so production typically does not need a manual sync. Use `pnpm db:push` when you want to force-sync the schema from `packages/shared/src/db/schema.ts` outside the worker boot path (common for local dev).
 
 ## Runbooks
 
@@ -84,7 +84,6 @@ Worker startup automatically runs any pending migrations from `drizzle/` via `en
 - Full deploy: [docs/deploy-runbook.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/deploy-runbook.md)
 - DB stack operations: [docs/self-hosted-postgres-operations.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/self-hosted-postgres-operations.md)
 - Monitoring stack: [infra/monitoring/README.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/infra/monitoring/README.md)
-- Neon migration + cutover: [docs/self-hosted-postgres-migration.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/self-hosted-postgres-migration.md)
 - GlitchTip monitoring: [docs/glitchtip.md](/Users/cancelcloud/Developer/DevBrew/WebHealth/docs/glitchtip.md)
 
 ## Queue-Only Processing Contract
