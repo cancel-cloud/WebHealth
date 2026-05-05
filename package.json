@@ -2,6 +2,9 @@
   "name": "webhealth-monorepo",
   "private": true,
   "packageManager": "pnpm@10.18.2",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "pnpm --filter @webhealth/web dev",
     "build": "pnpm --filter @webhealth/web build",
