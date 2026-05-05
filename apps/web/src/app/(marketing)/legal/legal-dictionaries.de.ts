@@ -68,7 +68,7 @@ export const legalDictionaryDe = {
             "Betrieb von Snapshot-Exporten, Live-Dashboards, Datenaktualisierungen und Property-Refreshes: Vertragserfüllung.",
             "Bearbeitung von Supportanfragen, Feedback und accountbezogener Kommunikation: Vertragserfüllung und berechtigtes Interesse an Support.",
             "Missbrauchsverhinderung, Sicherheit, Incident-Untersuchungen und Audit-Trails: berechtigte Interessen an Sicherheit, Betrugsprävention und zuverlässigem Betrieb.",
-            "Messung der Websitenutzung mit Google Analytics 4 nach Ihrer Einwilligung in Analytics-Cookies: Einwilligung.",
+            "Messung der Websitenutzung mit Google Analytics 4 und PostHog-Browser-Analytics nach Ihrer Einwilligung in Analytics-Cookies: Einwilligung.",
           ],
         },
         {
@@ -80,10 +80,11 @@ export const legalDictionaryDe = {
           ],
         },
         {
-          title: "Google Analytics 4 für Website-Tracking",
+          title: "Google Analytics 4 und PostHog für Website-Tracking",
           paragraphs: [
-            "Wir verwenden Google Analytics 4, um die Nutzung der Website zu messen. Dabei können insbesondere Seitenaufrufe, Navigations- und Interaktionsereignisse, ungefähre Geräte- und Browserinformationen sowie Referrer-Daten verarbeitet werden.",
-            "Google Analytics 4 wird erst aktiviert, nachdem Sie im Consent-Banner Analytics-Cookies akzeptiert haben. Wenn Sie ablehnen, wird das Google-Tag nicht geladen. Ihre Auswahl können Sie später jederzeit über die Cookie-Einstellungen im Footer ändern.",
+            "Wir verwenden Google Analytics 4 und PostHog-Browser-Analytics, um die Nutzung der Website zu messen. Dabei können insbesondere Seitenaufrufe, Navigations- und Interaktionsereignisse, ungefähre Geräte- und Browserinformationen sowie Referrer-Daten verarbeitet werden.",
+            "Google Analytics 4 und PostHog-Browser-Analytics werden erst aktiviert, nachdem Sie im Consent-Banner Analytics-Cookies akzeptiert haben. Wenn Sie ablehnen, werden diese Browser-Analytics-Tags nicht geladen. Ihre Auswahl können Sie später jederzeit über die Cookie-Einstellungen im Footer ändern.",
+            "PostHog-Browser-Traffic wird über unseren verwalteten Reverse Proxy an die PostHog-EU-Instanz weitergeleitet.",
           ],
         },
         {
@@ -102,7 +103,7 @@ export const legalDictionaryDe = {
             "Vercel Inc. (San Francisco, USA) zum Hosting und Ausliefern der Webanwendung; das Frontend wird in der Vercel-Region Frankfurt (EU) betrieben.",
             "Hetzner Online GmbH (Industriestraße 25, 91710 Gunzenhausen, Deutschland) für den Betrieb der selbst verwalteten PostgreSQL-Datenbank und der Worker-Infrastruktur im Rechenzentrum Nürnberg (EU). Es besteht ein Auftragsverarbeitungsvertrag mit Hetzner.",
             "GlitchTip zur Erfassung operativer Fehler und sicherheitsrelevanter Ausnahmen — selbst gehostet auf Hetzner-Infrastruktur in Nürnberg, ohne Übermittlung an Dritte.",
-            "PostHog Inc. (San Francisco, USA), betrieben über die EU-Instanz in Frankfurt, für serverseitige Produktanalyse (z. B. Snapshot-Erstellungs- und Plan-Events). PostHog setzt im Browser keine eigenen Cookies; die Daten werden serverseitig an die EU-Instanz übermittelt. Es ist ein Auftragsverarbeitungsvertrag abgeschlossen.",
+            "PostHog Inc. (San Francisco, USA), betrieben über die EU-Instanz in Frankfurt, für serverseitige Produktanalyse und einwilligungsbasierte Browser-Analytics über unseren verwalteten Reverse Proxy. Es ist ein Auftragsverarbeitungsvertrag abgeschlossen.",
             "Vercel Analytics zur cookielosen Messung von Seitenaufrufen, Referrern, Gerätetyp und Herkunftsland. Vercel verarbeitet diese Daten auf eigener Infrastruktur; IP-Adressen werden nicht dauerhaft gespeichert.",
           ],
         },
@@ -153,7 +154,7 @@ export const legalDictionaryDe = {
           title: "Cookies und sonstiger Gerätespeicher",
           paragraphs: [
             "Wir verwenden Cookies und sonstigen Gerätespeicher, die für den Betrieb des Dienstes und die Speicherung einfacher UI-Zustände erforderlich sind. Dazu zählen Authentifizierungs-/Sitzungs-Cookies, ein Sidebar-State-Cookie sowie Local-Storage-Einträge für Onboarding, ausstehende UI-Aktionen und Ihre gespeicherte Analytics-Einwilligung.",
-            "Wenn Sie Analytics-Cookies akzeptieren, laden wir zusätzlich das Google-Tag für Google Analytics 4 zur Reichweitenmessung der Website. Wenn Sie ablehnen, bleibt das Google-Tag deaktiviert.",
+            "Wenn Sie Analytics-Cookies akzeptieren, laden wir zusätzlich das Google-Tag für Google Analytics 4 zur Reichweitenmessung der Website und PostHog-Browser-Analytics über unseren verwalteten Reverse Proxy. Wenn Sie ablehnen, bleiben diese Browser-Analytics-Tags deaktiviert.",
           ],
         },
         {

@@ -74,3 +74,47 @@ test("reportWorkerFatalError captures worker failures and flushes", async () => 
   captureException.mock.restore();
   close.mock.restore();
 });
+
+test("reportWorkerFatalError emits a sanitized PostHog worker error event", async () => {
+  const withScope = mock.method(Sentry, "withScope", () => undefined);
+  const captureException = mock.method(Sentry, "captureException", (error: unknown) => error);
+  const close = mock.method(Sentry, "close", async () => true);
+  const events: unknown[] = [];
+
+  await reportWorkerFatalError(
+    new Error("Database password=s3cret failed at /Users/person/app.ts"),
+    {
+      phase: "database-ready",
+      teamId: "team_1",
+      userId: "user_pg_123",
+      jobId: "job_123",
+      stack: "raw stack",
+      token: "secret",
+    },
+    { SENTRY_DSN: "https://public@example-glitchtip.dev/1" },
+    (event) => {
+      events.push(event);
+    },
+  );
+
+  assert.deepEqual(events, [
+    {
+      teamId: "team_1",
+      userId: "user_pg_123",
+      name: "worker_error_reported",
+      source: "worker",
+      entityType: "worker",
+      entityId: "database-ready",
+      properties: {
+        errorSurface: "worker",
+        phase: "database-ready",
+        message: "Database password=[REDACTED] failed at [REDACTED_PATH]",
+        jobId: "job_123",
+      },
+    },
+  ]);
+
+  withScope.mock.restore();
+  captureException.mock.restore();
+  close.mock.restore();
+});

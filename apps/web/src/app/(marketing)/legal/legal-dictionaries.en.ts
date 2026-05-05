@@ -68,7 +68,7 @@ export const legalDictionaryEn = {
             "Operate snapshot exports, live dashboards, source-data refreshes, and property refreshes: performance of a contract.",
             "Handle support requests, feedback, and account communications: performance of a contract and our legitimate interest in user support.",
             "Prevent abuse, secure the service, investigate incidents, and maintain audit trails: legitimate interests in security, fraud prevention, and reliable operations.",
-            "Measure website usage with Google Analytics 4 after you accept analytics cookies: consent.",
+            "Measure website usage with Google Analytics 4 and PostHog browser analytics after you accept analytics cookies: consent.",
           ],
         },
         {
@@ -80,10 +80,11 @@ export const legalDictionaryEn = {
           ],
         },
         {
-          title: "Google Analytics 4 website tracking",
+          title: "Google Analytics 4 and PostHog website tracking",
           paragraphs: [
-            "We use Google Analytics 4 to measure how visitors use the website, including page views, navigation events, approximate device and browser details, referrer information, and interaction events.",
-            "Google Analytics 4 is activated only after you accept analytics cookies in the consent banner. If you decline, the Google tag is not loaded. You can change your choice later at any time through Cookie settings in the footer.",
+            "We use Google Analytics 4 and PostHog browser analytics to measure how visitors use the website, including page views, navigation events, approximate device and browser details, referrer information, and interaction events.",
+            "Google Analytics 4 and PostHog browser analytics are activated only after you accept analytics cookies in the consent banner. If you decline, these browser analytics tags are not loaded. You can change your choice later at any time through Cookie settings in the footer.",
+            "PostHog browser traffic is sent through our managed reverse proxy before reaching the PostHog EU instance.",
           ],
         },
         {
@@ -102,7 +103,7 @@ export const legalDictionaryEn = {
             "Vercel Inc. (San Francisco, USA), to host and serve the web application; the frontend runs in the Vercel Frankfurt (EU) region.",
             "Hetzner Online GmbH (Industriestraße 25, 91710 Gunzenhausen, Germany), to host the self-managed PostgreSQL database and the worker infrastructure in the Nuremberg (EU) data center. A data processing agreement with Hetzner is in place.",
             "GlitchTip, to capture operational errors and security-relevant exceptions — self-hosted on Hetzner infrastructure in Nuremberg, with no transfer to any third party.",
-            "PostHog Inc. (San Francisco, USA), operated via the EU instance in Frankfurt, for server-side product analytics (e.g., snapshot-creation and plan events). PostHog does not set its own browser cookies; data is sent server-side to the EU instance. A data processing addendum is in place.",
+            "PostHog Inc. (San Francisco, USA), operated via the EU instance in Frankfurt, for server-side product analytics and consent-based browser analytics routed through our managed reverse proxy. A data processing addendum is in place.",
             "Vercel Analytics, for cookieless measurement of page views, referrers, device type, and country of origin. Vercel processes this data on its own infrastructure; IP addresses are not stored persistently.",
           ],
         },
@@ -153,7 +154,7 @@ export const legalDictionaryEn = {
           title: "Cookies and device storage",
           paragraphs: [
             "We use cookies and other device storage that are necessary to run the service and remember basic UI state. This includes authentication/session cookies, a sidebar-state cookie, and local storage entries used for onboarding, pending UI actions, and your saved analytics consent preference.",
-            "If you accept analytics cookies, we also load the Google tag for Google Analytics 4 website measurement. If you decline, the Google tag remains disabled.",
+            "If you accept analytics cookies, we also load the Google tag for Google Analytics 4 website measurement and PostHog browser analytics through our managed reverse proxy. If you decline, those browser analytics tags remain disabled.",
           ],
         },
         {

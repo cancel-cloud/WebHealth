@@ -6,6 +6,7 @@
 - 
 - YT-Short testing?
 
+- Posthog Dashboard is missing completly + posthog install check!
 
 
 # DONE
