@@ -188,6 +188,7 @@ export function AgencyHomepageClient() {
   const heroTitle = getLocalizedValue(AGENCY_HOME_COPY.hero.title, language);
   const howTitle = getLocalizedValue(AGENCY_HOME_COPY.how.title, language);
   const pricingLabels = LEGAL_NAV_LABELS[language];
+  const agencyPricingPlan = AGENCY_PRICING_PLANS.find((plan) => plan.tier === "agency");
 
   const handleGoogleSignIn = async () => {
     await authClient.signIn.social({
@@ -1528,6 +1529,53 @@ export function AgencyHomepageClient() {
                   </article>
                 ))}
               </div>
+
+              {agencyPricingPlan ? (
+                <article className="mt-6 rounded-lg border border-border bg-card p-6 shadow-sm">
+                  <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
+                    <div>
+                      <h3 className="font-display text-sm font-semibold uppercase tracking-[0.2em]">
+                        {getLocalizedValue(agencyPricingPlan.name, language)}
+                      </h3>
+                      <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+                        {getLocalizedValue(agencyPricingPlan.description, language)}
+                      </p>
+                      {agencyPricingPlan.note ? (
+                        <p className="mt-3 text-sm font-semibold text-foreground">
+                          {getLocalizedValue(agencyPricingPlan.note, language)}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="md:min-w-56">
+                      <div className="flex items-end gap-2">
+                        <span className="font-display text-4xl font-bold">
+                          {getLocalizedValue(agencyPricingPlan.price, language)}
+                        </span>
+                        <span className="pb-1 text-sm text-muted-foreground">
+                          {getLocalizedValue(agencyPricingPlan.period, language)}
+                        </span>
+                      </div>
+                      <Button asChild className="mt-4 h-10 w-full rounded-full">
+                        <a href="mailto:kontakt@devbrew.dev?subject=Webhealth%20Agency%20Interest">
+                          {getLocalizedValue(agencyPricingPlan.cta, language)}
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <ul className="mt-6 grid gap-3 text-sm md:grid-cols-2">
+                    {agencyPricingPlan.features.map((feature) => (
+                      <li key={feature.en} className="flex items-start gap-3">
+                        <Check
+                          className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+                          aria-hidden="true"
+                        />
+                        <span>{getLocalizedValue(feature, language)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              ) : null}
 
             </div>
           </section>
