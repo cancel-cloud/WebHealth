@@ -20,9 +20,7 @@ interface TierSetting {
   id: string;
   tier: string;
   displayName: string;
-  reportsPerMonth: number | null;
   maxProperties: number | null;
-  detailsPerMonth: number | null;
   updatedAt: string;
 }
 
@@ -41,9 +39,7 @@ export function SettingsForm({ initialSettings }: { initialSettings: TierSetting
   const [settings, setSettings] = useState(
     initialSettings.map((s) => ({
       ...s,
-      reportsInput: limitToString(s.reportsPerMonth),
       propertiesInput: limitToString(s.maxProperties),
-      detailsInput: limitToString(s.detailsPerMonth),
       saving: false,
       saved: false,
     })),
@@ -51,7 +47,7 @@ export function SettingsForm({ initialSettings }: { initialSettings: TierSetting
 
   const updateField = (
     tier: string,
-    field: "reportsInput" | "propertiesInput" | "detailsInput",
+    field: "propertiesInput",
     value: string,
   ) => {
     setSettings((prev) =>
@@ -69,9 +65,7 @@ export function SettingsForm({ initialSettings }: { initialSettings: TierSetting
 
     const body = {
       tier,
-      reportsPerMonth: stringToLimit(row.reportsInput),
       maxProperties: stringToLimit(row.propertiesInput),
-      detailsPerMonth: stringToLimit(row.detailsInput),
     };
 
     try {
@@ -101,8 +95,6 @@ export function SettingsForm({ initialSettings }: { initialSettings: TierSetting
       <TableHeader>
         <TableRow>
           <TableHead>Tier</TableHead>
-          <TableHead>Reports / Month</TableHead>
-          <TableHead>Deep Dives / Month</TableHead>
           <TableHead>Max Properties</TableHead>
           <TableHead className="w-24" />
         </TableRow>
@@ -112,22 +104,6 @@ export function SettingsForm({ initialSettings }: { initialSettings: TierSetting
           <TableRow key={row.tier}>
             <TableCell>
               <Badge variant="outline">{row.displayName}</Badge>
-            </TableCell>
-            <TableCell>
-              <Input
-                value={row.reportsInput}
-                onChange={(e) => updateField(row.tier, "reportsInput", e.target.value)}
-                placeholder="Unlimited"
-                className="w-32"
-              />
-            </TableCell>
-            <TableCell>
-              <Input
-                value={row.detailsInput}
-                onChange={(e) => updateField(row.tier, "detailsInput", e.target.value)}
-                placeholder="Unlimited"
-                className="w-32"
-              />
             </TableCell>
             <TableCell>
               <Input

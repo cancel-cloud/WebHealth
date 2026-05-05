@@ -14,26 +14,32 @@ const PLANS = [
     features: PRICING_PLANS.solo.features,
   },
   {
-    name: PRICING_PLANS.pro.name,
-    price: PRICING_PLANS.pro.priceLabel,
+    name: PRICING_PLANS.starter.name,
+    price: PRICING_PLANS.starter.priceLabel,
     period: "per month",
-    description: "For professionals who need more power.",
+    description: PRICING_PLANS.starter.description,
     active: false,
-    features: PRICING_PLANS.pro.features,
+    features: PRICING_PLANS.starter.features,
+  },
+  {
+    name: PRICING_PLANS.studio.name,
+    price: PRICING_PLANS.studio.priceLabel,
+    period: "per month",
+    description: PRICING_PLANS.studio.description,
+    active: false,
+    features: PRICING_PLANS.studio.features,
   },
   {
     name: PRICING_PLANS.agency.name,
     price: PRICING_PLANS.agency.priceLabel,
     period: "per month",
-    description: "For agencies managing multiple clients.",
+    description: PRICING_PLANS.agency.description,
     active: false,
     features: [
-      "Unlimited properties",
-      "Unlimited reports",
-      "Team members (up to 5)",
-      "Priority AI processing",
-      "White-label exports",
-      "Priority support",
+      "Planned agency collaboration",
+      "Client permissions planned",
+      "Custom domain planned",
+      "SSO planned",
     ],
   },
 ];
@@ -57,7 +63,7 @@ export default function PlanPage() {
         <p className="text-muted-foreground mt-1">Choose the plan that fits your needs.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {PLANS.map((plan) => (
           <div
             key={plan.name}

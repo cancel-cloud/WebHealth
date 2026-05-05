@@ -10,7 +10,8 @@ const repoRoot = path.resolve(
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 function getConfiguredDevOriginHost() {
-  const value = process.env.NEXT_PUBLIC_BETTER_AUTH_URL ?? process.env.BETTER_AUTH_URL;
+  const value =
+    process.env.NEXT_PUBLIC_BETTER_AUTH_URL ?? process.env.BETTER_AUTH_URL;
   if (!value) return null;
   try {
     return new URL(value).host;
@@ -21,11 +22,9 @@ function getConfiguredDevOriginHost() {
 
 const allowedDevOrigins = Array.from(
   new Set(
-    [
-      getConfiguredDevOriginHost(),
-      "webaudit-25.localcan.dev",
-      "webaudit-48.localcan.dev",
-    ].filter((origin): origin is string => Boolean(origin)),
+    [getConfiguredDevOriginHost(), "webaudit-25.localcan.dev"].filter(
+      (origin): origin is string => Boolean(origin),
+    ),
   ),
 );
 
@@ -58,6 +57,10 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
         ],
       },
     ];

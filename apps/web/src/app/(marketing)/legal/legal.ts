@@ -27,25 +27,33 @@ export function buildLegalMetadata(
 ): Metadata {
   const document = getLegalDocument(locale, documentId);
   const path = LEGAL_DOCUMENT_PATHS[documentId];
+  const tagline =
+    locale === "de"
+      ? "Webhealth · Webanalyse & SEO"
+      : "Webhealth · Web Analytics & SEO";
+  const metaTitle = `${document.title} — ${tagline}`;
+  const localePath = locale === "de" ? `${path}?lang=de` : path;
 
   return {
-    title: `${document.title} — Webhealth`,
+    title: metaTitle,
     description: document.description,
     alternates: {
-      canonical: path,
+      canonical: localePath,
       languages: {
         en: path,
         de: `${path}?lang=de`,
       },
     },
     openGraph: {
-      title: `${document.title} — Webhealth`,
+      title: metaTitle,
       description: document.description,
-      url: locale === "de" ? `${BASE_URL}${path}?lang=de` : `${BASE_URL}${path}`,
+      url: `${BASE_URL}${localePath}`,
+      images: ["/og-image.png"],
     },
     twitter: {
-      title: `${document.title} — Webhealth`,
+      title: metaTitle,
       description: document.description,
+      images: ["/og-image.png"],
     },
   };
 }

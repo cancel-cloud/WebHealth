@@ -18,9 +18,7 @@ export interface PlanLimits {
   id: string;
   tier: string;
   displayName: string;
-  reportsPerMonth: number | null;
   maxProperties: number | null;
-  detailsPerMonth: number | null;
   updatedAt: string;
 }
 
@@ -36,10 +34,6 @@ export interface AdminUser {
   teamName: string | null;
   tier: string | null;
   propertiesCount: number;
-  reportsCount: number;
-  reportsLast30Days: number;
-  deepDivesTotal: number;
-  deepDivesThisMonth: number;
   lastSyncedAt: string | null;
   lastSignedInAt: string | null;
   planLimits: PlanLimits | null;
@@ -72,7 +66,6 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
             <TableHead>Email</TableHead>
             <TableHead>Plan</TableHead>
             <TableHead className="text-right">Properties</TableHead>
-            <TableHead className="text-right">Reports</TableHead>
             <TableHead>Last Sign In</TableHead>
             <TableHead>Joined</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -98,7 +91,6 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
                 <Badge variant="outline">{u.tier ?? "free"}</Badge>
               </TableCell>
               <TableCell className="text-right">{u.propertiesCount}</TableCell>
-              <TableCell className="text-right">{u.reportsCount}</TableCell>
               <TableCell className="text-muted-foreground text-sm">
                 {u.lastSignedInAt
                   ? new Date(u.lastSignedInAt).toLocaleDateString()
@@ -124,7 +116,7 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
           ))}
           {filtered.length === 0 && (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                 No users found
               </TableCell>
             </TableRow>

@@ -21,7 +21,7 @@ flowchart LR
 | Service | Responsibility | Must Not Do |
 |---|---|---|
 | `apps/web` | Render UI, authenticate, enqueue jobs, read report/job state | Run long background report generation in HTTP handlers |
-| `apps/worker` | Claim jobs, process report pipeline, write status/events/artifacts | Serve product UI |
+| `apps/worker` | Claim jobs, process report pipeline, write status, events, and snapshots | Serve product UI |
 | PostgreSQL | Queue + source of truth (`report_jobs`, `reports`, events) | App-specific orchestration logic |
 
 ## Monorepo Layout

@@ -3,8 +3,10 @@ import { db } from "../db";
 import { productEvents } from "../db/schema";
 import {
   type BuildProductEventPayloadInput,
+  buildPosthogCaptureEndpoint,
   buildPosthogCapturePayload,
   buildProductEventPayload,
+  resolvePosthogProjectToken,
 } from "./product-events";
 
 export async function recordProductEvent(input: BuildProductEventPayloadInput) {
@@ -27,16 +29,17 @@ export async function recordProductEvent(input: BuildProductEventPayloadInput) {
 async function sendPosthogCapture(payload: ReturnType<typeof buildProductEventPayload>) {
   const capturePayload = buildPosthogCapturePayload(
     {
-      apiKey: process.env.POSTHOG_API_KEY ?? process.env.NEXT_PUBLIC_POSTHOG_KEY,
-      host: process.env.POSTHOG_HOST,
+      projectToken: resolvePosthogProjectToken(process.env),
+      host: process.env.POSTHOG_CAPTURE_HOST ?? process.env.POSTHOG_HOST,
     },
     payload,
   );
   if (!capturePayload) return;
 
-  const host = process.env.POSTHOG_HOST ?? "https://app.posthog.com";
   try {
-    await fetch(`${host.replace(/\/$/, "")}/capture/`, {
+    await fetch(buildPosthogCaptureEndpoint({
+      host: process.env.POSTHOG_CAPTURE_HOST ?? process.env.POSTHOG_HOST,
+    }), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(capturePayload),

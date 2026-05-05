@@ -1,6 +1,5 @@
 export type AppSidebarIconKey =
   | "dashboard"
-  | "reports"
   | "properties"
   | "settings"
   | "support"
@@ -49,6 +48,15 @@ export type AppSidebarModel = {
   adminItems: AppSidebarItem[];
   supportGroup: AppSidebarGroup;
 };
+
+export const APP_SIDEBAR_PROPERTIES_REFRESH_EVENT = "webhealth:sidebar-properties-refresh";
+
+export function dispatchAppSidebarPropertiesRefresh(
+  target: Pick<Window, "dispatchEvent"> | null | undefined =
+    typeof window === "undefined" ? undefined : window,
+) {
+  target?.dispatchEvent(new Event(APP_SIDEBAR_PROPERTIES_REFRESH_EVENT));
+}
 
 export function getAppSidebarFooterThemeOptions() {
   return [
@@ -104,33 +112,29 @@ function isPathCurrent(pathname: string, href: string) {
 }
 
 function isSettingsCurrent(pathname: string, tab: string | null, href: string) {
-  if (pathname !== href) return false;
-  return tab !== "contact";
+  if (!(pathname === href || pathname.startsWith(`${href}/`))) return false;
+  return !(pathname === href && tab === "contact");
 }
 
 export function getAppSidebarModel({
   pathname,
   isAdmin,
   tab = null,
+  view = null,
 }: {
   pathname: string;
   isAdmin: boolean;
   tab?: string | null;
+  view?: string | null;
 }): AppSidebarModel {
+  const aiInsightsCurrent = pathname === "/dashboard" && view === "ai-insights";
   const primaryItems: AppSidebarItem[] = [
     {
       id: "dashboard",
-      label: "Dashboard",
+      label: "Overview",
       href: "/dashboard",
       icon: "dashboard",
-      current: isPathCurrent(pathname, "/dashboard"),
-    },
-    {
-      id: "reports",
-      label: "Reports",
-      href: "/reports",
-      icon: "reports",
-      current: isPathCurrent(pathname, "/reports"),
+      current: isPathCurrent(pathname, "/dashboard") && !aiInsightsCurrent,
     },
     {
       id: "properties",
@@ -138,6 +142,13 @@ export function getAppSidebarModel({
       href: "/properties",
       icon: "properties",
       current: isPathCurrent(pathname, "/properties"),
+    },
+    {
+      id: "ai-insights",
+      label: "AI Insights",
+      href: "/dashboard?view=ai-insights",
+      icon: "bot",
+      current: aiInsightsCurrent,
     },
     {
       id: "settings",
@@ -200,15 +211,15 @@ export function getAppSidebarModel({
           current: isPathCurrent(pathname, "/admin/global-settings"),
         },
         {
-          id: "admin-ai-report-settings",
-          label: "AI Report Settings",
-          href: "/admin/ai-report-settings",
+          id: "admin-ai-prompts",
+          label: "AI Prompts",
+          href: "/admin/ai-prompts",
           icon: "bot",
-          current: isPathCurrent(pathname, "/admin/ai-report-settings"),
+          current: isPathCurrent(pathname, "/admin/ai-prompts"),
         },
         {
           id: "admin-ai-report-debug",
-          label: "AI Debug Console",
+          label: "Ops Debug Console",
           href: "/admin/ai-report-debug",
           icon: "bug",
           current: isPathCurrent(pathname, "/admin/ai-report-debug"),

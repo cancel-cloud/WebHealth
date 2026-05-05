@@ -9,7 +9,6 @@ WebHealth currently uses GlitchTip for error monitoring.
 Included:
 
 - `apps/web` browser, server, edge, and route-handler error reporting
-- handled artifact-download infrastructure failures in `apps/web`
 - fatal `apps/worker` startup/runtime crash reporting
 
 Not included:
@@ -37,7 +36,6 @@ Error capture points:
 - `apps/web/src/app/global-error.tsx`
 - `apps/web/src/lib/client/report-error.ts`
 - `apps/web/src/lib/server/route-security.ts`
-- `apps/web/src/app/api/reports/[id]/download/route.ts`
 
 ### Worker (`apps/worker`)
 
@@ -103,7 +101,6 @@ The web app reports:
 - fatal shell-level failures through `global-error.tsx`
 - unexpected client request/network/parsing failures from the shared client API layer
 - unexpected route-handler exceptions via `handleRouteError(...)`
-- handled artifact download infrastructure failures when the worker is unreachable or returns a non-success response
 
 ### Worker
 
@@ -127,7 +124,6 @@ When the worker fails during direct DB bootstrap, the event context includes:
 The current setup intentionally does not report:
 
 - normal handled 4xx application errors
-- `ARTIFACT_NOT_FOUND` download responses
 - performance transactions
 - source map upload metadata
 
@@ -163,15 +159,6 @@ Expected:
 
 - the route still returns a sanitized error payload
 - GlitchTip receives the exception
-
-### Artifact download smoke test
-
-Trigger a report download while the artifact worker is unreachable or misconfigured.
-
-Expected:
-
-- the download endpoint returns a safe `502` or `503` payload
-- GlitchTip receives an event tagged as a handled route failure
 
 ### Worker crash smoke test
 

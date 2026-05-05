@@ -13,6 +13,8 @@ import { getGoogleAccessIssueFromCode } from "@/components/google-access-recover
 export type PropertiesSyncResult = {
   gscCount: number;
   ga4Count: number;
+  discoveredGscCount?: number;
+  discoveredGa4Count?: number;
   autoLinked: number;
 };
 
@@ -26,13 +28,27 @@ export async function runPropertiesSync(): Promise<PropertiesSyncResult> {
   const data = await requestJson<PropertiesSyncResult>("/api/properties/sync", {
     method: "POST",
   });
-  return data ?? { gscCount: 0, ga4Count: 0, autoLinked: 0 };
+  return data ?? { gscCount: 0, ga4Count: 0, discoveredGscCount: 0, discoveredGa4Count: 0, autoLinked: 0 };
 }
 
 export function formatPropertiesSyncSuccess(data: PropertiesSyncResult) {
-  if (data.gscCount === 0 && data.ga4Count === 0) {
+  const discoveredGscCount = data.discoveredGscCount ?? data.gscCount;
+  const discoveredGa4Count = data.discoveredGa4Count ?? data.ga4Count;
+  const discoveredTotal = discoveredGscCount + discoveredGa4Count;
+
+  if (discoveredTotal === 0) {
     return "No Google Search Console or Analytics properties are associated with this Google account yet.";
   }
+
+  if (data.gscCount === 0 && data.ga4Count === 0) {
+    const parts = [];
+    if (discoveredGscCount > 0) parts.push(`${discoveredGscCount} GSC`);
+    if (discoveredGa4Count > 0) parts.push(`${discoveredGa4Count} GA4`);
+    const discoveredSummary = parts.join(", ");
+    const autoMsg = data.autoLinked > 0 ? ` • ${data.autoLinked} auto-linked` : "";
+    return `Google returned ${discoveredSummary}. Everything was already synced${autoMsg}.`;
+  }
+
   const parts = [];
   if (data.gscCount > 0) parts.push(`${data.gscCount} GSC`);
   if (data.ga4Count > 0) parts.push(`${data.ga4Count} GA4`);

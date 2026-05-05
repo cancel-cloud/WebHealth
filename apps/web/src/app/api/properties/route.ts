@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { db } from "@webhealth/shared/db";
-import { getWeeklyReviewLimit } from "@webhealth/shared/lib/weekly-review";
 import { buildCombinedReportableProperties } from "@webhealth/shared/lib/properties/reportable-properties";
 import { requireAnyTeamMembership, requireUnrestrictedSession } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";
@@ -17,44 +16,29 @@ export async function GET() {
     const teamProperties = await db.query.properties.findMany({
       where: (p, { eq }) => eq(p.teamId, teamId),
     });
-    const team = await db.query.teams.findFirst({
-      where: (t, { eq }) => eq(t.id, teamId),
-      columns: { tier: true },
-    });
-    const weeklyReviews = await db.query.propertyWeeklyReviews.findMany({
-      where: (p, { and, eq }) => and(eq(p.teamId, teamId), eq(p.enabled, true)),
-      columns: { propertyId: true },
-    });
-    const watchedPropertyIds = new Set(weeklyReviews.map((review) => review.propertyId));
-    const weeklyReviewLimit = getWeeklyReviewLimit(team?.tier ?? "free");
-    const weeklyReviewWatchedCount = watchedPropertyIds.size;
-    const propertiesWithWeeklyReviews = teamProperties.map((property) => ({
-      ...property,
-      weeklyReviewEnabled: watchedPropertyIds.has(property.id),
-      weeklyReviewLimit,
-      weeklyReviewWatchedCount,
-    }));
+    const activePropertyIds = new Set(teamProperties.filter((property) => property.active).map((property) => property.id));
 
-    const reportableProperties = buildCombinedReportableProperties(teamProperties).map((p) => ({
-      id: p.id,
-      teamId: p.teamId,
-      label: p.label,
-      gscPropertyId: p.gscPropertyId,
-      gscName: p.gscName,
-      gscUrl: p.gscUrl,
-      ga4PropertyId: p.ga4PropertyId,
-      ga4DbId: p.ga4DbId,
-      ga4Name: p.ga4Name,
-      isLinked: p.isLinked,
-    }));
+    const reportableProperties = buildCombinedReportableProperties(teamProperties)
+      .filter((p) => p.gscPropertyId !== null)
+      .map((p) => ({
+        id: p.id,
+        teamId: p.teamId,
+        label: p.label,
+        gscPropertyId: p.gscPropertyId!,
+        gscName: p.gscName!,
+        gscUrl: p.gscUrl!,
+        ga4PropertyId: p.ga4PropertyId,
+        ga4DbId: p.ga4DbId,
+        ga4Name: p.ga4Name,
+        isLinked: p.isLinked,
+        sourceCoverage: p.sourceCoverage,
+        active: p.active,
+      }));
 
     return NextResponse.json({
-      properties: propertiesWithWeeklyReviews,
+      properties: teamProperties,
       reportableProperties,
-      weeklyReview: {
-        limit: weeklyReviewLimit,
-        watchedCount: weeklyReviewWatchedCount,
-      },
+      activePropertiesCount: activePropertyIds.size,
     });
   } catch (error) {
     return handleRouteError("Error fetching properties", error);

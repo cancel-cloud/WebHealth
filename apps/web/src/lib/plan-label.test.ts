@@ -5,7 +5,8 @@ import { formatPlanName, getPlanStatusLabel } from "./plan-label";
 
 test("formatPlanName maps free-tier plan names to Solo Plan", () => {
   assert.equal(formatPlanName("free"), "Solo Plan");
-  assert.equal(formatPlanName("pro"), "Pro Plan");
+  assert.equal(formatPlanName("starter"), "Starter Plan");
+  assert.equal(formatPlanName("studio"), "Studio Plan");
   assert.equal(formatPlanName("agency"), "Agency Plan");
   assert.equal(formatPlanName(undefined), "Solo Plan");
 });

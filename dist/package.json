@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@10.18.2",
   "engines": {
-    "node": "20"
+    "node": "24.x"
   },
   "main": "./apps/worker/src/main.js",
   "scripts": {
@@ -13,14 +13,13 @@
   },
   "dependencies": {
     "@better-fetch/fetch": "^1.1.21",
-    "@sentry/node": "^10.47.0",
+    "@sentry/node": "^10.51.0",
     "better-auth": "^1.6.0",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.3.1",
     "drizzle-orm": "^0.45.2",
-    "exceljs": "^4.4.0",
     "googleapis": "^171.4.0",
     "nanoid": "^5.1.6",
     "openai": "^6.22.0",

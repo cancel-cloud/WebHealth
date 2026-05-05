@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WebHealth LinkedIn Pilot Dashboard</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --ink: #18212f;
+        --muted: #667085;
+        --line: #d9dee7;
+        --blue: #2563eb;
+        --green: #15803d;
+        --amber: #b45309;
+        --red: #b91c1c;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.45;
+      }
+      main { max-width: 1180px; margin: 0 auto; padding: 32px 20px 56px; }
+      header { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin-bottom: 24px; }
+      h1 { margin: 0; font-size: 30px; letter-spacing: 0; }
+      p { margin: 0; color: var(--muted); }
+      .grid { display: grid; gap: 16px; }
+      .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 18px; }
+      .metric, .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px;
+      }
+      .metric strong { display: block; font-size: 28px; margin-bottom: 4px; }
+      .metric span { color: var(--muted); font-size: 13px; }
+      .columns { grid-template-columns: 1.15fr 0.85fr; align-items: start; }
+      h2 { margin: 0 0 12px; font-size: 18px; }
+      table { width: 100%; border-collapse: collapse; font-size: 14px; }
+      th, td { border-bottom: 1px solid var(--line); padding: 10px 8px; text-align: left; vertical-align: top; }
+      th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+      .tag { display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 12px; border: 1px solid var(--line); white-space: nowrap; }
+      .p1 { color: var(--red); border-color: #fecaca; background: #fff1f2; }
+      .p2 { color: var(--amber); border-color: #fed7aa; background: #fff7ed; }
+      .p3 { color: var(--blue); border-color: #bfdbfe; background: #eff6ff; }
+      .done { color: var(--green); border-color: #bbf7d0; background: #f0fdf4; }
+      .task {
+        display: grid;
+        grid-template-columns: 20px 1fr;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .task:last-child { border-bottom: 0; }
+      .task label { font-weight: 600; }
+      .task small { display: block; color: var(--muted); margin-top: 3px; }
+      textarea {
+        width: 100%;
+        min-height: 78px;
+        resize: vertical;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        font: inherit;
+        color: var(--ink);
+      }
+      .legal { border-left: 4px solid var(--amber); }
+      a { color: var(--blue); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      @media (max-width: 900px) {
+        header, .columns { display: block; }
+        .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .panel { margin-top: 16px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>WebHealth LinkedIn Pilot</h1>
+          <p>Manual, low-volume, law-safe outreach tracker. No cold pitch before a real reply.</p>
+        </div>
+        <p>Last updated: 2026-05-04</p>
+      </header>
+
+      <section class="grid metrics">
+        <div class="metric"><strong>12</strong><span>Total prospects</span></div>
+        <div class="metric"><strong>2</strong><span>Already contacted</span></div>
+        <div class="metric"><strong>1</strong><span>Personalized invite left</span></div>
+        <div class="metric"><strong>0</strong><span>Pilot replies yet</span></div>
+      </section>
+
+      <section class="grid columns">
+        <div class="panel">
+          <h2>Prospect Plan</h2>
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Status</th><th>Approach</th><th>Priority</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><a href="https://www.linkedin.com/in/seo-freelancer-markus-antoni/">Markus Antoni</a></td><td><span class="tag done">contacted</span></td><td>Wait for accept/reply</td><td><span class="tag p1">P1</span></td></tr>
+              <tr><td><a href="https://www.linkedin.com/in/dani-leitner/">Dani Leitner</a></td><td><span class="tag">open</span></td><td>Comment first</td><td><span class="tag p1">P1</span></td></tr>
+              <tr><td><a href="https://www.linkedin.com/in/seo-freelancer-jan-jecke/">Jan Jecke</a></td><td><span class="tag">open</span></td><td>Comment first</td><td><span class="tag p1">P1</span></td></tr>
+              <tr><td><a href="https://www.linkedin.com/in/toni-frisch/">Toni Frisch</a></td><td><span class="tag">open</span></td><td>Comment first</td><td><span class="tag p1">P1</span></td></tr>
+              <tr><td><a href="https://www.linkedin.com/in/christoph-meleschnig-7b4206197/">Christoph Meleschnig</a></td><td><span class="tag">open</span></td><td>Comment first</td><td><span class="tag p1">P1</span></td></tr>
+              <tr><td><a href="https://www.linkedin.com/in/michael-tietz-search-expert/">Michael Tietz</a></td><td><span class="tag">open</span></td><td>Use final invite note or delay</td><td><span class="tag p2">P2</span></td></tr>
+              <tr><td><a href="https://www.linkedin.com/in/bernhard-m%C3%BCllauer-9aa9722a3/">Bernhard Muellauer</a></td><td><span class="tag done">contacted</span></td><td>Wait for accept/reply</td><td><span class="tag p2">P2</span></td></tr>
+              <tr><td><a href="https://www.linkedin.com/in/florian-beqiri/">Florian Beqiri</a></td><td><span class="tag">open</span></td><td>Comment first</td><td><span class="tag p2">P2</span></td></tr>
+              <tr><td><a href="https://www.linkedin.com/in/charlesrahm/">Charles Rahm</a></td><td><span class="tag">open</span></td><td>Comment first</td><td><span class="tag p2">P2</span></td></tr>
+              <tr><td><a href="https://www.linkedin.com/in/danielneubauer/">Daniel Neubauer</a></td><td><span class="tag">open</span></td><td>Comment first</td><td><span class="tag p2">P2</span></td></tr>
+              <tr><td><a href="https://www.linkedin.com/in/timothy-maximilian-scherman-05975063/">Timothy Scherman</a></td><td><span class="tag">open</span></td><td>Comment first</td><td><span class="tag p3">P3</span></td></tr>
+              <tr><td><a href="https://www.linkedin.com/in/marco-schlauri/">Marco Schlauri</a></td><td><span class="tag">open</span></td><td>Comment first</td><td><span class="tag p3">P3</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid">
+          <div class="panel">
+            <h2>Checklist</h2>
+            <div class="task"><input type="checkbox" data-task="michael"><div><label>Decide on Michael</label><small>Use final personalized invite only if you can keep it non-pitch and calm.</small></div></div>
+            <div class="task"><input type="checkbox" data-task="dani"><div><label>Comment on Dani</label><small>Relaunch + prioritization angle.</small></div></div>
+            <div class="task"><input type="checkbox" data-task="jan"><div><label>Comment on Jan</label><small>KI prompts need real-data filtering.</small></div></div>
+            <div class="task"><input type="checkbox" data-task="toni"><div><label>Comment on Toni</label><small>SEO tools are useful; measures plan is harder.</small></div></div>
+            <div class="task"><input type="checkbox" data-task="christoph"><div><label>Comment on Christoph</label><small>AI visibility signals into concrete actions.</small></div></div>
+            <div class="task"><input type="checkbox" data-task="accepted"><div><label>For accepted connects</label><small>Ask discovery question. Do not pitch WebHealth first.</small></div></div>
+          </div>
+
+          <div class="panel legal">
+            <h2>Legal Guardrail</h2>
+            <p>Germany-safe default: LinkedIn invite and first DM are networking/research only. No offer, no pilot, no link, no discount, no demo until the person replies with interest.</p>
+          </div>
+
+          <div class="panel">
+            <h2>Michael Invite</h2>
+            <textarea readonly>Hi Michael, ich beschaeftige mich mit Technical-SEO-Auswertungen aus GSC/GA4/Crawl-Daten und fand deinen Fokus passend. Wuerde mich gern vernetzen.</textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" style="margin-top: 16px;">
+        <h2>Opportunity Board</h2>
+        <table>
+          <thead>
+            <tr><th>Opportunity</th><th>Company</th><th>Stage</th><th>Fit</th><th>Next action</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Solo SEO Analytics Pilot</td><td>SEO Freelancer Markus Antoni</td><td><span class="tag done">contacted</span></td><td><span class="tag p1">9</span></td><td>Wait for acceptance/reply</td></tr>
+            <tr><td>Relaunch SEO Prioritization Pilot</td><td>Dani Leitner Consulting</td><td><span class="tag">comment first</span></td><td><span class="tag p1">9</span></td><td>Comment on relaunch/SEO activity</td></tr>
+            <tr><td>KI Search Task Prioritization Pilot</td><td>Self-employed - Jan Jecke</td><td><span class="tag">comment first</span></td><td><span class="tag p1">9</span></td><td>Comment on KI Search/onpage tools activity</td></tr>
+            <tr><td>Agency SEO Workflow Pilot</td><td>SEO Revolution GmbH</td><td><span class="tag">comment first</span></td><td><span class="tag p1">9</span></td><td>Comment on SEO tools/bookmarklets activity</td></tr>
+            <tr><td>E-commerce AI Visibility Pilot</td><td>Simplexx Web Solutions GmbH</td><td><span class="tag">comment first</span></td><td><span class="tag p1">9</span></td><td>Comment on AI search/GSC visibility activity</td></tr>
+            <tr><td>Technical SEO Expert Feedback</td><td>Self-employed - Michael Tietz</td><td><span class="tag">invite decision</span></td><td><span class="tag p2">8</span></td><td>Use final personalized non-pitch invite or delay</td></tr>
+            <tr><td>Small Agency SEO Workflow Discovery</td><td>creatingfaces</td><td><span class="tag done">contacted</span></td><td><span class="tag p2">7</span></td><td>Wait for acceptance/reply</td></tr>
+            <tr><td>B2B AI Search Prioritization Pilot</td><td>Proactive Media GmbH</td><td><span class="tag">comment first</span></td><td><span class="tag p2">8</span></td><td>Comment on B2B SEO/AI Search post</td></tr>
+            <tr><td>Shop Visibility Prioritization Pilot</td><td>Charles.Ch SEO-Consulting</td><td><span class="tag">comment first</span></td><td><span class="tag p1">9</span></td><td>Comment on Google/ChatGPT visibility post</td></tr>
+            <tr><td>No-BS SEO/KI Pilot</td><td>RED RAM MEDIA KG</td><td><span class="tag">comment first</span></td><td><span class="tag p2">8</span></td><td>Comment on SEO/KI or tool-testing post</td></tr>
+            <tr><td>Local/AI SEO Workflow Discovery</td><td>Schild Roth SEO Agentur GmbH</td><td><span class="tag">comment first</span></td><td><span class="tag p2">8</span></td><td>Comment on local SEO/AI post</td></tr>
+            <tr><td>SEO/GEO Strategic Advisor</td><td>Digital Leverage GmbH</td><td><span class="tag">comment first</span></td><td><span class="tag p3">7</span></td><td>Comment on SEO/GEO talk post</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+    <script>
+      for (const checkbox of document.querySelectorAll('input[type="checkbox"][data-task]')) {
+        const key = 'webhealth-linkedin-pilot-' + checkbox.dataset.task;
+        checkbox.checked = localStorage.getItem(key) === '1';
+        checkbox.addEventListener('change', () => localStorage.setItem(key, checkbox.checked ? '1' : '0'));
+      }
+    </script>
+  </body>
+</html>

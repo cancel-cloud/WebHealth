@@ -5,17 +5,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@webhealth/shared/lib/auth-client";
 import {
-  canContinueToCheckout,
-  getCheckoutConfirmationCopy,
-  getSettingsAccountSummary,
-  getSettingsPlanCardLayoutClassNames,
-  getSettingsSoloPlanAction,
   normalizeSettingsResponse,
   resolveSettingsTab,
-  type PaidPlan,
   type Settings,
 } from "./settings-page.logic";
-import { UsageCard } from "@/components/usage-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -36,7 +29,12 @@ import { useFeedbackModal } from "@/components/feedback-modal-context";
 import { getAppErrorMessage } from "@/lib/client/app-error";
 import { requestJson } from "@/lib/client/api";
 import { formatPlanName } from "@/lib/plan-label";
-import { PRICING_PLANS } from "@/lib/pricing";
+import {
+  DEFAULT_AGENCY_SITE_COUNT,
+  getAgencyPrice,
+  getLocalizedPricingValue,
+  PUBLIC_PRICING_PLANS,
+} from "@/lib/pricing";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -46,20 +44,9 @@ import {
   Shield,
   FileText,
   Info,
+  Palette,
+  Check,
 } from "lucide-react";
-
-type ToggleSettingKey =
-  | "weeklyDigest"
-  | "reportComplete"
-  | "syncFailure"
-  | "emailReceipts";
-
-const SETTING_LABELS: Record<ToggleSettingKey, string> = {
-  weeklyDigest: "Weekly digest",
-  reportComplete: "Report complete",
-  syncFailure: "Sync failure alerts",
-  emailReceipts: "Email receipts",
-};
 
 export default function SettingsPage() {
   const { data: session } = authClient.useSession();
@@ -69,11 +56,7 @@ export default function SettingsPage() {
   const activeTab = resolveSettingsTab(searchParams.get("tab"));
 
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [checkoutPlan, setCheckoutPlan] = useState<PaidPlan | null>(null);
-  const [acceptedLegalDocuments, setAcceptedLegalDocuments] = useState(false);
-  const [acknowledgedImmediateAccess, setAcknowledgedImmediateAccess] =
-    useState(false);
-  const [isCheckoutStarting, setIsCheckoutStarting] = useState(false);
+  const [isPlanSyncing, setIsPlanSyncing] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     const data = await requestJson<Record<string, unknown>>("/api/settings");
@@ -103,72 +86,6 @@ export default function SettingsPage() {
     }
   }, [fetchSettings, router, searchParams]);
 
-  const updateSetting = async (
-    key: ToggleSettingKey | "reportLanguage",
-    value: boolean | string,
-  ) => {
-    const previous = settings;
-    setSettings((prev) => (prev ? { ...prev, [key]: value } : prev));
-    try {
-      await requestJson("/api/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [key]: value }),
-      });
-
-      if (typeof value === "boolean" && key !== "reportLanguage") {
-        toast.success("Preference saved", {
-          description: `${SETTING_LABELS[key]} ${value ? "enabled" : "disabled"}.`,
-        });
-        return;
-      }
-
-      toast.success("Preference saved", {
-        description: "Report language updated.",
-      });
-    } catch (error) {
-      setSettings(previous);
-      toast.error("Preference not saved", {
-        description: getAppErrorMessage(error, "Please try again."),
-      });
-    }
-  };
-
-  const openCheckoutConfirmation = (plan: PaidPlan) => {
-    setCheckoutPlan(plan);
-    setAcceptedLegalDocuments(false);
-    setAcknowledgedImmediateAccess(false);
-    setIsCheckoutStarting(false);
-  };
-
-  const closeCheckoutConfirmation = () => {
-    setCheckoutPlan(null);
-    setAcceptedLegalDocuments(false);
-    setAcknowledgedImmediateAccess(false);
-    setIsCheckoutStarting(false);
-  };
-
-  const handleUpgrade = async () => {
-    if (!checkoutPlan) return;
-
-    setIsCheckoutStarting(true);
-
-    try {
-      const data = await requestJson<{ url?: string }>("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: checkoutPlan }),
-      });
-      if (!data?.url) throw new Error("Failed to create checkout session");
-      window.location.href = data.url;
-    } catch (error) {
-      setIsCheckoutStarting(false);
-      toast.error("Upgrade failed", {
-        description: getAppErrorMessage(error, "Please try again."),
-      });
-    }
-  };
-
   const handleBillingPortal = async () => {
     try {
       const data = await requestJson<{ url?: string }>("/api/stripe/portal", {
@@ -184,20 +101,34 @@ export default function SettingsPage() {
   };
 
   const handleSyncPlan = async () => {
+    setIsPlanSyncing(true);
+
     try {
-      const data = await requestJson<{ synced?: boolean; tier?: string }>(
-        "/api/stripe/sync-plan",
-        { method: "POST" },
-      );
+      const data = await requestJson<{
+        synced?: boolean;
+        tier?: string;
+        reason?: string;
+      }>("/api/stripe/sync-plan", { method: "POST" });
       await fetchSettings();
       router.refresh();
+
+      if (data?.reason === "no_customer") {
+        toast.info("Plan already up to date", {
+          description:
+            "No Stripe billing profile exists yet, so your workspace remains on Solo.",
+        });
+        return;
+      }
+
       toast.success("Plan refreshed", {
-        description: `Active plan: ${data?.tier ?? "free"}.`,
+        description: `Active plan: ${formatPlanName(data?.tier ?? "free")}.`,
       });
     } catch (error) {
       toast.error("Sync failed", {
         description: getAppErrorMessage(error, "Please try again."),
       });
+    } finally {
+      setIsPlanSyncing(false);
     }
   };
 
@@ -230,22 +161,8 @@ export default function SettingsPage() {
   const email = session?.user?.email ?? "—";
   const image = session?.user?.image ?? "";
   const initials = name.charAt(0).toUpperCase();
-  const accountSummary = settings ? getSettingsAccountSummary(settings) : null;
-  const planCardLayout = getSettingsPlanCardLayoutClassNames();
   const pricingBadgeClasses = getPricingBadgeClassNames();
   const activePlanName = formatPlanName(settings?.teamTier);
-  const soloPlanAction = settings ? getSettingsSoloPlanAction(settings) : null;
-  const checkoutConfirmation =
-    checkoutPlan === null
-      ? null
-      : getCheckoutConfirmationCopy(
-          checkoutPlan,
-          PRICING_PLANS[checkoutPlan].priceLabel,
-        );
-  const canStartCheckout = canContinueToCheckout({
-    acceptedLegalDocuments,
-    acknowledgedImmediateAccess,
-  });
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-8">
@@ -257,7 +174,7 @@ export default function SettingsPage() {
           Settings
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Manage billing, reporting preferences, and support options for your
+          Manage billing, workspace preferences, and support options for your
           workspace.
         </p>
       </div>
@@ -289,95 +206,86 @@ export default function SettingsPage() {
         <TabsContent value="account" className="space-y-8">
           <section className="rounded-lg border border-border/70 bg-card/80 p-6 shadow-sm">
             {settings ? (
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="flex min-w-0 items-start gap-4">
-                  <Avatar className="h-20 w-20 rounded-lg border border-border/60">
-                    <AvatarImage src={image} alt={name} />
-                    <AvatarFallback className="rounded-lg bg-primary/10 text-2xl font-bold text-primary">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
+              <div className="flex min-w-0 items-start gap-4">
+                <Avatar className="h-20 w-20 rounded-lg border border-border/60">
+                  <AvatarImage src={image} alt={name} />
+                  <AvatarFallback className="rounded-lg bg-primary/10 text-2xl font-bold text-primary">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
 
-                  <div className="min-w-0 space-y-3">
-                    <div className="space-y-1">
-                      <p className="truncate text-2xl font-bold font-display">
-                        {name}
-                      </p>
-                      <p className="truncate text-sm text-muted-foreground">
-                        {email}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className="rounded-full px-3 py-1 text-xs font-medium capitalize"
-                      >
-                        {accountSummary?.planLabel ?? "Solo Plan"}
-                      </Badge>
-                      {accountSummary?.planStatus ? (
-                        <span className="text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground">
-                          {accountSummary.planStatus}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    {settings.subscriptionCancelAt ? (
-                      <p className="text-sm text-muted-foreground">
-                        Active until{" "}
-                        <span className="font-medium text-foreground">
-                          {new Date(
-                            settings.subscriptionCancelAt,
-                          ).toLocaleDateString(undefined, {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                        </span>
-                        .
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Your current plan and usage reset automatically each
-                        month.
-                      </p>
-                    )}
+                <div className="min-w-0 space-y-3">
+                  <div className="space-y-1">
+                    <p className="truncate text-2xl font-bold font-display">
+                      {name}
+                    </p>
+                    <p className="truncate text-sm text-muted-foreground">
+                      {email}
+                    </p>
                   </div>
-                </div>
 
-                <div className="min-w-0">
-                  <UsageCard
-                    reportsThisMonth={
-                      accountSummary?.usage.reportsThisMonth ?? 0
-                    }
-                    reportsLimit={accountSummary?.usage.reportsLimit ?? null}
-                    detailsThisMonth={
-                      accountSummary?.usage.detailsThisMonth ?? 0
-                    }
-                    detailsLimit={accountSummary?.usage.detailsLimit ?? null}
-                  />
+                  <Badge
+                    variant="outline"
+                    className="rounded-full px-3 py-1 text-xs font-medium capitalize"
+                  >
+                    {activePlanName}
+                  </Badge>
+
+                  {settings.subscriptionCancelAt ? (
+                    <p className="text-sm text-muted-foreground">
+                      Active until{" "}
+                      <span className="font-medium text-foreground">
+                        {new Date(
+                          settings.subscriptionCancelAt,
+                        ).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </span>
+                      .
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Manage your workspace account and billing details.
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="flex items-start gap-4">
-                  <Skeleton className="h-20 w-20 rounded-lg" />
-                  <div className="min-w-0 flex-1 space-y-3">
-                    <Skeleton className="h-7 w-48" />
-                    <Skeleton className="h-4 w-72" />
-                    <Skeleton className="h-6 w-36 rounded-full" />
-                    <Skeleton className="h-4 w-56" />
-                  </div>
-                </div>
-                <div className="min-w-0 rounded-lg border border-border bg-card p-4 space-y-3">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-2 w-full rounded-full" />
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-2 w-full rounded-full" />
+              <div className="flex items-start gap-4">
+                <Skeleton className="h-20 w-20 rounded-lg" />
+                <div className="min-w-0 flex-1 space-y-3">
+                  <Skeleton className="h-7 w-48" />
+                  <Skeleton className="h-4 w-72" />
+                  <Skeleton className="h-6 w-36 rounded-full" />
+                  <Skeleton className="h-4 w-56" />
                 </div>
               </div>
             )}
+          </section>
+
+          <section className="rounded-lg border border-border/70 bg-card/80 p-6 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/35 px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  <Palette className="h-3.5 w-3.5" />
+                  Agency branding
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold font-display tracking-tight">
+                    Manage export branding in one place
+                  </h2>
+                  <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                    Agency name, contact details, logo, icon, and export colors now live on a dedicated page instead of being hidden inside snapshot payloads.
+                  </p>
+                </div>
+              </div>
+
+              <Button asChild className="rounded-full">
+                <Link href="/settings/branding">Open Branding Page</Link>
+              </Button>
+            </div>
           </section>
 
           <section aria-labelledby="plan-heading" className="space-y-5">
@@ -390,24 +298,29 @@ export default function SettingsPage() {
                   Choose Your Plan
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Review subscription details before checkout, then manage
-                  billing, cancellation, and invoices from your Stripe portal.
+                  Review the same public pricing shown on the landing page,
+                  then manage billing, cancellation, and invoices from Stripe.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={!settings?.hasStripeCustomer}
+                  disabled={settings === null || isPlanSyncing}
                   onClick={handleSyncPlan}
                   title="Sync your plan status from Stripe"
                 >
-                  Refresh Plan
+                  {isPlanSyncing ? "Refreshing..." : "Refresh Plan"}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={!settings?.hasStripeCustomer}
+                  title={
+                    settings?.hasStripeCustomer
+                      ? "Open Stripe billing portal"
+                      : "Billing portal is available after a Stripe checkout creates a billing profile"
+                  }
                   onClick={handleBillingPortal}
                 >
                   Manage Billing, Cancellation &amp; Invoices
@@ -416,10 +329,11 @@ export default function SettingsPage() {
             </div>
 
             {settings === null ? (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <Skeleton className="h-56 rounded-lg" />
-                <Skeleton className="h-56 rounded-lg" />
-                <Skeleton className="h-56 rounded-lg" />
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Skeleton className="h-80 rounded-lg" />
+                <Skeleton className="h-80 rounded-lg" />
+                <Skeleton className="h-80 rounded-lg" />
+                <Skeleton className="h-80 rounded-lg" />
               </div>
             ) : (
               <>
@@ -440,266 +354,138 @@ export default function SettingsPage() {
                   </div>
                 ) : null}
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  <div
-                    className={`${planCardLayout.card} ${
-                      settings.teamTier === "free"
-                        ? "border-primary/35 bg-primary/5"
-                        : "border-border bg-card"
-                    }`}
-                  >
-                    <div className={planCardLayout.content}>
-                      <div>
-                        <p className="font-semibold font-display text-lg">
-                          {PRICING_PLANS.solo.name}
-                        </p>
-                        <p className="text-3xl font-bold font-display">
-                          {PRICING_PLANS.solo.priceLabel}
-                        </p>
-                      </div>
-                      <ul className="space-y-2">
-                        {PRICING_PLANS.solo.features.map((feature) => (
-                          <li
-                            key={feature}
-                            className="flex items-start gap-2 text-sm text-muted-foreground"
-                          >
-                            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/45" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      {soloPlanAction ? (
-                        <Button
-                          size="sm"
-                          variant={soloPlanAction.variant}
-                          className={planCardLayout.action}
-                          onClick={handleBillingPortal}
-                        >
-                          {soloPlanAction.label}
-                        </Button>
-                      ) : null}
-                    </div>
-                  </div>
+                <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {PUBLIC_PRICING_PLANS.map((plan) => {
+                    const isCurrent =
+                      (settings.teamTier === "free" && plan.tier === "solo") ||
+                      settings.teamTier === plan.tier;
+                    const price =
+                      plan.tier === "agency"
+                        ? `€${getAgencyPrice(DEFAULT_AGENCY_SITE_COUNT)}`
+                        : getLocalizedPricingValue(plan.price, "en");
 
-                  <div
-                    className={`relative ${planCardLayout.card} ${planCardLayout.featuredCard} ${
-                      settings.teamTier === "pro"
-                        ? "border-primary/35 bg-primary/5"
-                        : "border-border bg-card"
-                    }`}
-                  >
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge
-                        className={`${pricingBadgeClasses.base} ${pricingBadgeClasses.mostPopularSpacing} ${pricingBadgeClasses.mostPopular}`}
+                    return (
+                      <article
+                        key={plan.tier}
+                        className={`flex h-full flex-col rounded-lg border bg-card p-6 shadow-sm ${
+                          plan.highlight
+                            ? "border-primary shadow-[0_16px_50px_-28px_rgba(99,102,241,0.35)]"
+                            : "border-border"
+                        } ${isCurrent ? "bg-primary/5" : ""}`}
                       >
-                        Most Popular
-                      </Badge>
-                    </div>
-                    <div className={planCardLayout.content}>
-                      <div>
-                        <p className="font-semibold font-display text-lg">
-                          {PRICING_PLANS.pro.name}
-                        </p>
-                        <p className="text-3xl font-bold font-display">
-                          {PRICING_PLANS.pro.priceLabel}
-                          <span className="text-base font-medium text-muted-foreground">
-                            /mo
-                          </span>
-                        </p>
-                      </div>
-                      <ul className="space-y-2">
-                        {PRICING_PLANS.pro.features.map((feature) => (
-                          <li
-                            key={feature}
-                            className="flex items-start gap-2 text-sm text-muted-foreground"
-                          >
-                            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary/60" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      {settings.teamTier === "pro" ? (
-                        settings.subscriptionCancelAt ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className={planCardLayout.action}
-                            disabled
-                          >
-                            Canceling
-                          </Button>
-                        ) : null
-                      ) : (
-                        <Button
-                          size="sm"
-                          className={planCardLayout.action}
-                          onClick={() => openCheckoutConfirmation("pro")}
-                        >
-                          Upgrade to Pro
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div
-                    className={`${planCardLayout.card} ${
-                      settings.teamTier === "agency"
-                        ? "border-primary/35 bg-primary/5"
-                        : "border-border bg-card"
-                    }`}
-                  >
-                    <div className={planCardLayout.content}>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold font-display text-lg">
-                            Agency
-                          </p>
-                          <Badge
-                            className={`${pricingBadgeClasses.base} ${pricingBadgeClasses.comingSoonSpacing} ${pricingBadgeClasses.comingSoon}`}
-                          >
-                            Coming Soon
-                          </Badge>
+                        <div className="min-h-7">
+                          {plan.badge ? (
+                            <Badge
+                              className={`${pricingBadgeClasses.base} ${pricingBadgeClasses.mostPopularSpacing} ${pricingBadgeClasses.mostPopular}`}
+                            >
+                              {getLocalizedPricingValue(plan.badge, "en")}
+                            </Badge>
+                          ) : isCurrent ? (
+                            <Badge variant="outline" className="rounded-full">
+                              Current Plan
+                            </Badge>
+                          ) : null}
                         </div>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          For agencies and high-volume clients. Get in touch to
-                          be first in line.
-                        </p>
-                      </div>
-                      {settings.teamTier === "agency" ? (
-                        settings.subscriptionCancelAt ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className={planCardLayout.action}
-                            disabled
-                          >
-                            Canceling
-                          </Button>
-                        ) : null
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className={planCardLayout.action}
-                          asChild
-                        >
-                          <a href="mailto:kontakt@devbrew.dev?subject=Webhealth%20Agency%20Interest">
-                            Get in touch
-                          </a>
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+
+                        <div className="mt-4 min-h-[8.5rem]">
+                          <h3 className="font-display text-sm font-semibold uppercase tracking-[0.2em]">
+                            {getLocalizedPricingValue(plan.name, "en")}
+                          </h3>
+                          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                            {getLocalizedPricingValue(plan.description, "en")}
+                          </p>
+                        </div>
+
+                        <div className="flex min-h-16 items-end gap-2">
+                          <span className="font-display text-4xl font-bold">
+                            {price}
+                          </span>
+                          <span className="pb-1 text-sm text-muted-foreground">
+                            {getLocalizedPricingValue(plan.period, "en")}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 min-h-10">
+                          {plan.note ? (
+                            <p className="text-xs text-muted-foreground">
+                              {getLocalizedPricingValue(plan.note, "en")}
+                            </p>
+                          ) : null}
+                        </div>
+
+                        <ul className="mt-6 space-y-3 text-sm">
+                          {plan.features.map((feature) => (
+                            <li
+                              key={feature.en}
+                              className="flex items-start gap-3"
+                            >
+                              <Check
+                                className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+                                aria-hidden="true"
+                              />
+                              <span>
+                                {getLocalizedPricingValue(feature, "en")}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        <div className="mt-auto pt-6">
+                          {plan.tier === "agency" ? (
+                            <Button
+                              asChild
+                              variant="outline"
+                              className="h-10 w-full rounded-full"
+                            >
+                              <a href="mailto:kontakt@devbrew.dev?subject=Webhealth%20Agency%20Interest">
+                                {getLocalizedPricingValue(plan.cta, "en")}
+                              </a>
+                            </Button>
+                          ) : plan.tier === "solo" ? (
+                            <Button
+                              asChild
+                              variant={isCurrent ? "outline" : "default"}
+                              className="h-10 w-full rounded-full"
+                            >
+                              <Link href="/dashboard">
+                                {isCurrent
+                                  ? "Current Plan"
+                                  : getLocalizedPricingValue(plan.cta, "en")}
+                              </Link>
+                            </Button>
+                          ) : (
+                            <Button
+                              variant={isCurrent ? "outline" : "default"}
+                              className="h-10 w-full rounded-full"
+                              disabled={isCurrent}
+                              onClick={async () => {
+                                try {
+                                  const data = await requestJson<{ url?: string }>("/api/stripe/checkout", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ plan: plan.tier }),
+                                  });
+                                  if (!data?.url) throw new Error("Stripe checkout URL missing");
+                                  window.location.href = data.url;
+                                } catch (error) {
+                                  toast.error("Checkout failed", {
+                                    description: getAppErrorMessage(error, "Please try again."),
+                                  });
+                                }
+                              }}
+                            >
+                              {isCurrent
+                                ? "Current Plan"
+                                : getLocalizedPricingValue(plan.cta, "en")}
+                            </Button>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               </>
             )}
-
-            <Dialog
-              open={checkoutPlan !== null}
-              onOpenChange={(open) => {
-                if (!open) {
-                  closeCheckoutConfirmation();
-                }
-              }}
-            >
-              <DialogContent className="sm:max-w-xl">
-                <DialogHeader>
-                  <DialogTitle>
-                    {checkoutConfirmation?.title ?? "Continue to checkout?"}
-                  </DialogTitle>
-                  <DialogDescription>
-                    Review the recurring billing terms and linked legal
-                    documents before Stripe Checkout opens.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-4">
-                  <div className="rounded-lg border border-border/70 bg-muted/35 p-4">
-                    <p className="text-sm font-medium text-foreground">
-                      {checkoutConfirmation?.recurringNotice}
-                    </p>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {checkoutConfirmation?.cancellationNotice}
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-border/70 p-4">
-                    <p className="text-sm font-medium text-foreground">
-                      Review the legal documents
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href="/terms" target="_blank" rel="noreferrer">
-                          Terms of Service
-                        </Link>
-                      </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href="/privacy" target="_blank" rel="noreferrer">
-                          Privacy Policy
-                        </Link>
-                      </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link
-                          href="/impressum"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Impressum
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="flex items-start gap-3 rounded-lg border border-border/70 p-4 text-sm">
-                      <input
-                        type="checkbox"
-                        className="mt-0.5 h-4 w-4 rounded border-border"
-                        checked={acceptedLegalDocuments}
-                        onChange={(event) =>
-                          setAcceptedLegalDocuments(event.target.checked)
-                        }
-                      />
-                      <span className="text-muted-foreground">
-                        I reviewed the Terms of Service, Privacy Policy, and
-                        Impressum for this purchase.
-                      </span>
-                    </label>
-
-                    <label className="flex items-start gap-3 rounded-lg border border-border/70 p-4 text-sm">
-                      <input
-                        type="checkbox"
-                        className="mt-0.5 h-4 w-4 rounded border-border"
-                        checked={acknowledgedImmediateAccess}
-                        onChange={(event) =>
-                          setAcknowledgedImmediateAccess(event.target.checked)
-                        }
-                      />
-                      <span className="text-muted-foreground">
-                        I want immediate access to the paid plan and understand
-                        that it renews monthly until I cancel it in the billing
-                        portal.
-                      </span>
-                    </label>
-                  </div>
-                </div>
-
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </DialogClose>
-                  <Button
-                    onClick={handleUpgrade}
-                    disabled={!canStartCheckout || isCheckoutStarting}
-                  >
-                    {isCheckoutStarting
-                      ? "Opening Stripe Checkout..."
-                      : (checkoutConfirmation?.confirmLabel ??
-                        "Continue to Stripe Checkout")}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
           </section>
 
           <section aria-labelledby="billing-heading" className="space-y-4">
@@ -725,38 +511,6 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          <section
-            aria-labelledby="report-language-heading"
-            className="space-y-4"
-          >
-            <h2
-              id="report-language-heading"
-              className="text-2xl font-bold font-display tracking-tight"
-            >
-              Report Language
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Controls AI report and XLSX output language. Dashboard language is
-              unchanged.
-            </p>
-            <div className="max-w-xs">
-              <select
-                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                value={settings?.reportLanguage ?? "auto"}
-                onChange={(event) =>
-                  updateSetting("reportLanguage", event.target.value)
-                }
-              >
-                <option value="auto">Auto (from Google locale)</option>
-                <option value="de">German</option>
-                <option value="en">English</option>
-                <option value="es">Spanish</option>
-                <option value="fr">French</option>
-                <option value="it">Italian</option>
-              </select>
-            </div>
-          </section>
-
           <section aria-labelledby="danger-heading" className="space-y-4">
             <h2
               id="danger-heading"
@@ -779,7 +533,7 @@ export default function SettingsPage() {
                   <DialogTitle>Delete your account?</DialogTitle>
                   <DialogDescription>
                     This action is <strong>permanent and irreversible</strong>.
-                    All your properties, reports, and data will be deleted.
+                    All your properties, snapshots, and data will be deleted.
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>

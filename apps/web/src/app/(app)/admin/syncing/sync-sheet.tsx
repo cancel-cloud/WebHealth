@@ -117,7 +117,7 @@ export function SyncSheet({ user, onClose }: SyncSheetProps) {
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Validates GSC/GA4 data fetches for the selected window without creating reports.
+              Validates GSC/GA4 data fetches for the selected window.
             </p>
           </div>
           <Button onClick={handleSync} disabled={loading} className="w-full">

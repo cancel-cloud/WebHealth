@@ -5,8 +5,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/demo", "/pricing", "/privacy", "/terms", "/impressum"],
-        disallow: ["/dashboard", "/reports", "/settings", "/properties", "/admin", "/api"],
+        allow: ["/", "/about", "/pricing", "/privacy", "/terms", "/impressum", "/dpa"],
+        disallow: ["/dashboard", "/settings", "/properties", "/admin", "/api"],
       },
     ],
     sitemap: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://webhealth.devbrew.dev"}/sitemap.xml`,

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from "@webhealth/shared/db";
-import { properties, reports, systemLogs } from "@webhealth/shared/db/schema";
+import { properties, systemLogs } from "@webhealth/shared/db/schema";
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { enqueueReportJob } from "@webhealth/shared/queue";
 import { badRequest, notFound } from "@webhealth/shared/lib/http-errors";
 import { handleRouteError } from "@/lib/server/route-security";
 import { requireTeamOwner, requireUnrestrictedSession } from "@/lib/server/authz";
+import { decodeRouteParam } from "@/lib/server/route-params";
 
 // PATCH /api/properties/[id]/link-ga4
 // Body: { ga4PropertyId: string } — numeric ID like "123456789"
@@ -18,7 +18,8 @@ export async function PATCH(
     const session = await requireUnrestrictedSession();
     const ownerMembership = await requireTeamOwner(session);
 
-    const { id: gscPropertyId } = await params;
+    const { id } = await params;
+    const gscPropertyId = decodeRouteParam(id);
     const body = await req.json();
     const { ga4PropertyId } = body;
 
@@ -51,26 +52,13 @@ export async function PATCH(
     // Link GSC → GA4
     await db
       .update(properties)
-      .set({ ga4PropertyId })
+      .set({
+        ga4PropertyId,
+        ga4LinkConfidence: "high",
+        ga4LinkSource: "manual",
+        ga4LinkUpdatedAt: new Date(),
+      })
       .where(eq(properties.id, gscPropertyId));
-
-    // Find any scheduled reports for this property and promote them to queued
-    const scheduledReports = await db.query.reports.findMany({
-      where: (r, { and, eq }) =>
-        and(eq(r.propertyId, gscPropertyId), eq(r.status, 'scheduled')),
-    });
-
-    let jobsEnqueued = 0;
-    for (const report of scheduledReports) {
-      await db.update(reports).set({ status: 'queued' }).where(eq(reports.id, report.id));
-      await enqueueReportJob({
-        reportId: report.id,
-        teamId: report.teamId,
-        kind: "generate_report",
-        payload: { runXlsx: true, source: "link_ga4" },
-      });
-      jobsEnqueued += 1;
-    }
 
     db.insert(systemLogs).values({
       id: `log_${nanoid(12)}`,
@@ -81,15 +69,11 @@ export async function PATCH(
       details: {
         gscPropertyId,
         ga4PropertyId,
-        scheduledReportsStarted: scheduledReports.length,
-        jobsEnqueued,
       },
     }).catch(() => {});
 
     return NextResponse.json({
       success: true,
-      scheduledReportsStarted: scheduledReports.length,
-      jobsEnqueued,
     });
   } catch (error) {
     return handleRouteError("Error linking GA4", error);

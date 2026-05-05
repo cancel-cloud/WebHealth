@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  APP_SIDEBAR_PROPERTIES_REFRESH_EVENT,
+  dispatchAppSidebarPropertiesRefresh,
   getAppSidebarFooterThemeOptions,
   getAppSidebarThemeChoiceClasses,
   getAppSidebarItemClasses,
@@ -11,6 +13,12 @@ import {
 test("settings route marks settings current and keeps support links grouped", () => {
   const model = getAppSidebarModel({ pathname: "/settings", isAdmin: false });
 
+  assert.deepEqual(model.primaryItems.map((item) => item.label), [
+    "Overview",
+    "Properties",
+    "AI Insights",
+    "Settings",
+  ]);
   assert.equal(model.primaryItems.find((item) => item.href === "/settings")?.current, true);
   assert.equal(model.supportGroup.label, "Support");
   assert.deepEqual(model.supportGroup.items.map((item) => item.label), ["Contact Support", "Feature Requests"]);
@@ -25,6 +33,25 @@ test("contact settings route marks the support group current", () => {
   assert.equal(model.primaryItems.find((item) => item.href === "/settings")?.current, false);
   assert.equal(model.supportGroup.current, true);
   assert.equal(model.supportGroup.items.find((item) => item.href === "/settings?tab=contact")?.current, true);
+});
+
+test("nested settings routes keep settings current", () => {
+  const model = getAppSidebarModel({ pathname: "/settings/branding", isAdmin: false });
+
+  assert.equal(model.primaryItems.find((item) => item.href === "/settings")?.current, true);
+  assert.equal(model.supportGroup.current, false);
+});
+
+test("ai insights view gets a dedicated public sidebar item", () => {
+  const model = getAppSidebarModel({
+    pathname: "/dashboard",
+    isAdmin: false,
+    view: "ai-insights",
+  });
+
+  assert.equal(model.primaryItems.find((item) => item.id === "dashboard")?.current, false);
+  assert.equal(model.primaryItems.find((item) => item.id === "ai-insights")?.current, true);
+  assert.equal(model.primaryItems.find((item) => item.id === "ai-insights")?.href, "/dashboard?view=ai-insights");
 });
 
 test("admin routes expose admin items and mark the matching entry current", () => {
@@ -83,4 +110,17 @@ test("sidebar theme choices use stacked full-width segments with one active surf
   assert.match(inactiveClasses, /\bborder-t\b/);
   assert.match(inactiveClasses, /\bpy-2\b/);
   assert.ok(!inactiveClasses.includes("py-3"));
+});
+
+test("sidebar property refresh dispatches the shared refresh event", () => {
+  const dispatchedTypes: string[] = [];
+
+  dispatchAppSidebarPropertiesRefresh({
+    dispatchEvent(event) {
+      dispatchedTypes.push(event.type);
+      return true;
+    },
+  });
+
+  assert.deepEqual(dispatchedTypes, [APP_SIDEBAR_PROPERTIES_REFRESH_EVENT]);
 });

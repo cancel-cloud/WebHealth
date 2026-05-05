@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useTheme } from "next-themes";
 import { authClient } from "@webhealth/shared/lib/auth-client";
 import { cn } from "@webhealth/shared/lib/utils";
 import {
+  APP_SIDEBAR_PROPERTIES_REFRESH_EVENT,
   getAppSidebarFooterThemeOptions,
   getAppSidebarItemClasses,
   getAppSidebarModel,
@@ -31,14 +31,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UsageCard } from "@/components/usage-card";
 import {
   Bot,
   Bug,
   ChevronDown,
   ChevronRight,
   CircleHelp,
-  FileText,
   Flag,
   Globe,
   LayoutDashboard,
@@ -55,13 +53,18 @@ import {
   Sun,
   Users,
 } from "lucide-react";
+import { useTheme } from "@/components/theme-provider";
 
 type SidebarMeta = {
   teamTier: string;
-  reportsThisMonth: number;
-  reportsLimit: number | null;
-  detailsThisMonth: number;
-  detailsLimit: number | null;
+  reportableProperties: SidebarProperty[];
+};
+
+type SidebarProperty = {
+  id: string;
+  label: string;
+  gscUrl: string | null;
+  sourceCoverage: "linked" | "gsc_only" | "ga4_only";
 };
 
 const ICONS: Record<
@@ -69,7 +72,6 @@ const ICONS: Record<
   React.ComponentType<{ className?: string }>
 > = {
   dashboard: LayoutDashboard,
-  reports: FileText,
   properties: Globe,
   settings: Settings,
   support: CircleHelp,
@@ -89,11 +91,13 @@ function SidebarLink({
   onNavigate,
   onFeatureRequest,
   nested = false,
+  badge,
 }: {
   item: AppSidebarItem;
   onNavigate?: () => void;
   onFeatureRequest?: () => void;
   nested?: boolean;
+  badge?: number;
 }) {
   const Icon = ICONS[item.icon];
   const stateClasses = getAppSidebarItemClasses({
@@ -116,6 +120,11 @@ function SidebarLink({
         )}
       />
       <span className="truncate">{item.label}</span>
+      {typeof badge === "number" ? (
+        <span className="ml-auto shrink-0 rounded-full bg-primary/12 px-2 py-0.5 text-xs font-semibold tabular-nums text-primary">
+          {badge}
+        </span>
+      ) : null}
     </>
   );
 
@@ -155,6 +164,106 @@ function SidebarLink({
   );
 }
 
+function getSidebarPropertyInitial(label: string) {
+  return label.trim().charAt(0).toUpperCase() || "W";
+}
+
+function getSidebarPropertySiteUrl(rawUrl: string | null) {
+  if (!rawUrl) return null;
+  if (rawUrl.startsWith("sc-domain:")) {
+    return `https://${rawUrl.replace(/^sc-domain:/, "")}`;
+  }
+  if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+  return `https://${rawUrl}`;
+}
+
+function getSidebarPropertyFaviconUrl(rawUrl: string | null) {
+  const siteUrl = getSidebarPropertySiteUrl(rawUrl);
+  if (!siteUrl) return null;
+  return `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(siteUrl)}&sz=128`;
+}
+
+function getSidebarPropertyStatusClasses(
+  sourceCoverage: SidebarProperty["sourceCoverage"],
+) {
+  if (sourceCoverage === "linked") return "bg-emerald-500";
+  if (sourceCoverage === "gsc_only") return "bg-amber-500";
+  return "bg-rose-500";
+}
+
+function parseSidebarSourceCoverage(
+  value: unknown,
+): SidebarProperty["sourceCoverage"] {
+  if (value === "gsc_only" || value === "ga4_only" || value === "linked") {
+    return value;
+  }
+
+  return "linked";
+}
+
+function isSidebarPropertyCurrent(pathname: string, propertyId: string) {
+  const currentId = pathname.split("/").at(-1);
+  if (!currentId) return false;
+
+  try {
+    return decodeURIComponent(currentId) === propertyId;
+  } catch {
+    return currentId === propertyId;
+  }
+}
+
+function SidebarPropertyLink({
+  property,
+  pathname,
+  onNavigate,
+}: {
+  property: SidebarProperty;
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  const current = isSidebarPropertyCurrent(pathname, property.id);
+  const href = `/properties/${encodeURIComponent(property.id)}`;
+  const faviconUrl = getSidebarPropertyFaviconUrl(property.gscUrl);
+
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      className={cn(
+        "group relative flex min-w-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60",
+        current
+          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm before:absolute before:top-0 before:bottom-0 before:left-0 before:w-1 before:rounded-l-lg before:bg-primary"
+          : "text-sidebar-foreground/86 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+      )}
+    >
+      <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500 to-sky-500 text-sm font-bold text-white shadow-sm">
+        {getSidebarPropertyInitial(property.label)}
+        {faviconUrl ? (
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 bg-white bg-contain bg-center bg-no-repeat p-1.5"
+            style={{ backgroundImage: `url("${faviconUrl}")` }}
+          />
+        ) : null}
+      </span>
+      <span className="min-w-0 flex-1 truncate">{property.label}</span>
+      <span
+        className={cn(
+          "h-2.5 w-2.5 shrink-0 rounded-full",
+          getSidebarPropertyStatusClasses(property.sourceCoverage),
+        )}
+        aria-label={
+          property.sourceCoverage === "linked"
+            ? "Linked"
+            : property.sourceCoverage === "gsc_only"
+              ? "Search Console only"
+              : "Analytics only"
+        }
+      />
+    </Link>
+  );
+}
+
 export function AppSidebar({
   isAdmin = false,
   onNavigate,
@@ -176,35 +285,66 @@ export function AppSidebar({
     pathname,
     isAdmin,
     tab: searchParams.get("tab"),
+    view: searchParams.get("view"),
   });
 
-  useEffect(() => {
-    requestJson<Record<string, unknown>>("/api/settings")
-      .then((data) => {
-        const source = data ?? {};
+  const loadMeta = useCallback(() => {
+    Promise.all([
+      requestJson<Record<string, unknown>>("/api/settings").catch(
+        () => ({}) as Record<string, unknown>,
+      ),
+      requestJson<Record<string, unknown>>("/api/properties", {
+        cache: "no-store",
+      }).catch(() => ({}) as Record<string, unknown>),
+    ])
+      .then(([settingsData, propertiesData]) => {
+        const source = settingsData ?? {};
+        const propertySource = propertiesData ?? {};
+        const reportableProperties = Array.isArray(
+          propertySource.reportableProperties,
+        )
+          ? propertySource.reportableProperties
+              .filter((property): property is Record<string, unknown> =>
+                Boolean(property && typeof property === "object"),
+              )
+              .map((property) => ({
+                id: typeof property.id === "string" ? property.id : "",
+                label:
+                  typeof property.label === "string"
+                    ? property.label
+                    : typeof property.gscUrl === "string"
+                      ? property.gscUrl
+                      : "Website",
+                gscUrl:
+                  typeof property.gscUrl === "string"
+                    ? property.gscUrl
+                    : null,
+                sourceCoverage: parseSidebarSourceCoverage(
+                  property.sourceCoverage,
+                ),
+              }))
+              .filter((property) => property.id.length > 0)
+          : [];
+
         setMeta({
           teamTier:
             typeof source.teamTier === "string" ? source.teamTier : "free",
-          reportsThisMonth:
-            typeof source.reportsThisMonth === "number"
-              ? source.reportsThisMonth
-              : 0,
-          reportsLimit:
-            typeof source.reportsLimit === "number"
-              ? source.reportsLimit
-              : null,
-          detailsThisMonth:
-            typeof source.detailsThisMonth === "number"
-              ? source.detailsThisMonth
-              : 0,
-          detailsLimit:
-            typeof source.detailsLimit === "number"
-              ? source.detailsLimit
-              : null,
+          reportableProperties,
         });
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    loadMeta();
+  }, [loadMeta]);
+
+  useEffect(() => {
+    window.addEventListener(APP_SIDEBAR_PROPERTIES_REFRESH_EVENT, loadMeta);
+    return () => {
+      window.removeEventListener(APP_SIDEBAR_PROPERTIES_REFRESH_EVENT, loadMeta);
+    };
+  }, [loadMeta]);
 
   const handleSignOut = async () => {
     onNavigate?.();
@@ -254,25 +394,61 @@ export function AppSidebar({
                 item={item}
                 onNavigate={onNavigate}
                 onFeatureRequest={onFeatureRequest}
+                badge={
+                  item.id === "properties"
+                    ? meta?.reportableProperties.length
+                    : undefined
+                }
               />
             ))}
           </section>
+
+          {meta?.reportableProperties.length ? (
+            <section className="space-y-2">
+              <p className="px-3 text-xs font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/45">
+                Your Properties
+              </p>
+              <div className="space-y-1">
+                {meta.reportableProperties.map((property) => (
+                  <SidebarPropertyLink
+                    key={property.id}
+                    property={property}
+                    pathname={pathname}
+                    onNavigate={onNavigate}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           {model.adminItems.length > 0 ? (
             <section className="space-y-2">
               <p className="px-3 text-xs font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/45">
                 Admin
               </p>
-              <div className="space-y-1">
-                {model.adminItems.map((item) => (
-                  <SidebarLink
-                    key={item.id}
-                    item={item}
-                    onNavigate={onNavigate}
-                    onFeatureRequest={onFeatureRequest}
-                  />
-                ))}
-              </div>
+              <Collapsible
+                key={model.adminItems.some((item) => item.current) ? "admin-current" : "admin-default"}
+                defaultOpen={model.adminItems.some((item) => item.current)}
+              >
+                <CollapsibleTrigger asChild>
+                  <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground/78 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 focus-visible:outline-none">
+                    <Settings className="h-4 w-4 shrink-0 text-sidebar-foreground/60" />
+                    <span className="flex-1 truncate">Admin tools</span>
+                    <ChevronDown className="h-4 w-4 shrink-0 text-sidebar-foreground/55 transition-transform data-[state=open]:rotate-180" />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 space-y-1 border-l border-sidebar-border/70 pl-4 ml-5">
+                  {model.adminItems.map((item) => (
+                    <SidebarLink
+                      key={item.id}
+                      item={item}
+                      onNavigate={onNavigate}
+                      onFeatureRequest={onFeatureRequest}
+                      nested
+                    />
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
             </section>
           ) : null}
 
@@ -316,16 +492,6 @@ export function AppSidebar({
 
       <div className="border-t border-sidebar-border/80 p-4">
         <div className="space-y-3">
-          {meta ? (
-            <UsageCard
-              reportsThisMonth={meta.reportsThisMonth}
-              reportsLimit={meta.reportsLimit}
-              detailsThisMonth={meta.detailsThisMonth}
-              detailsLimit={meta.detailsLimit}
-              variant="compact"
-            />
-          ) : null}
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex w-full min-w-0 items-center gap-3 rounded-lg border border-sidebar-border/70 bg-sidebar-accent/40 px-3 py-2.5 text-left transition-colors hover:bg-sidebar-accent/75 focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 focus-visible:outline-none">

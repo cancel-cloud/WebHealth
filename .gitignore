@@ -54,3 +54,7 @@ Claude Conversations/claude-conversation-2026-02-24-4557e3a8.md
 /catalyst-ui-kit/
 
 /infra/ENVS-Deployed.txt
+/backups
+.playwright-mcp/
+.tmp-responsive-ui/
+.zed/

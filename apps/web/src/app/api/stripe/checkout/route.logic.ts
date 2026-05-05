@@ -119,7 +119,7 @@ export function buildCheckoutSessionParams({
   const termsUrl = new URL("/terms", baseUrl).toString();
   const privacyUrl = new URL("/privacy", baseUrl).toString();
   const impressumUrl = new URL("/impressum", baseUrl).toString();
-  const planName = plan === "agency" ? "Agency" : "Pro";
+  const planName = plan === "studio" ? "Studio" : "Starter";
 
   return {
     customer: customerId,

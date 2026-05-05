@@ -4,6 +4,7 @@ import { gscDailyFacts } from "@webhealth/shared/db/schema";
 import { eq, and, min, max } from 'drizzle-orm';
 import { badRequest, notFound } from "@webhealth/shared/lib/http-errors";
 import { requireAnyTeamMembership, requireUnrestrictedSession } from "@/lib/server/authz";
+import { decodeRouteParam } from "@/lib/server/route-params";
 import { handleRouteError } from "@/lib/server/route-security";
 
 // GET /api/properties/[id]/data-range
@@ -14,7 +15,8 @@ export async function GET(
   try {
     const session = await requireUnrestrictedSession();
 
-    const { id: propertyId } = await params;
+    const { id } = await params;
+    const propertyId = decodeRouteParam(id);
 
     const userTeams = await requireAnyTeamMembership(session);
     if (userTeams.length === 0) {
@@ -23,7 +25,7 @@ export async function GET(
     const teamId = userTeams[0].teamId;
 
     const prop = await db.query.properties.findFirst({
-      where: (p, { and, eq }) => and(eq(p.id, propertyId), eq(p.teamId, teamId)),
+      where: (p, { and, eq }) => and(eq(p.id, propertyId), eq(p.teamId, teamId), eq(p.active, true)),
     });
     if (!prop) {
       throw notFound("Property not found or unauthorized", "PROPERTY_NOT_FOUND");

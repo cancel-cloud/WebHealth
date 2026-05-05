@@ -8,6 +8,7 @@ import {
   fetchGa4Properties,
   fetchGscDataStartDate,
 } from "@webhealth/shared/lib/google/api";
+import { estimateGa4DisplayNameLink } from "@webhealth/shared/lib/ga4-linking";
 import { updateGoogleAccountTokens } from "@webhealth/shared/lib/provider-tokens";
 
 export async function syncPropertiesForUser({
@@ -22,7 +23,13 @@ export async function syncPropertiesForUser({
   accessToken: string;
   refreshToken?: string;
   accessTokenExpiresAt?: Date | null;
-}): Promise<{ gscCount: number; ga4Count: number; autoLinked: number }> {
+}): Promise<{
+  gscCount: number;
+  ga4Count: number;
+  discoveredGscCount: number;
+  discoveredGa4Count: number;
+  autoLinked: number;
+}> {
   const authClient = getGoogleAuthClient(accessToken, refreshToken, accessTokenExpiresAt);
 
   authClient.on("tokens", (tokens) => {
@@ -57,6 +64,9 @@ export async function syncPropertiesForUser({
     throw error;
   }
 
+  const discoveredGscCount = gscSites.filter((site) => !!site.siteUrl).length;
+  const discoveredGa4Count = ga4Props.length;
+
   // --- Store GSC properties ---
   let gscCount = 0;
   const gscToInsert: (typeof properties.$inferInsert)[] = [];
@@ -75,6 +85,7 @@ export async function syncPropertiesForUser({
         url: site.siteUrl,
         syncStatus: "complete",
         lastSyncedAt: new Date(),
+        active: false,
       });
       gscCount++;
     }
@@ -100,6 +111,7 @@ export async function syncPropertiesForUser({
         url: ga4.displayName,
         syncStatus: "complete",
         lastSyncedAt: new Date(),
+        active: false,
       });
       ga4Count++;
     }
@@ -138,21 +150,17 @@ export async function syncPropertiesForUser({
       and(eq(p.teamId, teamId), eq(p.type, "gsc"), isNull(p.ga4PropertyId)),
   });
   for (const gscProp of unlinkedGsc) {
-    const domain = gscProp.url
-      .replace("sc-domain:", "")
-      .replace("https://", "")
-      .replace("http://", "")
-      .replace(/\/$/, "")
-      .toLowerCase();
-    const match = ga4Props.find(
-      (ga4) =>
-        ga4.displayName.toLowerCase().includes(domain) ||
-        domain.includes(ga4.displayName.toLowerCase().replace(/^www\./, ""))
-    );
+    const match = ga4Props.find((ga4) => estimateGa4DisplayNameLink(gscProp.url, ga4.displayName).matched);
     if (match) {
+      const estimate = estimateGa4DisplayNameLink(gscProp.url, match.displayName);
       await db
         .update(properties)
-        .set({ ga4PropertyId: match.propertyId })
+        .set({
+          ga4PropertyId: match.propertyId,
+          ga4LinkConfidence: estimate.confidence,
+          ga4LinkSource: estimate.source,
+          ga4LinkUpdatedAt: new Date(),
+        })
         .where(eq(properties.id, gscProp.id));
       autoLinked++;
     }
@@ -165,9 +173,21 @@ export async function syncPropertiesForUser({
       triggeredBy: userId,
       targetUserId: userId,
       status: "success",
-      details: { gscCount, ga4Count, autoLinked },
+      details: {
+        gscCount,
+        ga4Count,
+        discoveredGscCount,
+        discoveredGa4Count,
+        autoLinked,
+      },
     })
     .catch(() => {});
 
-  return { gscCount, ga4Count, autoLinked };
+  return {
+    gscCount,
+    ga4Count,
+    discoveredGscCount,
+    discoveredGa4Count,
+    autoLinked,
+  };
 }
