@@ -636,7 +636,7 @@ var userFeatureFlags = pgTable("user_feature_flags", {
 var planSettings = pgTable("plan_settings", {
   id: text("id").primaryKey(),
   tier: text("tier").unique().notNull(),
-  // 'free' | 'pro' | 'agency'
+  // 'free' | 'starter' | 'studio' | 'agency'
   displayName: text("display_name").notNull(),
   maxProperties: integer("max_properties"),
   // null = unlimited

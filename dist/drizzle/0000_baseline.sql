@@ -387,9 +387,6 @@ CREATE TABLE "reports" (
 	"source" text DEFAULT 'manual' NOT NULL,
 	"auto_run_key" text,
 	"weekly_review_findings" jsonb,
-	"xlsx_status" text DEFAULT 'pending',
-	"xlsx_artifact_key" text,
-	"xlsx_artifact_url" text,
 	"error" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL

@@ -39,11 +39,11 @@ pnpm worker:verify-dist
 - `GOOGLE_CLIENT_SECRET`
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL`
-- `ARTIFACT_TOKEN_SECRET`
-- `REPORT_ARTIFACTS_DIR`
 - `OAUTH_TOKEN_ENCRYPTION_KEY`
-- `REPORT_WORKER_MAX_JOB_RUNTIME_MS`
-- `REPORT_WORKER_WATCHDOG_INTERVAL_MS`
+- `POSTHOG_CAPTURE_HOST`
+- `POSTHOG_PROJECT_TOKEN`
+- `WORKER_MAX_JOB_RUNTIME_MS`
+- `WORKER_WATCHDOG_INTERVAL_MS`
 - `WORKER_READY_STALE_AFTER_MS`
 
 ## 4) Direct Postgres access
@@ -58,17 +58,15 @@ Use one of these:
 
 Do not point `DIRECT_DATABASE_URL` at PgBouncer.
 
-## 5) Artifact server
+## 5) Worker runtime
 
-The worker artifact server still exposes `/health` and `/ready` on `WORKER_HTTP_PORT` when `ARTIFACT_TOKEN_SECRET` is set.
-
-Set `WORKER_ARTIFACT_URL` on the web app to the worker's reachable artifact URL and keep `ARTIFACT_TOKEN_SECRET` identical across web and worker.
+The worker runs as a queue processor only. It does not expose the retired report download server.
 
 ## 6) Verification
 
 1. Rebuild the runtime bundle and commit the `dist/` changes.
 2. Deploy the worker.
-3. Confirm logs show the DB migration bootstrap, artifact server readiness, and worker loop start.
-4. Check the worker health endpoint returns ready on `/ready`.
+3. Confirm logs show the DB migration bootstrap and worker loop start.
+4. Confirm the process stays running without fatal startup errors.
 5. Create a report from the web app.
-6. Verify job state transitions, deferred crawl refresh behavior, and artifact downloads.
+6. Verify job state transitions, deferred crawl refresh behavior, and snapshot creation.

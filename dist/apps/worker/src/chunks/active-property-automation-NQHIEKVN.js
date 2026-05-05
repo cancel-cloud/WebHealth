@@ -1,18 +1,18 @@
 import {
   enqueuePropertyRefreshJob
-} from "./chunk-7PCWMLQ5.js";
+} from "./chunk-4U6HOR3Q.js";
 import {
   createMetricsBackfillJob
-} from "./chunk-NOU5AHAR.js";
+} from "./chunk-LW4ERQXB.js";
 import {
   db
-} from "./chunk-MKUBJP65.js";
+} from "./chunk-MHPXHZHS.js";
 import {
   account,
   metricsBackfillJobs,
   propertyRefreshJobs,
   teamMembers
-} from "./chunk-IZCFPQU7.js";
+} from "./chunk-LQXSOOFX.js";
 import "./chunk-EJ6QGHXW.js";
 import "./chunk-3LHI6BO3.js";
 
@@ -47,6 +47,7 @@ function buildActivePropertyAutomationPlan(input) {
   const crawlRefreshes = [];
   for (const property of input.properties) {
     if (property.type !== "gsc" || !property.active || !property.ga4PropertyId) continue;
+    if ((property.teamTier ?? "free") === "free") continue;
     const linkedGa4 = ga4ById.get(`ga4_${property.ga4PropertyId}`);
     if (!linkedGa4?.active) continue;
     if (!property.hasActiveMetricsJob) {
@@ -68,9 +69,15 @@ function buildActivePropertyAutomationPlan(input) {
 
 // packages/shared/src/lib/active-property-automation.ts
 async function loadAutomationProperties() {
-  const rows = await db.query.properties.findMany({
-    where: (property, { eq: eqFn }) => eqFn(property.active, true)
-  });
+  const [rows, teamRows] = await Promise.all([
+    db.query.properties.findMany({
+      where: (property, { eq: eqFn }) => eqFn(property.active, true)
+    }),
+    db.query.teams.findMany({
+      columns: { id: true, tier: true }
+    })
+  ]);
+  const tierByTeamId = new Map(teamRows.map((team) => [team.id, team.tier]));
   return Promise.all(rows.map(async (property) => {
     const [latestCrawl, refreshJobs, metricsJob] = await Promise.all([
       property.type === "gsc" ? db.query.propertyCrawlSnapshots.findFirst({
@@ -102,6 +109,7 @@ async function loadAutomationProperties() {
     return {
       id: property.id,
       teamId: property.teamId,
+      teamTier: tierByTeamId.get(property.teamId) ?? "free",
       type: property.type,
       name: property.name,
       url: property.url,

@@ -1,4 +1,8 @@
 import {
+  recordProductEvent
+} from "./chunk-35IEE25M.js";
+import "./chunk-WJRBKJF5.js";
+import {
   buildAiActionIdentity,
   buildAiEvidenceIndex,
   buildDefaultAiPromptTemplateRows,
@@ -6,7 +10,7 @@ import {
   resolveAnalysisWindow,
   resolveTeamReportSources,
   validateAiRecommendation
-} from "./chunk-QQXD3WU4.js";
+} from "./chunk-F4ZLI7KK.js";
 import {
   claimNextPropertyRefreshJob,
   completePropertyRefreshJob,
@@ -15,13 +19,13 @@ import {
   heartbeatPropertyRefreshJob,
   storePropertyCrawlSnapshot,
   updatePropertyRefreshJobProgress
-} from "./chunk-7PCWMLQ5.js";
+} from "./chunk-4U6HOR3Q.js";
 import {
   composeReportMetricsFromCache
-} from "./chunk-NOU5AHAR.js";
+} from "./chunk-LW4ERQXB.js";
 import {
   db
-} from "./chunk-MKUBJP65.js";
+} from "./chunk-MHPXHZHS.js";
 import {
   actionItems,
   aiAnalysisRuns,
@@ -29,14 +33,13 @@ import {
   aiRecommendations,
   aiRuntimeSettings,
   ga4ReportArtifacts,
-  productEvents,
   properties
-} from "./chunk-IZCFPQU7.js";
+} from "./chunk-LQXSOOFX.js";
 import "./chunk-EJ6QGHXW.js";
 import "./chunk-3LHI6BO3.js";
 
 // packages/shared/src/lib/property-refresh-worker.ts
-import { nanoid as nanoid3 } from "nanoid";
+import { nanoid as nanoid2 } from "nanoid";
 
 // packages/shared/src/lib/crawl.ts
 import { lookup } from "node:dns/promises";
@@ -408,7 +411,7 @@ async function crawlWebsite(startUrl, maxPages = DEFAULT_MAX_PAGES, options) {
 // packages/shared/src/lib/ai-analysis-runner.ts
 import { createHash } from "node:crypto";
 import { and, desc, eq as eq2 } from "drizzle-orm";
-import { nanoid as nanoid2 } from "nanoid";
+import { nanoid } from "nanoid";
 
 // packages/shared/src/lib/openai/cost-estimator.ts
 var MODEL_PRICING = {
@@ -458,92 +461,6 @@ function normalizeOpenAIUsage(raw) {
     reasoningTokens: typeof outputDetails?.reasoning_tokens === "number" ? outputDetails.reasoning_tokens : void 0,
     raw: usage
   };
-}
-
-// packages/shared/src/lib/product-event-store.ts
-import { nanoid } from "nanoid";
-
-// packages/shared/src/lib/product-events.ts
-var PII_KEYS = /* @__PURE__ */ new Set([
-  "email",
-  "emailAddress",
-  "name",
-  "userName",
-  "fullName"
-]);
-function sanitizeProductEventProperties(input) {
-  const sanitized = {};
-  for (const [key, value] of Object.entries(input ?? {})) {
-    if (PII_KEYS.has(key)) continue;
-    sanitized[key] = value;
-  }
-  return sanitized;
-}
-function buildProductEventPayload(input) {
-  return {
-    teamId: input.teamId,
-    userId: input.userId ?? null,
-    name: input.name,
-    source: input.source,
-    entityType: input.entityType ?? null,
-    entityId: input.entityId ?? null,
-    properties: sanitizeProductEventProperties(input.properties)
-  };
-}
-function shouldSendPosthogEvent(config) {
-  return Boolean(config.apiKey);
-}
-function buildPosthogCapturePayload(config, input) {
-  if (!shouldSendPosthogEvent(config)) return null;
-  return {
-    api_key: config.apiKey,
-    event: input.name,
-    distinct_id: input.userId ?? input.teamId,
-    properties: {
-      teamId: input.teamId,
-      userId: input.userId,
-      source: input.source,
-      entityType: input.entityType,
-      entityId: input.entityId,
-      ...input.properties
-    }
-  };
-}
-
-// packages/shared/src/lib/product-event-store.ts
-async function recordProductEvent(input) {
-  const payload = buildProductEventPayload(input);
-  await db.insert(productEvents).values({
-    id: `pe_${nanoid(12)}`,
-    teamId: payload.teamId,
-    userId: payload.userId,
-    name: payload.name,
-    source: payload.source,
-    entityType: payload.entityType,
-    entityId: payload.entityId,
-    properties: payload.properties
-  });
-  await sendPosthogCapture(payload);
-}
-async function sendPosthogCapture(payload) {
-  const capturePayload = buildPosthogCapturePayload(
-    {
-      apiKey: process.env.POSTHOG_API_KEY ?? process.env.NEXT_PUBLIC_POSTHOG_KEY,
-      host: process.env.POSTHOG_HOST
-    },
-    payload
-  );
-  if (!capturePayload) return;
-  const host = process.env.POSTHOG_HOST ?? "https://app.posthog.com";
-  try {
-    await fetch(`${host.replace(/\/$/, "")}/capture/`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(capturePayload)
-    });
-  } catch (error) {
-    console.warn("[product-events] PostHog capture failed", error);
-  }
 }
 
 // packages/shared/src/lib/ai-runtime-settings.ts
@@ -932,7 +849,7 @@ async function runAiAnalysisForPropertyWindow(params) {
       maxOutputTokens: runtimeSettings.maxOutputTokens
     }
   });
-  const runId = `air_${nanoid2(12)}`;
+  const runId = `air_${nanoid(12)}`;
   const conflictTarget = [
     aiAnalysisRuns.propertyId,
     aiAnalysisRuns.startDate,
@@ -1090,7 +1007,7 @@ async function runAiAnalysisForPropertyWindow(params) {
         where: and(eq2(actionItems.propertyId, property.id), eq2(actionItems.fingerprint, identity.fingerprint))
       });
       const [action] = await db.insert(actionItems).values({
-        id: existingAction?.id ?? `ai_${nanoid2(12)}`,
+        id: existingAction?.id ?? `ai_${nanoid(12)}`,
         teamId: params.teamId,
         propertyId: property.id,
         fingerprint: identity.fingerprint,
@@ -1119,7 +1036,7 @@ async function runAiAnalysisForPropertyWindow(params) {
         }
       }).returning();
       await db.insert(aiRecommendations).values({
-        id: `airec_${nanoid2(12)}`,
+        id: `airec_${nanoid(12)}`,
         teamId: params.teamId,
         propertyId: property.id,
         aiRunId: run.id,
@@ -1175,7 +1092,7 @@ async function isRefreshPropertyActive(job) {
 }
 async function warmDashboardFromPayload(job) {
   const payload = job.payload ?? {};
-  const { getLiveDashboardData } = await import("./live-dashboard-PSKVC36F.js");
+  const { getLiveDashboardData } = await import("./live-dashboard-X4T67LOY.js");
   await getLiveDashboardData({
     teamId: job.teamId,
     propertyId: job.propertyId,
@@ -1331,7 +1248,7 @@ async function processClaimedJob(job, workerId) {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
   }
 }
-async function runSinglePropertyRefreshWorkerTick(workerId = `pref_${nanoid3(8)}`, options = {}) {
+async function runSinglePropertyRefreshWorkerTick(workerId = `pref_${nanoid2(8)}`, options = {}) {
   const job = await claimNextPropertyRefreshJob(workerId, { lane: options.lane ?? "manual" });
   if (!job) return { processed: false };
   await processClaimedJob(job, workerId);
@@ -1342,7 +1259,7 @@ function startPropertyRefreshWorkerLoop(input = {}) {
   let isRunning = false;
   let pendingTimeout = null;
   const lane = input.lane ?? "manual";
-  const workerId = `${input.workerName ?? "pref"}_${nanoid3(8)}`;
+  const workerId = `${input.workerName ?? "pref"}_${nanoid2(8)}`;
   const intervalMs = input.intervalMs ?? parseInt(process.env.PROPERTY_REFRESH_WORKER_POLL_MS ?? "4000", 10);
   const maxPollMs = input.maxPollMs ?? parseInt(process.env.PROPERTY_REFRESH_WORKER_MAX_POLL_MS ?? "30000", 10);
   let idleCount = 0;

@@ -1,3 +1,6 @@
+import {
+  buildPosthogErrorEventProperties
+} from "./chunks/chunk-WJRBKJF5.js";
 import "./chunks/chunk-3LHI6BO3.js";
 
 // apps/worker/src/load-env.ts
@@ -77,6 +80,14 @@ function loadWorkerEnv({
 
 // apps/worker/src/monitoring.ts
 import * as Sentry from "@sentry/node";
+function recordPosthogWorkerError(event, recorder) {
+  if (recorder) {
+    void recorder(event);
+    return;
+  }
+  void import("./chunks/product-event-store-6HNVTU7O.js").then(({ recordProductEvent }) => recordProductEvent(event)).catch(() => {
+  });
+}
 function initWorkerMonitoring(env = process.env) {
   const dsn = env.SENTRY_DSN?.trim();
   if (!dsn) return;
@@ -89,16 +100,33 @@ function initWorkerMonitoring(env = process.env) {
     sendDefaultPii: false
   });
 }
-async function reportWorkerFatalError(error, context, env = process.env) {
-  if (!env.SENTRY_DSN?.trim()) return;
-  Sentry.withScope((scope) => {
-    scope.setTag("error_surface", "worker");
-    scope.setTag("worker_phase", context.phase);
-    scope.setLevel("fatal");
-    scope.setContext("worker_failure", context);
-    Sentry.captureException(error);
-  });
-  await Sentry.close(2e3);
+async function reportWorkerFatalError(error, context, env = process.env, productEventRecorder) {
+  const shouldReportToSentry = Boolean(env.SENTRY_DSN?.trim());
+  if (shouldReportToSentry) {
+    Sentry.withScope((scope) => {
+      scope.setTag("error_surface", "worker");
+      scope.setTag("worker_phase", context.phase);
+      scope.setLevel("fatal");
+      scope.setContext("worker_failure", context);
+      Sentry.captureException(error);
+    });
+  }
+  recordPosthogWorkerError({
+    teamId: context.teamId ?? "internal_system",
+    userId: context.userId ?? null,
+    name: "worker_error_reported",
+    source: "worker",
+    entityType: "worker",
+    entityId: context.phase,
+    properties: buildPosthogErrorEventProperties({
+      surface: "worker",
+      message: error instanceof Error ? error.message : "Worker fatal error",
+      context
+    })
+  }, productEventRecorder);
+  if (shouldReportToSentry) {
+    await Sentry.close(2e3);
+  }
 }
 
 // apps/worker/src/runtime-state.ts
@@ -186,11 +214,11 @@ async function main() {
   });
   workerPhase = "imports";
   markWorkerPhase(runtimeState, "imports");
-  const sharedDbModule = await import("./chunks/db-ND272BIY.js");
+  const sharedDbModule = await import("./chunks/db-FES5EQJ7.js");
   const { ensureWorkerDatabaseReady } = await import("./chunks/worker-db-bootstrap-KWVAEAVL.js");
-  const { startPropertyRefreshWorkerLoop, runSinglePropertyRefreshWorkerTick } = await import("./chunks/property-refresh-worker-5MIROK3O.js");
-  const { startMetricsBackfillWorkerLoop, runSingleMetricsBackfillWorkerTick } = await import("./chunks/metrics-cache-HZUWKLA7.js");
-  const { startActivePropertyAutomationScheduler } = await import("./chunks/active-property-automation-KT2L6GA6.js");
+  const { startPropertyRefreshWorkerLoop, runSinglePropertyRefreshWorkerTick } = await import("./chunks/property-refresh-worker-YU33QQC4.js");
+  const { startMetricsBackfillWorkerLoop, runSingleMetricsBackfillWorkerTick } = await import("./chunks/metrics-cache-JPEUYWYT.js");
+  const { startActivePropertyAutomationScheduler } = await import("./chunks/active-property-automation-NQHIEKVN.js");
   closeDb = sharedDbModule.closeDb;
   workerPhase = "database-ready";
   markWorkerPhase(runtimeState, "database-ready");
