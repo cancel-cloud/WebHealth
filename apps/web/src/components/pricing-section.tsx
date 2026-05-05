@@ -30,6 +30,7 @@ const stagger = {
 export function PricingSection() {
   const pricingBadgeClasses = getPricingBadgeClassNames();
   const selfServePlans = PUBLIC_PRICING_PLANS.filter((plan) => plan.tier !== "agency");
+  const agencyPlan = PUBLIC_PRICING_PLANS.find((plan) => plan.tier === "agency");
 
   return (
     <section
@@ -245,6 +246,76 @@ export function PricingSection() {
             </motion.div>
           ))}
         </motion.div>
+
+        {agencyPlan ? (
+          <motion.article
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+            className="mt-6 rounded-lg border bg-white p-6 shadow-sm"
+            style={{
+              borderColor: "oklch(0.91 0.01 250)",
+              boxShadow: "0 1px 4px oklch(0 0 0 / 0.04)",
+            }}
+          >
+            <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
+              <div>
+                <h2 className="font-display text-sm font-semibold uppercase tracking-widest">
+                  {getLocalizedPricingValue(agencyPlan.name, "en")}
+                </h2>
+                <p
+                  className="mt-2 max-w-2xl text-sm leading-6"
+                  style={{ color: "oklch(0.55 0.02 250)" }}
+                >
+                  {getLocalizedPricingValue(agencyPlan.description, "en")}
+                </p>
+                {agencyPlan.note ? (
+                  <p className="mt-3 text-sm font-semibold text-foreground">
+                    {getLocalizedPricingValue(agencyPlan.note, "en")}
+                  </p>
+                ) : null}
+              </div>
+              <div className="md:min-w-56">
+                <div className="flex items-end gap-1">
+                  <span className="font-display text-4xl font-bold tabular-nums">
+                    {getLocalizedPricingValue(agencyPlan.price, "en")}
+                  </span>
+                  <span
+                    className="pb-1 text-sm"
+                    style={{ color: "oklch(0.6 0.02 250)" }}
+                  >
+                    {getLocalizedPricingValue(agencyPlan.period, "en")}
+                  </span>
+                </div>
+                <a href="mailto:kontakt@devbrew.dev?subject=Webhealth%20Agency%20Interest">
+                  <Button
+                    className="mt-4 h-10 w-full rounded-full text-sm font-medium focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 touch-manipulation"
+                    style={{
+                      backgroundColor: "#6366f10e",
+                      color: "#6366f1",
+                      border: "1px solid #6366f122",
+                    }}
+                  >
+                    {getLocalizedPricingValue(agencyPlan.cta, "en")}
+                  </Button>
+                </a>
+              </div>
+            </div>
+            <ul className="mt-6 grid gap-3 text-sm md:grid-cols-2">
+              {agencyPlan.features.map((feature) => (
+                <li key={feature.en} className="flex items-start gap-2">
+                  <Check
+                    className="mt-0.5 size-4 shrink-0"
+                    aria-hidden="true"
+                    style={{ color: "#6366f1" }}
+                  />
+                  <span>{getLocalizedPricingValue(feature, "en")}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.article>
+        ) : null}
       </div>
     </section>
   );

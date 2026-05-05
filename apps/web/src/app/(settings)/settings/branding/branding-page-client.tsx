@@ -117,7 +117,7 @@ export function BrandingPageClient() {
           </h1>
           <p className="max-w-3xl text-sm text-muted-foreground">
             This is the dedicated source for your agency name, contact details, icon, logo, and export color accents.
-            Snapshot exports should read from here instead of burying branding inside generated artifacts.
+            Snapshot exports should read from here instead of burying branding inside generated payloads.
           </p>
         </div>
       </div>
