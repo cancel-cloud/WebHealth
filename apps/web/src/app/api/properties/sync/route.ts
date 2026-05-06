@@ -10,7 +10,7 @@ import {
   toGoogleAccessPublicError,
 } from "@/lib/server/google-access";
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
     const session = await requireUnrestrictedSession();
     const ownerMembership = await requireTeamOwner(session);
@@ -28,6 +28,9 @@ export async function POST() {
       throw badRequest("GOOGLE_ACCOUNT_NOT_LINKED", "Google account not linked");
     }
 
+    const body = await req.json().catch(() => null) as { mode?: unknown } | null;
+    const isOnboardingMode = body?.mode === "onboarding";
+
     // TODO(team-authz): Current product behavior assumes one effective team per user.
     // When real multi-team support is added, sync authorization must resolve the target team explicitly.
     const result = await syncPropertiesForUser({
@@ -36,6 +39,8 @@ export async function POST() {
       accessToken: googleAccount.accessToken,
       refreshToken: googleAccount.refreshToken ?? undefined,
       accessTokenExpiresAt: googleAccount.accessTokenExpiresAt ?? null,
+      autoLink: !isOnboardingMode,
+      probeDataStartDate: !isOnboardingMode,
     });
 
     return NextResponse.json({ success: true, ...result });

@@ -1,6 +1,6 @@
 import { db } from "@webhealth/shared/db";
 import { properties, systemLogs } from "@webhealth/shared/db/schema";
-import { eq, isNull, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import {
   getGoogleAuthClient,
@@ -10,6 +10,7 @@ import {
 } from "@webhealth/shared/lib/google/api";
 import { estimateGa4DisplayNameLink } from "@webhealth/shared/lib/ga4-linking";
 import { updateGoogleAccountTokens } from "@webhealth/shared/lib/provider-tokens";
+import { resolvePropertySyncSideEffectOptions } from "@webhealth/shared/lib/sync-properties-options";
 
 export async function syncPropertiesForUser({
   userId,
@@ -17,12 +18,16 @@ export async function syncPropertiesForUser({
   accessToken,
   refreshToken,
   accessTokenExpiresAt,
+  autoLink,
+  probeDataStartDate,
 }: {
   userId: string;
   teamId: string;
   accessToken: string;
   refreshToken?: string;
   accessTokenExpiresAt?: Date | null;
+  autoLink?: boolean;
+  probeDataStartDate?: boolean;
 }): Promise<{
   gscCount: number;
   ga4Count: number;
@@ -30,6 +35,7 @@ export async function syncPropertiesForUser({
   discoveredGa4Count: number;
   autoLinked: number;
 }> {
+  const sideEffects = resolvePropertySyncSideEffectOptions({ autoLink, probeDataStartDate });
   const authClient = getGoogleAuthClient(accessToken, refreshToken, accessTokenExpiresAt);
 
   authClient.on("tokens", (tokens) => {
@@ -88,6 +94,16 @@ export async function syncPropertiesForUser({
         active: false,
       });
       gscCount++;
+    } else {
+      await db
+        .update(properties)
+        .set({
+          name: site.siteUrl.replace("sc-domain:", "").replace("https://", "").replace(/\/$/, ""),
+          url: site.siteUrl,
+          syncStatus: "complete",
+          lastSyncedAt: new Date(),
+        })
+        .where(eq(properties.id, propertyId));
     }
   }
   if (gscToInsert.length > 0) {
@@ -114,55 +130,69 @@ export async function syncPropertiesForUser({
         active: false,
       });
       ga4Count++;
+    } else {
+      await db
+        .update(properties)
+        .set({
+          name: ga4.displayName,
+          url: ga4.displayName,
+          syncStatus: "complete",
+          lastSyncedAt: new Date(),
+        })
+        .where(eq(properties.id, propertyId));
     }
   }
   if (ga4ToInsert.length > 0) {
     await db.insert(properties).values(ga4ToInsert);
   }
 
-  // --- Probe GSC data start date for unprobed properties ---
-  const unprobedGsc = await db.query.properties.findMany({
-    where: (p, { and, eq, isNull }) =>
-      and(eq(p.teamId, teamId), eq(p.type, "gsc"), isNull(p.gscDataStartDate)),
-  });
-  if (unprobedGsc.length > 0) {
-    await Promise.all(
-      unprobedGsc.map(async (prop) => {
-        try {
-          const startDate = await fetchGscDataStartDate(authClient, prop.url);
-          if (startDate) {
-            await db
-              .update(properties)
-              .set({ gscDataStartDate: startDate })
-              .where(eq(properties.id, prop.id));
+  if (sideEffects.probeDataStartDate) {
+    // --- Probe GSC data start date for unprobed properties ---
+    const unprobedGsc = await db.query.properties.findMany({
+      where: (p, { and, eq, isNull }) =>
+        and(eq(p.teamId, teamId), eq(p.type, "gsc"), isNull(p.gscDataStartDate)),
+    });
+    if (unprobedGsc.length > 0) {
+      await Promise.all(
+        unprobedGsc.map(async (prop) => {
+          try {
+            const startDate = await fetchGscDataStartDate(authClient, prop.url);
+            if (startDate) {
+              await db
+                .update(properties)
+                .set({ gscDataStartDate: startDate })
+                .where(eq(properties.id, prop.id));
+            }
+          } catch {
+            // Non-fatal
           }
-        } catch {
-          // Non-fatal
-        }
-      })
-    );
+        })
+      );
+    }
   }
 
   // --- Auto-match GSC → GA4 by domain ---
   let autoLinked = 0;
-  const unlinkedGsc = await db.query.properties.findMany({
-    where: (p, { and, eq, isNull }) =>
-      and(eq(p.teamId, teamId), eq(p.type, "gsc"), isNull(p.ga4PropertyId)),
-  });
-  for (const gscProp of unlinkedGsc) {
-    const match = ga4Props.find((ga4) => estimateGa4DisplayNameLink(gscProp.url, ga4.displayName).matched);
-    if (match) {
-      const estimate = estimateGa4DisplayNameLink(gscProp.url, match.displayName);
-      await db
-        .update(properties)
-        .set({
-          ga4PropertyId: match.propertyId,
-          ga4LinkConfidence: estimate.confidence,
-          ga4LinkSource: estimate.source,
-          ga4LinkUpdatedAt: new Date(),
-        })
-        .where(eq(properties.id, gscProp.id));
-      autoLinked++;
+  if (sideEffects.autoLink) {
+    const unlinkedGsc = await db.query.properties.findMany({
+      where: (p, { and, eq, isNull }) =>
+        and(eq(p.teamId, teamId), eq(p.type, "gsc"), isNull(p.ga4PropertyId)),
+    });
+    for (const gscProp of unlinkedGsc) {
+      const match = ga4Props.find((ga4) => estimateGa4DisplayNameLink(gscProp.url, ga4.displayName).matched);
+      if (match) {
+        const estimate = estimateGa4DisplayNameLink(gscProp.url, match.displayName);
+        await db
+          .update(properties)
+          .set({
+            ga4PropertyId: match.propertyId,
+            ga4LinkConfidence: estimate.confidence,
+            ga4LinkSource: estimate.source,
+            ga4LinkUpdatedAt: new Date(),
+          })
+          .where(eq(properties.id, gscProp.id));
+        autoLinked++;
+      }
     }
   }
 

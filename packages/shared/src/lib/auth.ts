@@ -5,7 +5,6 @@ import { db } from "@webhealth/shared/db";
 import * as schema from "@webhealth/shared/db/schema";
 import { user, teams, teamMembers, systemLogs } from "@webhealth/shared/db/schema";
 import { nanoid } from "nanoid";
-import { syncPropertiesForUser } from "@webhealth/shared/lib/sync-properties";
 import { updateGoogleAccountTokens, decryptProviderToken } from "@webhealth/shared/lib/provider-tokens";
 
 async function persistGoogleAccountState(account: {
@@ -110,19 +109,8 @@ export const auth = betterAuth({
     account: {
       create: {
         after: async (account) => {
-          // Auto-sync properties on first Google login (account.create only fires once per provider)
           if (account.providerId !== "google" || !account.accessToken) return;
           await persistGoogleAccountState(account);
-          const userTeams = await db.query.teamMembers.findMany({
-            where: (tm, { eq }) => eq(tm.userId, account.userId),
-          });
-          if (userTeams.length === 0) return;
-          syncPropertiesForUser({
-            userId: account.userId,
-            teamId: userTeams[0].teamId,
-            accessToken: account.accessToken,
-            refreshToken: account.refreshToken ?? undefined,
-          }).catch(() => {});
         },
       },
       update: {

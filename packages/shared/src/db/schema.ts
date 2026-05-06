@@ -21,6 +21,8 @@ export const user = pgTable("user", {
   updatedAt: timestamp("updated_at").notNull(),
   isRestricted: boolean("is_restricted").default(false).notNull(),
   restrictionMessage: text("restriction_message"),
+  onboardingCompletedAt: timestamp("onboarding_completed_at"),
+  onboardingCompletionReason: text("onboarding_completion_reason"),
 });
 
 export const session = pgTable("session", {
