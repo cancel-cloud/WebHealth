@@ -58,6 +58,13 @@ export function dispatchAppSidebarPropertiesRefresh(
   target?.dispatchEvent(new Event(APP_SIDEBAR_PROPERTIES_REFRESH_EVENT));
 }
 
+export function shouldApplyAppSidebarMetaLoad(
+  requestId: number,
+  latestRequestId: number,
+) {
+  return requestId === latestRequestId;
+}
+
 export function getAppSidebarFooterThemeOptions() {
   return [
     { value: "system" as const, label: "System" },

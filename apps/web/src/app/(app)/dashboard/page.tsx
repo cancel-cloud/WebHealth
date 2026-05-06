@@ -4,13 +4,14 @@ import { AlertCircle, ArrowRight, Bot, Globe2 } from "lucide-react";
 import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { eq } from "drizzle-orm";
-import { properties as propertiesSchema } from "@webhealth/shared/db/schema";
+import { properties as propertiesSchema, user as userSchema } from "@webhealth/shared/db/schema";
 import { getWorkspaceActionBoard } from "@webhealth/shared/lib/live-dashboard";
 import { getAiRunCenterData, type AiRunCenterData } from "@webhealth/shared/lib/ai-run-center";
 import { isAdminEmail } from "@webhealth/shared/lib/admin-access";
 import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import { listTeamCombinedReportableProperties } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { OnboardingModal } from "./onboarding-modal";
+import { shouldOpenOnboardingModal } from "./onboarding-modal.logic";
 import { WorkspaceActionBoard } from "./workspace-action-board";
 import { ManagePropertiesDialog } from "./manage-properties-dialog";
 import { SetupDismissButton } from "./setup-dismiss-button";
@@ -28,9 +29,12 @@ export default async function DashboardPage({
   const userTeams = await db.query.teamMembers.findMany({
     where: (table, { eq: eqFn }) => eqFn(table.userId, session!.user.id),
   });
+  const currentUser = await db.query.user.findFirst({
+    where: eq(userSchema.id, session!.user.id),
+    columns: { onboardingCompletedAt: true },
+  });
 
   let propertyCount = 0;
-  let hasProperties = false;
   let websites: Awaited<ReturnType<typeof listTeamCombinedReportableProperties>> = [];
   let allProperties: Array<{
     id: string;
@@ -79,7 +83,6 @@ export default async function DashboardPage({
       ga4PropertyId: property.ga4PropertyId,
     }));
     propertyCount = userProperties.filter((property) => property.active).length;
-    hasProperties = userProperties.length > 0;
     dismissedSetupPropertyIds = new Set(setupDismissals.map((dismissal) => dismissal.propertyId));
     [websites, workspaceBoard] = await Promise.all([
       listTeamCombinedReportableProperties(targetTeamId),
@@ -89,7 +92,12 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-8">
-      <OnboardingModal hasProperties={hasProperties} />
+      <OnboardingModal
+        initialProperties={allProperties}
+        shouldShow={shouldOpenOnboardingModal({
+          onboardingCompletedAt: currentUser?.onboardingCompletedAt,
+        })}
+      />
 
       <div>
         <div>

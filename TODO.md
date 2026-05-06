@@ -1,4 +1,10 @@
 # TODO — Placeholder / Dummy Data Tracker
+- onboarding is missing completly
+- auto merging properties is not doing one thing
+- toggleing properties in properties page on does not refresh sidebar properties
+- when toggleing on a property, it should queue a background job to update the property page
+- idk why, but default data fetch is 28 days(i think) but when toggleing to view last 90 days, it fetches 28 days worth of data and shows the rest as 0, even though there is data available (but in the cloud aka not fetched from google)
+  - it does not show, that there is more data available than just the 28 days fetched, nor does it sync and show that(I WANT IT AUTO SYNC and show that it is doing that right now(use the already existing loading indicator on that page))
 
 - Agency workspace model:
   - Keep the team/workspace abstraction because Agency needs one owner-owned workspace with invited members later.

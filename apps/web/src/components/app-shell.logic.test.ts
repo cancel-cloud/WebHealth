@@ -8,6 +8,7 @@ import {
   getAppSidebarThemeChoiceClasses,
   getAppSidebarItemClasses,
   getAppSidebarModel,
+  shouldApplyAppSidebarMetaLoad,
 } from "./app-shell.logic";
 
 test("settings route marks settings current and keeps support links grouped", () => {
@@ -123,4 +124,9 @@ test("sidebar property refresh dispatches the shared refresh event", () => {
   });
 
   assert.deepEqual(dispatchedTypes, [APP_SIDEBAR_PROPERTIES_REFRESH_EVENT]);
+});
+
+test("sidebar meta loader ignores stale responses from earlier requests", () => {
+  assert.equal(shouldApplyAppSidebarMetaLoad(1, 2), false);
+  assert.equal(shouldApplyAppSidebarMetaLoad(2, 2), true);
 });

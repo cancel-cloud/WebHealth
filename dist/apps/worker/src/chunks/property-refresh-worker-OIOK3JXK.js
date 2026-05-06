@@ -1,6 +1,6 @@
 import {
   recordProductEvent
-} from "./chunk-35IEE25M.js";
+} from "./chunk-I4FNGP6C.js";
 import "./chunk-WJRBKJF5.js";
 import {
   buildAiActionIdentity,
@@ -10,7 +10,7 @@ import {
   resolveAnalysisWindow,
   resolveTeamReportSources,
   validateAiRecommendation
-} from "./chunk-F4ZLI7KK.js";
+} from "./chunk-ZN26GRWO.js";
 import {
   claimNextPropertyRefreshJob,
   completePropertyRefreshJob,
@@ -19,13 +19,13 @@ import {
   heartbeatPropertyRefreshJob,
   storePropertyCrawlSnapshot,
   updatePropertyRefreshJobProgress
-} from "./chunk-4U6HOR3Q.js";
+} from "./chunk-EAKCPVXN.js";
 import {
   composeReportMetricsFromCache
-} from "./chunk-LW4ERQXB.js";
+} from "./chunk-JW6TXCX7.js";
 import {
   db
-} from "./chunk-MHPXHZHS.js";
+} from "./chunk-JWILAXM7.js";
 import {
   actionItems,
   aiAnalysisRuns,
@@ -34,7 +34,7 @@ import {
   aiRuntimeSettings,
   ga4ReportArtifacts,
   properties
-} from "./chunk-LQXSOOFX.js";
+} from "./chunk-RO4LFVWN.js";
 import "./chunk-EJ6QGHXW.js";
 import "./chunk-3LHI6BO3.js";
 
@@ -1092,7 +1092,7 @@ async function isRefreshPropertyActive(job) {
 }
 async function warmDashboardFromPayload(job) {
   const payload = job.payload ?? {};
-  const { getLiveDashboardData } = await import("./live-dashboard-X4T67LOY.js");
+  const { getLiveDashboardData } = await import("./live-dashboard-DWGGL2MV.js");
   await getLiveDashboardData({
     teamId: job.teamId,
     propertyId: job.propertyId,

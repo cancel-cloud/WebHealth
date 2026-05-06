@@ -1,17 +1,7 @@
-export const ONBOARDING_WELCOMED_STORAGE_KEY = "webhealth_welcomed";
-
-export function hasWelcomedFromStorage(value: string | null) {
-  return value === "1";
-}
-
 export function shouldOpenOnboardingModal({
-  hasProperties,
-  hasWelcomed,
-  dismissed,
+  onboardingCompletedAt,
 }: {
-  hasProperties: boolean;
-  hasWelcomed: boolean;
-  dismissed: boolean;
+  onboardingCompletedAt: Date | string | null | undefined;
 }) {
-  return !hasProperties && !hasWelcomed && !dismissed;
+  return onboardingCompletedAt == null;
 }

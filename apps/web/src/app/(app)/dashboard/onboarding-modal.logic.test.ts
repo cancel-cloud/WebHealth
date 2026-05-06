@@ -1,50 +1,35 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  hasWelcomedFromStorage,
-  shouldOpenOnboardingModal,
-} from "./onboarding-modal.logic";
+import { shouldOpenOnboardingModal } from "./onboarding-modal.logic";
 
-test("storage flag only treats 1 as an acknowledged onboarding state", () => {
-  assert.equal(hasWelcomedFromStorage("1"), true);
-  assert.equal(hasWelcomedFromStorage("0"), false);
-  assert.equal(hasWelcomedFromStorage(null), false);
-});
-
-test("onboarding modal opens only for first-time users without properties", () => {
+test("onboarding modal opens for users without completion state even when properties exist", () => {
   assert.equal(
     shouldOpenOnboardingModal({
-      hasProperties: false,
-      hasWelcomed: false,
-      dismissed: false,
+      onboardingCompletedAt: null,
     }),
     true
   );
 
   assert.equal(
     shouldOpenOnboardingModal({
-      hasProperties: true,
-      hasWelcomed: false,
-      dismissed: false,
+      onboardingCompletedAt: undefined,
+    }),
+    true
+  );
+});
+
+test("onboarding modal stays closed after onboarding is completed or skipped", () => {
+  assert.equal(
+    shouldOpenOnboardingModal({
+      onboardingCompletedAt: new Date("2026-05-06T10:00:00Z"),
     }),
     false
   );
 
   assert.equal(
     shouldOpenOnboardingModal({
-      hasProperties: false,
-      hasWelcomed: true,
-      dismissed: false,
-    }),
-    false
-  );
-
-  assert.equal(
-    shouldOpenOnboardingModal({
-      hasProperties: false,
-      hasWelcomed: false,
-      dismissed: true,
+      onboardingCompletedAt: "2026-05-06T10:00:00Z",
     }),
     false
   );

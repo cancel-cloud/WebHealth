@@ -39,6 +39,7 @@ import {
 import { toast } from "sonner";
 import { getAppErrorMessage } from "@/lib/client/app-error";
 import { requestJson } from "@/lib/client/api";
+import { dispatchAppSidebarPropertiesRefresh } from "@/components/app-shell.logic";
 import { useGoogleAccessRecovery } from "@/components/google-access-recovery";
 import {
   getGoogleAccessDialogModel,
@@ -49,6 +50,7 @@ import {
   getManagedPropertyToggleTargets,
   type ManagedPropertyRow,
 } from "../dashboard/manage-properties-dialog.logic";
+import { getGa4PropertyOptions } from "../dashboard/property-linking.logic";
 
 type Property = {
   id: string;
@@ -76,7 +78,7 @@ function LinkGa4Dialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { hasBlockingIssue } = useGoogleAccessRecovery();
 
-  const unlinkedGa4 = ga4Properties;
+  const ga4Options = getGa4PropertyOptions(ga4Properties);
 
   const handleLink = async () => {
     if (!selectedGa4Id) return;
@@ -92,6 +94,7 @@ function LinkGa4Dialog({
       );
       toast.success("GA4 linked!");
       setOpen(false);
+      dispatchAppSidebarPropertiesRefresh();
       onLinked();
     } catch (err) {
       toast.error(getAppErrorMessage(err, "An error occurred"));
@@ -107,7 +110,7 @@ function LinkGa4Dialog({
         size="sm"
         className="h-7 text-xs gap-1"
         onClick={() => setOpen(true)}
-        disabled={unlinkedGa4.length === 0 || hasBlockingIssue}
+        disabled={ga4Options.length === 0 || hasBlockingIssue}
       >
         <Link2 className="h-3 w-3" />
         Link GA4
@@ -127,9 +130,9 @@ function LinkGa4Dialog({
                 <SelectValue placeholder="Select a GA4 property…" />
               </SelectTrigger>
               <SelectContent>
-                {unlinkedGa4.map((p) => (
-                  <SelectItem key={p.id} value={p.id.replace("ga4_", "")}>
-                    {p.name}
+                {ga4Options.map((property) => (
+                  <SelectItem key={property.id} value={property.numericId}>
+                    {property.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -243,6 +246,7 @@ export default function PropertiesPage() {
       });
       toast.success(active ? "Property activated" : "Property deactivated");
       await loadProperties();
+      dispatchAppSidebarPropertiesRefresh();
     } catch (error) {
       toast.error(getAppErrorMessage(error, "Could not update property activation"));
     } finally {

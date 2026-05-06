@@ -7,6 +7,7 @@ import { RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getAppErrorMessage, isAppError } from "@/lib/client/app-error";
 import { requestJson } from "@/lib/client/api";
+import { dispatchAppSidebarPropertiesRefresh } from "@/components/app-shell.logic";
 import { useGoogleAccessRecovery } from "@/components/google-access-recovery";
 import { getGoogleAccessIssueFromCode } from "@/components/google-access-recovery.logic";
 
@@ -79,6 +80,7 @@ export function SyncButton({
     try {
       const data = await runPropertiesSync();
       toast.success(formatPropertiesSyncSuccess(data), { id: "sync-toast" });
+      dispatchAppSidebarPropertiesRefresh();
 
       if (refreshStrategy === "callback" || refreshStrategy === "both") {
         await onSynced?.();

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { authClient } from "@webhealth/shared/lib/auth-client";
 import { cn } from "@webhealth/shared/lib/utils";
@@ -11,6 +11,7 @@ import {
   getAppSidebarItemClasses,
   getAppSidebarModel,
   getAppSidebarThemeChoiceClasses,
+  shouldApplyAppSidebarMetaLoad,
   type AppSidebarIconKey,
   type AppSidebarItem,
 } from "./app-shell.logic";
@@ -280,6 +281,7 @@ export function AppSidebar({
   const { data: session } = authClient.useSession();
   const { theme, setTheme } = useTheme();
   const [meta, setMeta] = useState<SidebarMeta | null>(null);
+  const metaRequestIdRef = useRef(0);
   const themeOptions = getAppSidebarFooterThemeOptions();
   const model = getAppSidebarModel({
     pathname,
@@ -289,6 +291,9 @@ export function AppSidebar({
   });
 
   const loadMeta = useCallback(() => {
+    const requestId = metaRequestIdRef.current + 1;
+    metaRequestIdRef.current = requestId;
+
     Promise.all([
       requestJson<Record<string, unknown>>("/api/settings").catch(
         () => ({}) as Record<string, unknown>,
@@ -298,6 +303,10 @@ export function AppSidebar({
       }).catch(() => ({}) as Record<string, unknown>),
     ])
       .then(([settingsData, propertiesData]) => {
+        if (!shouldApplyAppSidebarMetaLoad(requestId, metaRequestIdRef.current)) {
+          return;
+        }
+
         const source = settingsData ?? {};
         const propertySource = propertiesData ?? {};
         const reportableProperties = Array.isArray(

@@ -524,6 +524,8 @@ CREATE TABLE "user" (
 	"updated_at" timestamp NOT NULL,
 	"is_restricted" boolean DEFAULT false NOT NULL,
 	"restriction_message" text,
+	"onboarding_completed_at" timestamp,
+	"onboarding_completion_reason" text,
 	CONSTRAINT "user_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint

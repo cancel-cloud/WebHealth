@@ -85,7 +85,7 @@ function recordPosthogWorkerError(event, recorder) {
     void recorder(event);
     return;
   }
-  void import("./chunks/product-event-store-6HNVTU7O.js").then(({ recordProductEvent }) => recordProductEvent(event)).catch(() => {
+  void import("./chunks/product-event-store-OH3PSJ4P.js").then(({ recordProductEvent }) => recordProductEvent(event)).catch(() => {
   });
 }
 function initWorkerMonitoring(env = process.env) {
@@ -214,11 +214,11 @@ async function main() {
   });
   workerPhase = "imports";
   markWorkerPhase(runtimeState, "imports");
-  const sharedDbModule = await import("./chunks/db-FES5EQJ7.js");
+  const sharedDbModule = await import("./chunks/db-EZLJMW4C.js");
   const { ensureWorkerDatabaseReady } = await import("./chunks/worker-db-bootstrap-KWVAEAVL.js");
-  const { startPropertyRefreshWorkerLoop, runSinglePropertyRefreshWorkerTick } = await import("./chunks/property-refresh-worker-YU33QQC4.js");
-  const { startMetricsBackfillWorkerLoop, runSingleMetricsBackfillWorkerTick } = await import("./chunks/metrics-cache-JPEUYWYT.js");
-  const { startActivePropertyAutomationScheduler } = await import("./chunks/active-property-automation-NQHIEKVN.js");
+  const { startPropertyRefreshWorkerLoop, runSinglePropertyRefreshWorkerTick } = await import("./chunks/property-refresh-worker-OIOK3JXK.js");
+  const { startMetricsBackfillWorkerLoop, runSingleMetricsBackfillWorkerTick } = await import("./chunks/metrics-cache-3XD3WLJO.js");
+  const { startActivePropertyAutomationScheduler } = await import("./chunks/active-property-automation-4ZY6WRL5.js");
   closeDb = sharedDbModule.closeDb;
   workerPhase = "database-ready";
   markWorkerPhase(runtimeState, "database-ready");

@@ -64,7 +64,9 @@ var user = pgTable("user", {
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
   isRestricted: boolean("is_restricted").default(false).notNull(),
-  restrictionMessage: text("restriction_message")
+  restrictionMessage: text("restriction_message"),
+  onboardingCompletedAt: timestamp("onboarding_completed_at"),
+  onboardingCompletionReason: text("onboarding_completion_reason")
 });
 var session = pgTable("session", {
   id: text("id").primaryKey(),
