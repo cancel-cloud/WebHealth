@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   ),
   openGraph: {
     type: "website",
-    title: "Webhealth - GSC + GA4 data. Ranked fixes in 3 min.",
+    title: "Webhealth | SEO & Analytics Monitoring.",
     description:
       "Connect GSC + GA4, run a live crawl, and get a ranked fix list with affected URLs and impact scores. Free to start.",
     url: process.env.NEXT_PUBLIC_APP_URL ?? "https://webhealth.devbrew.dev",
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Webhealth - GSC + GA4 data. Ranked fixes in 3 min.",
+    title: "Webhealth | SEO & Analytics Monitoring.",
     description:
       "Connect GSC + GA4, run a live crawl, and get a ranked fix list in 3 minutes. Free to start.",
     images: ["/og-image.png"],
@@ -102,15 +102,13 @@ export default function RootLayout({
           <Suspense fallback={null}>
             <PosthogAnalytics
               projectKey={process.env.NEXT_PUBLIC_POSTHOG_KEY}
-              captureHost={process.env.POSTHOG_CAPTURE_HOST ?? process.env.POSTHOG_HOST}
+              captureHost={
+                process.env.POSTHOG_CAPTURE_HOST ?? process.env.POSTHOG_HOST
+              }
               uiHost={process.env.POSTHOG_UI_HOST}
             />
           </Suspense>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-          >
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <TooltipProvider>
               {children}
               <Toaster />
