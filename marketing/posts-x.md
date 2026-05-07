@@ -8,31 +8,24 @@ Pillars: A = product showoff · B = build-in-public · C = SEO workflow opinion 
 
 ---
 
-### Post 1 - E - EN - PINNED
-I built WebHealth for SEO agencies that turn GSC, GA4 and crawl exports into client-meeting tasks by hand.
+### Post 1 - E - EN - PINNED - done
+I built WebHealth for SEO agencies that still turn GSC, GA4 and crawl exports into SEO tasks by hand.
 
-Not another dashboard.
-A ranked action backlog.
+Not another dashboard. A ranked action backlog that shows what to fix next to improve rankings, impressions and clicks.
 
-Website:
-https://webhealth.devbrew.dev
-
-Fit check:
-https://cal.com/lukas-devbrew/kennenlernen
+Fit check: https://cal.com/lukas-devbrew/kennenlernen
+Website: https://webhealth.devbrew.dev
 
 -- internal note: pinned offer. Carries both website and meeting link. If the production domain changes, update the Website URL.
 
 ---
 
-### Post 2 - A - EN
+### Post 2 - A - EN - done
 GSC shows the symptom.
-
 GA4 shows whether users changed.
-
-The crawl shows what broke.
+A website crawl shows what broke.
 
 The useful part is not having all three tabs open.
-
 The useful part is getting one ranked list of what to check first.
 
 -- internal note: attach product screenshot if available. No link.
