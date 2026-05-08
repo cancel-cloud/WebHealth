@@ -1,5 +1,9 @@
 import type { AgencyLandingLanguage } from "./agency-homepage.logic";
-import { buildAgencyJsonLd, type AgencySeoPage } from "./agency-seo.logic";
+import {
+  buildAgencyJsonLd,
+  serializeJsonLd,
+  type AgencySeoPage,
+} from "./agency-seo.logic";
 
 export function AgencyJsonLd({
   language,
@@ -12,7 +16,7 @@ export function AgencyJsonLd({
     <script
       type="application/ld+json"
       dangerouslySetInnerHTML={{
-        __html: JSON.stringify(buildAgencyJsonLd(language, page)),
+        __html: serializeJsonLd(buildAgencyJsonLd(language, page)),
       }}
     />
   );

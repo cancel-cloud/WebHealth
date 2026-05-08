@@ -224,3 +224,53 @@ export function buildAgencyJsonLd(
     ],
   };
 }
+
+export function buildMarketingSiteJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${AGENCY_PRODUCTION_BASE_URL}/#organization`,
+        name: "DevBrew",
+        url: AGENCY_PRODUCTION_BASE_URL,
+        email: "kontakt@devbrew.dev",
+        brand: {
+          "@type": "Brand",
+          name: "WebHealth",
+          url: AGENCY_PRODUCTION_BASE_URL,
+        },
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${AGENCY_PRODUCTION_BASE_URL}/#website`,
+        name: "WebHealth",
+        url: AGENCY_PRODUCTION_BASE_URL,
+        publisher: {
+          "@id": `${AGENCY_PRODUCTION_BASE_URL}/#organization`,
+        },
+        inLanguage: ["de", "en"],
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": `${AGENCY_PRODUCTION_BASE_URL}/#software`,
+        name: "WebHealth",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        description:
+          "SEO and analytics monitoring for agencies using Search Console, GA4, and crawl signals.",
+        offers: {
+          "@type": "Offer",
+          price: "149",
+          priceCurrency: "EUR",
+          availability: "https://schema.org/LimitedAvailability",
+          url: `${AGENCY_PRODUCTION_BASE_URL}/pricing`,
+        },
+      },
+    ],
+  };
+}
+
+export function serializeJsonLd(jsonLd: unknown) {
+  return JSON.stringify(jsonLd).replace(/</g, "\\u003c");
+}
