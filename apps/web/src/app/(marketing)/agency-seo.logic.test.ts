@@ -4,10 +4,12 @@ import {
   AGENCY_PRODUCTION_BASE_URL,
   buildAgencyHomeMetadata,
   buildAgencyJsonLd,
+  buildMarketingSiteJsonLd,
   buildAgencySeoTopicMetadata,
   getAgencyRootRedirectPath,
   getAgencySeoTopicPath,
   resolvePreferredAgencyLanguage,
+  serializeJsonLd,
 } from "./agency-seo.logic";
 
 test("preferred agency language defaults to German when the browser does not clearly prefer English", () => {
@@ -59,4 +61,25 @@ test("agency JSON-LD exposes organization, service, software, and FAQ data", () 
   assert.equal(graph.some((item) => item["@type"] === "SoftwareApplication"), true);
   assert.equal(graph.some((item) => item["@type"] === "FAQPage"), true);
   assert.equal(graph.find((item) => item["@type"] === "Service")?.url, `${AGENCY_PRODUCTION_BASE_URL}/de`);
+});
+
+test("marketing site JSON-LD exposes baseline schema for shared marketing pages", () => {
+  const jsonLd = buildMarketingSiteJsonLd();
+  const graph = jsonLd["@graph"];
+
+  assert.equal(jsonLd["@context"], "https://schema.org");
+  assert.equal(graph.some((item) => item["@type"] === "Organization"), true);
+  assert.equal(graph.some((item) => item["@type"] === "WebSite"), true);
+  assert.equal(graph.some((item) => item["@type"] === "SoftwareApplication"), true);
+  assert.equal(
+    graph.find((item) => item["@type"] === "WebSite")?.url,
+    AGENCY_PRODUCTION_BASE_URL,
+  );
+});
+
+test("JSON-LD serialization escapes unsafe script delimiters", () => {
+  assert.equal(
+    serializeJsonLd({ text: "</script><script>alert(1)</script>" }),
+    '{"text":"\\u003c/script>\\u003cscript>alert(1)\\u003c/script>"}',
+  );
 });

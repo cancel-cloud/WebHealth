@@ -1,9 +1,15 @@
 import { MarketingShell } from "./marketing-shell";
+import { MarketingJsonLd } from "./marketing-json-ld";
 
 export default function MarketingLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <MarketingShell>{children}</MarketingShell>;
+  return (
+    <>
+      <MarketingJsonLd />
+      <MarketingShell>{children}</MarketingShell>
+    </>
+  );
 }
