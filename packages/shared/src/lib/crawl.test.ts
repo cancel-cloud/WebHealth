@@ -130,6 +130,58 @@ test("crawlWebsite only visits in-scope pages", async () => {
   assert.equal(result.pages.length, 2);
 });
 
+test("crawlWebsite compares canonicals against the final URL after redirects", async () => {
+  const fetchedUrls: string[] = [];
+
+  const result = await crawlWebsite("https://example.com/", 10, {
+    dnsLookup: async () => [{ address: "93.184.216.34", family: 4 }],
+    fetchImpl: async (input) => {
+      const url = String(input);
+      fetchedUrls.push(url);
+
+      if (url === "https://example.com/") {
+        return new Response(null, {
+          status: 308,
+          headers: { location: "https://example.com/de" },
+        });
+      }
+
+      if (url === "https://example.com/de") {
+        return new Response(
+          `
+            <html>
+              <head>
+                <title>German home</title>
+                <meta name="description" content="desc" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <link rel="canonical" href="https://example.com/de" />
+                <script type="application/ld+json">{}</script>
+              </head>
+              <body>
+                <h1>German home</h1>
+                <a href="/de">Current language</a>
+              </body>
+            </html>
+          `,
+          { status: 200 },
+        );
+      }
+
+      return new Response(null, { status: 404 });
+    },
+  });
+
+  assert.deepEqual(fetchedUrls, ["https://example.com/", "https://example.com/de"]);
+  assert.equal(result.pages.length, 1);
+  assert.equal(result.pages[0]?.url, "https://example.com/de");
+  assert.equal(result.pages[0]?.canonicalUrl, "https://example.com/de");
+  assert.equal(result.summary.canonicalMismatch, 0);
+  assert.equal(
+    result.pages[0]?.issues.includes("Canonical URL points to a different URL"),
+    false,
+  );
+});
+
 test("crawlWebsite captures SEO fundamentals for AI evidence", async () => {
   const result = await crawlWebsite("https://example.com/", 1, {
     dnsLookup: async () => [{ address: "93.184.216.34", family: 4 }],

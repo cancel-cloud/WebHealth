@@ -289,12 +289,12 @@ async function fetchPage(url, scope, options, redirectsRemaining = options?.maxR
     if (res.status >= 300 && res.status < 400 && redirectsRemaining > 0) {
       const location = res.headers.get("location");
       const redirectedUrl = location ? normalizeCrawlUrl(safeUrl.toString(), location, scope, options) : null;
-      if (!redirectedUrl) return { html: "", status: res.status };
+      if (!redirectedUrl) return { html: "", status: res.status, url: safeUrl.toString() };
       return fetchPage(redirectedUrl, scope, options, redirectsRemaining - 1);
     }
-    if (!res.ok) return { html: "", status: res.status };
+    if (!res.ok) return { html: "", status: res.status, url: safeUrl.toString() };
     const html = await res.text();
-    return { html, status: res.status };
+    return { html, status: res.status, url: safeUrl.toString() };
   } catch {
     return null;
   }
@@ -324,18 +324,23 @@ async function crawlWebsite(startUrl, maxPages = DEFAULT_MAX_PAGES, options) {
     const result = await fetchPage(url, scope, options);
     if (!result) continue;
     if (result.status >= 400) {
-      brokenLinks.push(url);
+      brokenLinks.push(result.url);
       continue;
+    }
+    if (result.url !== url) {
+      if (visited.has(result.url)) continue;
+      visited.add(result.url);
     }
     const $ = cheerio.load(result.html);
     const issues = [];
+    const pageUrl = result.url;
     const title = $("title").text().trim();
     const metaDescription = $('meta[name="description"]').attr("content")?.trim() ?? "";
     const h1Tags = $("h1");
     const h1Count = h1Tags.length;
     const h1Texts = h1Tags.map((_, el) => normalizeText($(el).text())).get().filter(Boolean).slice(0, 10);
     const canonicalRaw = $('link[rel="canonical"]').attr("href")?.trim() ?? "";
-    const canonicalUrl = normalizeCrawlUrl(url, canonicalRaw, scope, options) ?? url;
+    const canonicalUrl = normalizeCrawlUrl(pageUrl, canonicalRaw, scope, options) ?? pageUrl;
     const bodyText = normalizeText($("body").text());
     const visibleTextExcerpt = bodyText.slice(0, 4e3);
     const visibleWordCount = countWords(bodyText);
@@ -352,7 +357,7 @@ async function crawlWebsite(startUrl, maxPages = DEFAULT_MAX_PAGES, options) {
     if (!metaDescription) issues.push("Missing meta description");
     if (h1Count === 0) issues.push("Missing <h1> tag");
     if (h1Count > 1) issues.push(`Multiple <h1> tags (${h1Count} found)`);
-    if (canonicalUrl !== url) issues.push("Canonical URL points to a different URL");
+    if (canonicalUrl !== pageUrl) issues.push("Canonical URL points to a different URL");
     if (noindex) issues.push("Page is marked noindex");
     if (nofollow) issues.push("Page is marked nofollow");
     if (imageMissingAltCount > 0) {
@@ -364,7 +369,7 @@ async function crawlWebsite(startUrl, maxPages = DEFAULT_MAX_PAGES, options) {
       issues.push(`Thin visible text (${visibleWordCount} words)`);
     }
     pages.push({
-      url,
+      url: pageUrl,
       canonicalUrl,
       issues,
       title,
@@ -381,7 +386,7 @@ async function crawlWebsite(startUrl, maxPages = DEFAULT_MAX_PAGES, options) {
     });
     $("a[href]").each((_, el) => {
       const href = $(el).attr("href") ?? "";
-      const normalized = normalizeCrawlUrl(url, href, scope, options);
+      const normalized = normalizeCrawlUrl(pageUrl, href, scope, options);
       if (normalized && !visited.has(normalized)) {
         toVisit.push(normalized);
       }

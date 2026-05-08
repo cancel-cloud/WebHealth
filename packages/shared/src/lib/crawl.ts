@@ -399,7 +399,7 @@ async function fetchPage(
   scope: CrawlScope,
   options?: CrawlSecurityOptions,
   redirectsRemaining = options?.maxRedirects ?? DEFAULT_MAX_REDIRECTS
-): Promise<{ html: string; status: number } | null> {
+): Promise<{ html: string; status: number; url: string } | null> {
   try {
     const safeTarget = await assertSafeCrawlTarget(url, scope, options);
     const safeUrl = safeTarget.url;
@@ -416,13 +416,13 @@ async function fetchPage(
       const redirectedUrl = location
         ? normalizeCrawlUrl(safeUrl.toString(), location, scope, options)
         : null;
-      if (!redirectedUrl) return { html: "", status: res.status };
+      if (!redirectedUrl) return { html: "", status: res.status, url: safeUrl.toString() };
       return fetchPage(redirectedUrl, scope, options, redirectsRemaining - 1);
     }
 
-    if (!res.ok) return { html: "", status: res.status };
+    if (!res.ok) return { html: "", status: res.status, url: safeUrl.toString() };
     const html = await res.text();
-    return { html, status: res.status };
+    return { html, status: res.status, url: safeUrl.toString() };
   } catch {
     return null;
   }
@@ -465,12 +465,18 @@ export async function crawlWebsite(
     if (!result) continue;
 
     if (result.status >= 400) {
-      brokenLinks.push(url);
+      brokenLinks.push(result.url);
       continue;
+    }
+
+    if (result.url !== url) {
+      if (visited.has(result.url)) continue;
+      visited.add(result.url);
     }
 
     const $ = cheerio.load(result.html);
     const issues: string[] = [];
+    const pageUrl = result.url;
 
     const title = $("title").text().trim();
     const metaDescription = $("meta[name=\"description\"]").attr("content")?.trim() ?? "";
@@ -483,7 +489,7 @@ export async function crawlWebsite(
       .slice(0, 10);
 
     const canonicalRaw = $("link[rel=\"canonical\"]").attr("href")?.trim() ?? "";
-    const canonicalUrl = normalizeCrawlUrl(url, canonicalRaw, scope, options) ?? url;
+    const canonicalUrl = normalizeCrawlUrl(pageUrl, canonicalRaw, scope, options) ?? pageUrl;
 
     const bodyText = normalizeText($("body").text());
     const visibleTextExcerpt = bodyText.slice(0, 4000);
@@ -506,7 +512,7 @@ export async function crawlWebsite(
     if (!metaDescription) issues.push("Missing meta description");
     if (h1Count === 0) issues.push("Missing <h1> tag");
     if (h1Count > 1) issues.push(`Multiple <h1> tags (${h1Count} found)`);
-    if (canonicalUrl !== url) issues.push("Canonical URL points to a different URL");
+    if (canonicalUrl !== pageUrl) issues.push("Canonical URL points to a different URL");
     if (noindex) issues.push("Page is marked noindex");
     if (nofollow) issues.push("Page is marked nofollow");
     if (imageMissingAltCount > 0) {
@@ -519,7 +525,7 @@ export async function crawlWebsite(
     }
 
     pages.push({
-      url,
+      url: pageUrl,
       canonicalUrl,
       issues,
       title,
@@ -537,7 +543,7 @@ export async function crawlWebsite(
 
     $("a[href]").each((_, el) => {
       const href = $(el).attr("href") ?? "";
-      const normalized = normalizeCrawlUrl(url, href, scope, options);
+      const normalized = normalizeCrawlUrl(pageUrl, href, scope, options);
       if (normalized && !visited.has(normalized)) {
         toVisit.push(normalized);
       }
