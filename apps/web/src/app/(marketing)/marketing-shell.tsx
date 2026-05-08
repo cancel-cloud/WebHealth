@@ -11,6 +11,7 @@ import {
   LEGAL_DOCUMENT_IDS,
   LEGAL_NAV_LABELS,
 } from "./legal/legal-routes";
+import { shouldUseStandaloneAgencyChrome } from "./marketing-shell.logic";
 
 function LegalFooterLinksFallback() {
   return LEGAL_DOCUMENT_IDS.map((documentId) => (
@@ -84,9 +85,8 @@ export function MarketingShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isAgencyHomepage = pathname === "/";
 
-  if (isAgencyHomepage) {
+  if (shouldUseStandaloneAgencyChrome(pathname)) {
     return <>{children}</>;
   }
 
