@@ -19,8 +19,7 @@ test("agency landing source uses same-page anchors and no longer links homepage 
     "utf8",
   );
 
-  assert.match(source, /href="#workspace"/);
-  assert.match(source, /href="#pricing"/);
+  assert.match(source, /href=\{`#\$\{item\.id\}`\}/);
   assert.match(source, /id="workspace"/);
   assert.match(source, /id="whitelabel"/);
   assert.match(source, /id="integrations"/);
@@ -28,4 +27,22 @@ test("agency landing source uses same-page anchors and no longer links homepage 
   assert.match(source, /id="faq"/);
   assert.doesNotMatch(source, /href="\/demo"/);
   assert.doesNotMatch(source, /href="\/pricing"/);
+});
+
+test("agency landing source uses crawlable language links and visible fictional sample labels", () => {
+  const source = readFileSync(
+    new URL("./agency-homepage-client.tsx", import.meta.url),
+    "utf8",
+  );
+  const contentSource = readFileSync(
+    new URL("./agency-homepage.content.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /initialLanguage/);
+  assert.match(source, /getAgencyHomePath/);
+  assert.match(source, /AgencyWorkspaceDemo/);
+  assert.match(contentSource, /Fiktive Beispieldaten, keine Kundenergebnisse/);
+  assert.match(contentSource, /Fictional sample data, not customer results/);
+  assert.doesNotMatch(source, /setLanguage/);
 });

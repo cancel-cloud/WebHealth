@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Suspense } from "react";
 import { Inter, Outfit } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
@@ -11,6 +12,7 @@ import { GoogleConsentDefault } from "@/components/google-consent-default";
 import { GOOGLE_ANALYTICS_MEASUREMENT_ID } from "@/components/cookie-consent.logic";
 import { PosthogAnalytics } from "@/components/posthog-analytics";
 import { VercelAnalytics } from "@/components/vercel-analytics";
+import { AGENCY_PRODUCTION_BASE_URL } from "./(marketing)/agency-seo.logic";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -27,14 +29,14 @@ export const metadata: Metadata = {
   description:
     "Connect GSC + GA4, run a live crawl, and get a ranked fix list in 3 minutes. Live SEO snapshots for developers and freelancers.",
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://webhealth.devbrew.dev",
+    AGENCY_PRODUCTION_BASE_URL,
   ),
   openGraph: {
     type: "website",
     title: "Webhealth | SEO & Analytics Monitoring.",
     description:
       "Connect GSC + GA4, run a live crawl, and get a ranked fix list with affected URLs and impact scores. Free to start.",
-    url: process.env.NEXT_PUBLIC_APP_URL ?? "https://webhealth.devbrew.dev",
+    url: AGENCY_PRODUCTION_BASE_URL,
     siteName: "Webhealth",
     images: [
       {
@@ -54,11 +56,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headerStore = await headers();
+  const requestedLocale = headerStore.get("x-webhealth-locale");
+  const locale = requestedLocale === "en" ? "en" : "de";
   const themeInitScript = `
     (function() {
       try {
@@ -75,7 +80,7 @@ export default function RootLayout({
   `;
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <meta
           name="theme-color"

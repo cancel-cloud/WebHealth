@@ -137,6 +137,7 @@ export const AGENCY_HOME_COPY = {
     pricing: { en: "Pricing", de: "Preise" },
     faq: { en: "FAQ", de: "FAQ" },
     signIn: { en: "Sign in", de: "Anmelden" },
+    selfServeCta: { en: "Try for yourself", de: "Loslegen" },
     pilotCta: {
       en: "Book a 12-min pilot fit check",
       de: "12-Minuten Pilot-Check buchen",
@@ -150,20 +151,20 @@ export const AGENCY_HOME_COPY = {
       de: "Founding Agency Pilot",
     },
     title: {
-      en: ["Turn GSC, GA4 and crawl data into ", "ranked client SEO actions", "."],
-      de: ["Monatliche SEO-Reports in ", "konkrete Kunden-Maßnahmen", " verwandeln."],
+      en: ["SEO reporting software for agencies that turns ", "reports into actions", "."],
+      de: ["SEO Reporting Tool für Agenturen, das ", "Reports in Maßnahmen", " verwandelt."],
     } satisfies LocalizedSegments,
     lead: {
-      en: "A founder-led pilot for agencies managing multiple client websites. We connect GSC, GA4 and crawl signals, set up 3-10 client sites, and deliver a branded monthly snapshot plus a ranked action backlog for the next client meeting.",
-      de: "Ein founder-led Pilot für Agenturen, die mehrere Kunden-Websites betreuen. Wir verbinden GSC-, GA4- und Crawl-Signale, richten 3-10 Kunden-Websites ein und liefern einen gebrandeten Monats-Snapshot plus priorisierten Maßnahmen-Backlog für das nächste Kundenmeeting.",
+      en: "A founder-led pilot for agencies managing multiple client websites. We connect GSC, GA4, and crawl signals, set up 3-10 client sites, and deliver a branded monthly snapshot plus a ranked action backlog for the next client meeting.",
+      de: "Ein founder-led Pilot für DACH-Agenturen, die mehrere Kunden-Websites betreuen. Wir verbinden GSC-, GA4- und Crawl-Signale, richten 3-10 Kunden-Websites ein und liefern einen gebrandeten Monats-Snapshot plus priorisierten Maßnahmen-Backlog für das nächste Kundenmeeting.",
     },
     primaryCta: {
       en: "Book a 12-min pilot fit check",
       de: "12-Minuten Pilot-Check buchen",
     },
     secondaryCta: {
-      en: "See example workflow",
-      de: "Beispiel-Workflow ansehen",
+      en: "Try for yourself",
+      de: "Loslegen",
     },
     notes: {
       en: [
@@ -215,6 +216,10 @@ export const AGENCY_HOME_COPY = {
       en: "Client-ready monthly snapshot",
       de: "Kundenfertiger Monats-Snapshot",
     },
+    sampleDisclaimer: {
+      en: "Fictional sample data, not customer results",
+      de: "Fiktive Beispieldaten, keine Kundenergebnisse",
+    },
   },
   features: {
     eyebrow: { en: "Features", de: "Features" },
@@ -245,8 +250,8 @@ export const AGENCY_HOME_COPY = {
       de: "Alle deine Kunden. Ein ruhiges Cockpit.",
     },
     lead: {
-      en: "Review the full portfolio, then drill into one client without leaving the homepage. The dataset below is marketing demo data, but the interaction mirrors the agency workflow this page sells.",
-      de: "Prüfe das gesamte Portfolio und springe dann in einen Kunden hinein, ohne die Homepage zu verlassen. Die Daten unten sind Marketing-Demo-Daten, aber die Interaktion spiegelt den Agentur-Workflow wider, den diese Seite verkauft.",
+      en: "Review the full portfolio, then drill into one client without leaving the homepage. The dataset below is fictional sample data, but the interaction mirrors the agency workflow this page sells.",
+      de: "Prüfe das gesamte Portfolio und springe dann in einen Kunden hinein, ohne die Homepage zu verlassen. Die Daten unten sind fiktive Beispieldaten, aber die Interaktion spiegelt den Agentur-Workflow wider, den diese Seite verkauft.",
     },
     teamLabel: { en: "Team · 4 seats", de: "Team · 4 Plätze" },
     clientsLabel: { en: "Clients", de: "Kunden" },
@@ -426,8 +431,8 @@ export const AGENCY_HOME_COPY = {
       de: "12-Minuten Pilot-Check buchen",
     },
     secondaryCta: {
-      en: "See example workflow",
-      de: "Beispiel-Workflow ansehen",
+      en: "Try for yourself",
+      de: "Loslegen",
     },
     notes: {
       en: ["First month free", "10 agencies", "Founder-led setup"],
