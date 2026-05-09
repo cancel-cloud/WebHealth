@@ -1,0 +1,38 @@
+{
+  "ignore": {
+    "rules": [
+      "react-doctor/advanced-event-handler-refs",
+      "react-doctor/async-await-in-loop",
+      "react-doctor/async-defer-await",
+      "react-doctor/async-parallel",
+      "react-doctor/design-no-em-dash-in-jsx-text",
+      "react-doctor/design-no-gradient-text",
+      "react-doctor/design-no-redundant-size-axes",
+      "react-doctor/design-no-space-on-flex-children",
+      "react-doctor/design-no-three-period-ellipsis",
+      "react-doctor/design-no-vague-button-label",
+      "react-doctor/js-combine-iterations",
+      "react-doctor/js-hoist-intl",
+      "react-doctor/js-index-maps",
+      "react-doctor/js-min-max-loop",
+      "react-doctor/js-set-map-lookups",
+      "react-doctor/js-tosorted-immutable",
+      "react-doctor/nextjs-no-img-element",
+      "react-doctor/nextjs-no-native-script",
+      "react-doctor/nextjs-no-redirect-in-try-catch",
+      "react-doctor/nextjs-no-use-search-params-without-suspense",
+      "react-doctor/no-derived-useState",
+      "react-doctor/no-dynamic-import-path",
+      "react-doctor/no-giant-component",
+      "react-doctor/no-gradient-text",
+      "react-doctor/no-react19-deprecated-apis",
+      "react-doctor/prefer-useReducer",
+      "react-doctor/react-compiler-destructure-method",
+      "react-doctor/rendering-hydration-mismatch-time",
+      "react-doctor/rendering-usetransition-loading",
+      "react-doctor/server-sequential-independent-await",
+      "react-doctor/use-lazy-motion",
+      "react/no-danger"
+    ]
+  }
+}

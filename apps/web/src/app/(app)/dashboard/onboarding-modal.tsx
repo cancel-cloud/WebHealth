@@ -243,7 +243,7 @@ export function OnboardingModal({
             <div className="rounded-lg border border-border/70 bg-muted/25 p-4">
               <div className="flex items-center gap-3">
                 {syncState === "syncing" ? (
-                  <span className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                  <span className="size-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
                 ) : null}
                 <div>
                   <p className="font-medium">

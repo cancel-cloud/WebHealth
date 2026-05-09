@@ -54,7 +54,7 @@ export function PosthogInstallCheck({
     <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold font-display">PostHog Install Check</h2>
+          <h2 className="text-xl font-semibold font-display">PostHog Install Check</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Web proxy, browser key, project, and capture health for the PostHog EU setup.
           </p>

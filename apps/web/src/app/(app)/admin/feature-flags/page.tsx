@@ -28,7 +28,7 @@ export default async function AdminFeatureFlagsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Feature Flags</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Feature Flags</h1>
         <p className="text-muted-foreground text-sm">
           Toggle features globally or override per user. Click a row to manage per-user overrides.
         </p>

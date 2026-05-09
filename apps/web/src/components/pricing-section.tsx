@@ -48,7 +48,7 @@ export function PricingSection() {
           </p>
           <h1
             id="pricing-heading"
-            className="font-display text-4xl md:text-5xl font-bold tracking-tight"
+            className="font-display text-4xl md:text-5xl font-semibold tracking-tight"
             style={{ textWrap: "balance" } as React.CSSProperties}
           >
             Erster Monat kostenlos. Danach {FOUNDING_AGENCY_PILOT_PRICE_EUR} EUR/Monat.
@@ -76,7 +76,7 @@ export function PricingSection() {
               <span className="inline-flex rounded-full bg-primary px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-primary-foreground">
                 Founding Agency Pilot
               </span>
-              <h2 className="mt-5 font-display text-3xl font-bold tracking-tight md:text-4xl">
+              <h2 className="mt-5 font-display text-3xl font-semibold tracking-tight md:text-4xl">
                 Kostenloser erster Monat gegen ehrliches Feedback und
                 anonymisierte Learnings.
               </h2>
@@ -139,7 +139,7 @@ export function PricingSection() {
               key={plan.tier}
               variants={fadeUp}
               className={`rounded-lg p-8 flex flex-col bg-white h-full ${
-                plan.highlight ? "md:-translate-y-2" : ""
+                plan.highlight ? "md:-tranzinc-y-2" : ""
               }`}
               style={{
                 border: plan.highlight

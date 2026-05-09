@@ -56,11 +56,11 @@ export function PropertyShareTrendChart({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="font-display text-2xl font-bold tracking-tight">Traffic trend</h2>
-          <p className="mt-1 text-sm text-slate-500">How traffic moved through the snapshot period.</p>
+          <h2 className="font-display text-2xl font-semibold tracking-tight">Traffic trend</h2>
+          <p className="mt-1 text-sm text-zinc-500">How traffic moved through the snapshot period.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {availableMetrics.map((metric) => (
@@ -71,7 +71,7 @@ export function PropertyShareTrendChart({
               className={`rounded-full border px-3 py-1 text-xs font-semibold ${
                 selectedMetrics.includes(metric.value)
                   ? "border-transparent text-white"
-                  : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                  : "border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50"
               }`}
               style={selectedMetrics.includes(metric.value) ? { backgroundColor: metric.value === "clicks" ? primary : metric.value === "impressions" ? accent : metric.color } : undefined}
             >
@@ -126,11 +126,11 @@ export function PropertyShareTrendChart({
                 itemStyle: { color: metric.value === "clicks" ? primary : metric.value === "impressions" ? accent : metric.color },
               })),
             }}
-            className="h-full w-full"
+            className="size-full"
             ariaLabel="Traffic trend for the shared snapshot period"
           />
         ) : (
-          <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-slate-200 text-sm text-slate-500">
+          <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-zinc-200 text-sm text-zinc-500">
             No trend data is available for this snapshot period.
           </div>
         )}

@@ -15,7 +15,7 @@ export default async function AdminLogsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">System Logs</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">System Logs</h1>
         <p className="text-muted-foreground text-sm">
           Admin syncs, background refreshes, AI insight runs, action changes, and snapshot activity.
         </p>

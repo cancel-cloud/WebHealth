@@ -102,17 +102,17 @@ export function BrandingPageClient() {
       <div className="space-y-4">
         <Button asChild variant="ghost" size="sm" className="-ml-2">
           <Link href="/settings">
-            <ChevronLeft className="mr-1 h-4 w-4" />
+            <ChevronLeft className="mr-1 size-4" />
             Back to Settings
           </Link>
         </Button>
 
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/80 px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            <Palette className="h-3.5 w-3.5" />
+            <Palette className="size-3.5" />
             Agency branding
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight font-display" style={{ textWrap: "balance" }}>
+          <h1 className="text-3xl font-semibold tracking-tight font-display" style={{ textWrap: "balance" }}>
             Brand the exported client surface
           </h1>
           <p className="max-w-3xl text-sm text-muted-foreground">
@@ -213,7 +213,7 @@ export function BrandingPageClient() {
 
             <div className="flex justify-end">
               <Button onClick={handleSave} disabled={saving} className="rounded-full">
-                <Save className="mr-2 h-4 w-4" />
+                <Save className="mr-2 size-4" />
                 {saving ? "Saving…" : "Save branding"}
               </Button>
             </div>
@@ -237,14 +237,14 @@ export function BrandingPageClient() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div
-                      className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-border/70 bg-muted/30"
+                      className="flex size-12 items-center justify-center overflow-hidden rounded-lg border border-border/70 bg-muted/30"
                       style={{ borderColor: `${profile.primaryColor}33`, backgroundColor: `${profile.primaryColor}14` }}
                     >
                       {profile.iconUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={profile.iconUrl} alt="" className="h-full w-full object-cover" />
+                        <img src={profile.iconUrl} alt="" className="size-full object-cover" />
                       ) : (
-                        <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                        <ImageIcon className="size-5 text-muted-foreground" />
                       )}
                     </div>
                     <div className="min-w-0">
@@ -260,21 +260,21 @@ export function BrandingPageClient() {
 
                 <div className="mt-5 grid gap-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <User2 className="h-4 w-4" />
+                    <User2 className="size-4" />
                     <span>{profile.contactName || "Contact name"}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Mail className="h-4 w-4" />
+                    <Mail className="size-4" />
                     <span>{profile.contactEmail || "contact@example.com"}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone className="h-4 w-4" />
+                    <Phone className="size-4" />
                     <span>{profile.contactPhone || "Phone number"}</span>
                   </div>
                   {profile.websiteUrl ? (
                     <a href={profile.websiteUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-medium" style={{ color: profile.primaryColor }}>
                       Visit agency website
-                      <ExternalLink className="h-4 w-4" />
+                      <ExternalLink className="size-4" />
                     </a>
                   ) : null}
                 </div>

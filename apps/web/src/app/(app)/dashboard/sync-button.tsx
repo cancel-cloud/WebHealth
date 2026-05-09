@@ -103,7 +103,7 @@ export function SyncButton({
 
   return (
     <Button onClick={handleSync} disabled={isBusy} variant="outline">
-      <RefreshCw className={`h-4 w-4 mr-2 ${isBusy ? "animate-spin" : ""}`} />
+      <RefreshCw className={`size-4 mr-2 ${isBusy ? "animate-spin" : ""}`} />
       {isBusy ? "Syncing..." : "Sync Properties"}
     </Button>
   );

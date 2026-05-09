@@ -76,7 +76,7 @@ function CookieConsentBanner({
             for details.
           </p>
         </CardContent>
-        <CardFooter className="flex flex-col gap-2 border-t px-4 py-4 sm:flex-row sm:justify-end">
+        <CardFooter className="flex flex-col gap-2 border-t p-4 sm:flex-row sm:justify-end">
           <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto" onClick={onDecline}>
             Decline
           </Button>

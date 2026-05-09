@@ -140,8 +140,9 @@ export function FeedbackInbox({
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[18rem] flex-1">
-          <label className="mb-2 block text-sm font-medium">Search</label>
+          <label htmlFor="feedback-search" className="mb-2 block text-sm font-medium">Search</label>
           <Input
+            id="feedback-search"
             placeholder="Search message, user name, or email…"
             value={searchDraft}
             onChange={(event) => setSearchDraft(event.target.value)}
@@ -155,9 +156,9 @@ export function FeedbackInbox({
         </div>
 
         <div className="w-44">
-          <label className="mb-2 block text-sm font-medium">Status</label>
+          <label htmlFor="feedback-status" className="mb-2 block text-sm font-medium">Status</label>
           <Select value={status} onValueChange={(value) => void handleStatusChange(value as "open" | "resolved" | "all")}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger id="feedback-status" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -169,7 +170,7 @@ export function FeedbackInbox({
         </div>
 
         <Button variant="outline" onClick={() => void handleSearch()} disabled={loading}>
-          {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          {loading ? <RefreshCw className="size-4 animate-spin" /> : <Search className="size-4" />}
           Search
         </Button>
       </div>
@@ -237,12 +238,12 @@ export function FeedbackInbox({
                   >
                     {submission.status === "resolved" ? (
                       <>
-                        <RotateCcw className="h-4 w-4" />
+                        <RotateCcw className="size-4" />
                         Reopen
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 className="h-4 w-4" />
+                        <CheckCircle2 className="size-4" />
                         Mark resolved
                       </>
                     )}

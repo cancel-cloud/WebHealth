@@ -13,7 +13,7 @@ export default function GlitchTipTestPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">GlitchTip Test</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">GlitchTip Test</h1>
         <p className="text-muted-foreground text-sm">
           Verify that browser-side error tracking is configured, then trigger a test error and confirm it appears in GlitchTip Issues.
         </p>

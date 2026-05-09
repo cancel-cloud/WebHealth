@@ -168,7 +168,7 @@ export default function SettingsPage() {
     <div className="mx-auto w-full max-w-5xl space-y-8">
       <div className="space-y-2">
         <h1
-          className="text-3xl font-extrabold tracking-tight font-display"
+          className="text-3xl font-semibold tracking-tight font-display"
           style={{ textWrap: "balance" }}
         >
           Settings
@@ -207,7 +207,7 @@ export default function SettingsPage() {
           <section className="rounded-lg border border-border/70 bg-card/80 p-6 shadow-sm">
             {settings ? (
               <div className="flex min-w-0 items-start gap-4">
-                <Avatar className="h-20 w-20 rounded-lg border border-border/60">
+                <Avatar className="size-20 rounded-lg border border-border/60">
                   <AvatarImage src={image} alt={name} />
                   <AvatarFallback className="rounded-lg bg-primary/10 text-2xl font-bold text-primary">
                     {initials}
@@ -254,7 +254,7 @@ export default function SettingsPage() {
               </div>
             ) : (
               <div className="flex items-start gap-4">
-                <Skeleton className="h-20 w-20 rounded-lg" />
+                <Skeleton className="size-20 rounded-lg" />
                 <div className="min-w-0 flex-1 space-y-3">
                   <Skeleton className="h-7 w-48" />
                   <Skeleton className="h-4 w-72" />
@@ -269,11 +269,11 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="space-y-2">
                 <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/35 px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                  <Palette className="h-3.5 w-3.5" />
+                  <Palette className="size-3.5" />
                   Agency branding
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold font-display tracking-tight">
+                  <h2 className="text-2xl font-semibold font-display tracking-tight">
                     Manage export branding in one place
                   </h2>
                   <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
@@ -293,7 +293,7 @@ export default function SettingsPage() {
               <div>
                 <h2
                   id="plan-heading"
-                  className="text-2xl font-bold font-display tracking-tight"
+                  className="text-2xl font-semibold font-display tracking-tight"
                 >
                   Choose Your Plan
                 </h2>
@@ -420,7 +420,7 @@ export default function SettingsPage() {
                               className="flex items-start gap-3"
                             >
                               <Check
-                                className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+                                className="mt-0.5 size-4 shrink-0 text-primary"
                                 aria-hidden="true"
                               />
                               <span>
@@ -491,15 +491,15 @@ export default function SettingsPage() {
           <section aria-labelledby="billing-heading" className="space-y-4">
             <h2
               id="billing-heading"
-              className="text-2xl font-bold font-display tracking-tight"
+              className="text-2xl font-semibold font-display tracking-tight"
             >
               Billing Preferences
             </h2>
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium">Receipts</p>
               <div className="group relative">
-                <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-64 -translate-x-1/2 rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md opacity-0 transition-opacity group-hover:opacity-100">
+                <Info className="size-3.5 cursor-help text-muted-foreground" />
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-64 -tranzinc-x-1/2 rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md opacity-0 transition-opacity group-hover:opacity-100">
                   Stripe sends receipts automatically to your account email. If
                   you didn&apos;t receive one, click{" "}
                   <span className="font-medium">
@@ -514,7 +514,7 @@ export default function SettingsPage() {
           <section aria-labelledby="danger-heading" className="space-y-4">
             <h2
               id="danger-heading"
-              className="text-2xl font-bold font-display tracking-tight text-destructive"
+              className="text-2xl font-semibold font-display tracking-tight text-destructive"
             >
               Danger Zone
             </h2>
@@ -552,7 +552,7 @@ export default function SettingsPage() {
         <TabsContent value="contact">
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold font-display tracking-tight">
+              <h2 className="text-2xl font-semibold font-display tracking-tight">
                 We&apos;re here to help
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -632,7 +632,7 @@ export default function SettingsPage() {
                       className={className}
                     >
                       <Icon
-                        className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary"
+                        className="mt-0.5 size-5 flex-shrink-0 text-primary"
                         aria-hidden="true"
                       />
                       <div>
@@ -648,7 +648,7 @@ export default function SettingsPage() {
                 return (
                   <a key={title} href={href} className={className}>
                     <Icon
-                      className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary"
+                      className="mt-0.5 size-5 flex-shrink-0 text-primary"
                       aria-hidden="true"
                     />
                     <div>

@@ -116,7 +116,7 @@ function SidebarLink({
       <Icon
         className={cn(
           "shrink-0",
-          nested ? "h-4 w-4" : "h-4 w-4",
+          nested ? "size-4" : "size-4",
           stateClasses.icon,
         )}
       />
@@ -237,7 +237,7 @@ function SidebarPropertyLink({
           : "text-sidebar-foreground/86 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
       )}
     >
-      <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500 to-sky-500 text-sm font-bold text-white shadow-sm">
+      <span className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-primary to-sky-500 text-sm font-bold text-white shadow-sm">
         {getSidebarPropertyInitial(property.label)}
         {faviconUrl ? (
           <span
@@ -250,7 +250,7 @@ function SidebarPropertyLink({
       <span className="min-w-0 flex-1 truncate">{property.label}</span>
       <span
         className={cn(
-          "h-2.5 w-2.5 shrink-0 rounded-full",
+          "size-2.5 shrink-0 rounded-full",
           getSidebarPropertyStatusClasses(property.sourceCoverage),
         )}
         aria-label={
@@ -380,10 +380,10 @@ export function AppSidebar({
           className="flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-sidebar-accent/60"
           onClick={onNavigate}
         >
-          <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-sky-500 text-primary-foreground shadow-lg shadow-primary/15">
+          <span className="flex size-11 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-sky-500 text-primary-foreground shadow-lg shadow-primary/15">
             <span
               aria-hidden="true"
-              className="h-3 w-3 rounded-full bg-white/90"
+              className="size-3 rounded-full bg-white/90"
             />
           </span>
           <span className="min-w-0">
@@ -441,9 +441,9 @@ export function AppSidebar({
               >
                 <CollapsibleTrigger asChild>
                   <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground/78 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 focus-visible:outline-none">
-                    <Settings className="h-4 w-4 shrink-0 text-sidebar-foreground/60" />
+                    <Settings className="size-4 shrink-0 text-sidebar-foreground/60" />
                     <span className="flex-1 truncate">Admin tools</span>
-                    <ChevronDown className="h-4 w-4 shrink-0 text-sidebar-foreground/55 transition-transform data-[state=open]:rotate-180" />
+                    <ChevronDown className="size-4 shrink-0 text-sidebar-foreground/55 transition-transform data-[state=open]:rotate-180" />
                   </button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2 space-y-1 border-l border-sidebar-border/70 pl-4 ml-5">
@@ -476,11 +476,11 @@ export function AppSidebar({
             >
               <CollapsibleTrigger asChild>
                 <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground/78 transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 focus-visible:outline-none">
-                  <CircleHelp className="h-4 w-4 shrink-0 text-sidebar-foreground/60" />
+                  <CircleHelp className="size-4 shrink-0 text-sidebar-foreground/60" />
                   <span className="flex-1 truncate">
                     {model.supportGroup.label}
                   </span>
-                  <ChevronDown className="h-4 w-4 shrink-0 text-sidebar-foreground/55 transition-transform data-[state=open]:rotate-180" />
+                  <ChevronDown className="size-4 shrink-0 text-sidebar-foreground/55 transition-transform data-[state=open]:rotate-180" />
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2 space-y-1 border-l border-sidebar-border/70 pl-4 ml-5">
@@ -504,7 +504,7 @@ export function AppSidebar({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex w-full min-w-0 items-center gap-3 rounded-lg border border-sidebar-border/70 bg-sidebar-accent/40 px-3 py-2.5 text-left transition-colors hover:bg-sidebar-accent/75 focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 focus-visible:outline-none">
-                <Avatar className="h-10 w-10 rounded-lg">
+                <Avatar className="size-10 rounded-lg">
                   <AvatarImage
                     src={session?.user?.image ?? ""}
                     alt={session?.user?.name ?? "User"}
@@ -521,7 +521,7 @@ export function AppSidebar({
                     {session?.user?.email ?? ""}
                   </span>
                 </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-sidebar-foreground/45" />
+                <ChevronRight className="size-4 shrink-0 text-sidebar-foreground/45" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -546,13 +546,13 @@ export function AppSidebar({
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/settings" onClick={onNavigate}>
-                  <Settings className="mr-2 h-4 w-4" />
+                  <Settings className="mr-2 size-4" />
                   Settings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings?tab=contact" onClick={onNavigate}>
-                  <MessageSquare className="mr-2 h-4 w-4" />
+                  <MessageSquare className="mr-2 size-4" />
                   Contact &amp; Support
                 </Link>
               </DropdownMenuItem>
@@ -580,7 +580,7 @@ export function AppSidebar({
                       })}
                       onClick={() => setTheme(option.value)}
                     >
-                      <Icon className="h-4 w-4 shrink-0" />
+                      <Icon className="size-4 shrink-0" />
                       <span>{option.label}</span>
                     </button>
                   );
@@ -591,7 +591,7 @@ export function AppSidebar({
                 className="text-destructive focus:bg-destructive/10 focus:text-destructive"
                 onClick={handleSignOut}
               >
-                <LogOut className="mr-2 h-4 w-4" />
+                <LogOut className="mr-2 size-4" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>

@@ -18,7 +18,7 @@ export function SetupDismissButton({ propertyId }: { propertyId: string }) {
       type="button"
       variant="ghost"
       size="icon"
-      className="h-7 w-7"
+      className="size-7"
       disabled={isPending}
       aria-label="Dismiss setup notice"
       onClick={async () => {
@@ -36,7 +36,7 @@ export function SetupDismissButton({ propertyId }: { propertyId: string }) {
         }
       }}
     >
-      <X className="h-3.5 w-3.5" />
+      <X className="size-3.5" />
     </Button>
   );
 }

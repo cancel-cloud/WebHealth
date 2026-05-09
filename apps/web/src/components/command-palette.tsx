@@ -29,13 +29,13 @@ function CmdItem({ onSelect, icon: Icon, label, className }: {
     <Command.Item
       onSelect={onSelect}
       className={cn(
-        "flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm select-none outline-none",
+        "flex items-center gap-2 p-2 rounded-lg cursor-pointer text-sm select-none outline-none",
         "text-foreground hover:bg-accent hover:text-accent-foreground",
         "data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground",
         className
       )}
     >
-      <Icon aria-hidden="true" className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+      <Icon aria-hidden="true" className="size-4 text-muted-foreground flex-shrink-0" />
       <span>{label}</span>
     </Command.Item>
   );

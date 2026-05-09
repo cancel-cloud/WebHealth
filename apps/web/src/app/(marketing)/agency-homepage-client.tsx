@@ -99,25 +99,25 @@ function IntegrationLogo({ icon }: Pick<IntegrationItem, "icon">) {
   }
 
   if (icon === "ga4") {
-    return <BarChart2 className="h-8 w-8 text-amber-500" aria-hidden="true" />;
+    return <BarChart2 className="size-8 text-amber-500" aria-hidden="true" />;
   }
 
   if (icon === "looker") {
-    return <BarChart2 className="h-8 w-8 text-blue-500" aria-hidden="true" />;
+    return <BarChart2 className="size-8 text-blue-500" aria-hidden="true" />;
   }
 
-  return <Sparkles className="h-8 w-8 text-indigo-500" aria-hidden="true" />;
+  return <Sparkles className="size-8 text-primary" aria-hidden="true" />;
 }
 
 function FeatureIcon({ icon }: { icon: (typeof AGENCY_FEATURES)[number]["icon"] }) {
-  if (icon === "users") return <Users className="h-5 w-5" aria-hidden="true" />;
+  if (icon === "users") return <Users className="size-5" aria-hidden="true" />;
   if (icon === "bar-chart-2")
-    return <BarChart2 className="h-5 w-5" aria-hidden="true" />;
-  if (icon === "zap") return <Zap className="h-5 w-5" aria-hidden="true" />;
-  if (icon === "palette") return <Palette className="h-5 w-5" aria-hidden="true" />;
+    return <BarChart2 className="size-5" aria-hidden="true" />;
+  if (icon === "zap") return <Zap className="size-5" aria-hidden="true" />;
+  if (icon === "palette") return <Palette className="size-5" aria-hidden="true" />;
   if (icon === "calendar")
-    return <CalendarCheck2 className="h-5 w-5" aria-hidden="true" />;
-  return <ShieldCheck className="h-5 w-5" aria-hidden="true" />;
+    return <CalendarCheck2 className="size-5" aria-hidden="true" />;
+  return <ShieldCheck className="size-5" aria-hidden="true" />;
 }
 
 function TrendValue({
@@ -133,9 +133,9 @@ function TrendValue({
       className={`inline-flex items-center gap-1 text-xs font-semibold ${isUp ? "text-emerald-600" : "text-rose-600"}`}
     >
       {isUp ? (
-        <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
+        <TrendingUp className="size-3.5" aria-hidden="true" />
       ) : (
-        <TrendingDown className="h-3.5 w-3.5" aria-hidden="true" />
+        <TrendingDown className="size-3.5" aria-hidden="true" />
       )}
       {value}
     </span>
@@ -152,7 +152,7 @@ function WhiteLabelPriorityPill({ priority }: { priority: 1 | 2 | 3 }) {
 
   return (
     <span
-      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${className}`}
+      className={`inline-flex size-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${className}`}
     >
       P{priority}
     </span>
@@ -203,8 +203,8 @@ export function AgencyHomepageClient({
               href={getAgencyHomePath(language)}
               className="flex min-w-0 items-center gap-2 font-display text-lg font-extrabold tracking-tight sm:text-xl"
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-sky-500 shadow-lg shadow-primary/20">
-                <span className="h-2.5 w-2.5 rounded-full bg-white" />
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-sky-500 shadow-lg shadow-primary/20">
+                <span className="size-2.5 rounded-full bg-white" />
               </span>
               <span className="min-w-0 truncate">
                 Webhealth{" "}
@@ -267,7 +267,7 @@ export function AgencyHomepageClient({
                     className="hidden rounded-full px-3 sm:inline-flex"
                     onClick={handleGoogleSignIn}
                   >
-                    <LogIn className="h-4 w-4" aria-hidden="true" />
+                    <LogIn className="size-4" aria-hidden="true" />
                     {getLocalizedValue(AGENCY_HOME_COPY.nav.selfServeCta, language)}
                   </Button>
                   <Button
@@ -305,11 +305,11 @@ export function AgencyHomepageClient({
             <div className="relative mx-auto grid max-w-7xl items-center gap-14 xl:grid-cols-[1.02fr_1fr]">
               <div className="max-w-2xl">
                 <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-4 py-2 text-xs font-semibold text-primary">
-                  <span className="h-2 w-2 rounded-full bg-primary" />
+                  <span className="size-2 rounded-full bg-primary" />
                   {getLocalizedValue(AGENCY_HOME_COPY.hero.pill, language)}
                 </div>
 
-                <h1 className="max-w-3xl font-display text-5xl font-extrabold tracking-tight text-balance sm:text-6xl lg:text-6xl xl:text-7xl">
+                <h1 className="max-w-3xl font-display text-5xl font-semibold tracking-tight text-balance sm:text-6xl lg:text-6xl xl:text-7xl">
                   {heroTitle[0]}
                   <span className="bg-gradient-to-r from-primary to-sky-500 bg-clip-text text-transparent">
                     {heroTitle[1]}
@@ -325,7 +325,7 @@ export function AgencyHomepageClient({
                   <Button asChild size="lg" className="rounded-full px-8">
                     <a href={AGENCY_PILOT.bookingUrl}>
                       {getLocalizedValue(AGENCY_HOME_COPY.hero.primaryCta, language)}
-                      <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                      <ArrowRight className="ml-2 size-4" aria-hidden="true" />
                     </a>
                   </Button>
 
@@ -362,7 +362,7 @@ export function AgencyHomepageClient({
                       </p>
                     </div>
                     <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary">
-                      <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                      <Sparkles className="size-3.5" aria-hidden="true" />
                       {getLocalizedValue(AGENCY_HOME_COPY.hero.sparkPrimary, language)}
                     </div>
                   </div>
@@ -383,7 +383,7 @@ export function AgencyHomepageClient({
                     <div className="mt-5 grid gap-2 text-sm">
                       {AGENCY_PILOT_STEPS.map((step) => (
                         <div key={step.number} className="flex items-start gap-3 rounded-lg bg-muted/45 p-3">
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                             {step.number}
                           </span>
                           <span className="font-medium">
@@ -426,7 +426,7 @@ export function AgencyHomepageClient({
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                   {getLocalizedValue(AGENCY_HOME_COPY.qualification.eyebrow, language)}
                 </p>
-                <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+                <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
                   {getLocalizedValue(AGENCY_HOME_COPY.qualification.title, language)}
                 </h2>
                 <p className="mt-4 text-base leading-7 text-muted-foreground">
@@ -442,16 +442,16 @@ export function AgencyHomepageClient({
                       index === 0 ? "border-primary/25" : "border-border"
                     }`}
                   >
-                    <h3 className="font-display text-xl font-bold">
+                    <h3 className="font-display text-xl font-semibold">
                       {getLocalizedValue(group.title, language)}
                     </h3>
                     <ul className="mt-5 space-y-3 text-sm leading-6">
                       {getLocalizedValue(group.items, language).map((item) => (
                         <li key={item} className="flex items-start gap-3">
                           {index === 0 ? (
-                            <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                            <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
                           ) : (
-                            <X className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                            <X className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                           )}
                           <span>{item}</span>
                         </li>
@@ -469,7 +469,7 @@ export function AgencyHomepageClient({
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                   {getLocalizedValue(AGENCY_HOME_COPY.features.eyebrow, language)}
                 </p>
-                <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl">
+                <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
                   {getLocalizedValue(AGENCY_HOME_COPY.features.title, language)}
                 </h2>
                 <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
@@ -489,7 +489,7 @@ export function AgencyHomepageClient({
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div
-                        className="flex h-12 w-12 items-center justify-center rounded-xl border"
+                        className="flex size-12 items-center justify-center rounded-xl border"
                         style={{
                           backgroundColor: `${feature.color}18`,
                           borderColor: `${feature.color}22`,
@@ -525,7 +525,7 @@ export function AgencyHomepageClient({
                   {getLocalizedValue(AGENCY_HOME_COPY.workspace.eyebrow, language)}
                 </p>
                 <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <h2 className="font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl">
+                  <h2 className="font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
                     {getLocalizedValue(AGENCY_HOME_COPY.workspace.title, language)}
                   </h2>
                   <AvailabilityBadge availability="preview" language={language} />
@@ -548,7 +548,7 @@ export function AgencyHomepageClient({
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                   {getLocalizedValue(AGENCY_HOME_COPY.how.eyebrow, language)}
                 </p>
-                <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl">
+                <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
                   {howTitle[0]}
                   <span className="text-primary">{howTitle[1]}</span>
                   {howTitle[2] ?? ""}
@@ -565,7 +565,7 @@ export function AgencyHomepageClient({
                     className="rounded-2xl border border-border bg-card p-6 text-center shadow-sm"
                   >
                     <div
-                      className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border text-2xl font-display font-bold"
+                      className="mx-auto flex size-16 items-center justify-center rounded-2xl border text-2xl font-display font-bold"
                       style={{
                         color: step.color,
                         backgroundColor: `${step.color}14`,
@@ -601,7 +601,7 @@ export function AgencyHomepageClient({
                   </span>
 
                   <div className="mt-5 flex items-center gap-4 border-b border-border pb-5">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-sky-500 text-lg font-bold text-white">
+                    <span className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-sky-500 text-lg font-bold text-white">
                       W
                     </span>
                     <div>
@@ -620,7 +620,7 @@ export function AgencyHomepageClient({
                     </div>
                   </div>
 
-                  <h3 className="mt-5 font-display text-2xl font-bold leading-tight text-balance sm:text-[2.1rem]">
+                  <h3 className="mt-5 font-display text-2xl font-semibold leading-tight text-balance sm:text-[2.1rem]">
                     {getLocalizedValue(
                       AGENCY_HOME_COPY.whiteLabel.internalTitle,
                       language,
@@ -676,7 +676,7 @@ export function AgencyHomepageClient({
                   </span>
 
                   <div className="mt-5 flex items-center gap-4 border-b border-border pb-5">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-sky-500 text-lg font-bold text-white">
+                    <span className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-sky-500 text-lg font-bold text-white">
                       A
                     </span>
                     <div>
@@ -695,7 +695,7 @@ export function AgencyHomepageClient({
                     </div>
                   </div>
 
-                  <h3 className="mt-5 font-display text-2xl font-bold leading-tight text-balance sm:text-[2.1rem]">
+                  <h3 className="mt-5 font-display text-2xl font-semibold leading-tight text-balance sm:text-[2.1rem]">
                     {getLocalizedValue(
                       AGENCY_HOME_COPY.whiteLabel.clientTitle,
                       language,
@@ -751,7 +751,7 @@ export function AgencyHomepageClient({
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                   {getLocalizedValue(AGENCY_HOME_COPY.whiteLabel.eyebrow, language)}
                 </p>
-                <h2 className="mt-4 font-display text-5xl font-bold tracking-tight text-balance sm:text-6xl">
+                <h2 className="mt-4 font-display text-5xl font-semibold tracking-tight text-balance sm:text-6xl">
                   {getLocalizedValue(AGENCY_HOME_COPY.whiteLabel.title, language)}
                 </h2>
                 <p className="mt-6 text-[1.05rem] leading-8 text-foreground/88 sm:text-[1.12rem]">
@@ -764,8 +764,8 @@ export function AgencyHomepageClient({
                 <div className="mt-10 space-y-8">
                   {AGENCY_WHITE_LABEL_CHECKS.map((item) => (
                     <div key={item.title.en} className="flex gap-4">
-                      <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-foreground text-foreground">
-                        <Check className="h-4.5 w-4.5" aria-hidden="true" />
+                      <div className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-foreground text-foreground">
+                        <Check className="size-4.5" aria-hidden="true" />
                       </div>
                       <div>
                         <p className="font-display text-[1.05rem] font-bold text-foreground sm:text-[1.15rem]">
@@ -785,10 +785,10 @@ export function AgencyHomepageClient({
           <section id="integrations" className="scroll-mt-24 bg-background px-6 py-20">
             <div className="mx-auto max-w-7xl">
               <div className="mx-auto max-w-4xl text-center">
-                <p className="text-sm font-bold uppercase tracking-[0.24em] text-indigo-500">
+                <p className="text-sm font-bold uppercase tracking-[0.24em] text-primary">
                   {getLocalizedValue(AGENCY_HOME_COPY.integrations.eyebrow, language)}
                 </p>
-                <h2 className="mt-5 font-display text-4xl font-black leading-[1.02] tracking-[-0.04em] text-foreground text-balance sm:text-6xl">
+                <h2 className="mt-5 font-display text-4xl font-semibold leading-[1.02] tracking-[-0.04em] text-foreground text-balance sm:text-6xl">
                   {getLocalizedValue(AGENCY_HOME_COPY.integrations.title, language)}
                 </h2>
                 <p className="mx-auto mt-6 max-w-3xl text-xl leading-8 text-muted-foreground sm:text-2xl">
@@ -804,11 +804,11 @@ export function AgencyHomepageClient({
                       className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 shadow-[0_18px_44px_-34px_rgba(15,23,42,0.34)] sm:flex-row sm:items-start sm:justify-between"
                     >
                       <div className="flex gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
                           <IntegrationLogo icon={integration.icon} />
                         </div>
                         <div>
-                          <h3 className="font-display text-2xl font-black tracking-[-0.02em]">
+                          <h3 className="font-display text-2xl font-semibold tracking-[-0.02em]">
                             {getLocalizedValue(integration.title, language)}
                           </h3>
                           <p className="mt-1.5 max-w-2xl text-base leading-7 text-muted-foreground">
@@ -825,8 +825,8 @@ export function AgencyHomepageClient({
                 </div>
 
                 <div className="relative min-h-[260px] overflow-hidden sm:min-h-[360px] lg:min-h-[500px]">
-                  <div className="absolute left-1/2 top-1/2 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[1.5rem] bg-[linear-gradient(135deg,#3154f4,#1597e5)] shadow-[0_34px_80px_-28px_rgba(49,84,244,0.65)] sm:h-36 sm:w-36 sm:rounded-[2rem] lg:h-40 lg:w-40">
-                    <div className="h-11 w-11 rounded-full bg-background sm:h-14 sm:w-14 lg:h-16 lg:w-16" />
+                  <div className="absolute left-1/2 top-1/2 flex size-28 -tranzinc-x-1/2 -tranzinc-y-1/2 items-center justify-center rounded-[1.5rem] bg-[linear-gradient(135deg,#3154f4,#1597e5)] shadow-[0_34px_80px_-28px_rgba(49,84,244,0.65)] sm:h-36 sm:w-36 sm:rounded-[2rem] lg:h-40 lg:w-40">
+                    <div className="size-11 rounded-full bg-background sm:h-14 sm:w-14 lg:h-16 lg:w-16" />
                   </div>
 
                   <div className="absolute left-[58%] top-3 flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-border bg-card text-blue-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:top-6 sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:top-8 lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
@@ -838,7 +838,7 @@ export function AgencyHomepageClient({
                   <div className="absolute bottom-3 left-[58%] flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-border bg-card text-blue-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:bottom-6 sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:bottom-8 lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
                     <IntegrationLogo icon="looker" />
                   </div>
-                  <div className="absolute bottom-[36%] left-[18%] flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-border bg-card text-indigo-500 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:left-[22%] sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
+                  <div className="absolute bottom-[36%] left-[18%] flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.15rem] border border-border bg-card text-primary shadow-[0_18px_45px_-28px_rgba(15,23,42,0.45)] sm:left-[22%] sm:h-[5.5rem] sm:w-[5.5rem] sm:rounded-[1.35rem] lg:h-24 lg:w-24 lg:rounded-[1.5rem]">
                     <IntegrationLogo icon="crawl" />
                   </div>
                 </div>
@@ -852,7 +852,7 @@ export function AgencyHomepageClient({
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                   {getLocalizedValue(AGENCY_HOME_COPY.snapshotProof.eyebrow, language)}
                 </p>
-                <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl">
+                <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
                   {getLocalizedValue(AGENCY_HOME_COPY.snapshotProof.title, language)}
                 </h2>
                 <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
@@ -863,10 +863,10 @@ export function AgencyHomepageClient({
               <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {AGENCY_SNAPSHOT_PROOF_CARDS.map((card) => (
                   <article key={card.title.en} className="rounded-lg border border-border bg-card p-5 shadow-sm">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Check className="h-5 w-5" aria-hidden="true" />
+                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Check className="size-5" aria-hidden="true" />
                     </div>
-                    <h3 className="mt-5 font-display text-xl font-bold">
+                    <h3 className="mt-5 font-display text-xl font-semibold">
                       {getLocalizedValue(card.title, language)}
                     </h3>
                     <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -884,7 +884,7 @@ export function AgencyHomepageClient({
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                   {getLocalizedValue(AGENCY_HOME_COPY.competitor.eyebrow, language)}
                 </p>
-                <h2 className="mt-3 max-w-full break-words font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl">
+                <h2 className="mt-3 max-w-full break-words font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
                   {getLocalizedValue(AGENCY_HOME_COPY.competitor.title, language)}
                 </h2>
               </div>
@@ -900,7 +900,7 @@ export function AgencyHomepageClient({
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                   {getLocalizedValue(AGENCY_HOME_COPY.comparison.eyebrow, language)}
                 </p>
-                <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl">
+                <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
                   {getLocalizedValue(AGENCY_HOME_COPY.comparison.title, language)}
                 </h2>
                 <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
@@ -914,7 +914,7 @@ export function AgencyHomepageClient({
                     key={row.label.en}
                     className="rounded-[24px] border border-border bg-card p-5 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.18)]"
                   >
-                    <h3 className="font-display text-base font-bold leading-6 text-foreground">
+                    <h3 className="font-display text-base font-semibold leading-6 text-foreground">
                       {getLocalizedValue(row.label, language)}
                     </h3>
                     <div className="mt-4 grid gap-3">
@@ -1015,7 +1015,7 @@ export function AgencyHomepageClient({
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                   {getLocalizedValue(AGENCY_HOME_COPY.pricing.eyebrow, language)}
                 </p>
-                <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl">
+                <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
                   {getLocalizedValue(AGENCY_HOME_COPY.pricing.title, language)}
                 </h2>
                 <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
@@ -1029,7 +1029,7 @@ export function AgencyHomepageClient({
                     <div className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-primary-foreground">
                       {getLocalizedValue(AGENCY_HOME_COPY.hero.offerTitle, language)}
                     </div>
-                    <h3 className="mt-5 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+                    <h3 className="mt-5 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
                       {getLocalizedValue(AGENCY_HOME_COPY.hero.offerPrice, language)}
                     </h3>
                     <p className="mt-4 text-base leading-7 text-muted-foreground">
@@ -1049,7 +1049,7 @@ export function AgencyHomepageClient({
                     <ul className="mt-5 space-y-3 text-sm">
                       {AGENCY_PILOT_STEPS.map((step) => (
                         <li key={step.number} className="flex items-start gap-3">
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                             {step.number}
                           </span>
                           <span>{getLocalizedValue(step.title, language)}</span>
@@ -1059,7 +1059,7 @@ export function AgencyHomepageClient({
                     <Button asChild className="mt-6 h-11 w-full rounded-full">
                       <a href={AGENCY_PILOT.bookingUrl}>
                         {getLocalizedValue(AGENCY_HOME_COPY.hero.primaryCta, language)}
-                        <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                        <ArrowRight className="ml-2 size-4" aria-hidden="true" />
                       </a>
                     </Button>
                   </div>
@@ -1076,7 +1076,7 @@ export function AgencyHomepageClient({
                 {AGENCY_PRICING_PLANS.filter((plan) => plan.tier !== "agency").map((plan) => (
                   <article
                     key={plan.tier}
-                    className={`flex h-full w-full max-w-[29rem] flex-col rounded-lg border bg-card p-5 shadow-sm md:max-w-[23.5rem] lg:max-w-none lg:self-stretch ${
+                    className={`flex size-full max-w-[29rem] flex-col rounded-lg border bg-card p-5 shadow-sm md:max-w-[23.5rem] lg:max-w-none lg:self-stretch ${
                       plan.highlight
                         ? "border-primary shadow-[0_16px_50px_-28px_rgba(99,102,241,0.35)]"
                         : "border-border"
@@ -1123,7 +1123,7 @@ export function AgencyHomepageClient({
                       {plan.features.map((feature) => (
                         <li key={feature.en} className="flex items-start gap-3">
                           <Check
-                            className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+                            className="mt-0.5 size-4 shrink-0 text-primary"
                             aria-hidden="true"
                           />
                           <span>{getLocalizedValue(feature, language)}</span>
@@ -1185,7 +1185,7 @@ export function AgencyHomepageClient({
                     {agencyPricingPlan.features.map((feature) => (
                       <li key={feature.en} className="flex items-start gap-3">
                         <Check
-                          className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+                          className="mt-0.5 size-4 shrink-0 text-primary"
                           aria-hidden="true"
                         />
                         <span>{getLocalizedValue(feature, language)}</span>
@@ -1207,7 +1207,7 @@ export function AgencyHomepageClient({
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                   {getLocalizedValue(AGENCY_HOME_COPY.faq.eyebrow, language)}
                 </p>
-                <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl">
+                <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
                   {getLocalizedValue(AGENCY_HOME_COPY.faq.title, language)}
                 </h2>
               </div>
@@ -1221,7 +1221,7 @@ export function AgencyHomepageClient({
                   >
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left font-display text-xl font-semibold">
                       <span>{getLocalizedValue(item.question, language)}</span>
-                      <ChevronDown className="h-5 w-5 shrink-0 transition-transform group-open:rotate-180" />
+                      <ChevronDown className="size-5 shrink-0 transition-transform group-open:rotate-180" />
                     </summary>
                     <p className="pt-4 text-sm leading-7 text-muted-foreground">
                       {getLocalizedValue(item.answer, language)}
@@ -1238,7 +1238,7 @@ export function AgencyHomepageClient({
               className="absolute inset-0 bg-[radial-gradient(circle_at_left,_rgba(99,102,241,0.11),_transparent_40%),radial-gradient(circle_at_right,_rgba(14,165,233,0.11),_transparent_42%)]"
             />
             <div className="relative mx-auto max-w-3xl text-center">
-              <h2 className="font-display text-4xl font-extrabold tracking-tight text-balance sm:text-5xl lg:text-[3.25rem] lg:leading-[1.08]">
+              <h2 className="font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl lg:text-[3.25rem] lg:leading-[1.08]">
                 {getLocalizedValue(AGENCY_HOME_COPY.closingCta.title, language)}
               </h2>
               <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
@@ -1250,14 +1250,14 @@ export function AgencyHomepageClient({
                   <Button asChild size="lg" className="rounded-full px-8">
                     <Link href="/dashboard">
                       {getLocalizedValue(AGENCY_HOME_COPY.nav.dashboard, language)}
-                      <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                      <ArrowRight className="ml-2 size-4" aria-hidden="true" />
                     </Link>
                   </Button>
                 ) : (
                   <Button asChild size="lg" className="rounded-full px-8">
                     <a href={AGENCY_PILOT.bookingUrl}>
                       {getLocalizedValue(AGENCY_HOME_COPY.closingCta.primaryCta, language)}
-                      <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                      <ArrowRight className="ml-2 size-4" aria-hidden="true" />
                     </a>
                   </Button>
                 )}

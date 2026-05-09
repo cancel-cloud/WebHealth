@@ -13,7 +13,7 @@ export function TestErrorButton({ disabled }: { disabled: boolean }) {
         throw Error("Generic Error Message");
       }}
     >
-      <TriangleAlert className="h-4 w-4" />
+      <TriangleAlert className="size-4" />
       Trigger Generic Error
     </Button>
   );

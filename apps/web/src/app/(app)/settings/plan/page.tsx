@@ -50,14 +50,14 @@ export default function PlanPage() {
       <div className="flex items-center gap-4">
         <Button asChild variant="ghost" size="sm" className="-ml-2">
           <Link href="/settings">
-            <ChevronLeft aria-hidden="true" className="h-4 w-4 mr-1" />
+            <ChevronLeft aria-hidden="true" className="size-4 mr-1" />
             Back to Settings
           </Link>
         </Button>
       </div>
 
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight font-display" style={{ textWrap: "balance" }}>
+        <h1 className="text-3xl font-semibold tracking-tight font-display" style={{ textWrap: "balance" }}>
           Plans & Pricing
         </h1>
         <p className="text-muted-foreground mt-1">Choose the plan that fits your needs.</p>
@@ -74,13 +74,13 @@ export default function PlanPage() {
             }`}
           >
             {plan.active && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <div className="absolute -top-3 left-1/2 -tranzinc-x-1/2">
                 <Badge className="bg-primary text-primary-foreground shadow-sm">Current Plan</Badge>
               </div>
             )}
 
             <div className="space-y-1">
-              <h2 className="text-xl font-extrabold font-display">{plan.name}</h2>
+              <h2 className="text-xl font-semibold font-display">{plan.name}</h2>
               <p className="text-sm text-muted-foreground">{plan.description}</p>
             </div>
 
@@ -92,7 +92,7 @@ export default function PlanPage() {
             <ul className="space-y-2 flex-1">
               {plan.features.map((feature) => (
                 <li key={feature} className="flex items-start gap-2 text-sm">
-                  <Check aria-hidden="true" className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                  <Check aria-hidden="true" className="size-4 text-primary flex-shrink-0 mt-0.5" />
                   <span>{feature}</span>
                 </li>
               ))}

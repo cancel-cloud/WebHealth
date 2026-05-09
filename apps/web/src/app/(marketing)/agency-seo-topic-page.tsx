@@ -129,7 +129,7 @@ export function AgencySeoTopicPage({
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                 {copy.eyebrow}
               </p>
-              <h1 className="mt-4 max-w-4xl font-display text-4xl font-extrabold tracking-tight text-balance sm:text-6xl">
+              <h1 className="mt-4 max-w-4xl font-display text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
                 {copy.title}
               </h1>
               <p className="mt-6 text-lg leading-8 text-muted-foreground">
@@ -138,7 +138,7 @@ export function AgencySeoTopicPage({
               <div className="mt-7 space-y-3">
                 {copy.heroPoints.map((point) => (
                   <p key={point} className="flex items-start gap-3 text-sm leading-6">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                    <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
                     <span>{point}</span>
                   </p>
                 ))}
@@ -149,7 +149,7 @@ export function AgencySeoTopicPage({
                   className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20"
                 >
                   {copy.primary}
-                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                  <ArrowRight className="ml-2 size-4" aria-hidden="true" />
                 </a>
                 <Link
                   href="/dashboard"
@@ -183,7 +183,7 @@ export function AgencySeoTopicPage({
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               {language === "de" ? "Problem" : "Problem"}
             </p>
-            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+            <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
               {copy.problemTitle}
             </h2>
           </div>
@@ -198,10 +198,10 @@ export function AgencySeoTopicPage({
           <div className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-end">
             <div>
               <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                <MousePointerClick className="h-4 w-4" aria-hidden="true" />
+                <MousePointerClick className="size-4" aria-hidden="true" />
                 {language === "de" ? "Interaktive Demo" : "Interactive demo"}
               </p>
-              <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+              <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
                 {copy.workflowTitle}
               </h2>
             </div>
@@ -225,14 +225,14 @@ export function AgencySeoTopicPage({
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               {language === "de" ? "Pilot-Output" : "Pilot output"}
             </p>
-            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+            <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
               {copy.deliversTitle}
             </h2>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             {copy.deliverables.map((item) => (
               <article key={item.title} className="rounded-lg border border-border bg-card p-5 shadow-sm">
-                <h3 className="font-display text-xl font-bold">{item.title}</h3>
+                <h3 className="font-display text-xl font-semibold">{item.title}</h3>
                 <p className="mt-3 text-sm leading-7 text-muted-foreground">
                   {item.body}
                 </p>
@@ -244,7 +244,7 @@ export function AgencySeoTopicPage({
 
       <section className="border-y border-border bg-muted/30 px-6 py-16">
         <div className="mx-auto max-w-4xl text-center">
-          <h2 className="font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+          <h2 className="font-display text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
             {copy.boundaryTitle}
           </h2>
           <p className="mt-5 text-base leading-8 text-muted-foreground sm:text-lg">
@@ -255,13 +255,13 @@ export function AgencySeoTopicPage({
 
       <section className="px-6 py-16">
         <div className="mx-auto max-w-5xl">
-          <h2 className="font-display text-3xl font-bold tracking-tight">
+          <h2 className="font-display text-3xl font-semibold tracking-tight">
             {copy.faqTitle}
           </h2>
           <div className="mt-8 grid gap-4">
             {AGENCY_FAQ_ITEMS.map((item) => (
               <article key={item.question.en} className="rounded-lg border border-border bg-card p-5">
-                <h3 className="font-display text-lg font-bold">
+                <h3 className="font-display text-lg font-semibold">
                   {getLocalizedValue(item.question, language)}
                 </h3>
                 <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -276,7 +276,7 @@ export function AgencySeoTopicPage({
       <section className="border-t border-border bg-muted/30 px-6 py-16">
         <div className="mx-auto flex max-w-5xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="font-display text-2xl font-bold">
+            <h2 className="font-display text-2xl font-semibold">
               {AGENCY_HOME_COPY.closingCta.title[language]}
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">

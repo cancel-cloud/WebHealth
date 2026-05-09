@@ -15,7 +15,7 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[?]` needs info
 - `apps/web/src/app/api/stripe/portal/route.ts` — fallback origin
 
 **Env var:** `NEXT_PUBLIC_APP_URL`
-- Local dev value: `https://webaudit-25.localcan.dev` (stays as localcan tunnel, changes per dev)
+- Local dev value: `https://webhealth-xy.localcan.dev` (stays as localcan tunnel, changes per dev)
 - Production value: `https://webhealth.devbrew.dev` (current production domain, may change)
 
 **Plan:**

@@ -188,7 +188,7 @@ export function FeatureRequestModal({
               Cancel
             </Button>
             <Button type="submit" disabled={!submissionState.canSubmit || isDisabled} className="rounded-full">
-              {submitted || isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {submitted || isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
               {submitted ? submitLabel : isSubmitting ? "Sending..." : submitLabel}
             </Button>
           </DialogFooter>

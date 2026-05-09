@@ -32,7 +32,7 @@ export default function AboutPage() {
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           About
         </p>
-        <h1 className="font-display text-4xl font-bold tracking-tight md:text-5xl">
+        <h1 className="font-display text-4xl font-semibold tracking-tight md:text-5xl">
           Built so agencies can ship SEO fixes, not chase data.
         </h1>
         <p className="mt-6 text-lg leading-relaxed text-muted-foreground">

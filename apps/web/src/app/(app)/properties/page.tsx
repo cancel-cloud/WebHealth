@@ -112,7 +112,7 @@ function LinkGa4Dialog({
         onClick={() => setOpen(true)}
         disabled={ga4Options.length === 0 || hasBlockingIssue}
       >
-        <Link2 className="h-3 w-3" />
+        <Link2 className="size-3" />
         Link GA4
       </Button>
 
@@ -297,7 +297,7 @@ export default function PropertiesPage() {
     <div className="space-y-6">
       <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
-          <h1 className="text-3xl font-extrabold tracking-tight font-display" style={{ textWrap: "balance" }}>
+          <h1 className="text-3xl font-semibold tracking-tight font-display" style={{ textWrap: "balance" }}>
             Properties
           </h1>
           <p className="mt-1 max-w-3xl text-muted-foreground">Google Search Console and Analytics properties synced to your account.</p>
@@ -346,8 +346,8 @@ export default function PropertiesPage() {
         </div>
       ) : properties.length === 0 ? (
         <div className="border border-border/50 rounded-lg p-12 text-center flex flex-col items-center justify-center bg-card shadow-sm">
-          <div className="h-16 w-16 bg-muted/50 rounded-lg flex items-center justify-center mb-6">
-            <Globe aria-hidden="true" className="h-8 w-8 text-muted-foreground/50" />
+          <div className="size-16 bg-muted/50 rounded-lg flex items-center justify-center mb-6">
+            <Globe aria-hidden="true" className="size-8 text-muted-foreground/50" />
           </div>
           <h3 className="text-xl font-medium text-foreground font-display">No properties synced</h3>
           <p className="max-w-sm mt-3 text-muted-foreground leading-relaxed">
@@ -357,7 +357,7 @@ export default function PropertiesPage() {
       ) : (
         <div className="space-y-3">
           <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -tranzinc-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <Input
               placeholder="Search properties…"
               value={searchQuery}

@@ -10,7 +10,13 @@ import { handleRouteError } from "@/lib/server/route-security";
 
 const ALLOWED_FIELDS = ['weeklyDigest', 'syncFailure', 'emailReceipts'] as const;
 
-// GET /api/settings — fetch (or upsert defaults for) the current user's settings
+const DEFAULT_SETTINGS = {
+  weeklyDigest: true,
+  syncFailure: true,
+  emailReceipts: true,
+};
+
+// GET /api/settings — fetch the current user's settings
 export async function GET() {
   try {
     const session = await requireSession();
@@ -55,18 +61,7 @@ export async function GET() {
       return NextResponse.json({ weeklyDigest, syncFailure, emailReceipts, ...baseResponse });
     }
 
-    // No row yet — upsert defaults and return them
-    const [created] = await db
-      .insert(userSettings)
-      .values({ id: nanoid(), userId })
-      .onConflictDoUpdate({
-        target: userSettings.userId,
-        set: { updatedAt: new Date() },
-      })
-      .returning();
-
-    const { weeklyDigest, syncFailure, emailReceipts } = created;
-    return NextResponse.json({ weeklyDigest, syncFailure, emailReceipts, ...baseResponse });
+    return NextResponse.json({ ...DEFAULT_SETTINGS, ...baseResponse });
   } catch (error: unknown) {
     return handleRouteError("GET /api/settings error", error);
   }

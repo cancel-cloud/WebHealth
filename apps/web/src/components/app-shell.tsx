@@ -85,14 +85,14 @@ export function AppShell({
               className="rounded-lg border border-app-shell-border/70 bg-background/80"
               onClick={() => setMobileOpen(true)}
             >
-              <PanelLeft className="h-4 w-4" />
+              <PanelLeft className="size-4" />
             </Button>
 
             <Link href="/dashboard" className="flex min-w-0 items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-sky-500 text-primary-foreground shadow-lg shadow-primary/15">
+              <span className="flex size-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-sky-500 text-primary-foreground shadow-lg shadow-primary/15">
                 <span
                   aria-hidden="true"
-                  className="h-3 w-3 rounded-full bg-white/90"
+                  className="size-3 rounded-full bg-white/90"
                 />
               </span>
               <span className="min-w-0">
