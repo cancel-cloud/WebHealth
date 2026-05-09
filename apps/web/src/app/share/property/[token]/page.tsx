@@ -75,7 +75,7 @@ function DeltaPill({
   children: string;
 }) {
   const tone = getDeltaTone(delta, invert);
-  if (delta == null) return <span className="text-xs font-medium text-slate-500">Comparison data unavailable for this period.</span>;
+  if (delta == null) return <span className="text-xs font-medium text-zinc-500">Comparison data unavailable for this period.</span>;
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
@@ -83,10 +83,10 @@ function DeltaPill({
           ? "bg-emerald-50 text-emerald-700"
           : tone === "negative"
             ? "bg-rose-50 text-rose-700"
-            : "bg-slate-100 text-slate-600"
+            : "bg-zinc-100 text-zinc-600"
       }`}
     >
-      {tone === "negative" ? <ArrowDownRight className="h-3.5 w-3.5" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
+      {tone === "negative" ? <ArrowDownRight className="size-3.5" /> : <ArrowUpRight className="size-3.5" />}
       {children}
     </span>
   );
@@ -191,14 +191,14 @@ export default async function PropertySharePage({
 
   return (
     <main
-      className="min-h-screen bg-slate-50 px-5 py-6 text-slate-950"
+      className="min-h-screen bg-zinc-50 px-5 py-6 text-zinc-950"
       style={{
         "--share-primary": primary,
         "--share-accent": accent,
       } as CSSProperties}
     >
       <div className="mx-auto max-w-6xl space-y-6">
-        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
           <div className="h-2" style={{ background: `linear-gradient(90deg, ${primary}, ${accent})` }} />
           <div className="p-6 md:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -208,33 +208,33 @@ export default async function PropertySharePage({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={brand.logoUrl} alt={brand.agencyName || "Agency logo"} className="h-10 max-w-40 rounded object-contain" />
                   ) : null}
-                  <span className="text-sm font-medium text-slate-500">{brand.agencyName || "WebHealth"}</span>
+                  <span className="text-sm font-medium text-zinc-500">{brand.agencyName || "WebHealth"}</span>
                 </div>
-                <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Website performance snapshot</p>
-                <h1 className="mt-2 font-display text-3xl font-bold tracking-tight md:text-5xl">
+                <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-zinc-500">Website performance snapshot</p>
+                <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight md:text-5xl">
                   {dashboard.property.name}
                 </h1>
                 <a href={propertyUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-base font-medium text-blue-600 hover:underline">
                   {dashboard.property.url}
-                  <ExternalLink className="h-4 w-4" />
+                  <ExternalLink className="size-4" />
                 </a>
               </div>
-              <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 lg:min-w-[340px]">
+              <div className="grid gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600 lg:min-w-[340px]">
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Snapshot period</div>
-                  <div className="mt-1 font-medium text-slate-950">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Snapshot period</div>
+                  <div className="mt-1 font-medium text-zinc-950">
                     {formatFullDate(dashboard.analysisWindow.startDate)} to {formatFullDate(dashboard.analysisWindow.endDate)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{formatCompareMode(dashboard.analysisWindow.compareMode)}</div>
-                  <div className="mt-1 font-medium text-slate-950">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{formatCompareMode(dashboard.analysisWindow.compareMode)}</div>
+                  <div className="mt-1 font-medium text-zinc-950">
                     {dashboard.analysisWindow.compareStartDate && dashboard.analysisWindow.compareEndDate
                       ? `${formatFullDate(dashboard.analysisWindow.compareStartDate)} to ${formatFullDate(dashboard.analysisWindow.compareEndDate)}`
                       : "No comparison selected"}
                   </div>
                 </div>
-                <div className="text-xs text-slate-500">Shared on {formatDateTime(share.createdAt)}</div>
+                <div className="text-xs text-zinc-500">Shared on {formatDateTime(share.createdAt)}</div>
               </div>
             </div>
           </div>
@@ -242,8 +242,8 @@ export default async function PropertySharePage({
 
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
           {metricCards.map((metric) => (
-            <div key={metric.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{metric.label}</div>
+            <div key={metric.label} className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{metric.label}</div>
               <div className="mt-3 font-display text-3xl font-bold" style={{ color: primary }}>{metric.value}</div>
               <div className="mt-3">
                 <DeltaPill delta={metric.delta} invert={metric.invert}>
@@ -254,20 +254,20 @@ export default async function PropertySharePage({
           ))}
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h2 className="font-display text-2xl font-bold tracking-tight">What changed since the last snapshot</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{getRecapSentence(comparison)}</p>
+              <h2 className="font-display text-2xl font-semibold tracking-tight">What changed since the last snapshot</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">{getRecapSentence(comparison)}</p>
               {comparison.previousCreatedAt ? (
-                <p className="mt-1 text-xs text-slate-500">Previous shared snapshot: {formatDateTime(comparison.previousCreatedAt)}</p>
+                <p className="mt-1 text-xs text-zinc-500">Previous shared snapshot: {formatDateTime(comparison.previousCreatedAt)}</p>
               ) : null}
             </div>
           </div>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-3">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pages with the biggest movement</div>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Pages with the biggest movement</div>
               <div className="mt-3 space-y-2">
                 {comparison.pageMovements.length ? comparison.pageMovements.slice(0, 4).map((row) => (
                   <div key={row.label} className="flex items-center justify-between gap-3 text-sm">
@@ -277,12 +277,12 @@ export default async function PropertySharePage({
                     </span>
                   </div>
                 )) : (
-                  <p className="text-sm text-slate-500">No page movement is available yet.</p>
+                  <p className="text-sm text-zinc-500">No page movement is available yet.</p>
                 )}
               </div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Queries with the biggest movement</div>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Queries with the biggest movement</div>
               <div className="mt-3 space-y-2">
                 {comparison.queryMovements.length ? comparison.queryMovements.slice(0, 4).map((row) => (
                   <div key={row.label} className="flex items-center justify-between gap-3 text-sm">
@@ -292,28 +292,28 @@ export default async function PropertySharePage({
                     </span>
                   </div>
                 )) : (
-                  <p className="text-sm text-slate-500">No query movement is available yet.</p>
+                  <p className="text-sm text-zinc-500">No query movement is available yet.</p>
                 )}
               </div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Completed and detected changes</div>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Completed and detected changes</div>
               <div className="mt-3 space-y-3">
                 {comparison.completedWork.length ? comparison.completedWork.slice(0, 3).map((item) => (
                   <div key={`${item.title}:${item.target}`} className="flex gap-2 text-sm">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
                     <div>
                       <div className="font-medium">{item.title}</div>
-                      <div className="text-slate-500">{item.firstVisibleWin}</div>
+                      <div className="text-zinc-500">{item.firstVisibleWin}</div>
                     </div>
                   </div>
                 )) : comparison.changedPages.length ? comparison.changedPages.slice(0, 3).map((item) => (
                   <div key={item.url} className="text-sm">
                     <div className="truncate font-medium">{item.url}</div>
-                    <div className="text-slate-500">Page content changed during this snapshot period.</div>
+                    <div className="text-zinc-500">Page content changed during this snapshot period.</div>
                   </div>
                 )) : (
-                  <p className="text-sm text-slate-500">No completed changes were recorded for this snapshot period.</p>
+                  <p className="text-sm text-zinc-500">No completed changes were recorded for this snapshot period.</p>
                 )}
               </div>
             </div>
@@ -322,14 +322,14 @@ export default async function PropertySharePage({
 
         <PropertyShareTrendChart trend={dashboard.trend} primary={primary} accent={accent} />
 
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-1">
-            <h2 className="font-display text-2xl font-bold tracking-tight">Top pages</h2>
-            <p className="text-sm text-slate-500">Pages that contributed most to traffic in this snapshot period.</p>
+            <h2 className="font-display text-2xl font-semibold tracking-tight">Top pages</h2>
+            <p className="text-sm text-zinc-500">Pages that contributed most to traffic in this snapshot period.</p>
           </div>
-          <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200">
+          <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
             <table className="w-full min-w-[720px] text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   <th className="px-4 py-3 text-left">Page</th>
                   <th className="px-4 py-3 text-right">Clicks</th>
@@ -338,18 +338,18 @@ export default async function PropertySharePage({
                   <th className="px-4 py-3 text-left">Movement</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-zinc-200">
                 {dashboard.evidence.pageWinnersLosers.slice(0, 8).map((row) => {
                   const delta = row.clicksCurrent - row.clicksCompare;
                   return (
                     <tr key={row.page}>
                       <td className="max-w-[360px] truncate px-4 py-3 font-medium">{row.page}</td>
                       <td className="px-4 py-3 text-right">{formatNumber(row.clicksCurrent)}</td>
-                      <td className="px-4 py-3 text-right text-slate-500">{formatNumber(row.clicksCompare)}</td>
+                      <td className="px-4 py-3 text-right text-zinc-500">{formatNumber(row.clicksCompare)}</td>
                       <td className={`px-4 py-3 text-right font-semibold ${delta >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
                         {delta >= 0 ? "+" : ""}{formatNumber(delta)}
                       </td>
-                      <td className="px-4 py-3 text-slate-600">{row.status}</td>
+                      <td className="px-4 py-3 text-zinc-600">{row.status}</td>
                     </tr>
                   );
                 })}
@@ -358,14 +358,14 @@ export default async function PropertySharePage({
           </div>
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-1">
-            <h2 className="font-display text-2xl font-bold tracking-tight">Top queries</h2>
-            <p className="text-sm text-slate-500">Search terms that brought visibility and clicks during this snapshot period.</p>
+            <h2 className="font-display text-2xl font-semibold tracking-tight">Top queries</h2>
+            <p className="text-sm text-zinc-500">Search terms that brought visibility and clicks during this snapshot period.</p>
           </div>
-          <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200">
+          <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
             <table className="w-full min-w-[720px] text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   <th className="px-4 py-3 text-left">Query</th>
                   <th className="px-4 py-3 text-right">Clicks</th>
@@ -374,7 +374,7 @@ export default async function PropertySharePage({
                   <th className="px-4 py-3 text-right">Position</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-zinc-200">
                 {dashboard.evidence.queryOpportunities.slice(0, 8).map((row) => (
                   <tr key={row.query}>
                     <td className="max-w-[360px] truncate px-4 py-3 font-medium">{row.query}</td>
@@ -390,7 +390,7 @@ export default async function PropertySharePage({
         </section>
 
         {brand.footerNote ? (
-          <footer className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
+          <footer className="rounded-lg border border-zinc-200 bg-white p-5 text-sm text-zinc-600 shadow-sm">
             {brand.footerNote}
           </footer>
         ) : null}

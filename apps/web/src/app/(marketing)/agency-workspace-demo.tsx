@@ -46,9 +46,9 @@ function TrendValue({
       }`}
     >
       {isUp ? (
-        <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
+        <TrendingUp className="size-3.5" aria-hidden="true" />
       ) : (
-        <TrendingDown className="h-3.5 w-3.5" aria-hidden="true" />
+        <TrendingDown className="size-3.5" aria-hidden="true" />
       )}
       {value}
     </span>
@@ -76,9 +76,9 @@ export function AgencyWorkspaceDemo({
       <div className="flex flex-col items-start justify-between gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex gap-2">
-            <span className="h-3 w-3 rounded-full bg-rose-300" />
-            <span className="h-3 w-3 rounded-full bg-amber-300" />
-            <span className="h-3 w-3 rounded-full bg-emerald-300" />
+            <span className="size-3 rounded-full bg-rose-300" />
+            <span className="size-3 rounded-full bg-amber-300" />
+            <span className="size-3 rounded-full bg-emerald-300" />
           </div>
           <span className="min-w-0 max-w-[14rem] truncate rounded-full border border-border bg-muted/55 px-3 py-1 text-xs font-medium text-muted-foreground sm:max-w-none">
             app.webhealth.dev/agency/devbrew
@@ -104,7 +104,7 @@ export function AgencyWorkspaceDemo({
                 : "text-muted-foreground hover:bg-muted"
             }`}
           >
-            <LayoutGrid className="h-4 w-4" aria-hidden="true" />
+            <LayoutGrid className="size-4" aria-hidden="true" />
             {getLocalizedValue(AGENCY_HOME_COPY.workspace.portfolioLabel, language)}
           </button>
 
@@ -124,14 +124,14 @@ export function AgencyWorkspaceDemo({
                       index,
                     })
                   }
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors ${
+                  className={`flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors ${
                     isActive
                       ? "bg-primary/10 text-foreground"
                       : "text-muted-foreground hover:bg-muted"
                   }`}
                 >
                   <span
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white"
                     style={{ background: client.badgeGradient }}
                   >
                     {client.initials}
@@ -153,7 +153,7 @@ export function AgencyWorkspaceDemo({
             })}
           </div>
 
-          <div className="mt-4 rounded-xl border border-dashed border-border px-3 py-3 text-sm text-muted-foreground">
+          <div className="mt-4 rounded-xl border border-dashed border-border p-3 text-sm text-muted-foreground">
             + {getLocalizedValue(AGENCY_HOME_COPY.workspace.addClientLabel, language)}
           </div>
         </aside>
@@ -163,7 +163,7 @@ export function AgencyWorkspaceDemo({
             <>
               <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h3 className="font-display text-2xl font-bold">
+                  <h3 className="font-display text-2xl font-semibold">
                     {getLocalizedValue(
                       AGENCY_HOME_COPY.workspace.portfolioTitle,
                       language,
@@ -200,12 +200,12 @@ export function AgencyWorkspaceDemo({
                     key={client.domain}
                     type="button"
                     onClick={() => dispatchWorkspace({ type: "show_client", index })}
-                    className="rounded-2xl border border-border bg-card p-5 text-left shadow-sm transition-transform hover:-translate-y-0.5"
+                    className="rounded-2xl border border-border bg-card p-5 text-left shadow-sm transition-transform hover:-tranzinc-y-0.5"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <span
-                          className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold text-white"
+                          className="flex size-10 items-center justify-center rounded-xl text-sm font-bold text-white"
                           style={{ background: client.badgeGradient }}
                         >
                           {client.initials}
@@ -286,19 +286,19 @@ export function AgencyWorkspaceDemo({
                       onClick={() => dispatchWorkspace({ type: "show_portfolio" })}
                       className="inline-flex w-fit items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
                     >
-                      <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                      <ArrowLeft className="size-4" aria-hidden="true" />
                       {getLocalizedValue(AGENCY_HOME_COPY.workspace.backLabel, language)}
                     </button>
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-3">
                           <span
-                            className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold text-white"
+                            className="flex size-10 items-center justify-center rounded-xl text-sm font-bold text-white"
                             style={{ background: client.badgeGradient }}
                           >
                             {client.initials}
                           </span>
-                          <h3 className="font-display text-2xl font-bold">
+                          <h3 className="font-display text-2xl font-semibold">
                             {client.name}
                           </h3>
                         </div>
@@ -381,10 +381,10 @@ export function AgencyWorkspaceDemo({
                       {client.fixList.map((fix) => (
                         <div
                           key={`${fix.url}-${fix.priority}`}
-                          className="grid gap-3 rounded-2xl border border-border px-4 py-4 sm:grid-cols-[auto_1fr_auto] sm:items-start"
+                          className="grid gap-3 rounded-2xl border border-border p-4 sm:grid-cols-[auto_1fr_auto] sm:items-start"
                         >
                           <span
-                            className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold ${
+                            className={`inline-flex size-8 items-center justify-center rounded-lg text-xs font-bold ${
                               fix.priority === 1
                                 ? "bg-rose-100 text-rose-700"
                                 : fix.priority === 2

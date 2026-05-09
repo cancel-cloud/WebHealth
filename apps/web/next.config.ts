@@ -22,7 +22,7 @@ function getConfiguredDevOriginHost() {
 
 const allowedDevOrigins = Array.from(
   new Set(
-    [getConfiguredDevOriginHost(), "webaudit-25.localcan.dev"].filter(
+    [getConfiguredDevOriginHost(), "webhealth-xy.localcan.dev"].filter(
       (origin): origin is string => Boolean(origin),
     ),
   ),

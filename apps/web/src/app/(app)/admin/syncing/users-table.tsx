@@ -54,7 +54,7 @@ export function SyncUsersTable({ users }: { users: AdminUser[] }) {
                   variant="outline"
                   onClick={() => setSelectedUser(u)}
                 >
-                  <RefreshCw className="h-3 w-3 mr-1" />
+                  <RefreshCw className="size-3 mr-1" />
                   Sync
                 </Button>
               </TableCell>

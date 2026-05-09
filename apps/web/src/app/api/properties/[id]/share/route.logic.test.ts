@@ -37,8 +37,8 @@ test("buildPropertyShareUrl prefers the configured public base URL", () => {
     buildPropertyShareUrl({
       requestUrl: "https://localhost:3000/api/properties/sc-domain%3Aexample.com/share",
       token: "tok_123",
-      baseUrl: "https://webaudit-25.localcan.dev",
+      baseUrl: "https://webhealth-xy.localcan.dev",
     }),
-    "https://webaudit-25.localcan.dev/share/property/tok_123",
+    "https://webhealth-xy.localcan.dev/share/property/tok_123",
   );
 });

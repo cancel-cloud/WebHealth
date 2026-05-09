@@ -135,7 +135,7 @@ export function LogsTable({ initialLogs }: { initialLogs: LogEntry[] }) {
         />
 
         <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`size-4 mr-1 ${loading ? "animate-spin" : ""}`} />
           Refresh
         </Button>
       </div>
@@ -168,9 +168,9 @@ export function LogsTable({ initialLogs }: { initialLogs: LogEntry[] }) {
                 <TableCell>
                   {log.details ? (
                     expanded.has(log.id) ? (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      <ChevronDown className="size-4 text-muted-foreground" />
                     ) : (
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      <ChevronRight className="size-4 text-muted-foreground" />
                     )
                   ) : null}
                 </TableCell>

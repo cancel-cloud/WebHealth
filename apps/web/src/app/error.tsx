@@ -27,7 +27,7 @@ export default function ErrorPage({
           !
         </span>
       </div>
-      <h1 className="font-display text-3xl font-extrabold tracking-tight mb-3">
+      <h1 className="font-display text-3xl font-semibold tracking-tight mb-3">
         Something went wrong
       </h1>
       <p className="text-muted-foreground max-w-sm mb-8">

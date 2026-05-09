@@ -84,10 +84,10 @@ export function ProductAnalyticsCharts({
   return (
     <div className="grid gap-4 xl:grid-cols-2">
       <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-bold font-display">Actual OpenAI Spend</h2>
+        <h2 className="text-lg font-semibold font-display">Actual OpenAI Spend</h2>
         <div className="mt-4 h-[280px]">
           {actualSpend.length ? (
-            <EchartsChart option={actualSpendOption} className="h-full w-full" ariaLabel="Actual OpenAI daily spend" />
+            <EchartsChart option={actualSpendOption} className="size-full" ariaLabel="Actual OpenAI daily spend" />
           ) : (
             <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
               No imported OpenAI billing data yet.
@@ -96,10 +96,10 @@ export function ProductAnalyticsCharts({
         </div>
       </section>
       <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-bold font-display">Job Throughput</h2>
+        <h2 className="text-lg font-semibold font-display">Job Throughput</h2>
         <div className="mt-4 h-[280px]">
           {jobThroughput.length ? (
-            <EchartsChart option={jobThroughputOption} className="h-full w-full" ariaLabel="Job throughput by family and status" />
+            <EchartsChart option={jobThroughputOption} className="size-full" ariaLabel="Job throughput by family and status" />
           ) : (
             <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
               No job throughput data yet.

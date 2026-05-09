@@ -4,7 +4,7 @@
 **Ziel:** Teilnehmer für die WebHealth-Pilotrunde gewinnen.
 **Stil:** Hormozi Grand Slam — konkretes Wunschergebnis, wenig Aufwand, kurze Zeit bis zum Resultat, Risiko beim Anbieter. Erst connecten (kein Pitch). Lead-Magnet-Pitch erst nach Annahme.
 **Absender:** Lukas (DevBrew) — `lukas@devbrew.dev`
-**Pilot-URL:** https://webaudit-25.localcan.dev
+**Pilot-URL:** https://webhealth-xy.localcan.dev
 
 ---
 
@@ -110,7 +110,7 @@ Skip: Inhouse-SEO bei Großmarken, reine Linkbuilder, Affiliate-SEOs, Tool-Anbie
 > Kein Haken — Pilot ist in dieser Runde gratis gegen 20 Min Feedback nach Report #1. Nach dem Pilot starten Pläne bei {{X €}}/Kunde/Monat, aber Pilot-Mitglieder behalten den Founding-Preis dauerhaft. Du kannst auch einfach die Reports nehmen und gehen.
 
 **„Schick mir erst mehr Infos"** →
-> Total fair. 90-Sekunden-Loom + das Live-Tool: https://webaudit-25.localcan.dev — Angebot steht weiter, wenn du reingeschaut hast.
+> Total fair. 90-Sekunden-Loom + das Live-Tool: https://webhealth-xy.localcan.dev — Angebot steht weiter, wenn du reingeschaut hast.
 
 **„Kein Interesse"** →
 > Alles gut — danke für die ehrliche Antwort. Falls's hilft: Ich kann dir das Monats-Action-Framework als Notion-Doc allein schicken, ohne Pilot. Sag Bescheid.

@@ -241,7 +241,7 @@ function AiRunCenterView({ data, isAdmin }: { data: AiRunCenterData; isAdmin: bo
         </div>
         {isAdmin ? (
           <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
-            <Bot className="h-4 w-4" />
+            <Bot className="size-4" />
             <span>Estimated spend: {formatUsd(data.estimatedCostUsd)}</span>
           </div>
         ) : null}
@@ -318,7 +318,7 @@ function AiRunCenterView({ data, isAdmin }: { data: AiRunCenterData; isAdmin: bo
             {data.recommendations.map((item) => (
               <div key={item.id} className="rounded-lg border border-border/70 p-4">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <AlertCircle className="mt-0.5 size-4 shrink-0 text-primary" />
                   <div>
                     <div className="text-sm font-medium">{item.title}</div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
@@ -387,8 +387,8 @@ function WebsiteLauncherCard({ website, setupDismissed }: WebsiteLauncherCardPro
     <div className="group overflow-hidden rounded-lg border border-border/70 bg-card/95 p-5 shadow-sm transition-colors hover:border-primary/35 hover:bg-card">
       <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-center gap-4">
-          <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-400 text-primary-foreground shadow-sm">
-            <Globe2 className="h-5 w-5" />
+          <div className="inline-flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-400 text-primary-foreground shadow-sm">
+            <Globe2 className="size-5" />
           </div>
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-2xl font-semibold tracking-tight">{website.label}</h3>
@@ -427,10 +427,10 @@ function WebsiteLauncherCard({ website, setupDismissed }: WebsiteLauncherCardPro
           </div>
           <Link
             href={`/properties/${encodeURIComponent(website.id)}`}
-            className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary transition-transform group-hover:translate-x-0.5"
+            className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary transition-transform group-hover:tranzinc-x-0.5"
           >
             Open dashboard
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="size-4" />
           </Link>
         </div>
         <p className="mt-2 truncate text-sm text-muted-foreground">{website.gscUrl ?? website.ga4Name ?? website.id}</p>

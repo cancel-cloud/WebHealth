@@ -215,7 +215,7 @@ export default async function ProductAnalyticsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight font-display">Product Analytics</h1>
+        <h1 className="text-3xl font-semibold tracking-tight font-display">Product Analytics</h1>
         <p className="mt-1 text-muted-foreground">
           Product usage, snapshots, source-data jobs, property refreshes, and actual OpenAI billing.
         </p>
@@ -242,7 +242,7 @@ export default async function ProductAnalyticsPage() {
       <PosthogInstallCheck initialConfig={posthogConfig} />
 
       <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
-        <h2 className="text-xl font-bold font-display">Recent Product Events</h2>
+        <h2 className="text-xl font-semibold font-display">Recent Product Events</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
@@ -282,7 +282,7 @@ export default async function ProductAnalyticsPage() {
       </div>
 
       <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
-        <h2 className="text-xl font-bold font-display">Team Usage</h2>
+        <h2 className="text-xl font-semibold font-display">Team Usage</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[960px] text-sm">
             <thead>

@@ -14,7 +14,7 @@ export default async function AdminFeedbackPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Feedback Inbox</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Feedback Inbox</h1>
         <p className="text-muted-foreground text-sm">
           Review user-submitted feature requests and bug reports.
         </p>

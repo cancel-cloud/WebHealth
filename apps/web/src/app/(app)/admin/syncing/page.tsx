@@ -15,7 +15,7 @@ export default async function AdminSyncingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Syncing</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Syncing</h1>
         <p className="text-muted-foreground text-sm">
           Manually trigger Google property sync for any user.
         </p>

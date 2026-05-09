@@ -27,7 +27,7 @@ export function LegalDocumentPage({
     <div className="mx-auto w-full max-w-3xl px-6 py-20">
       <div className="mb-8 text-center">
         <div>
-          <h1 className="font-display text-4xl font-extrabold tracking-tight">
+          <h1 className="font-display text-4xl font-semibold tracking-tight">
             {document.title}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -93,7 +93,7 @@ export function LegalDocumentPage({
 
         {document.sections.map((section, index) => (
           <section key={section.title}>
-            <h2 className="mb-3 font-display text-xl font-bold">
+            <h2 className="mb-3 font-display text-xl font-semibold">
               {index + 1}. {section.title}
             </h2>
             {section.paragraphs?.map((paragraph) => (

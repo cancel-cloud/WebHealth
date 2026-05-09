@@ -147,11 +147,11 @@ export function FlagDetailSheet({
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        className="size-7 text-muted-foreground hover:text-destructive"
                         disabled={togglingUserId === o.userId}
                         onClick={() => removeOverride(o.userId)}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="size-3.5" />
                       </Button>
                     </div>
                   </div>
@@ -168,9 +168,11 @@ export function FlagDetailSheet({
                   </p>
                   <div className="space-y-1">
                     {usersWithoutOverride.map((u) => (
-                      <div
+                      <button
+                        type="button"
                         key={u.id}
-                        className="flex items-center justify-between gap-2 py-1.5 cursor-pointer hover:bg-muted/50 px-2 rounded-lg"
+                        className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-muted/50"
+                        disabled={togglingUserId === u.id}
                         onClick={() => toggleUserOverride(u.id, null)}
                       >
                         <div className="min-w-0">
@@ -180,7 +182,7 @@ export function FlagDetailSheet({
                         <Badge variant="outline" className="flex-shrink-0 text-xs">
                           Click to override
                         </Badge>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>

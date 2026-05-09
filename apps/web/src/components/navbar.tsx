@@ -59,8 +59,8 @@ export function Navbar() {
       <div className={`flex items-center justify-between h-16 ${isApp ? 'container mx-auto px-4' : 'px-6 max-w-7xl mx-auto'}`}>
         {/* Logo */}
         <Link href="/" className="font-extrabold text-xl tracking-tighter flex items-center gap-2 font-display">
-          <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center shadow-lg shadow-primary/20">
-            <div className="h-2.5 w-2.5 rounded-full bg-white" />
+          <div className="size-7 rounded-lg bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center shadow-lg shadow-primary/20">
+            <div className="size-2.5 rounded-full bg-white" />
           </div>
           Webhealth
         </Link>
@@ -89,7 +89,7 @@ export function Navbar() {
               {!isApp && (
                 <Link href="/dashboard">
                   <Button variant="ghost" size="sm" className="hidden md:flex gap-1.5 rounded-full">
-                    <LayoutDashboard className="h-4 w-4" />
+                    <LayoutDashboard className="size-4" />
                     Dashboard
                   </Button>
                 </Link>
@@ -97,7 +97,7 @@ export function Navbar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="rounded-full ring-2 ring-border hover:ring-primary/50 transition-all">
-                    <Avatar className="h-8 w-8">
+                    <Avatar className="size-8">
                       <AvatarImage src={session.user.image!} alt={session.user.name} />
                       <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
                         {session.user.name?.charAt(0).toUpperCase()}
@@ -115,7 +115,7 @@ export function Navbar() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard" className="cursor-pointer">
-                      <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
+                      <LayoutDashboard className="mr-2 size-4" /> Dashboard
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -123,7 +123,7 @@ export function Navbar() {
                     onClick={handleSignOut}
                     className="text-red-500 focus:text-red-500 focus:bg-red-50 cursor-pointer"
                   >
-                    <LogOut className="mr-2 h-4 w-4" /> Sign out
+                    <LogOut className="mr-2 size-4" /> Sign out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -137,7 +137,7 @@ export function Navbar() {
                 className="hidden rounded-full px-3 sm:inline-flex"
                 onClick={handleSignIn}
               >
-                <LogIn className="h-4 w-4" />
+                <LogIn className="size-4" />
                 Login
               </Button>
               <Button asChild className="rounded-full px-4 shadow-sm shadow-primary/20 sm:px-5">

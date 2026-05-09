@@ -11,7 +11,7 @@ export default async function AdminAiPromptsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">AI Prompt Templates</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">AI Prompt Templates</h1>
         <p className="text-muted-foreground text-sm">
           Versioned system prompts for source summaries and the main SEO analyzer. Saving creates a new active version.
         </p>

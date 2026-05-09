@@ -97,7 +97,7 @@ export function getActionCategoryModel(action: {
     return {
       label: "Crawl",
       tone: "crawl" as const,
-      className: "border-indigo-200 bg-indigo-50 text-indigo-700",
+      className: "border-primary/20 bg-primary/10 text-primary",
     };
   }
   if (haystack.includes("performance") || haystack.includes("web_vitals") || haystack.includes("lcp")) {

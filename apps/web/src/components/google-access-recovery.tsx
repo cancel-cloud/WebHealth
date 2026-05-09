@@ -204,8 +204,8 @@ export function GoogleAccessRecoveryProvider({
 
           <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-4">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-                <ShieldAlert className="h-5 w-5" />
+              <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+                <ShieldAlert className="size-5" />
               </div>
               <div className="space-y-2">
                 <p className="font-medium text-amber-950">What needs to happen</p>
