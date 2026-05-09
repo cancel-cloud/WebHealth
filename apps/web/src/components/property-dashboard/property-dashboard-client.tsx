@@ -360,7 +360,7 @@ export function PropertyDashboardClient({
   const [evidenceSearch, setEvidenceSearch] = useState("");
   const [evidenceSort, setEvidenceSort] = useState("clicks_desc");
   const [actionFilter, setActionFilter] = useState<ActionFilter>("all");
-  const [expandedActionFingerprint, setExpandedActionFingerprint] = useState<string | null>(null);
+  const [expandedActionFingerprints, setExpandedActionFingerprints] = useState<string[]>([]);
   const [trendMetrics, setTrendMetrics] = useState<Array<"clicks" | "impressions" | "sessions" | "users">>(["clicks"]);
   const [currentRefreshState, setCurrentRefreshState] = useState<PropertyRefreshState | null>(dashboard.propertyUpdateState);
   const [faviconFailed, setFaviconFailed] = useState(false);
@@ -384,7 +384,8 @@ export function PropertyDashboardClient({
     ? currentRefreshState
     : null;
   const isBackendOperationDisabled = isPublicDemo;
-  const rerunDisabled = isBackendOperationDisabled || rerunLoading || Boolean(activeRefreshState);
+  const rerunInProgress = rerunLoading || Boolean(activeRefreshState);
+  const rerunDisabled = isBackendOperationDisabled || rerunInProgress;
   const visibleDegradedStates = dashboard.degradedStates.filter((state) => state.code !== "refresh_in_progress");
 
   const safeLatestDate = dashboard.freshness.safeLatestDate;
@@ -657,9 +658,12 @@ export function PropertyDashboardClient({
     () => new Map(RANKED_ACTION_FILTERS.map((filter) => [filter.value, getActionFilterCount(dashboard.actions, filter.value)])),
     [dashboard.actions],
   );
-  const expandedAction = filteredActions.find((action) => action.fingerprint === expandedActionFingerprint)
-    ?? filteredActions[0]
-    ?? null;
+  const visibleExpandedFingerprints = expandedActionFingerprints.filter((fingerprint) =>
+    filteredActions.some((action) => action.fingerprint === fingerprint),
+  );
+  const fallbackExpandedFingerprint = visibleExpandedFingerprints.length
+    ? null
+    : filteredActions[0]?.fingerprint ?? null;
   const trendMetricOptions = useMemo(() => {
     return [
       { value: "clicks" as const, label: "Clicks", color: brandColors.primary, data: dashboard.trend.map((point) => point.clicks), axis: 0 },
@@ -676,6 +680,32 @@ export function PropertyDashboardClient({
       }
       return [...current, value];
     });
+  };
+  const renderRerunButtonContent = (idleLabel: string) => {
+    if (isPublicDemo) {
+      return (
+        <>
+          <RefreshCcw className="mr-2 size-4" />
+          Demo only
+        </>
+      );
+    }
+
+    if (rerunInProgress) {
+      return (
+        <>
+          <LoaderCircle className="mr-2 size-4 animate-spin" />
+          Rerunning...
+        </>
+      );
+    }
+
+    return (
+      <>
+        <RefreshCcw className="mr-2 size-4" />
+        {idleLabel}
+      </>
+    );
   };
 
   const applyFilters = () => {
@@ -1402,8 +1432,7 @@ export function PropertyDashboardClient({
               </Button>
               <Button size="sm" className="h-9 rounded-full" onClick={applyFilters}>Apply</Button>
               <Button variant="outline" size="sm" className="h-9 rounded-full bg-white" onClick={rerunAllData} disabled={rerunDisabled}>
-                {rerunDisabled ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : <RefreshCcw className="mr-2 size-4" />}
-                {rerunDisabled ? "Rerunning..." : "Rerun all data"}
+                {renderRerunButtonContent("Rerun all data")}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1520,8 +1549,7 @@ export function PropertyDashboardClient({
                 ))}
               </div>
               <Button variant="outline" size="sm" className="h-9 shrink-0 rounded-full bg-white" onClick={rerunAllData} disabled={rerunDisabled}>
-                {rerunDisabled ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : <RefreshCcw className="mr-2 size-4" />}
-                {rerunDisabled ? "Rerunning..." : "Re-run"}
+                {renderRerunButtonContent("Re-run")}
               </Button>
             </div>
           </div>
@@ -1532,7 +1560,8 @@ export function PropertyDashboardClient({
                 const priority = getPriorityModel(action.systemRank ?? action.rank);
                 const category = getActionCategoryModel(action);
                 const severity = getSeverityValue({ rank: action.systemRank ?? action.rank, systemScore: action.systemScore });
-                const isExpanded = expandedAction?.fingerprint === action.fingerprint;
+                const isExpanded = expandedActionFingerprints.includes(action.fingerprint)
+                  || fallbackExpandedFingerprint === action.fingerprint;
                 const liftValue = getActionLiftValue(action);
                 const affectedTargets = action.affectedTargets?.length
                   ? action.affectedTargets
@@ -1544,7 +1573,16 @@ export function PropertyDashboardClient({
                     <button
                       type="button"
                       className="grid w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.03] lg:grid-cols-[48px_minmax(0,1fr)_150px_42px] lg:items-center"
-                      onClick={() => setExpandedActionFingerprint(isExpanded ? null : action.fingerprint)}
+                      onClick={() => {
+                        setExpandedActionFingerprints((current) => {
+                          const withoutFallback = fallbackExpandedFingerprint && !current.length
+                            ? [fallbackExpandedFingerprint]
+                            : current;
+                          return withoutFallback.includes(action.fingerprint)
+                            ? withoutFallback.filter((fingerprint) => fingerprint !== action.fingerprint)
+                            : [...withoutFallback, action.fingerprint];
+                        });
+                      }}
                     >
                       <span className={`flex size-11 flex-col items-center justify-center rounded-lg border text-xs font-extrabold leading-none ${priority.className}`}>
                         <span>{priority.label}</span>
@@ -1743,7 +1781,7 @@ export function PropertyDashboardClient({
             </div>
             <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
               <div className="relative min-w-0 sm:min-w-[260px]">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -tranzinc-y-1/2 text-muted-foreground" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input value={evidenceSearch} onChange={(event) => setEvidenceSearch(event.target.value)} placeholder="Search..." className="h-9 rounded-lg pl-9" />
               </div>
               <TabsList className="h-9 shrink-0 rounded-full border border-zinc-200 bg-zinc-50 p-1 dark:border-white/10 dark:bg-white/[0.03]">
@@ -1991,12 +2029,7 @@ export function PropertyDashboardClient({
                   onClick={rerunAllData}
                   disabled={rerunDisabled}
                 >
-                  {rerunDisabled ? (
-                    <LoaderCircle className="mr-2 size-4 animate-spin" />
-                  ) : (
-                    <RefreshCcw className="mr-2 size-4" />
-                  )}
-                  {rerunDisabled ? "Rerunning..." : "Rerun all data"}
+                  {renderRerunButtonContent("Rerun all data")}
                 </Button>
               </PropertyMetaPill>
               <DropdownMenu>

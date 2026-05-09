@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { authClient } from "@webhealth/shared/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { CookieSettingsButton } from "@/components/cookie-consent";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { AgencyHeader } from "./agency-header";
 import { AgencyWorkspaceDemo } from "./agency-workspace-demo";
 import {
   buildLegalHref,
@@ -34,13 +33,11 @@ import {
   getLocalizedValue,
   type AgencyLandingLanguage,
 } from "./agency-homepage.logic";
-import { getAgencyHomePath } from "./agency-seo.logic";
 import {
   ArrowRight,
   BarChart2,
   Check,
   ChevronDown,
-  LogIn,
   Palette,
   ShieldCheck,
   Sparkles,
@@ -51,14 +48,6 @@ import {
   Zap,
   CalendarCheck2,
 } from "lucide-react";
-
-const NAV_ITEMS = [
-  { id: "workspace", key: "workspace" },
-  { id: "whitelabel", key: "whiteLabel" },
-  { id: "integrations", key: "integrations" },
-  { id: "pricing", key: "pricing" },
-  { id: "faq", key: "faq" },
-] as const;
 
 function AvailabilityBadge({
   availability,
@@ -159,33 +148,17 @@ function WhiteLabelPriorityPill({ priority }: { priority: 1 | 2 | 3 }) {
   );
 }
 
-function SampleDataNotice({ language }: { language: AgencyLandingLanguage }) {
-  return (
-    <p className="inline-flex w-fit rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-      {getLocalizedValue(AGENCY_HOME_COPY.hero.sampleDisclaimer, language)}
-    </p>
-  );
-}
-
 export function AgencyHomepageClient({
   initialLanguage,
 }: {
   initialLanguage: AgencyLandingLanguage;
 }) {
   const language = initialLanguage;
-  const { data: session, isPending } = authClient.useSession();
 
   const heroTitle = getLocalizedValue(AGENCY_HOME_COPY.hero.title, language);
   const howTitle = getLocalizedValue(AGENCY_HOME_COPY.how.title, language);
   const pricingLabels = LEGAL_NAV_LABELS[language];
   const agencyPricingPlan = AGENCY_PRICING_PLANS.find((plan) => plan.tier === "agency");
-
-  const handleGoogleSignIn = async () => {
-    await authClient.signIn.social({
-      provider: "google",
-      callbackURL: "/dashboard",
-    });
-  };
 
   return (
     <>
@@ -197,99 +170,7 @@ export function AgencyHomepageClient({
       </a>
 
       <div className="min-h-screen bg-background text-foreground">
-        <header className="sticky top-0 z-50 border-b border-primary/20 bg-primary/10 backdrop-blur-md">
-          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6">
-            <Link
-              href={getAgencyHomePath(language)}
-              className="flex min-w-0 items-center gap-2 font-display text-lg font-extrabold tracking-tight sm:text-xl"
-            >
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-sky-500 shadow-lg shadow-primary/20">
-                <span className="size-2.5 rounded-full bg-white" />
-              </span>
-              <span className="min-w-0 truncate">
-                Webhealth{" "}
-                <span className="hidden text-sm font-medium text-muted-foreground sm:inline">
-                  {getLocalizedValue(AGENCY_HOME_COPY.brandSuffix, language)}
-                </span>
-              </span>
-            </Link>
-
-            <nav
-              className="hidden items-center gap-5 lg:flex"
-              aria-label="Agency landing navigation"
-            >
-              {NAV_ITEMS.map((item) => (
-                <a
-                  key={item.id}
-                  href={`#${item.id}`}
-                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {getLocalizedValue(AGENCY_HOME_COPY.nav[item.key], language)}
-                </a>
-              ))}
-            </nav>
-
-            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-              <div
-                className="inline-flex rounded-full border border-border bg-card/75 p-1"
-                role="group"
-                aria-label="Language toggle"
-              >
-                {(["en", "de"] as const).map((nextLanguage) => (
-                  <Link
-                    key={nextLanguage}
-                    href={getAgencyHomePath(nextLanguage)}
-                    hrefLang={nextLanguage}
-                    className={`rounded-full px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-widest transition-colors sm:px-3 ${
-                      nextLanguage === language
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {nextLanguage.toUpperCase()}
-                  </Link>
-                ))}
-              </div>
-
-              {isPending ? (
-                <div className="h-9 w-24 animate-pulse rounded-full bg-muted" />
-              ) : session ? (
-                <Button asChild variant="ghost" className="rounded-full">
-                  <Link href="/dashboard">
-                    {getLocalizedValue(AGENCY_HOME_COPY.nav.dashboard, language)}
-                  </Link>
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="hidden rounded-full px-3 sm:inline-flex"
-                    onClick={handleGoogleSignIn}
-                  >
-                    <LogIn className="size-4" aria-hidden="true" />
-                    {getLocalizedValue(AGENCY_HOME_COPY.nav.selfServeCta, language)}
-                  </Button>
-                  <Button
-                    asChild
-                    className="rounded-full px-3 shadow-sm shadow-primary/20 sm:px-5"
-                    aria-label={getLocalizedValue(AGENCY_HOME_COPY.nav.pilotCta, language)}
-                  >
-                    <a href={AGENCY_PILOT.bookingUrl}>
-                      <span className="sm:hidden">
-                        {language === "de" ? "Pilot-Check" : "Pilot check"}
-                      </span>
-                      <span className="hidden sm:inline">
-                        {getLocalizedValue(AGENCY_HOME_COPY.nav.pilotCta, language)}
-                      </span>
-                    </a>
-                  </Button>
-                </>
-              )}
-              <ThemeToggle />
-            </div>
-          </div>
-        </header>
+        <AgencyHeader language={language} samePageAnchors />
 
         <main id="main-content" className="flex flex-col">
           <section className="relative overflow-hidden px-6 pb-18 pt-20 sm:pb-24">
@@ -329,18 +210,20 @@ export function AgencyHomepageClient({
                     </a>
                   </Button>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="lg"
-                    className="rounded-full px-8"
-                    onClick={handleGoogleSignIn}
-                  >
-                    {getLocalizedValue(
-                      AGENCY_HOME_COPY.hero.secondaryCta,
-                      language,
-                    )}
+                  <Button asChild variant="outline" size="lg" className="rounded-full px-8">
+                    <Link href="/demo">
+                      {getLocalizedValue(
+                        AGENCY_HOME_COPY.hero.secondaryCta,
+                        language,
+                      )}
+                    </Link>
                   </Button>
+                </div>
+
+                <div className="mt-4 text-sm text-muted-foreground">
+                  {language === "de"
+                    ? "Die Demo zeigt, wie WebHealth SEO-Optimierung aus GSC, GA4 und Crawl-Signalen priorisiert."
+                    : "The demo shows how WebHealth prioritizes SEO optimization from GSC, GA4, and crawl signals."}
                 </div>
 
               </div>
@@ -366,10 +249,6 @@ export function AgencyHomepageClient({
                       {getLocalizedValue(AGENCY_HOME_COPY.hero.sparkPrimary, language)}
                     </div>
                   </div>
-                  <div className="mb-4">
-                    <SampleDataNotice language={language} />
-                  </div>
-
                   <div className="rounded-lg border border-border bg-background p-5">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                       {getLocalizedValue(AGENCY_HOME_COPY.hero.offerTitle, language)}
@@ -515,6 +394,30 @@ export function AgencyHomepageClient({
             </div>
           </section>
 
+          <section id="demo" className="border-y border-border bg-primary/5 px-6 py-10">
+            <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                  {language === "de" ? "Öffentliche Demo" : "Public demo"}
+                </p>
+                <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight">
+                  {language === "de" ? "Acme Bakery im echten Dashboard ansehen" : "Open Acme Bakery in the real dashboard UI"}
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                  {language === "de"
+                    ? "Sieh dir Metriken, Evidenz, SEO-Prioritäten und Snapshots direkt in der Demo an."
+                    : "Explore metrics, evidence, SEO priorities, and snapshots directly in the demo."}
+                </p>
+              </div>
+              <Button asChild className="rounded-full px-6 md:shrink-0">
+                <Link href="/demo">
+                  {getLocalizedValue(AGENCY_HOME_COPY.hero.secondaryCta, language)}
+                  <ArrowRight className="ml-2 size-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            </div>
+          </section>
+
           <section
             id="workspace"
             className="scroll-mt-24 border-y border-border bg-muted/30 px-6 py-24"
@@ -528,14 +431,10 @@ export function AgencyHomepageClient({
                   <h2 className="font-display text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
                     {getLocalizedValue(AGENCY_HOME_COPY.workspace.title, language)}
                   </h2>
-                  <AvailabilityBadge availability="preview" language={language} />
                 </div>
                 <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
                   {getLocalizedValue(AGENCY_HOME_COPY.workspace.lead, language)}
                 </p>
-                <div className="mt-5">
-                  <SampleDataNotice language={language} />
-                </div>
               </div>
 
               <AgencyWorkspaceDemo language={language} />
@@ -757,9 +656,6 @@ export function AgencyHomepageClient({
                 <p className="mt-6 text-[1.05rem] leading-8 text-foreground/88 sm:text-[1.12rem]">
                   {getLocalizedValue(AGENCY_HOME_COPY.whiteLabel.lead, language)}
                 </p>
-                <div className="mt-5">
-                  <SampleDataNotice language={language} />
-                </div>
 
                 <div className="mt-10 space-y-8">
                   {AGENCY_WHITE_LABEL_CHECKS.map((item) => (
@@ -1131,19 +1027,9 @@ export function AgencyHomepageClient({
                       ))}
                       </ul>
 
-                    {session ? (
-                      <Button asChild className="mt-8 h-10 w-full rounded-full">
-                        <Link href="/dashboard">{getLocalizedValue(plan.cta, language)}</Link>
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        className="mt-8 h-10 w-full rounded-full"
-                        onClick={handleGoogleSignIn}
-                      >
-                        {getLocalizedValue(plan.cta, language)}
-                      </Button>
-                    )}
+                    <Button asChild className="mt-8 h-10 w-full rounded-full">
+                      <Link href="/dashboard">{getLocalizedValue(plan.cta, language)}</Link>
+                    </Button>
                   </article>
                 ))}
               </div>
@@ -1246,33 +1132,20 @@ export function AgencyHomepageClient({
               </p>
 
               <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                {session ? (
-                  <Button asChild size="lg" className="rounded-full px-8">
-                    <Link href="/dashboard">
-                      {getLocalizedValue(AGENCY_HOME_COPY.nav.dashboard, language)}
-                      <ArrowRight className="ml-2 size-4" aria-hidden="true" />
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button asChild size="lg" className="rounded-full px-8">
-                    <a href={AGENCY_PILOT.bookingUrl}>
-                      {getLocalizedValue(AGENCY_HOME_COPY.closingCta.primaryCta, language)}
-                      <ArrowRight className="ml-2 size-4" aria-hidden="true" />
-                    </a>
-                  </Button>
-                )}
+                <Button asChild size="lg" className="rounded-full px-8">
+                  <a href={AGENCY_PILOT.bookingUrl}>
+                    {getLocalizedValue(AGENCY_HOME_COPY.closingCta.primaryCta, language)}
+                    <ArrowRight className="ml-2 size-4" aria-hidden="true" />
+                  </a>
+                </Button>
 
-                <Button
-                  type="button"
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full px-8"
-                  onClick={handleGoogleSignIn}
-                >
-                  {getLocalizedValue(
-                    AGENCY_HOME_COPY.closingCta.secondaryCta,
-                    language,
-                  )}
+                <Button asChild size="lg" variant="outline" className="rounded-full px-8">
+                  <Link href="/dashboard">
+                    {getLocalizedValue(
+                      AGENCY_HOME_COPY.closingCta.secondaryCta,
+                      language,
+                    )}
+                  </Link>
                 </Button>
               </div>
 

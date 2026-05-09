@@ -132,6 +132,7 @@ export const AGENCY_HOME_COPY = {
   },
   nav: {
     workspace: { en: "Workspace", de: "Workspace" },
+    demo: { en: "Demo", de: "Demo" },
     whiteLabel: { en: "White-label", de: "White-Label" },
     integrations: { en: "Integrations", de: "Integrationen" },
     pricing: { en: "Pricing", de: "Preise" },
@@ -163,8 +164,8 @@ export const AGENCY_HOME_COPY = {
       de: "12-Minuten Pilot-Check buchen",
     },
     secondaryCta: {
-      en: "Try for yourself",
-      de: "Loslegen",
+      en: "View demo",
+      de: "Demo ansehen",
     },
     notes: {
       en: [
@@ -215,10 +216,6 @@ export const AGENCY_HOME_COPY = {
     sparkSecondary: {
       en: "Client-ready monthly snapshot",
       de: "Kundenfertiger Monats-Snapshot",
-    },
-    sampleDisclaimer: {
-      en: "Fictional sample data, not customer results",
-      de: "Fiktive Beispieldaten, keine Kundenergebnisse",
     },
   },
   features: {

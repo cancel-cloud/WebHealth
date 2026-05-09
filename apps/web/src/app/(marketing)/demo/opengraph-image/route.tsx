@@ -49,7 +49,7 @@ export function GET() {
               fontWeight: 800,
             }}
           >
-            Fictional demo data
+            Demo
           </div>
         </div>
 
@@ -60,7 +60,7 @@ export function GET() {
               See the WebHealth demo before connecting a client site.
             </div>
             <div style={{ fontSize: 28, lineHeight: 1.35, color: "#475569" }}>
-              Ranked SEO actions from Search Console, GA4, crawl signals, and AI-assisted review.
+              SEO optimization from Search Console, GA4, crawl checks, and AI-assisted review.
             </div>
           </div>
 
@@ -79,7 +79,7 @@ export function GET() {
           >
             {[
               ["Clicks", "8,340", "+530"],
-              ["Priority action", "P1", "Custom cakes"],
+              ["SEO priority", "P1", "Custom cakes"],
               ["Evidence", "GSC + GA4", "Crawl"],
             ].map(([label, value, detail]) => (
               <div
@@ -105,7 +105,7 @@ export function GET() {
 
         <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b", fontSize: 22, fontWeight: 700 }}>
           <span>webhealth.devbrew.dev/demo</span>
-          <span>Not customer results</span>
+          <span>SEO optimization demo</span>
         </div>
       </div>
     ),
