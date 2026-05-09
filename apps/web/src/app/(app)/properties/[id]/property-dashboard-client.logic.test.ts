@@ -46,6 +46,21 @@ test("buildDashboardHref keeps preset starts calculated and custom starts explic
   );
 });
 
+test("buildDashboardHref can keep demo navigation on the public demo route", () => {
+  assert.equal(
+    buildDashboardHref({
+      propertyId: "gsc_sc-domain:acmebakery.example",
+      currentSearchParams: "demo=1&start=2026-01-01",
+      preset: "last_90d",
+      compareMode: "same_period_last_year",
+      startDate: "2026-02-01",
+      endDate: "2026-05-01",
+      routeMode: "publicDemo",
+    }),
+    "/demo?demo=1&preset=last_90d&compare=same_period_last_year&end=2026-05-01",
+  );
+});
+
 test("formatSourceDateCoverage handles null safe dates without invalid text", () => {
   assert.equal(formatSourceDateCoverage(null), "No safe date");
   assert.equal(formatSourceDateCoverage("2026-04-20"), "Apr 20, 2026");

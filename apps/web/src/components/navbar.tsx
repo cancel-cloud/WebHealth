@@ -18,6 +18,7 @@ import { LayoutDashboard, LogIn, LogOut } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "Features", href: "/#features" },
+  { label: "Demo", href: "/demo" },
   { label: "Preise", href: "/pricing" },
   { label: "Über uns", href: "/about" },
   { label: "Dashboard", href: "/dashboard" },

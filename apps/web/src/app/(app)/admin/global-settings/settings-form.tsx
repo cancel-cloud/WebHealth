@@ -36,7 +36,7 @@ function stringToLimit(s: string): number | null {
 }
 
 export function SettingsForm({ initialSettings }: { initialSettings: TierSetting[] }) {
-  const [settings, setSettings] = useState(
+  const [settings, setSettings] = useState(() =>
     initialSettings.map((s) => ({
       ...s,
       propertiesInput: limitToString(s.maxProperties),
