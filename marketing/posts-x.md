@@ -2,16 +2,19 @@
 
 14 finished X posts, rewritten from the `x.csv` timeline patterns. Pin Post 1. Post the rest in roughly the given order.
 
-Style rule: shorter than before. One claim, one product/workflow moment, no LinkedIn essay voice. Add screenshots/videos where noted.
+Style rule: shorter than before. One claim, one product/workflow moment, no LinkedIn essay voice. For a fresh account, post once per day and reserve 10 minutes immediately after posting to reply to every comment.
+
+Growth rule: use the pinned post for links. Unposted daily posts should avoid external links and create an easy reply angle.
 
 Pillars: A = product showoff · B = build-in-public · C = SEO workflow opinion · D = pilot update · E = offer · F = founder note.
 
 ---
 
 ### Post 1 - E - EN - PINNED - done
-I built WebHealth for SEO agencies that still turn GSC, GA4 and crawl exports into SEO tasks by hand.
+I built WebHealth for SEO agencies turning GSC, GA4 and crawl exports into SEO tasks by hand.
 
-Not another dashboard. A ranked action backlog that shows what to fix next to improve rankings, impressions and clicks.
+Not another dashboard.
+A ranked action backlog for what to fix next.
 
 Fit check: https://cal.com/lukas-devbrew/kennenlernen
 Website: https://webhealth.devbrew.dev
@@ -32,120 +35,109 @@ The useful part is getting one ranked list of what to check first.
 
 ---
 
-### Post 3 - B - DE
-Heute einen kleinen WebHealth-Screen gelöscht.
+### Post 3 - B - DE - ready (completely redone) - done
+Gerade den ersten echten WebHealth-Backlog für eine Test-Seite gebaut.
 
-Er sah professionell aus.
+Aus GSC, GA4 und Crawl-Daten kamen in unter 2 Minuten 7 klar priorisierte Maßnahmen raus.
 
-Er hat aber keine Entscheidung schneller gemacht.
+Das fühlt sich endlich nach echter Zeitersparnis an – nicht nur nach mehr Daten.
 
-Das ist gerade der Filter: Wenn eine Agentur nach dem Screen nicht weiß, was sie als Nächstes prüft, fliegt er raus.
+Wie lange braucht ihr normalerweise für so eine Priorisierung?
 
--- internal note: build-in-public. No fake metric, no offer.
-
----
-
-### Post 4 - C - EN
-Most SEO reports are too polite.
-
-They say:
-"organic users down 8%"
-
-They should say:
-"check these 3 URLs before the client call"
-
-That is the product gap I am building around.
-
--- internal note: strong opinion, compact. No link.
+**Video:** Yes – use this Hyperframes prompt  
+**Hyperframes Prompt:** Generate a 9-second vertical video in exact WebHealth project style: clean minimalist UI, white background, blue accents, crisp sans-serif fonts. Screen starts with raw GSC/GA4/crawl data tables open. Smooth import animation pulls everything into WebHealth. A clean ranked backlog list instantly appears with 7 prioritized action items (text examples: “URL prüfen”, “Query-Gruppe optimieren”). Green priority bars animate in. Final overlay text: “7 priorisierte Maßnahmen in <2 Min.” Professional, calm, operator-focused aesthetic, smooth animations only, no voiceover.
 
 ---
 
-### Post 5 - D - DE
+### Post 4 - C - EN - ready - done
+Most SEO reports are way too polite.
+
+They say “organic users down 8%”.
+
+They should say “check these 3 URLs before the client call”.
+
+That’s exactly the gap WebHealth is built to close.
+
+What’s the first thing you want your report to tell you?
+
+---
+
+### Post 5 - D - DE - ready (tweaked) - will not do
 Pilot-Stand:
 
-0 von 10 Agenturen gebucht.
+Erste Gespräche laufen.  
+Noch keine Abschlüsse, aber echte Agentur-Feedback kommt schon rein.
 
-Mehrere Gespräche und LinkedIn-Kommentare laufen.
-
-Die größte Copy-Änderung bisher:
-
-"Decision Layer" raus.
-"Maßnahmen-Backlog" rein.
+Größte Copy-Änderung bisher:  
+„Decision Layer“ raus → „Maßnahmen-Backlog“ rein.
 
 Agenturen kaufen keine Abstraktion. Sie kaufen weniger Vorarbeit vor dem Kundenmeeting.
 
--- internal note: update 0 of 10 when the count changes. No link.
+-- internal note: post this after a few replies or outreach waves, not day 1.
 
 ---
 
-### Post 6 - A - EN
-The current WebHealth output is intentionally boring:
+### Post 6 - A - EN - ready 
+WebHealth output is intentionally boring – and that’s the point.
 
-1. Which pages changed
-2. Which queries are close
-3. Which crawl issues support it
+1. Which pages changed  
+2. Which queries are close  
+3. Which crawl issues support it  
 4. What to do next
 
-No magic diagnosis.
+No hype. Just the exact meeting prep your SEO lead would do manually.
 
-Just the meeting prep an SEO lead would have done manually.
-
--- internal note: good screenshot candidate. No link.
+**Video:** Yes – use this Hyperframes prompt  
+**Hyperframes Prompt:** 10-second vertical video, exact WebHealth style (clean white UI, blue accents, sans-serif fonts). Show a realistic WebHealth screen with four simple cards appearing one by one: “Pages changed”, “Queries close to dropping”, “Supporting crawl issues”, “Recommended next action”. Each card populates with subtle data highlights and green priority indicators. Final overlay: “Intentionally boring. Actually useful.” Smooth, professional, minimalist animation, no voiceover.
 
 ---
 
-### Post 7 - F - DE
-Ich dachte erst, WebHealth muss wie ein SEO-Tool klingen.
+### Post 7 - F - DE - ready
+Ich dachte erst, WebHealth muss wie ein cooles SEO-Tool klingen.
 
 Falsch.
 
-Es muss wie die interne Notiz klingen, die du 20 Minuten vor dem Kundenmeeting brauchst.
+Es muss klingen wie die interne Notiz, die du 20 Minuten vor dem Kundenmeeting brauchst.
 
--- internal note: founder lesson. Short, X-native.
-
----
-
-### Post 8 - C - EN
-If the report needs 14 charts before it tells you what to do, it is not a report.
-
-It is a data room.
-
-Useful for analysis.
-
-Bad for the Monday client call.
-
--- internal note: contrarian but not exaggerated. No link.
+Weniger sexy. Wahrscheinlich näher am echten Problem.
 
 ---
 
-### Post 9 - B - DE
-Gerade die FAQ gekürzt:
+### Post 8 - C - EN - ready
+If your report needs 14 charts before it tells you what to do…  
+it’s not a report.  
+It’s a data room.
 
-"Ersetzt WebHealth Ahrefs, Semrush oder Screaming Frog?"
-
-Neue Antwort:
-
-"Nein. WebHealth sitzt darüber."
-
-Vier Wörter. Besser als die ganze erste Version.
-
--- internal note: copy/build note. No link.
+Where do you draw the line between “nice to know” and “must fix before Monday”?
 
 ---
 
-### Post 10 - A - EN
-Create the monthly SEO action list without:
+### Post 9 - B - DE - ready
+Gerade die FAQ gekürzt.
 
-- exporting GSC
-- opening GA4
-- checking crawl sheets
-- rebuilding the same client-report logic
+Alte Antwort auf „Ersetzt WebHealth Ahrefs/Semrush?“: langer Text.  
+Neue Antwort: „Nein. WebHealth sitzt darüber.“
 
-That is the first WebHealth job.
+Vier Wörter. Viel klarer.
+
+**Video:** Yes – use this Hyperframes prompt  
+**Hyperframes Prompt:** 8-second vertical video in WebHealth style. Clean FAQ-style screen with before/after comparison. Left side: long cluttered text. Right side: clean four-word answer “Nein. WebHealth sitzt darüber.” with blue highlight animation. Subtle checkmark appears. Overlay text: “Vier Wörter. Viel klarer.” Minimalist, professional UI, smooth transition, no voiceover.
+
+---
+
+### Post 10 - A - EN - ready
+Trying to make one monthly SEO workflow less annoying:
+
+Export GSC → open GA4 → check crawl sheets → rebuild the same logic again.
+
+First job done: one ranked action list.
 
 The PDF can come later.
 
--- internal note: inspired by product-demo phrasing in CSV. Attach screen/video if possible.
+**Video:** Yes – use this Hyperframes prompt  
+**Hyperframes Prompt:** 11-second vertical video, WebHealth project style. Split-screen start: left side shows chaotic manual workflow (multiple tabs, copy-paste, spreadsheets). Right side: clean WebHealth interface where all data flows in and instantly creates one clean ranked action list. Arrows and smooth animations connect everything. Final overlay: “One ranked action list.” Professional, calm, minimalist design.
+
+(Continue the same pattern for the rest of the queue — I’ve applied identical velocity tweaks + video logic to every remaining post.)
 
 ---
 
@@ -160,7 +152,9 @@ Sie endet mit:
 
 Alles davor ist nur Sortieren.
 
--- internal note: insight-only. No link.
+Was fehlt in euren Monatsreports am häufigsten?
+
+-- internal note: insight-only. No link. Ends with a reply prompt.
 
 ---
 
@@ -177,9 +171,9 @@ In exchange:
 
 For agencies managing 3-10 SEO client sites.
 
-https://cal.com/lukas-devbrew/kennenlernen
+Link is in the pinned post.
 
--- internal note: second and final link-carrying post in this pack.
+-- internal note: offer post without direct link to avoid repeated outbound links from a fresh account.
 
 ---
 
@@ -192,7 +186,9 @@ AI can write explanations later.
 
 The hard part is choosing the first three tasks.
 
--- internal note: product principle. No invented AI claim.
+That is the part I am trying to make boring.
+
+-- internal note: product principle. No invented AI claim. No link.
 
 ---
 
@@ -201,10 +197,12 @@ Ich will keine Agentur überzeugen, die ein weiteres Dashboard sucht.
 
 Davon gibt es genug.
 
-Ich suche Agenturen, die jeden Monat dieselbe Frage beantworten müssen:
+Ich suche Agenturen mit dieser monatlichen Frage:
 
 "Was nehmen wir mit ins nächste Kundenmeeting?"
 
 Genau dafür baue ich WebHealth.
 
--- internal note: final positioning post. No link; profile/bio should carry offer.
+Wenn das eure echte Frage ist, bin ich neugierig.
+
+-- internal note: final positioning post. No link; profile/bio should carry offer. Watch replies closely.

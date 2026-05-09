@@ -3,6 +3,11 @@ import {
   getAgencyRootRedirectPath,
   isAgencyLandingLanguage,
 } from "./app/(marketing)/agency-seo.logic";
+import {
+  buildHomepageLinkHeader,
+  getMarkdownRoutePath,
+  shouldServeMarkdown,
+} from "./app/(marketing)/agent-discovery.logic";
 
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -12,7 +17,12 @@ export function proxy(request: NextRequest) {
     redirectUrl.pathname = getAgencyRootRedirectPath(
       request.headers.get("accept-language"),
     );
-    return NextResponse.redirect(redirectUrl);
+    const response = NextResponse.redirect(redirectUrl);
+    const linkHeader = buildHomepageLinkHeader(pathname);
+    if (linkHeader) {
+      response.headers.set("Link", linkHeader);
+    }
+    return response;
   }
 
   const headers = new Headers(request.headers);
@@ -22,11 +32,34 @@ export function proxy(request: NextRequest) {
     isAgencyLandingLanguage(firstSegment) ? firstSegment : "de",
   );
 
-  return NextResponse.next({
+  if (shouldServeMarkdown(request.headers.get("accept"), pathname)) {
+    const markdownRoutePath = getMarkdownRoutePath(pathname);
+    if (markdownRoutePath) {
+      const rewriteUrl = request.nextUrl.clone();
+      rewriteUrl.pathname = "/agent-markdown";
+      rewriteUrl.search = markdownRoutePath.slice(markdownRoutePath.indexOf("?"));
+      headers.set("x-webhealth-markdown-path", pathname);
+
+      return NextResponse.rewrite(rewriteUrl, {
+        request: {
+          headers,
+        },
+      });
+    }
+  }
+
+  const response = NextResponse.next({
     request: {
       headers,
     },
   });
+
+  const linkHeader = buildHomepageLinkHeader(pathname);
+  if (linkHeader) {
+    response.headers.set("Link", linkHeader);
+  }
+
+  return response;
 }
 
 export const config = {
