@@ -13,37 +13,41 @@ test("landing page skip link only becomes visible on keyboard-style focus", () =
   assert.doesNotMatch(source, /focus:not-sr-only/);
 });
 
-test("agency landing source uses same-page anchors and no longer links homepage CTAs to demo or pricing routes", () => {
-  const source = readFileSync(
+test("agency landing source uses same-page anchors and a visible demo CTA", () => {
+  const homepageSource = readFileSync(
     new URL("./agency-homepage-client.tsx", import.meta.url),
     "utf8",
   );
+  const headerSource = readFileSync(
+    new URL("./agency-header.tsx", import.meta.url),
+    "utf8",
+  );
 
-  assert.match(source, /href=\{`#\$\{item\.id\}`\}/);
-  assert.match(source, /id="workspace"/);
-  assert.match(source, /id="whitelabel"/);
-  assert.match(source, /id="integrations"/);
-  assert.match(source, /id="pricing"/);
-  assert.match(source, /id="faq"/);
-  assert.doesNotMatch(source, /href="\/demo"/);
-  assert.doesNotMatch(source, /href="\/pricing"/);
+  assert.match(homepageSource, /samePageAnchors/);
+  assert.match(homepageSource, /id="workspace"/);
+  assert.match(homepageSource, /id="whitelabel"/);
+  assert.match(homepageSource, /id="integrations"/);
+  assert.match(homepageSource, /id="pricing"/);
+  assert.match(homepageSource, /id="faq"/);
+  assert.match(homepageSource, /href="\/demo"/);
+  assert.match(homepageSource, /id="demo"/);
+  assert.match(headerSource, /samePageAnchors \? `#\$\{id\}`/);
+  assert.doesNotMatch(homepageSource, /href="\/pricing"/);
 });
 
-test("agency landing source uses crawlable language links and visible fictional sample labels", () => {
+test("agency landing source uses crawlable language links and the workspace demo", () => {
   const source = readFileSync(
     new URL("./agency-homepage-client.tsx", import.meta.url),
     "utf8",
   );
-  const contentSource = readFileSync(
-    new URL("./agency-homepage.content.ts", import.meta.url),
+  const headerSource = readFileSync(
+    new URL("./agency-header.tsx", import.meta.url),
     "utf8",
   );
 
   assert.match(source, /initialLanguage/);
-  assert.match(source, /getAgencyHomePath/);
+  assert.match(headerSource, /getAgencyHomePath/);
   assert.match(source, /AgencyWorkspaceDemo/);
-  assert.match(contentSource, /Fiktive Beispieldaten, keine Kundenergebnisse/);
-  assert.match(contentSource, /Fictional sample data, not customer results/);
   assert.doesNotMatch(source, /setLanguage/);
 });
 
