@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sheet,
@@ -64,9 +64,9 @@ export function UserDetailSheet({ user, onClose }: UserDetailSheetProps) {
 
   // Keep local state in sync when the selected user changes
   const userId = user?.id;
-  const [lastUserId, setLastUserId] = useState<string | undefined>(userId);
-  if (userId !== lastUserId) {
-    setLastUserId(userId);
+  const lastUserIdRef = useRef<string | undefined>(userId);
+  if (userId !== lastUserIdRef.current) {
+    lastUserIdRef.current = userId;
     setTier(user?.tier ?? "free");
     setIsRestricted(user?.isRestricted ?? false);
     setRestrictionMessage(user?.restrictionMessage ?? "");

@@ -30,7 +30,7 @@ export function AppShell({
   isAdmin?: boolean;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [feedbackModalState, setFeedbackModalState] = useState(
+  const [feedbackModalState, setFeedbackModalState] = useState(() =>
     getFeedbackModalInitialState(),
   );
 

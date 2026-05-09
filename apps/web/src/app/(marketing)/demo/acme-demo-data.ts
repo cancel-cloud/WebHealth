@@ -1,0 +1,354 @@
+import type { LiveDashboardData } from "@webhealth/shared/lib/live-dashboard";
+
+export const ACME_DEMO_BRAND_COLORS = {
+  primary: "#2563eb",
+  accent: "#f97316",
+} as const;
+
+function trendPoint(
+  date: string,
+  clicks: number,
+  impressions: number,
+  sessions: number,
+  users: number,
+): LiveDashboardData["trend"][number] {
+  return {
+    date,
+    clicks,
+    impressions,
+    ctr: clicks / impressions,
+    position: Number((8.6 - clicks / 90).toFixed(1)),
+    sessions,
+    users,
+  };
+}
+
+function action(params: {
+  id: string;
+  rank: number;
+  area: "technical" | "content" | "onpage" | "analytics";
+  title: string;
+  whyNow: string;
+  targetKey: string;
+  actionFamily: string;
+  causeFamily: string;
+  remedyKey: string;
+  recommendationClass: "protect" | "lift" | "expand";
+  primaryMetric: "clicks" | "ctr" | "rankings" | "crawl_health" | "coverage";
+  owner: "seo" | "content" | "developer" | "decision_maker";
+  effort: "XS" | "S" | "M" | "L";
+  valueAtStake: LiveDashboardData["actions"][number]["valueAtStake"];
+  systemScore: number;
+  source?: "rules" | "ai" | "rules_ai";
+}): LiveDashboardData["actions"][number] {
+  return {
+    id: params.id,
+    rank: params.rank,
+    area: params.area,
+    title: params.title,
+    whyNow: params.whyNow,
+    detail: {
+      observed: [
+        "Search demand is present, but the landing page is not earning its expected share.",
+        "The affected page has enough impressions to validate the recommendation.",
+      ],
+      likelyCauses: [
+        "Title and section copy do not match the highest-intent query cluster.",
+        "Internal links do not reinforce the target page strongly enough.",
+      ],
+      recommendedActions: [
+        "Rewrite the title and first section around the target query.",
+        "Add one supporting internal link from a high-traffic page.",
+        "Check the page again after the next crawl and Search Console import.",
+      ],
+      whyThisHelps: [
+        "The fix aligns the page with search intent that already exists.",
+        "The change is narrow enough to measure within the next reporting window.",
+      ],
+      expectedOutcome: [
+        "Higher CTR for the target query cluster.",
+        "More stable rankings for the affected page.",
+      ],
+      evidence: {
+        deterministic: [
+          { label: "Affected target", value: params.targetKey },
+          { label: "System rank", value: `#${params.rank}` },
+          { label: "Estimated impact", value: `${Math.round(params.systemScore)} priority score` },
+        ],
+        inferred: ["Recommendation generated from GSC, GA4, and crawl signals."],
+      },
+    },
+    recommendationClass: params.recommendationClass,
+    primaryMetric: params.primaryMetric,
+    expectedDirection: params.recommendationClass === "protect" ? "preserve" : "improve",
+    successWindow: params.rank <= 2 ? "7-21d" : "14-42d",
+    successSignal: "Clicks, CTR, and affected-page movement improve in the next dashboard window.",
+    timeToValue: params.rank <= 2 ? "days" : "weeks",
+    firstVisibleWin: "The next dashboard refresh shows whether the page moved in the expected direction.",
+    valueAtStake: params.valueAtStake,
+    confidenceLabel: params.rank <= 3 ? "high" : "medium",
+    confidenceScore: params.rank <= 3 ? 0.84 : 0.68,
+    confidenceBasis: "Multiple data sources point to the same priority.",
+    owner: params.owner,
+    effort: params.effort,
+    priorityReason: "Ranked by impact, confidence, and freshness.",
+    targetPage: params.targetKey.startsWith("/") ? `https://acmebakery.example${params.targetKey}` : null,
+    supportingQueries: ["custom birthday cakes", "wedding cupcakes near me", "same day bakery pickup"],
+    affectedTargets: [
+      {
+        url: params.targetKey.startsWith("/") ? `https://acmebakery.example${params.targetKey}` : params.targetKey,
+        clicks: params.valueAtStake.nearWinOpportunity ?? params.valueAtStake.recoveryPotential ?? 120,
+        impressions: params.valueAtStake.trafficExposure ?? 2400,
+        position: 8.4,
+      },
+    ],
+    fingerprint: params.id,
+    actionFamily: params.actionFamily,
+    causeFamily: params.causeFamily,
+    remedyKey: params.remedyKey,
+    targetType: params.targetKey.startsWith("/") ? "page" : "query",
+    targetKey: params.targetKey,
+    state: params.rank === 3 ? "in_progress" : "open",
+    freshnessEligibility: "eligible",
+    freshnessNote: null,
+    systemRank: params.rank,
+    systemScore: params.systemScore,
+    priorityOverride: "none",
+    assigneeUserId: null,
+    assigneeEmail: params.rank === 3 ? "seo@acmebakery.example" : null,
+    snoozedUntil: null,
+    source: params.source ?? "rules_ai",
+  } as LiveDashboardData["actions"][number];
+}
+
+const actions = [
+  action({
+    id: "acme-action-1",
+    rank: 1,
+    area: "content",
+    title: "Recover the custom cake page from query drift",
+    whyNow: "The page still earns impressions for high-intent cake searches, but clicks fell while competitors gained richer titles.",
+    targetKey: "/custom-cakes",
+    actionFamily: "content_refresh",
+    causeFamily: "content_decay",
+    remedyKey: "rewrite_intent_match",
+    recommendationClass: "protect",
+    primaryMetric: "clicks",
+    owner: "content",
+    effort: "M",
+    valueAtStake: { recoveryPotential: 420, clicksAtRisk: 180, trafficExposure: 9800 },
+    systemScore: 94,
+  }),
+  action({
+    id: "acme-action-2",
+    rank: 2,
+    area: "onpage",
+    title: "Lift CTR for wedding cupcake searches",
+    whyNow: "Acme ranks on page one for wedding cupcake queries, but the current snippet underperforms the site benchmark.",
+    targetKey: "wedding cupcakes near me",
+    actionFamily: "snippet_lift",
+    causeFamily: "ctr_gap",
+    remedyKey: "improve_title_meta",
+    recommendationClass: "lift",
+    primaryMetric: "ctr",
+    owner: "seo",
+    effort: "S",
+    valueAtStake: { nearWinOpportunity: 260, trafficExposure: 7200 },
+    systemScore: 88,
+  }),
+  action({
+    id: "acme-action-3",
+    rank: 3,
+    area: "technical",
+    title: "Fix slow mobile LCP on the bakery menu",
+    whyNow: "The menu page drives qualified mobile traffic, but the latest crawl flags oversized hero imagery.",
+    targetKey: "/menu",
+    actionFamily: "performance_fix",
+    causeFamily: "core_web_vitals",
+    remedyKey: "compress_hero_image",
+    recommendationClass: "protect",
+    primaryMetric: "crawl_health",
+    owner: "developer",
+    effort: "S",
+    valueAtStake: { clicksAtRisk: 140, trafficExposure: 5100 },
+    systemScore: 81,
+  }),
+  action({
+    id: "acme-action-4",
+    rank: 4,
+    area: "content",
+    title: "Create a same-day pickup landing section",
+    whyNow: "Near-win pickup queries have enough impressions to justify a targeted section before weekend demand spikes.",
+    targetKey: "same day bakery pickup",
+    actionFamily: "near_win_expansion",
+    causeFamily: "near_win",
+    remedyKey: "add_pickup_section",
+    recommendationClass: "expand",
+    primaryMetric: "rankings",
+    owner: "content",
+    effort: "M",
+    valueAtStake: { nearWinOpportunity: 190, trafficExposure: 4300 },
+    systemScore: 73,
+    source: "ai",
+  }),
+  action({
+    id: "acme-action-5",
+    rank: 5,
+    area: "analytics",
+    title: "Check checkout tracking for cake deposits",
+    whyNow: "GA4 sessions rose while checkout-start events stayed flat, which can hide whether SEO improvements convert.",
+    targetKey: "/checkout",
+    actionFamily: "analytics_quality",
+    causeFamily: "ga4_tracking_gap",
+    remedyKey: "verify_checkout_event",
+    recommendationClass: "protect",
+    primaryMetric: "coverage",
+    owner: "developer",
+    effort: "S",
+    valueAtStake: { trafficExposure: 3800 },
+    systemScore: 66,
+  }),
+];
+
+export const ACME_DEMO_DASHBOARD: LiveDashboardData = {
+  property: {
+    id: "gsc_sc-domain:acmebakery.example",
+    name: "Acme Bakery",
+    url: "sc-domain:acmebakery.example",
+    ga4PropertyId: "ga4_acme_bakery_demo",
+  },
+  analysisWindow: {
+    preset: "last_28d",
+    compareMode: "previous_period",
+    startDate: "2026-04-11",
+    endDate: "2026-05-08",
+    requestedEndDate: "2026-05-08",
+    compareStartDate: "2026-03-14",
+    compareEndDate: "2026-04-10",
+  },
+  freshness: {
+    state: "complete",
+    safeLatestDate: "2026-05-08",
+    sources: [
+      {
+        source: "gsc",
+        state: "complete",
+        safeLatestDate: "2026-05-08",
+        lastAvailableDate: "2026-05-08",
+        note: "Search Console imported through May 8.",
+      },
+      {
+        source: "ga4",
+        state: "complete",
+        safeLatestDate: "2026-05-08",
+        lastAvailableDate: "2026-05-08",
+        note: "GA4 traffic and user metrics are current.",
+      },
+      {
+        source: "crawl",
+        state: "complete",
+        safeLatestDate: "2026-05-08",
+        lastAvailableDate: "2026-05-08",
+        note: "Technical crawl captured 58 pages.",
+        capturedAt: "2026-05-08T08:40:00.000Z",
+        ageInDays: 1,
+      },
+    ],
+  },
+  payloadVersion: "acme-demo-2026-05-08",
+  propertyUpdateState: null,
+  operatingContext: {
+    status: "slipping",
+    summary: "Acme is gaining branded visibility, but key commercial pages need content and performance work before the next client update.",
+    topRisk: "Custom cake traffic is slipping on mobile.",
+    topOpportunity: "Wedding cupcake and pickup searches are close enough to lift with focused page updates.",
+  },
+  overview: {
+    clicks: 8340,
+    impressions: 221400,
+    ctr: 0.0377,
+    position: 7.8,
+    sessions: 14720,
+    users: 10340,
+    compare: {
+      clicks: 7810,
+      impressions: 205600,
+      ctr: 0.038,
+      position: 8.4,
+      sessions: 13880,
+      users: 9720,
+    },
+  },
+  trend: [
+    trendPoint("2026-04-11", 246, 7100, 438, 309),
+    trendPoint("2026-04-12", 258, 7350, 451, 316),
+    trendPoint("2026-04-13", 271, 7480, 466, 329),
+    trendPoint("2026-04-14", 269, 7520, 472, 334),
+    trendPoint("2026-04-15", 284, 7710, 489, 343),
+    trendPoint("2026-04-16", 292, 7930, 506, 356),
+    trendPoint("2026-04-17", 287, 7860, 497, 349),
+    trendPoint("2026-04-18", 301, 8040, 525, 368),
+    trendPoint("2026-04-19", 318, 8260, 552, 389),
+    trendPoint("2026-04-20", 305, 8110, 536, 377),
+    trendPoint("2026-04-21", 311, 8180, 541, 381),
+    trendPoint("2026-04-22", 323, 8360, 558, 394),
+    trendPoint("2026-04-23", 337, 8540, 579, 406),
+    trendPoint("2026-04-24", 341, 8620, 588, 413),
+    trendPoint("2026-04-25", 329, 8490, 571, 402),
+    trendPoint("2026-04-26", 336, 8570, 586, 409),
+    trendPoint("2026-04-27", 348, 8740, 604, 422),
+    trendPoint("2026-04-28", 356, 8910, 618, 431),
+    trendPoint("2026-04-29", 361, 9020, 629, 439),
+    trendPoint("2026-04-30", 355, 8940, 620, 433),
+    trendPoint("2026-05-01", 372, 9280, 654, 456),
+    trendPoint("2026-05-02", 381, 9410, 671, 469),
+    trendPoint("2026-05-03", 374, 9360, 663, 462),
+    trendPoint("2026-05-04", 389, 9660, 690, 481),
+    trendPoint("2026-05-05", 397, 9810, 704, 492),
+    trendPoint("2026-05-06", 402, 9940, 718, 501),
+    trendPoint("2026-05-07", 411, 10080, 733, 512),
+    trendPoint("2026-05-08", 419, 10240, 751, 526),
+  ],
+  evidence: {
+    queryOpportunities: [
+      { query: "custom birthday cakes", clicks: 610, impressions: 12900, ctr: 0.0473, position: 5.2, expectedCtr: 0.061, lostClicksEstimate: 177, opportunityScore: 91, recommendedAction: "Refresh the custom cakes page title and intro." },
+      { query: "wedding cupcakes near me", clicks: 184, impressions: 7200, ctr: 0.0256, position: 7.4, expectedCtr: 0.043, lostClicksEstimate: 126, opportunityScore: 88, recommendedAction: "Rewrite title and meta copy around wedding pickup intent." },
+      { query: "same day bakery pickup", clicks: 142, impressions: 4300, ctr: 0.033, position: 8.1, expectedCtr: 0.051, lostClicksEstimate: 77, opportunityScore: 74, recommendedAction: "Add pickup details to the homepage and menu page." },
+      { query: "gluten free cupcakes", clicks: 96, impressions: 3800, ctr: 0.0253, position: 9.2, expectedCtr: 0.041, lostClicksEstimate: 60, opportunityScore: 68, recommendedAction: "Add dietary filter copy and internal links." },
+      { query: "bakery catering office", clicks: 88, impressions: 2900, ctr: 0.0303, position: 10.6, expectedCtr: 0.039, lostClicksEstimate: 25, opportunityScore: 56, recommendedAction: "Create a catering FAQ section." },
+    ],
+    pageWinnersLosers: [
+      { page: "/custom-cakes", clicksCurrent: 1480, clicksCompare: 1660, clicksDelta: -180, impressionsCurrent: 41200, impressionsCompare: 39800, impressionsDelta: 1400, status: "loser" },
+      { page: "/wedding-cupcakes", clicksCurrent: 740, clicksCompare: 610, clicksDelta: 130, impressionsCurrent: 23100, impressionsCompare: 19600, impressionsDelta: 3500, status: "winner" },
+      { page: "/menu", clicksCurrent: 1220, clicksCompare: 1185, clicksDelta: 35, impressionsCurrent: 33500, impressionsCompare: 32700, impressionsDelta: 800, status: "flat" },
+      { page: "/same-day-pickup", clicksCurrent: 418, clicksCompare: 322, clicksDelta: 96, impressionsCurrent: 9200, impressionsCompare: 7600, impressionsDelta: 1600, status: "winner" },
+      { page: "/catering", clicksCurrent: 318, clicksCompare: 394, clicksDelta: -76, impressionsCurrent: 8100, impressionsCompare: 8500, impressionsDelta: -400, status: "loser" },
+    ],
+    nearWins: [
+      { keyword: "same day bakery pickup", position: 8.1, impressions: 4300, clicks: 142, ctr: 0.033, targetLandingPage: "/same-day-pickup", action: "Add pickup availability copy and internal links.", estimatedImpact: 190 },
+      { keyword: "wedding cupcake boxes", position: 9.4, impressions: 3100, clicks: 78, ctr: 0.025, targetLandingPage: "/wedding-cupcakes", action: "Clarify box sizes and local pickup in the snippet.", estimatedImpact: 132 },
+      { keyword: "custom cake delivery", position: 10.2, impressions: 2700, clicks: 54, ctr: 0.02, targetLandingPage: "/custom-cakes", action: "Add delivery constraints and service-area copy.", estimatedImpact: 104 },
+    ],
+    ctrGaps: [
+      { query: "wedding cupcakes near me", impressions: 7200, actualCtr: 0.0256, benchmarkCtr: 0.043, positionBucket: 7, estimatedLostClicks: 126, confidence: 0.81, actionDetail: null },
+      { query: "gluten free cupcakes", impressions: 3800, actualCtr: 0.0253, benchmarkCtr: 0.041, positionBucket: 9, estimatedLostClicks: 60, confidence: 0.7, actionDetail: null },
+      { query: "bakery catering office", impressions: 2900, actualCtr: 0.0303, benchmarkCtr: 0.039, positionBucket: 10, estimatedLostClicks: 25, confidence: 0.62, actionDetail: null },
+    ],
+    contentDecay: [
+      { page: "/custom-cakes", peakClicks: 1840, recentClicks: 1480, decayRatio: 0.195, peakDate: "2026-03-28", estimatedLostClicks: 360, severity: "HOCH", actionDetail: null },
+      { page: "/catering", peakClicks: 460, recentClicks: 318, decayRatio: 0.309, peakDate: "2026-03-21", estimatedLostClicks: 142, severity: "MITTEL", actionDetail: null },
+    ],
+    recentChanges: [
+      { url: "https://acmebakery.example/same-day-pickup", lastChangedAt: "2026-05-06T10:15:00.000Z" },
+      { url: "https://acmebakery.example/menu", lastChangedAt: "2026-05-03T14:20:00.000Z" },
+      { url: "https://acmebakery.example/wedding-cupcakes", lastChangedAt: "2026-04-28T09:30:00.000Z" },
+    ],
+  },
+  degradedStates: [],
+  topAction: actions[0] ?? null,
+  actions,
+  recentSnapshots: [
+    { id: "acme-snapshot-may", createdAt: "2026-05-08T09:00:00.000Z", freshnessState: "complete", startDate: "2026-04-11", endDate: "2026-05-08", compareMode: "previous_period" },
+    { id: "acme-snapshot-april", createdAt: "2026-04-10T09:00:00.000Z", freshnessState: "complete", startDate: "2026-03-14", endDate: "2026-04-10", compareMode: "previous_period" },
+  ],
+};

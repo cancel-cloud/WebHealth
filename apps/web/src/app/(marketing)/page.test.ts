@@ -46,3 +46,12 @@ test("agency landing source uses crawlable language links and visible fictional 
   assert.match(contentSource, /Fictional sample data, not customer results/);
   assert.doesNotMatch(source, /setLanguage/);
 });
+
+test("public navigation exposes the demo route", () => {
+  const source = readFileSync(
+    new URL("../../components/navbar.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /label: "Demo", href: "\/demo"/);
+});
