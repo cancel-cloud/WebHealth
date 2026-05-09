@@ -135,7 +135,7 @@ Use the HTTPS localcan origin, not `http://localhost:3000`.
 
 Local browser/auth note:
 
-- `https://webhealth-xy.localcan.dev`
+- `https://webaudit-25.localcan.dev`
 
 ### Browser smoke test
 
@@ -147,7 +147,7 @@ NEXT_PUBLIC_SENTRY_DSN=...
 SENTRY_ENVIRONMENT=development
 ```
 
-2. Start the app and open `https://webhealth-xy.localcan.dev`.
+2. Start the app and open `https://webaudit-25.localcan.dev`.
 3. Trigger a deliberate client-side error.
 4. Confirm the issue appears in GlitchTip.
 
