@@ -49,6 +49,9 @@ import {
   CalendarCheck2,
 } from "lucide-react";
 
+const NICK_LAUNCHES_BADGE_HREF =
+  "https://nicklaunches.com/products/webhealth-seo-backlog/?utm_source=webhealth.devbrew.dev&utm_medium=badge&utm_campaign=featured";
+
 function AvailabilityBadge({
   availability,
   language,
@@ -1188,6 +1191,29 @@ export function AgencyHomepageClient({
               </a>
             </nav>
           </div>
+          <a
+            href={NICK_LAUNCHES_BADGE_HREF}
+            target="_blank"
+            rel="noopener"
+            className="mx-auto mt-5 block w-fit"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://nicklaunches.com/badges/featured.svg"
+              alt="WebHealth SEO Backlog on Nick Launches"
+              width="244"
+              height="56"
+              className="block dark:hidden"
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://nicklaunches.com/badges/featured-dark.svg"
+              alt="WebHealth SEO Backlog on Nick Launches"
+              width="244"
+              height="56"
+              className="hidden dark:block"
+            />
+          </a>
         </footer>
       </div>
     </>
