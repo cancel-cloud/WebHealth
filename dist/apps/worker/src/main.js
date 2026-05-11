@@ -78,6 +78,116 @@ function loadWorkerEnv({
   }
 }
 
+// apps/worker/src/health-server.ts
+import { createServer } from "node:http";
+
+// apps/worker/src/runtime-state.ts
+function createWorkerRuntimeState() {
+  return {
+    phase: "boot",
+    databaseReadyAtMs: null,
+    loopStartedAtMs: null,
+    lastLoopTickAtMs: null,
+    shuttingDownAtMs: null,
+    fatalErrorAtMs: null,
+    fatalErrorMessage: null,
+    currentJobId: null,
+    currentJobStartedAtMs: null
+  };
+}
+function markWorkerPhase(state, phase, nowMs = Date.now()) {
+  state.phase = phase;
+  if (phase === "shutdown" && state.shuttingDownAtMs == null) {
+    state.shuttingDownAtMs = nowMs;
+  }
+}
+function markDatabaseReady(state, nowMs = Date.now()) {
+  state.databaseReadyAtMs = nowMs;
+}
+function markLoopTick(state, nowMs = Date.now()) {
+  if (state.loopStartedAtMs == null) {
+    state.loopStartedAtMs = nowMs;
+  }
+  state.lastLoopTickAtMs = nowMs;
+}
+function markShutdownRequested(state, nowMs = Date.now()) {
+  state.shuttingDownAtMs = nowMs;
+  state.phase = "shutdown";
+}
+function markFatalError(state, error, nowMs = Date.now()) {
+  state.fatalErrorAtMs = nowMs;
+  state.fatalErrorMessage = error instanceof Error ? error.message : String(error);
+}
+function buildWorkerReadinessSnapshot(state, input) {
+  const nowMs = input?.nowMs ?? Date.now();
+  const staleAfterMs = input?.staleAfterMs ?? 6e4;
+  let reason = null;
+  if (state.fatalErrorAtMs != null) {
+    reason = "fatal_error";
+  } else if (state.shuttingDownAtMs != null) {
+    reason = "shutting_down";
+  } else if (state.lastLoopTickAtMs == null) {
+    reason = "worker_loop_not_started";
+  } else if (nowMs - state.lastLoopTickAtMs > staleAfterMs) {
+    reason = "worker_loop_stale";
+  }
+  return {
+    ok: reason == null,
+    phase: state.phase,
+    reason,
+    databaseReadyAtMs: state.databaseReadyAtMs,
+    lastLoopTickAtMs: state.lastLoopTickAtMs,
+    currentJobId: state.currentJobId,
+    currentJobStartedAtMs: state.currentJobStartedAtMs
+  };
+}
+
+// apps/worker/src/health-server.ts
+function startWorkerHealthServer(input) {
+  const port = input.port ?? parseInt(process.env.WORKER_HEALTH_PORT ?? "9100", 10);
+  const host = input.host ?? process.env.WORKER_HEALTH_HOST ?? "0.0.0.0";
+  const staleAfterMs = input.staleAfterMs ?? parseInt(process.env.WORKER_HEALTH_STALE_AFTER_MS ?? "60000", 10);
+  const server = createServer((request, response) => {
+    if (request.url === "/health") {
+      response.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
+      response.end("OK\n");
+      return;
+    }
+    if (request.url === "/ready") {
+      const snapshot = buildWorkerReadinessSnapshot(input.state, { staleAfterMs });
+      if (snapshot.ok) {
+        response.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
+        response.end("OK\n");
+        return;
+      }
+      response.writeHead(503, { "content-type": "application/json; charset=utf-8" });
+      response.end(`${JSON.stringify(snapshot)}
+`);
+      return;
+    }
+    response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+    response.end("Not found\n");
+  });
+  server.listen(port, host);
+  server.on("listening", () => {
+    const address = server.address();
+    const resolvedPort = typeof address === "object" && address ? address.port : port;
+    console.log(`[worker][INFO][HEALTH] listening host=${host} port=${resolvedPort}`);
+  });
+  return {
+    port,
+    close: () => closeServer(server)
+  };
+}
+function closeServer(server) {
+  return new Promise((resolve, reject) => {
+    server.close((error) => {
+      if (error) reject(error);
+      else resolve();
+    });
+  });
+}
+
 // apps/worker/src/monitoring.ts
 import * as Sentry from "@sentry/node";
 function recordPosthogWorkerError(event, recorder) {
@@ -129,38 +239,6 @@ async function reportWorkerFatalError(error, context, env = process.env, product
   }
 }
 
-// apps/worker/src/runtime-state.ts
-function createWorkerRuntimeState() {
-  return {
-    phase: "boot",
-    databaseReadyAtMs: null,
-    loopStartedAtMs: null,
-    lastLoopTickAtMs: null,
-    shuttingDownAtMs: null,
-    fatalErrorAtMs: null,
-    fatalErrorMessage: null,
-    currentJobId: null,
-    currentJobStartedAtMs: null
-  };
-}
-function markWorkerPhase(state, phase, nowMs = Date.now()) {
-  state.phase = phase;
-  if (phase === "shutdown" && state.shuttingDownAtMs == null) {
-    state.shuttingDownAtMs = nowMs;
-  }
-}
-function markDatabaseReady(state, nowMs = Date.now()) {
-  state.databaseReadyAtMs = nowMs;
-}
-function markShutdownRequested(state, nowMs = Date.now()) {
-  state.shuttingDownAtMs = nowMs;
-  state.phase = "shutdown";
-}
-function markFatalError(state, error, nowMs = Date.now()) {
-  state.fatalErrorAtMs = nowMs;
-  state.fatalErrorMessage = error instanceof Error ? error.message : String(error);
-}
-
 // apps/worker/src/runtime-watchdog.ts
 function shouldForceExitForStuckJob(input) {
   if (input.currentJobStartedAtMs == null) return false;
@@ -178,6 +256,8 @@ async function main() {
   let metricsBackfillWorkerControls = null;
   let activePropertyAutomationSchedulerControls = null;
   let closeDb = null;
+  let healthServer = null;
+  let healthHeartbeatTimer = null;
   let watchdogTimer = null;
   let shutdownPromise = null;
   const once = process.argv.includes("--once");
@@ -195,11 +275,16 @@ async function main() {
         clearInterval(watchdogTimer);
         watchdogTimer = null;
       }
+      if (healthHeartbeatTimer) {
+        clearInterval(healthHeartbeatTimer);
+        healthHeartbeatTimer = null;
+      }
       propertyRefreshWorkerControls?.stop();
       automatedPropertyRefreshWorkerControls?.stop();
       metricsBackfillWorkerControls?.stop();
       activePropertyAutomationSchedulerControls?.stop();
       await Promise.allSettled([
+        healthServer?.close() ?? Promise.resolve(),
         closeDb?.() ?? Promise.resolve()
       ]);
       process.exit(exitCode);
@@ -212,6 +297,7 @@ async function main() {
   process.once("SIGINT", () => {
     void requestShutdown(0, "SIGINT");
   });
+  healthServer = startWorkerHealthServer({ state: runtimeState });
   workerPhase = "imports";
   markWorkerPhase(runtimeState, "imports");
   const sharedDbModule = await import("./chunks/db-EZLJMW4C.js");
@@ -251,6 +337,10 @@ async function main() {
     intervalMs: parseInt(process.env.AUTOMATED_PROPERTY_REFRESH_WORKER_POLL_MS ?? "6000", 10),
     maxPollMs: parseInt(process.env.AUTOMATED_PROPERTY_REFRESH_WORKER_MAX_POLL_MS ?? "45000", 10)
   });
+  markLoopTick(runtimeState);
+  healthHeartbeatTimer = setInterval(() => {
+    markLoopTick(runtimeState);
+  }, 1e4);
   watchdogTimer = setInterval(() => {
     if (shouldForceExitForStuckJob({
       currentJobStartedAtMs: runtimeState.currentJobStartedAtMs,
