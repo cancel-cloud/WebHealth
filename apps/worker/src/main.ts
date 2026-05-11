@@ -1,9 +1,11 @@
 import { loadWorkerEnv } from "./load-env";
+import { startWorkerHealthServer, type WorkerHealthServer } from "./health-server";
 import { initWorkerMonitoring, reportWorkerFatalError } from "./monitoring";
 import {
   createWorkerRuntimeState,
   markDatabaseReady,
   markFatalError,
+  markLoopTick,
   markShutdownRequested,
   markWorkerPhase,
 } from "./runtime-state";
@@ -37,6 +39,8 @@ async function main() {
       >
     | null = null;
   let closeDb: (() => Promise<void>) | null = null;
+  let healthServer: WorkerHealthServer | null = null;
+  let healthHeartbeatTimer: NodeJS.Timeout | null = null;
   let watchdogTimer: NodeJS.Timeout | null = null;
   let shutdownPromise: Promise<never> | null = null;
   const once = process.argv.includes("--once");
@@ -58,11 +62,16 @@ async function main() {
         clearInterval(watchdogTimer);
         watchdogTimer = null;
       }
+      if (healthHeartbeatTimer) {
+        clearInterval(healthHeartbeatTimer);
+        healthHeartbeatTimer = null;
+      }
       propertyRefreshWorkerControls?.stop();
       automatedPropertyRefreshWorkerControls?.stop();
       metricsBackfillWorkerControls?.stop();
       activePropertyAutomationSchedulerControls?.stop();
       await Promise.allSettled([
+        healthServer?.close() ?? Promise.resolve(),
         closeDb?.() ?? Promise.resolve(),
       ]);
       process.exit(exitCode);
@@ -77,6 +86,8 @@ async function main() {
   process.once("SIGINT", () => {
     void requestShutdown(0, "SIGINT");
   });
+
+  healthServer = startWorkerHealthServer({ state: runtimeState });
 
   workerPhase = "imports";
   markWorkerPhase(runtimeState, "imports");
@@ -126,6 +137,10 @@ async function main() {
     intervalMs: parseInt(process.env.AUTOMATED_PROPERTY_REFRESH_WORKER_POLL_MS ?? "6000", 10),
     maxPollMs: parseInt(process.env.AUTOMATED_PROPERTY_REFRESH_WORKER_MAX_POLL_MS ?? "45000", 10),
   });
+  markLoopTick(runtimeState);
+  healthHeartbeatTimer = setInterval(() => {
+    markLoopTick(runtimeState);
+  }, 10_000);
 
   watchdogTimer = setInterval(() => {
     if (
