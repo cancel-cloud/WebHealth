@@ -84,8 +84,8 @@ export const PUBLIC_PRICING_PLANS: PublicPricingPlan[] = [
       { en: "1 property (your own site)", de: "1 Property (deine Website)" },
       { en: "Snapshot exports", de: "Snapshot-Exporte" },
       { en: "Ranked fix list", de: "Priorisierte Fix-Liste" },
-      { en: "White-label off", de: "White-Label aus" },
-      { en: "Community support", de: "Community-Support" },
+      { en: "Manual refreshes", de: "Manuelle Aktualisierungen" },
+      { en: "Email support", de: "E-Mail-Support" },
     ],
   },
   {

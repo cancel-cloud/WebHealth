@@ -10,13 +10,14 @@ import {
   getLocalizedValue,
   type AgencyLandingLanguage,
 } from "./agency-homepage.logic";
-import { getAgencyHomePath } from "./agency-seo.logic";
+import {
+  getAgencyDemoPath,
+  getAgencyHomePath,
+  getAgencyPricingPath,
+} from "./agency-seo.logic";
 
 const NAV_ITEMS = [
-  { id: "workspace", key: "workspace" },
   { id: "demo", key: "demo" },
-  { id: "whitelabel", key: "whiteLabel" },
-  { id: "integrations", key: "integrations" },
   { id: "pricing", key: "pricing" },
   { id: "faq", key: "faq" },
 ] as const;
@@ -30,16 +31,18 @@ function getSectionHref({
   language: AgencyLandingLanguage;
   samePageAnchors: boolean;
 }) {
-  if (id === "demo") return "/demo";
+  if (id === "demo") return getAgencyDemoPath(language);
   return samePageAnchors ? `#${id}` : `${getAgencyHomePath(language)}#${id}`;
 }
 
 export function AgencyHeader({
   language,
   samePageAnchors = false,
+  languageSwitcherPage = "home",
 }: {
   language: AgencyLandingLanguage;
   samePageAnchors?: boolean;
+  languageSwitcherPage?: "home" | "pricing" | "demo";
 }) {
   const { data: session, isPending } = authClient.useSession();
 
@@ -100,7 +103,13 @@ export function AgencyHeader({
             {(["en", "de"] as const).map((nextLanguage) => (
               <Link
                 key={nextLanguage}
-                href={getAgencyHomePath(nextLanguage)}
+                href={
+                  languageSwitcherPage === "pricing"
+                    ? getAgencyPricingPath(nextLanguage)
+                    : languageSwitcherPage === "demo"
+                      ? getAgencyDemoPath(nextLanguage)
+                    : getAgencyHomePath(nextLanguage)
+                }
                 hrefLang={nextLanguage}
                 className={`rounded-full px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-widest transition-colors sm:px-3 ${
                   nextLanguage === language

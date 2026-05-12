@@ -19,6 +19,14 @@ test("pricing plans expose the current euro prices and snapshot features", () =>
   assert.ok(PRICING_PLANS.studio.features.includes("Priority refreshes"));
 });
 
+test("public solo pricing avoids negative feature and support framing", () => {
+  const soloPlan = PUBLIC_PRICING_PLANS.find((plan) => plan.tier === "solo");
+  const englishFeatures = soloPlan?.features.map((feature) => feature.en) ?? [];
+
+  assert.ok(englishFeatures.includes("Email support"));
+  assert.doesNotMatch(englishFeatures.join("\n"), /White-label off|Community support/);
+});
+
 test("formatEuroDisplay appends euro without conversion", () => {
   assert.equal(formatEuroDisplay("19"), "19€");
   assert.equal(formatEuroDisplay(38), "38€");
