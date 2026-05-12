@@ -56,14 +56,291 @@ type PropertyDashboardClientProps = {
     accent: string;
   };
   mode?: "authenticated" | "publicDemo";
+  language?: DashboardLanguage;
 };
 
+type DashboardLanguage = "en" | "de";
 type ActionRow = LiveDashboardData["actions"][number];
 type SnapshotSummary = LiveDashboardData["recentSnapshots"][number];
 type EvidenceTab = "queries" | "pages" | "opportunities" | "changes";
 type FreshnessSource = LiveDashboardData["freshness"]["sources"][number];
 
 const TERMINAL_REFRESH_TOAST_DURATION_MS = 5000;
+
+const DASHBOARD_COPY = {
+  en: {
+    properties: "Properties",
+    verified: "Verified",
+    data: "Data",
+    single: "Single",
+    compare: "Compare",
+    export: "Export",
+    shareWithClient: "Share with client",
+    copyShareLink: "Copy share link",
+    downloadSnapshot: "Download snapshot",
+    exportJson: "Export JSON",
+    demoOnly: "Demo only",
+    rerunning: "Rerunning...",
+    rankedFixList: "Ranked fix list",
+    rankedFixListLead: "AI-prioritised by impact across GSC, GA4, and the latest crawl",
+    rerun: "Re-run",
+    whyThisMatters: "Why this matters",
+    affectedPages: "Affected pages",
+    affectedTarget: "Affected target",
+    noPageMetrics: "No page metrics",
+    clicksShort: "clicks",
+    impressionsShort: "impr",
+    positionShort: "pos",
+    openDetails: "Open details",
+    copyAsTask: "Copy as task",
+    assignToMe: "Assign to me",
+    markDone: "Mark done",
+    estimatedLift: "Estimated lift",
+    clicksPerMonth: "Clicks / mo",
+    source: "Source",
+    noRankedActions: "No ranked actions match this filter.",
+    trafficTrend: "Traffic trend",
+    noTrendData: "No trend data is available for this window.",
+    topPages: "Top pages",
+    topOpportunities: "Top opportunities",
+    recentChanges: "Recent changes",
+    topQueries: "Top queries",
+    pagesLead: "GSC clicks and traffic movement, sorted by clicks.",
+    opportunitiesLead: "Ranked supporting signals behind the queue.",
+    changesLead: "Tracked page changes in this window.",
+    queriesLead: "Sorted by clicks.",
+    search: "Search...",
+    queries: "Queries",
+    pages: "Pages",
+    opportunities: "Opportunities",
+    changes: "Changes",
+    query: "Query",
+    clicks: "Clicks",
+    impressions: "Impressions",
+    ctr: "CTR",
+    position: "Position",
+    page: "Page",
+    currentClicks: "Current clicks",
+    compareClicks: "Compare clicks",
+    delta: "Delta",
+    status: "Status",
+    type: "Type",
+    target: "Target",
+    signal: "Signal",
+    impact: "Impact",
+    changedPage: "Changed page",
+    lastChanged: "Last changed",
+    noQueryEvidence: "No query evidence matches this search.",
+    noPageEvidence: "No page evidence matches this search.",
+    noOpportunityEvidence: "No opportunity evidence matches this search.",
+    noTrackedChanges: "No tracked page changes match this search.",
+    recommendedActions: "Recommended actions",
+    expectedOutcome: "Expected outcome",
+    evidence: "Evidence",
+    firstVisibleWin: "First visible win",
+    confidence: "Confidence",
+    system: "System",
+    override: "Override",
+    snapshotTrailEntry: "Snapshot trail entry",
+    snapshotTrailDescription: "Review the frozen window, freshness state, and top-line metrics captured from the live dashboard.",
+    loadingSnapshotDetails: "Loading snapshot details...",
+    capturedWindow: "Captured window",
+    comparison: "Comparison",
+    capturedAt: "Captured at",
+    capturedActions: "Captured actions",
+    freshnessAtCapture: "Freshness at capture time",
+    noSnapshotDetails: "Snapshot details are not available for this item.",
+    freshnessDialogTitle: "Recent data may still be incomplete",
+    freshnessDialogDescription: "The selected end date runs past the latest safe coverage for at least one source. Keep the selected dates if you want the freshest available view, or shift the window back to the latest safe date.",
+    completeThrough: "is complete through",
+    shiftSafeWindow: "Shift to safe window",
+    useLatestData: "Use latest available data",
+    noComparison: "No comparison",
+    compareUnavailable: "Compare data unavailable",
+    previousPeriod: "Previous period",
+    samePeriodLastYear: "Same period last year",
+    last7Days: "Last 7 days",
+    last28Days: "Last 28 days",
+    last90Days: "Last 90 days",
+    customRange: "Custom range",
+    sessions: "Sessions",
+    users: "Users",
+    avgPosition: "Avg. position",
+    stale: "Stale",
+    noData: "No data",
+    partial: "Partial",
+    severity: "Severity",
+    stateOpen: "Open",
+    stateInProgress: "In progress",
+    stateDone: "Done",
+    stateIgnored: "Ignored",
+    stateSnoozed: "Snoozed",
+    filterAll: "All",
+    filterCritical: "Critical / high",
+    filterIgnoredSnoozed: "Ignored / snoozed",
+    filterPerformance: "Performance",
+    filterPerf: "Perf",
+    sortByClicks: "Sort by clicks",
+    sortByImpressions: "Sort by impressions",
+    sortByCtr: "Sort by CTR",
+    sortByPosition: "Sort by position",
+    sortByQuery: "Sort by query",
+    sortByChange: "Sort by change",
+    sortByCurrentClicks: "Sort by current clicks",
+    sortByStatus: "Sort by status",
+    sortByPage: "Sort by page",
+    sortByImpact: "Sort by impact",
+    sortByType: "Sort by type",
+    sortByTarget: "Sort by target",
+    sortByLatest: "Sort by latest",
+    sortByOldest: "Sort by oldest",
+    sortByUrl: "Sort by URL",
+    nearWin: "Near win",
+    ctrGap: "CTR gap",
+    contentDecay: "Content decay",
+    reachableClicks: "reachable clicks",
+    benchmark: "benchmark",
+    lostClicks: "lost clicks",
+    peak: "peak",
+  },
+  de: {
+    properties: "Properties",
+    verified: "Verifiziert",
+    data: "Daten",
+    single: "Einzeln",
+    compare: "Vergleich",
+    export: "Export",
+    shareWithClient: "Mit Kunde teilen",
+    copyShareLink: "Share-Link kopieren",
+    downloadSnapshot: "Snapshot herunterladen",
+    exportJson: "JSON exportieren",
+    demoOnly: "Nur Demo",
+    rerunning: "Läuft neu...",
+    rankedFixList: "Priorisierte Fix-Liste",
+    rankedFixListLead: "Nach Impact über GSC, GA4 und den letzten Crawl priorisiert",
+    rerun: "Neu berechnen",
+    whyThisMatters: "Warum das wichtig ist",
+    affectedPages: "Betroffene Seiten",
+    affectedTarget: "Betroffenes Ziel",
+    noPageMetrics: "Keine Seitenmetriken",
+    clicksShort: "Klicks",
+    impressionsShort: "Impr.",
+    positionShort: "Pos.",
+    openDetails: "Details öffnen",
+    copyAsTask: "Als Aufgabe kopieren",
+    assignToMe: "Mir zuweisen",
+    markDone: "Erledigt markieren",
+    estimatedLift: "Geschätzter Lift",
+    clicksPerMonth: "Klicks / Monat",
+    source: "Quelle",
+    noRankedActions: "Keine priorisierten Maßnahmen passen zu diesem Filter.",
+    trafficTrend: "Traffic-Trend",
+    noTrendData: "Für dieses Zeitfenster sind keine Trenddaten verfügbar.",
+    topPages: "Top-Seiten",
+    topOpportunities: "Top-Chancen",
+    recentChanges: "Letzte Änderungen",
+    topQueries: "Top-Queries",
+    pagesLead: "GSC-Klicks und Traffic-Bewegung, nach Klicks sortiert.",
+    opportunitiesLead: "Priorisierte Signale hinter der Queue.",
+    changesLead: "Erfasste Seitenänderungen in diesem Zeitfenster.",
+    queriesLead: "Nach Klicks sortiert.",
+    search: "Suchen...",
+    queries: "Queries",
+    pages: "Seiten",
+    opportunities: "Chancen",
+    changes: "Änderungen",
+    query: "Query",
+    clicks: "Klicks",
+    impressions: "Impressionen",
+    ctr: "CTR",
+    position: "Position",
+    page: "Seite",
+    currentClicks: "Aktuelle Klicks",
+    compareClicks: "Vergleichs-Klicks",
+    delta: "Delta",
+    status: "Status",
+    type: "Typ",
+    target: "Ziel",
+    signal: "Signal",
+    impact: "Impact",
+    changedPage: "Geänderte Seite",
+    lastChanged: "Zuletzt geändert",
+    noQueryEvidence: "Keine Query-Evidenz passt zu dieser Suche.",
+    noPageEvidence: "Keine Seiten-Evidenz passt zu dieser Suche.",
+    noOpportunityEvidence: "Keine Chancen-Evidenz passt zu dieser Suche.",
+    noTrackedChanges: "Keine erfassten Seitenänderungen passen zu dieser Suche.",
+    recommendedActions: "Empfohlene Maßnahmen",
+    expectedOutcome: "Erwartetes Ergebnis",
+    evidence: "Evidenz",
+    firstVisibleWin: "Erster sichtbarer Gewinn",
+    confidence: "Sicherheit",
+    system: "System",
+    override: "Override",
+    snapshotTrailEntry: "Snapshot-Eintrag",
+    snapshotTrailDescription: "Prüfe das eingefrorene Zeitfenster, die Datenfrische und die Top-Metriken aus dem Live-Dashboard.",
+    loadingSnapshotDetails: "Snapshot-Details werden geladen...",
+    capturedWindow: "Erfasstes Zeitfenster",
+    comparison: "Vergleich",
+    capturedAt: "Erfasst am",
+    capturedActions: "Erfasste Maßnahmen",
+    freshnessAtCapture: "Datenfrische zum Erfassungszeitpunkt",
+    noSnapshotDetails: "Für diesen Eintrag sind keine Snapshot-Details verfügbar.",
+    freshnessDialogTitle: "Aktuelle Daten können noch unvollständig sein",
+    freshnessDialogDescription: "Das gewählte Enddatum liegt nach der letzten sicheren Abdeckung mindestens einer Quelle. Behalte die Daten für die frischeste verfügbare Ansicht oder verschiebe das Fenster zurück auf das sichere Datum.",
+    completeThrough: "ist vollständig bis",
+    shiftSafeWindow: "Auf sicheres Fenster verschieben",
+    useLatestData: "Neueste verfügbare Daten nutzen",
+    noComparison: "Kein Vergleich",
+    compareUnavailable: "Vergleichsdaten nicht verfügbar",
+    previousPeriod: "Vorperiode",
+    samePeriodLastYear: "Gleicher Zeitraum Vorjahr",
+    last7Days: "Letzte 7 Tage",
+    last28Days: "Letzte 28 Tage",
+    last90Days: "Letzte 90 Tage",
+    customRange: "Eigener Zeitraum",
+    sessions: "Sessions",
+    users: "Nutzer",
+    avgPosition: "Durchschn. Position",
+    stale: "Veraltet",
+    noData: "Keine Daten",
+    partial: "Teilweise",
+    severity: "Schwere",
+    stateOpen: "Offen",
+    stateInProgress: "In Arbeit",
+    stateDone: "Erledigt",
+    stateIgnored: "Ignoriert",
+    stateSnoozed: "Zurückgestellt",
+    filterAll: "Alle",
+    filterCritical: "Kritisch / hoch",
+    filterIgnoredSnoozed: "Ignoriert / zurückgestellt",
+    filterPerformance: "Performance",
+    filterPerf: "Perf",
+    sortByClicks: "Nach Klicks sortieren",
+    sortByImpressions: "Nach Impressionen sortieren",
+    sortByCtr: "Nach CTR sortieren",
+    sortByPosition: "Nach Position sortieren",
+    sortByQuery: "Nach Query sortieren",
+    sortByChange: "Nach Veränderung sortieren",
+    sortByCurrentClicks: "Nach aktuellen Klicks sortieren",
+    sortByStatus: "Nach Status sortieren",
+    sortByPage: "Nach Seite sortieren",
+    sortByImpact: "Nach Impact sortieren",
+    sortByType: "Nach Typ sortieren",
+    sortByTarget: "Nach Ziel sortieren",
+    sortByLatest: "Nach neuesten sortieren",
+    sortByOldest: "Nach ältesten sortieren",
+    sortByUrl: "Nach URL sortieren",
+    nearWin: "Near Win",
+    ctrGap: "CTR-Lücke",
+    contentDecay: "Content-Verfall",
+    reachableClicks: "erreichbare Klicks",
+    benchmark: "Benchmark",
+    lostClicks: "verlorene Klicks",
+    peak: "Peak",
+  },
+} as const;
+
+type DashboardCopy = Readonly<Record<keyof typeof DASHBOARD_COPY.en, string>>;
 
 function buildOptimisticRerunState(propertyId: string, baseState: PropertyRefreshState | null): PropertyRefreshState {
   const now = new Date().toISOString();
@@ -128,6 +405,30 @@ const RANKED_ACTION_FILTERS: Array<{ value: ActionFilter; label: string }> = [
   { value: "content", label: "Content" },
 ];
 
+function getActionStateLabel(state: ActionRow["state"], language: DashboardLanguage) {
+  const copy = DASHBOARD_COPY[language];
+  if (state === "in_progress") return copy.stateInProgress;
+  if (state === "done") return copy.stateDone;
+  if (state === "ignored") return copy.stateIgnored;
+  if (state === "snoozed") return copy.stateSnoozed;
+  return copy.stateOpen;
+}
+
+function getActionFilterLabel(filter: ActionFilter, language: DashboardLanguage, compact = false) {
+  const copy = DASHBOARD_COPY[language];
+  if (filter === "all") return copy.filterAll;
+  if (filter === "critical") return copy.filterCritical;
+  if (filter === "in_progress") return copy.stateInProgress;
+  if (filter === "open") return copy.stateOpen;
+  if (filter === "done") return copy.stateDone;
+  if (filter === "ignored_snoozed") return copy.filterIgnoredSnoozed;
+  if (filter === "performance") return compact ? copy.filterPerf : copy.filterPerformance;
+  if (filter === "crawl") return "Crawl";
+  if (filter === "seo") return "SEO";
+  if (filter === "content") return "Content";
+  return "AI";
+}
+
 const HEADER_SOURCE_ORDER: FreshnessSource["source"][] = ["ga4", "gsc", "crawl"];
 
 function getHeaderSourceLabel(source: FreshnessSource["source"]) {
@@ -155,9 +456,13 @@ function getActionSourceLabel(action: ActionRow) {
   return "GSC";
 }
 
-function formatNumber(value: number | null) {
+function getDashboardLocale(language: DashboardLanguage) {
+  return language === "de" ? "de-DE" : undefined;
+}
+
+function formatNumber(value: number | null, language: DashboardLanguage = "en") {
   if (value == null) return "—";
-  return Math.round(value).toLocaleString();
+  return Math.round(value).toLocaleString(getDashboardLocale(language));
 }
 
 function formatPercent(value: number | null) {
@@ -186,9 +491,9 @@ function formatDelta(
   };
 }
 
-function formatDateLabel(value: string | null) {
+function formatDateLabel(value: string | null, language: DashboardLanguage = "en") {
   if (!value) return "—";
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(getDashboardLocale(language), {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -201,25 +506,33 @@ function addDays(value: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
-function formatCompareModeLabel(compareMode: LiveDashboardData["analysisWindow"]["compareMode"]) {
-  if (compareMode === "none") return "No comparison";
-  if (compareMode === "previous_period") return "Previous period";
-  return "Same period last year";
+function formatCompareModeLabel(
+  compareMode: LiveDashboardData["analysisWindow"]["compareMode"],
+  language: DashboardLanguage = "en",
+) {
+  const copy = DASHBOARD_COPY[language];
+  if (compareMode === "none") return copy.noComparison;
+  if (compareMode === "previous_period") return copy.previousPeriod;
+  return copy.samePeriodLastYear;
 }
 
-function formatShortDate(value: string | null) {
+function formatShortDate(value: string | null, language: DashboardLanguage = "en") {
   if (!value) return "—";
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(getDashboardLocale(language), {
     month: "short",
     day: "numeric",
   }).format(new Date(`${value}T00:00:00.000Z`));
 }
 
-function formatPresetLabel(value: LiveDashboardData["analysisWindow"]["preset"]) {
-  if (value === "last_7d") return "Last 7 days";
-  if (value === "last_90d") return "Last 90 days";
-  if (value === "custom") return "Custom range";
-  return "Last 28 days";
+export function formatPresetLabel(
+  value: LiveDashboardData["analysisWindow"]["preset"],
+  language: DashboardLanguage = "en",
+) {
+  const copy = DASHBOARD_COPY[language];
+  if (value === "last_7d") return copy.last7Days;
+  if (value === "last_90d") return copy.last90Days;
+  if (value === "custom") return copy.customRange;
+  return copy.last28Days;
 }
 
 function getPropertySiteUrl(rawUrl: string) {
@@ -270,6 +583,7 @@ function MetricTile({
   sourceState,
   sparkline,
   color,
+  badgeLabels = DASHBOARD_COPY.en,
 }: {
   label: string;
   value: string;
@@ -278,6 +592,7 @@ function MetricTile({
   sourceState: "complete" | "partial" | "stale" | "unavailable";
   sparkline?: number[];
   color?: string;
+  badgeLabels?: DashboardCopy;
 }) {
   const sparklinePath = sparkline ? buildSparklinePath(sparkline, 92, 28) : null;
   return (
@@ -289,7 +604,7 @@ function MetricTile({
         </div>
         {sourceState !== "complete" ? (
           <Badge variant="outline" className="w-fit shrink-0 whitespace-nowrap border-amber-200 bg-amber-50 text-[10px] text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-            {sourceState === "stale" ? "Stale" : sourceState === "unavailable" ? "No data" : "Partial"}
+            {sourceState === "stale" ? badgeLabels.stale : sourceState === "unavailable" ? badgeLabels.noData : badgeLabels.partial}
           </Badge>
         ) : null}
       </div>
@@ -305,13 +620,13 @@ function MetricTile({
   );
 }
 
-function SeverityMeter({ value }: { value: number }) {
+function SeverityMeter({ value, label = DASHBOARD_COPY.en.severity }: { value: number; label?: string }) {
   const clamped = Math.max(1, Math.min(5, value));
   const tone = clamped >= 4 ? "text-rose-500" : clamped === 3 ? "text-amber-500" : clamped === 2 ? "text-sky-500" : "text-emerald-500";
   return (
     <div className={`w-32 ${tone}`}>
       <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-        <span>Severity</span>
+        <span>{label}</span>
         <span className="text-foreground">{clamped}/5</span>
       </div>
       <div className="flex h-1.5 gap-1">
@@ -342,6 +657,7 @@ export function PropertyDashboardClient({
   currentUser,
   brandColors,
   mode = "authenticated",
+  language = "en",
 }: PropertyDashboardClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -364,8 +680,11 @@ export function PropertyDashboardClient({
   const [trendMetrics, setTrendMetrics] = useState<Array<"clicks" | "impressions" | "sessions" | "users">>(["clicks"]);
   const [currentRefreshState, setCurrentRefreshState] = useState<PropertyRefreshState | null>(dashboard.propertyUpdateState);
   const [faviconFailed, setFaviconFailed] = useState(false);
+  const copy = DASHBOARD_COPY[language];
   const isPublicDemo = mode === "publicDemo";
-  const demoOperationMessage = "This control is available after a workspace is connected. The Acme demo keeps backend operations disabled.";
+  const demoOperationMessage = language === "de"
+    ? "Diese Funktion ist verfügbar, sobald ein Workspace verbunden ist. In der Acme-Demo bleiben Backend-Aktionen deaktiviert."
+    : "This control is available after a workspace is connected. The Acme demo keeps backend operations disabled.";
 
   useEffect(() => {
     setCurrentRefreshState(dashboard.propertyUpdateState);
@@ -410,12 +729,12 @@ export function PropertyDashboardClient({
       || (dashboard.overview.compare.sessions ?? 0) > 0
       || (dashboard.overview.compare.users ?? 0) > 0
     );
-    const deltaFallback = compareMode === "none" ? "No comparison" : "Compare data unavailable";
+    const deltaFallback = compareMode === "none" ? copy.noComparison : copy.compareUnavailable;
     return [
       {
         id: "clicks",
-        label: "Clicks",
-        value: formatNumber(dashboard.overview.clicks),
+        label: copy.clicks,
+        value: formatNumber(dashboard.overview.clicks, language),
         delta: compareBaselineAvailable ? formatDelta(dashboard.overview.clicks, dashboard.overview.compare.clicks) : null,
         deltaFallback,
         sourceState: gscState,
@@ -424,8 +743,8 @@ export function PropertyDashboardClient({
       },
       {
         id: "impressions",
-        label: "Impressions",
-        value: formatNumber(dashboard.overview.impressions),
+        label: copy.impressions,
+        value: formatNumber(dashboard.overview.impressions, language),
         delta: compareBaselineAvailable ? formatDelta(dashboard.overview.impressions, dashboard.overview.compare.impressions) : null,
         deltaFallback,
         sourceState: gscState,
@@ -444,7 +763,7 @@ export function PropertyDashboardClient({
       },
       {
         id: "avg-position",
-        label: "Avg. position",
+        label: copy.avgPosition,
         value: formatPosition(dashboard.overview.position),
         delta: compareBaselineAvailable ? formatDelta(dashboard.overview.position, dashboard.overview.compare.position, { invert: true }) : null,
         deltaFallback,
@@ -454,8 +773,8 @@ export function PropertyDashboardClient({
       },
       {
         id: "sessions",
-        label: "Sessions",
-        value: formatNumber(dashboard.overview.sessions),
+        label: copy.sessions,
+        value: formatNumber(dashboard.overview.sessions, language),
         delta: compareBaselineAvailable ? formatDelta(dashboard.overview.sessions, dashboard.overview.compare.sessions) : null,
         deltaFallback,
         sourceState: ga4State,
@@ -464,8 +783,8 @@ export function PropertyDashboardClient({
       },
       {
         id: "users",
-        label: "Users",
-        value: formatNumber(dashboard.overview.users),
+        label: copy.users,
+        value: formatNumber(dashboard.overview.users, language),
         delta: compareBaselineAvailable ? formatDelta(dashboard.overview.users, dashboard.overview.compare.users) : null,
         deltaFallback,
         sourceState: ga4State,
@@ -473,13 +792,13 @@ export function PropertyDashboardClient({
         color: "#fb923c",
       },
     ];
-  }, [brandColors.accent, brandColors.primary, compareMode, dashboard]);
+  }, [brandColors.accent, brandColors.primary, compareMode, copy, dashboard, language]);
 
   const clicksSeries = dashboard.trend.map((point) => point.clicks);
   const clicksStart = dashboard.trend[0]?.date ?? dashboard.analysisWindow.startDate;
   const clicksEnd = dashboard.trend[dashboard.trend.length - 1]?.date ?? dashboard.analysisWindow.endDate;
   const trendLabels = dashboard.trend.map((point) =>
-    new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(
+    new Intl.DateTimeFormat(getDashboardLocale(language), { month: "short", day: "numeric" }).format(
       new Date(`${point.date}T00:00:00.000Z`),
     ),
   );
@@ -494,37 +813,37 @@ export function PropertyDashboardClient({
   const evidenceSortOptions = useMemo(() => {
     if (activeEvidenceTab === "queries") {
       return [
-        { value: "clicks_desc", label: "Sort by clicks" },
-        { value: "impressions_desc", label: "Sort by impressions" },
-        { value: "ctr_desc", label: "Sort by CTR" },
-        { value: "position_asc", label: "Sort by position" },
-        { value: "query_asc", label: "Sort by query" },
+        { value: "clicks_desc", label: copy.sortByClicks },
+        { value: "impressions_desc", label: copy.sortByImpressions },
+        { value: "ctr_desc", label: copy.sortByCtr },
+        { value: "position_asc", label: copy.sortByPosition },
+        { value: "query_asc", label: copy.sortByQuery },
       ];
     }
 
     if (activeEvidenceTab === "pages") {
       return [
-        { value: "delta_desc", label: "Sort by change" },
-        { value: "clicks_desc", label: "Sort by current clicks" },
-        { value: "status_asc", label: "Sort by status" },
-        { value: "page_asc", label: "Sort by page" },
+        { value: "delta_desc", label: copy.sortByChange },
+        { value: "clicks_desc", label: copy.sortByCurrentClicks },
+        { value: "status_asc", label: copy.sortByStatus },
+        { value: "page_asc", label: copy.sortByPage },
       ];
     }
 
     if (activeEvidenceTab === "opportunities") {
       return [
-        { value: "impact_desc", label: "Sort by impact" },
-        { value: "type_asc", label: "Sort by type" },
-        { value: "target_asc", label: "Sort by target" },
+        { value: "impact_desc", label: copy.sortByImpact },
+        { value: "type_asc", label: copy.sortByType },
+        { value: "target_asc", label: copy.sortByTarget },
       ];
     }
 
     return [
-      { value: "recent_desc", label: "Sort by latest" },
-      { value: "recent_asc", label: "Sort by oldest" },
-      { value: "url_asc", label: "Sort by URL" },
+      { value: "recent_desc", label: copy.sortByLatest },
+      { value: "recent_asc", label: copy.sortByOldest },
+      { value: "url_asc", label: copy.sortByUrl },
     ];
-  }, [activeEvidenceTab]);
+  }, [activeEvidenceTab, copy]);
 
   const activeEvidenceSort = evidenceSortOptions.some((option) => option.value === evidenceSort)
     ? evidenceSort
@@ -577,23 +896,23 @@ export function PropertyDashboardClient({
     return [
       ...dashboard.evidence.nearWins.map((row) => ({
         id: `near:${row.keyword}`,
-        type: "Near win",
+        type: copy.nearWin,
         target: row.keyword,
-        signal: `Position ${row.position.toFixed(1)} • ${formatNumber(row.impressions)} impressions`,
+        signal: `${copy.position} ${row.position.toFixed(1)} • ${formatNumber(row.impressions, language)} ${copy.impressions.toLowerCase()}`,
         impact: row.estimatedImpact ?? row.impressions,
       })),
       ...dashboard.evidence.ctrGaps.map((row) => ({
         id: `ctr:${row.query}`,
-        type: "CTR gap",
+        type: copy.ctrGap,
         target: row.query,
-        signal: `${formatNumber(row.estimatedLostClicks)} reachable clicks • benchmark ${formatPercent(row.benchmarkCtr)}`,
+        signal: `${formatNumber(row.estimatedLostClicks, language)} ${copy.reachableClicks} • ${copy.benchmark} ${formatPercent(row.benchmarkCtr)}`,
         impact: row.estimatedLostClicks,
       })),
       ...dashboard.evidence.contentDecay.map((row) => ({
         id: `decay:${row.page}`,
-        type: "Content decay",
+        type: copy.contentDecay,
         target: row.page,
-        signal: `${formatNumber(row.estimatedLostClicks)} lost clicks • peak ${formatNumber(row.peakClicks)}`,
+        signal: `${formatNumber(row.estimatedLostClicks, language)} ${copy.lostClicks} • ${copy.peak} ${formatNumber(row.peakClicks, language)}`,
         impact: row.estimatedLostClicks,
       })),
     ]
@@ -615,6 +934,8 @@ export function PropertyDashboardClient({
     dashboard.evidence.ctrGaps,
     dashboard.evidence.nearWins,
     evidenceSearch,
+    copy,
+    language,
   ]);
 
   const filteredChangeRows = useMemo(() => {
@@ -647,6 +968,7 @@ export function PropertyDashboardClient({
       startDate: next.startDate,
       endDate: next.endDate,
       routeMode: mode,
+      language,
     });
   };
 
@@ -666,12 +988,12 @@ export function PropertyDashboardClient({
     : filteredActions[0]?.fingerprint ?? null;
   const trendMetricOptions = useMemo(() => {
     return [
-      { value: "clicks" as const, label: "Clicks", color: brandColors.primary, data: dashboard.trend.map((point) => point.clicks), axis: 0 },
-      { value: "impressions" as const, label: "Impressions", color: brandColors.accent, data: dashboard.trend.map((point) => point.impressions), axis: 1 },
-      { value: "sessions" as const, label: "Sessions", color: "#10b981", data: dashboard.trend.map((point) => point.sessions).filter((value): value is number => value != null), axis: 0 },
-      { value: "users" as const, label: "Users", color: "#fb923c", data: dashboard.trend.map((point) => point.users).filter((value): value is number => value != null), axis: 0 },
+      { value: "clicks" as const, label: copy.clicks, color: brandColors.primary, data: dashboard.trend.map((point) => point.clicks), axis: 0 },
+      { value: "impressions" as const, label: copy.impressions, color: brandColors.accent, data: dashboard.trend.map((point) => point.impressions), axis: 1 },
+      { value: "sessions" as const, label: copy.sessions, color: "#10b981", data: dashboard.trend.map((point) => point.sessions).filter((value): value is number => value != null), axis: 0 },
+      { value: "users" as const, label: copy.users, color: "#fb923c", data: dashboard.trend.map((point) => point.users).filter((value): value is number => value != null), axis: 0 },
     ].filter((option) => option.data.length > 0);
-  }, [brandColors.accent, brandColors.primary, dashboard.trend]);
+  }, [brandColors.accent, brandColors.primary, copy, dashboard.trend]);
   const activeTrendMetrics = trendMetricOptions.filter((option) => trendMetrics.includes(option.value));
   const toggleTrendMetric = (value: "clicks" | "impressions" | "sessions" | "users") => {
     setTrendMetrics((current) => {
@@ -686,7 +1008,7 @@ export function PropertyDashboardClient({
       return (
         <>
           <RefreshCcw className="mr-2 size-4" />
-          Demo only
+          {copy.demoOnly}
         </>
       );
     }
@@ -695,7 +1017,7 @@ export function PropertyDashboardClient({
       return (
         <>
           <LoaderCircle className="mr-2 size-4 animate-spin" />
-          Rerunning...
+          {copy.rerunning}
         </>
       );
     }
@@ -1185,7 +1507,7 @@ export function PropertyDashboardClient({
       <div className="space-y-5">
         <header className="space-y-4">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Properties</span>
+            <span>{copy.properties}</span>
             <ChevronRight className="size-3.5" />
             <span className="font-semibold text-foreground">{dashboard.property.name}</span>
           </div>
@@ -1222,7 +1544,7 @@ export function PropertyDashboardClient({
                 </a>
                 <span>·</span>
                 <span className="inline-flex items-center gap-2">
-                  Verified <CheckCircle2 className="size-5 text-emerald-500" />
+                  {copy.verified} <CheckCircle2 className="size-5 text-emerald-500" />
                 </span>
                 {crawlFreshness?.note ? (
                   <>
@@ -1236,7 +1558,7 @@ export function PropertyDashboardClient({
 
           <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto pb-1">
             <div className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 text-[13px] shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
-              <span className="font-bold text-zinc-600 dark:text-zinc-300">Data</span>
+              <span className="font-bold text-zinc-600 dark:text-zinc-300">{copy.data}</span>
               <span className="flex gap-1.5">
                 {headerFreshnessSources.map((source) => (
                   <button
@@ -1264,14 +1586,14 @@ export function PropertyDashboardClient({
                 onClick={() => applyHeaderWindow({ compareMode: "none" })}
                 className={`h-8 rounded-full px-3.5 ${compareMode === "none" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
               >
-                Single
+                {copy.single}
               </button>
               <button
                 type="button"
                 onClick={() => applyHeaderWindow({ compareMode: compareMode === "none" ? "previous_period" : compareMode })}
                 className={`h-8 rounded-full px-3.5 ${compareMode !== "none" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
               >
-                Compare
+                {copy.compare}
               </button>
             </div>
 
@@ -1282,18 +1604,18 @@ export function PropertyDashboardClient({
                 className="inline-flex h-10 min-w-[286px] shrink-0 items-center rounded-full border border-zinc-200 bg-white px-3.5 py-0 text-[13px] font-bold shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
                 >
                   <CalendarDays className="mr-2 size-5 text-primary" />
-                  <span>{formatPresetLabel(preset)}</span>
+                  <span>{formatPresetLabel(preset, language)}</span>
                   <span className="mx-2 text-muted-foreground">·</span>
                   <span className="font-medium text-muted-foreground">
-                    {formatShortDate(dashboard.analysisWindow.startDate)} – {formatShortDate(dashboard.analysisWindow.endDate)}
+                    {formatShortDate(dashboard.analysisWindow.startDate, language)} – {formatShortDate(dashboard.analysisWindow.endDate, language)}
                   </span>
                   <ChevronDown className="ml-auto size-4 text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" sideOffset={8} className="w-56 rounded-lg">
-                <DropdownMenuItem onClick={() => applyHeaderWindow({ preset: "last_7d" })}>Last 7 days</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => applyHeaderWindow({ preset: "last_28d" })}>Last 28 days</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => applyHeaderWindow({ preset: "last_90d" })}>Last 90 days</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => applyHeaderWindow({ preset: "last_7d" })}>{copy.last7Days}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => applyHeaderWindow({ preset: "last_28d" })}>{copy.last28Days}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => applyHeaderWindow({ preset: "last_90d" })}>{copy.last90Days}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -1304,7 +1626,7 @@ export function PropertyDashboardClient({
                 className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-0 text-[13px] font-bold uppercase tracking-[0.02em] text-primary shadow-sm dark:border-blue-400/30 dark:bg-blue-400/20 dark:text-blue-200"
               >
                 <Share2 className="size-4" />
-                VS {formatShortDate(dashboard.analysisWindow.compareStartDate)} – {formatShortDate(dashboard.analysisWindow.compareEndDate)}
+                VS {formatShortDate(dashboard.analysisWindow.compareStartDate, language)} – {formatShortDate(dashboard.analysisWindow.compareEndDate, language)}
               </button>
             ) : null}
 
@@ -1312,26 +1634,26 @@ export function PropertyDashboardClient({
               <DropdownMenuTrigger asChild>
                 <Button className="h-10 min-h-0 shrink-0 rounded-full px-5 py-0 text-[13px] font-bold shadow-[0_18px_38px_-18px_rgba(37,99,235,0.75)]">
                   <Download className="mr-2 size-4" />
-                  Export
+                  {copy.export}
                   <ChevronDown className="ml-2 size-4 opacity-80" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 rounded-lg">
                 <DropdownMenuItem onClick={shareWithClient} disabled={isBackendOperationDisabled || exportLoading !== null}>
                   <Share2 className="mr-2 size-4" />
-                  Share with client
+                  {copy.shareWithClient}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={copyShareLink} disabled={isBackendOperationDisabled || exportLoading !== null}>
                   <Link className="mr-2 size-4" />
-                  Copy share link
+                  {copy.copyShareLink}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={downloadSnapshotJson}>
                   <Download className="mr-2 size-4" />
-                  Download snapshot
+                  {copy.downloadSnapshot}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={downloadSnapshotJson}>
                   <FileJson className="mr-2 size-4" />
-                  Export JSON
+                  {copy.exportJson}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -1522,6 +1844,7 @@ export function PropertyDashboardClient({
               sourceState={tile.sourceState}
               sparkline={tile.sparkline}
               color={tile.color}
+              badgeLabels={copy}
             />
           ))}
         </section>
@@ -1529,8 +1852,8 @@ export function PropertyDashboardClient({
         <section className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
           <div className="flex flex-col gap-3 border-b border-zinc-200 p-4 dark:border-white/10 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">Ranked fix list</h2>
-              <p className="text-xs text-muted-foreground">AI-prioritised by impact across GSC, GA4, and the latest crawl</p>
+              <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">{copy.rankedFixList}</h2>
+              <p className="text-xs text-muted-foreground">{copy.rankedFixListLead}</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex gap-1 overflow-x-auto rounded-full border border-zinc-200 bg-zinc-50 p-1 dark:border-white/10 dark:bg-white/[0.03]">
@@ -1541,7 +1864,7 @@ export function PropertyDashboardClient({
                     onClick={() => setActionFilter(filter.value)}
                     className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${actionFilter === filter.value ? "bg-white text-foreground shadow-sm dark:bg-white/10" : "text-muted-foreground hover:text-foreground"}`}
                   >
-                    <span>{filter.label}</span>
+                    <span>{getActionFilterLabel(filter.value, language, true)}</span>
                     <span className="rounded-full bg-zinc-200 px-1.5 py-0.5 text-[10px] leading-none text-zinc-600 dark:bg-white/10 dark:text-zinc-300">
                       {actionFilterCounts.get(filter.value) ?? 0}
                     </span>
@@ -1549,7 +1872,7 @@ export function PropertyDashboardClient({
                 ))}
               </div>
               <Button variant="outline" size="sm" className="h-9 shrink-0 rounded-full bg-white" onClick={rerunAllData} disabled={rerunDisabled}>
-                {renderRerunButtonContent("Re-run")}
+                {renderRerunButtonContent(copy.rerun)}
               </Button>
             </div>
           </div>
@@ -1596,12 +1919,12 @@ export function PropertyDashboardClient({
                             {category.label}
                           </span>
                           <span className="truncate font-mono">{action.targetKey || action.targetType}</span>
-                          <span>{action.state.replace("_", " ")}</span>
+                          <span>{getActionStateLabel(action.state, language)}</span>
                           {action.assigneeEmail ? <span>Assigned: {action.assigneeEmail}</span> : null}
                         </span>
                       </span>
                       <span className="hidden lg:block">
-                        <SeverityMeter value={severity} />
+                        <SeverityMeter value={severity} label={copy.severity} />
                       </span>
                       <ChevronRight className={`size-5 justify-self-end text-muted-foreground transition-transform ${isExpanded ? "rotate-90" : ""}`} />
                     </button>
@@ -1610,12 +1933,12 @@ export function PropertyDashboardClient({
                       <div className="grid gap-5 border-t border-dashed border-zinc-200 p-4 dark:border-white/10 lg:grid-cols-[minmax(0,1fr)_390px]">
                         <div className="space-y-4">
                           <div>
-                            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Why this matters</h3>
+                            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{copy.whyThisMatters}</h3>
                             <p className="mt-2 max-w-3xl text-sm leading-6 text-foreground">{action.whyNow}</p>
                           </div>
                           <div>
                             <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                              {action.affectedTargets?.length || action.targetPage ? "Affected pages" : "Affected target"}
+                              {action.affectedTargets?.length || action.targetPage ? copy.affectedPages : copy.affectedTarget}
                             </h3>
                             <div className="mt-2 space-y-1.5">
                               {affectedTargets.slice(0, 4).map((target) => (
@@ -1625,36 +1948,36 @@ export function PropertyDashboardClient({
                                     <span className="truncate">{target.url}</span>
                                   </span>
                                   <span className="shrink-0 text-right text-muted-foreground">
-                                    {target.impressions != null ? `${formatNumber(target.impressions)} impr` : target.clicks != null ? `${formatNumber(target.clicks)} clicks` : "No page metrics"}
-                                    {target.position != null ? ` · pos ${formatPosition(target.position)}` : ""}
+                                    {target.impressions != null ? `${formatNumber(target.impressions, language)} ${copy.impressionsShort}` : target.clicks != null ? `${formatNumber(target.clicks, language)} ${copy.clicksShort}` : copy.noPageMetrics}
+                                    {target.position != null ? ` · ${copy.positionShort} ${formatPosition(target.position)}` : ""}
                                   </span>
                                 </div>
                               ))}
                             </div>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <Button variant="outline" size="sm" className="rounded-full bg-white" onClick={() => setSelectedAction(action)}>Open details</Button>
+                            <Button variant="outline" size="sm" className="rounded-full bg-white" onClick={() => setSelectedAction(action)}>{copy.openDetails}</Button>
                             <Button variant="outline" size="sm" className="rounded-full bg-white" onClick={() => copyActionAsTask(action)}>
                               <ClipboardList className="mr-2 size-4" />
-                              Copy as task
+                              {copy.copyAsTask}
                             </Button>
                             <Button variant="outline" size="sm" className="rounded-full bg-white" onClick={() => assignActionToMe(action)} disabled={isBackendOperationDisabled || pendingStateKey?.startsWith(action.fingerprint)}>
                               <UserCheck className="mr-2 size-4" />
-                              Assign to me
+                              {copy.assignToMe}
                             </Button>
                             <Button variant="ghost" size="sm" className="rounded-full" onClick={() => updateActionState(action, "done")} disabled={isBackendOperationDisabled || pendingStateKey?.startsWith(action.fingerprint)}>
-                              Mark done
+                              {copy.markDone}
                             </Button>
                           </div>
                         </div>
                         <div className="h-fit space-y-4">
-                          <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Estimated lift</h3>
+                          <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{copy.estimatedLift}</h3>
                           <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900/60 dark:bg-emerald-950/20">
                             <div className="grid gap-2 text-sm">
                               <div className="flex items-center justify-between gap-4">
-                                <span className="font-bold uppercase tracking-[0.12em] text-muted-foreground">Clicks / mo</span>
+                                <span className="font-bold uppercase tracking-[0.12em] text-muted-foreground">{copy.clicksPerMonth}</span>
                                 <span className="font-display text-xl font-extrabold text-emerald-700 dark:text-emerald-300">
-                                  {liftValue != null ? `+${formatNumber(liftValue)}` : "—"}
+                                  {liftValue != null ? `+${formatNumber(liftValue, language)}` : "—"}
                                 </span>
                               </div>
                               <p className="pt-1 text-muted-foreground">
@@ -1663,7 +1986,7 @@ export function PropertyDashboardClient({
                             </div>
                           </div>
                           <div>
-                            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Source</h3>
+                            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{copy.source}</h3>
                             <p className="mt-2 text-sm font-medium text-foreground">{getActionSourceLabel(action)}</p>
                           </div>
                         </div>
@@ -1674,15 +1997,15 @@ export function PropertyDashboardClient({
               })}
             </div>
           ) : (
-            <div className="px-5 py-10 text-center text-sm text-muted-foreground">No ranked actions match this filter.</div>
+            <div className="px-5 py-10 text-center text-sm text-muted-foreground">{copy.noRankedActions}</div>
           )}
         </section>
 
         <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
           <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">Traffic trend</h2>
-              <p className="text-xs text-muted-foreground">{formatDateLabel(clicksStart)} to {formatDateLabel(clicksEnd)}</p>
+              <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">{copy.trafficTrend}</h2>
+              <p className="text-xs text-muted-foreground">{formatDateLabel(clicksStart, language)} to {formatDateLabel(clicksEnd, language)}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {trendMetricOptions.map((option) => (
@@ -1714,7 +2037,7 @@ export function PropertyDashboardClient({
                       if (!firstPoint) return "";
                       return [
                         firstPoint.axisValueLabel ?? "",
-                        ...points.map((point) => `${point.marker ?? ""}${point.seriesName ?? "Metric"}: <strong>${formatNumber(point.value ?? null)}</strong>`),
+                        ...points.map((point) => `${point.marker ?? ""}${point.seriesName ?? "Metric"}: <strong>${formatNumber(point.value ?? null, language)}</strong>`),
                       ].join("<br/>");
                     },
                   },
@@ -1760,7 +2083,7 @@ export function PropertyDashboardClient({
                 ariaLabel={`${activeTrendMetrics.map((metric) => metric.label).join(", ")} trend for the selected window`}
               />
             ) : (
-              <div className="flex h-full items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">No trend data is available for this window.</div>
+                <div className="flex h-full items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">{copy.noTrendData}</div>
             )}
           </div>
         </section>
@@ -1773,22 +2096,22 @@ export function PropertyDashboardClient({
           <div className="flex flex-col gap-3 border-b border-zinc-200 pb-4 dark:border-white/10 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">
-                {activeEvidenceTab === "pages" ? "Top pages" : activeEvidenceTab === "opportunities" ? "Top opportunities" : activeEvidenceTab === "changes" ? "Recent changes" : "Top queries"}
+                {activeEvidenceTab === "pages" ? copy.topPages : activeEvidenceTab === "opportunities" ? copy.topOpportunities : activeEvidenceTab === "changes" ? copy.recentChanges : copy.topQueries}
               </h2>
               <p className="text-xs text-muted-foreground">
-                {activeEvidenceTab === "pages" ? "GSC clicks and traffic movement, sorted by clicks." : activeEvidenceTab === "opportunities" ? "Ranked supporting signals behind the queue." : activeEvidenceTab === "changes" ? "Tracked page changes in this window." : "Sorted by clicks."}
+                {activeEvidenceTab === "pages" ? copy.pagesLead : activeEvidenceTab === "opportunities" ? copy.opportunitiesLead : activeEvidenceTab === "changes" ? copy.changesLead : copy.queriesLead}
               </p>
             </div>
             <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
               <div className="relative min-w-0 sm:min-w-[260px]">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input value={evidenceSearch} onChange={(event) => setEvidenceSearch(event.target.value)} placeholder="Search..." className="h-9 rounded-lg pl-9" />
+                <Input value={evidenceSearch} onChange={(event) => setEvidenceSearch(event.target.value)} placeholder={copy.search} className="h-9 rounded-lg pl-9" />
               </div>
               <TabsList className="h-9 shrink-0 rounded-full border border-zinc-200 bg-zinc-50 p-1 dark:border-white/10 dark:bg-white/[0.03]">
-                <TabsTrigger className="h-7 rounded-full px-3 text-xs text-muted-foreground data-[state=active]:bg-white data-[state=active]:!text-zinc-950 data-[state=active]:shadow-sm dark:text-zinc-400 dark:data-[state=active]:bg-white dark:data-[state=active]:!text-zinc-950" value="queries">Queries</TabsTrigger>
-                <TabsTrigger className="h-7 rounded-full px-3 text-xs text-muted-foreground data-[state=active]:bg-white data-[state=active]:!text-zinc-950 data-[state=active]:shadow-sm dark:text-zinc-400 dark:data-[state=active]:bg-white dark:data-[state=active]:!text-zinc-950" value="pages">Pages</TabsTrigger>
-                <TabsTrigger className="h-7 rounded-full px-3 text-xs text-muted-foreground data-[state=active]:bg-white data-[state=active]:!text-zinc-950 data-[state=active]:shadow-sm dark:text-zinc-400 dark:data-[state=active]:bg-white dark:data-[state=active]:!text-zinc-950" value="opportunities">Opportunities</TabsTrigger>
-                <TabsTrigger className="h-7 rounded-full px-3 text-xs text-muted-foreground data-[state=active]:bg-white data-[state=active]:!text-zinc-950 data-[state=active]:shadow-sm dark:text-zinc-400 dark:data-[state=active]:bg-white dark:data-[state=active]:!text-zinc-950" value="changes">Changes</TabsTrigger>
+                <TabsTrigger className="h-7 rounded-full px-3 text-xs text-muted-foreground data-[state=active]:bg-white data-[state=active]:!text-zinc-950 data-[state=active]:shadow-sm dark:text-zinc-400 dark:data-[state=active]:bg-white dark:data-[state=active]:!text-zinc-950" value="queries">{copy.queries}</TabsTrigger>
+                <TabsTrigger className="h-7 rounded-full px-3 text-xs text-muted-foreground data-[state=active]:bg-white data-[state=active]:!text-zinc-950 data-[state=active]:shadow-sm dark:text-zinc-400 dark:data-[state=active]:bg-white dark:data-[state=active]:!text-zinc-950" value="pages">{copy.pages}</TabsTrigger>
+                <TabsTrigger className="h-7 rounded-full px-3 text-xs text-muted-foreground data-[state=active]:bg-white data-[state=active]:!text-zinc-950 data-[state=active]:shadow-sm dark:text-zinc-400 dark:data-[state=active]:bg-white dark:data-[state=active]:!text-zinc-950" value="opportunities">{copy.opportunities}</TabsTrigger>
+                <TabsTrigger className="h-7 rounded-full px-3 text-xs text-muted-foreground data-[state=active]:bg-white data-[state=active]:!text-zinc-950 data-[state=active]:shadow-sm dark:text-zinc-400 dark:data-[state=active]:bg-white dark:data-[state=active]:!text-zinc-950" value="changes">{copy.changes}</TabsTrigger>
               </TabsList>
             </div>
           </div>
@@ -1798,25 +2121,25 @@ export function PropertyDashboardClient({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Query</TableHead>
-                    <TableHead className="text-right">Clicks</TableHead>
-                    <TableHead className="text-right">Impressions</TableHead>
-                    <TableHead className="text-right">CTR</TableHead>
-                    <TableHead className="text-right">Position</TableHead>
+                    <TableHead>{copy.query}</TableHead>
+                    <TableHead className="text-right">{copy.clicks}</TableHead>
+                    <TableHead className="text-right">{copy.impressions}</TableHead>
+                    <TableHead className="text-right">{copy.ctr}</TableHead>
+                    <TableHead className="text-right">{copy.position}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredQueryRows.length ? filteredQueryRows.map((row) => (
                     <TableRow key={row.query}>
                       <TableCell className="font-medium">{row.query}</TableCell>
-                      <TableCell className="text-right">{formatNumber(row.clicks)}</TableCell>
-                      <TableCell className="text-right">{formatNumber(row.impressions)}</TableCell>
+                      <TableCell className="text-right">{formatNumber(row.clicks, language)}</TableCell>
+                      <TableCell className="text-right">{formatNumber(row.impressions, language)}</TableCell>
                       <TableCell className="text-right">{formatPercent(row.ctr)}</TableCell>
                       <TableCell className="text-right">{formatPosition(row.position)}</TableCell>
                     </TableRow>
                   )) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">No query evidence matches this search.</TableCell>
+                      <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">{copy.noQueryEvidence}</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -1828,11 +2151,11 @@ export function PropertyDashboardClient({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Page</TableHead>
-                    <TableHead className="text-right">Current clicks</TableHead>
-                    <TableHead className="text-right">Compare clicks</TableHead>
-                    <TableHead className="text-right">Delta</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{copy.page}</TableHead>
+                    <TableHead className="text-right">{copy.currentClicks}</TableHead>
+                    <TableHead className="text-right">{copy.compareClicks}</TableHead>
+                    <TableHead className="text-right">{copy.delta}</TableHead>
+                    <TableHead>{copy.status}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1841,14 +2164,14 @@ export function PropertyDashboardClient({
                     return (
                       <TableRow key={row.page}>
                         <TableCell className="font-medium">{row.page}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.clicksCurrent)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.clicksCompare)}</TableCell>
-                        <TableCell className={`text-right ${toneClasses(delta === 0 ? "neutral" : delta > 0 ? "positive" : "negative")}`}>{delta >= 0 ? "+" : ""}{formatNumber(delta)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(row.clicksCurrent, language)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(row.clicksCompare, language)}</TableCell>
+                        <TableCell className={`text-right ${toneClasses(delta === 0 ? "neutral" : delta > 0 ? "positive" : "negative")}`}>{delta >= 0 ? "+" : ""}{formatNumber(delta, language)}</TableCell>
                         <TableCell><Badge variant="outline" className="rounded-full">{row.status}</Badge></TableCell>
                       </TableRow>
                     );
                   }) : (
-                    <TableRow><TableCell colSpan={5} className="py-10 text-center text-muted-foreground">No page evidence matches this search.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="py-10 text-center text-muted-foreground">{copy.noPageEvidence}</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -1859,10 +2182,10 @@ export function PropertyDashboardClient({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Target</TableHead>
-                    <TableHead>Signal</TableHead>
-                    <TableHead className="text-right">Impact</TableHead>
+                    <TableHead>{copy.type}</TableHead>
+                    <TableHead>{copy.target}</TableHead>
+                    <TableHead>{copy.signal}</TableHead>
+                    <TableHead className="text-right">{copy.impact}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1871,10 +2194,10 @@ export function PropertyDashboardClient({
                       <TableCell><Badge variant="outline" className="rounded-full">{row.type}</Badge></TableCell>
                       <TableCell className="font-medium">{row.target}</TableCell>
                       <TableCell className="text-muted-foreground">{row.signal}</TableCell>
-                      <TableCell className="text-right">{formatNumber(row.impact)}</TableCell>
+                      <TableCell className="text-right">{formatNumber(row.impact, language)}</TableCell>
                     </TableRow>
                   )) : (
-                    <TableRow><TableCell colSpan={4} className="py-10 text-center text-muted-foreground">No opportunity evidence matches this search.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={4} className="py-10 text-center text-muted-foreground">{copy.noOpportunityEvidence}</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -1885,18 +2208,18 @@ export function PropertyDashboardClient({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Changed page</TableHead>
-                    <TableHead className="text-right">Last changed</TableHead>
+                    <TableHead>{copy.changedPage}</TableHead>
+                    <TableHead className="text-right">{copy.lastChanged}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredChangeRows.length ? filteredChangeRows.map((row) => (
                     <TableRow key={row.url}>
                       <TableCell className="font-medium">{row.url}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">{row.lastChangedAt ? new Date(row.lastChangedAt).toLocaleString() : "—"}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{row.lastChangedAt ? new Date(row.lastChangedAt).toLocaleString(getDashboardLocale(language)) : "—"}</TableCell>
                     </TableRow>
                   )) : (
-                    <TableRow><TableCell colSpan={2} className="py-10 text-center text-muted-foreground">No tracked page changes match this search.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={2} className="py-10 text-center text-muted-foreground">{copy.noTrackedChanges}</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -2721,18 +3044,18 @@ export function PropertyDashboardClient({
                 <Badge variant="outline" className="rounded-full">{selectedAction.owner}</Badge>
                 <Badge variant="outline" className="rounded-full">{selectedAction.effort}</Badge>
                 <Badge variant="outline" className="rounded-full">{selectedAction.successWindow}</Badge>
-                <Badge variant="outline" className="rounded-full">System #{selectedAction.systemRank ?? selectedAction.rank}</Badge>
-                {selectedAction.priorityOverride !== "none" ? <Badge variant="outline" className="rounded-full">Override: {selectedAction.priorityOverride}</Badge> : null}
+                <Badge variant="outline" className="rounded-full">{copy.system} #{selectedAction.systemRank ?? selectedAction.rank}</Badge>
+                {selectedAction.priorityOverride !== "none" ? <Badge variant="outline" className="rounded-full">{copy.override}: {selectedAction.priorityOverride}</Badge> : null}
                 {selectedAction.freshnessNote ? <Badge variant="outline" className="rounded-full">{selectedAction.freshnessNote}</Badge> : null}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-2xl border border-border/70 p-4">
-                  <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">First visible win</div>
+                  <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{copy.firstVisibleWin}</div>
                   <div className="mt-2 font-medium">{selectedAction.firstVisibleWin}</div>
                 </div>
                 <div className="rounded-2xl border border-border/70 p-4">
-                  <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Confidence</div>
+                  <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{copy.confidence}</div>
                   <div className="mt-2 font-medium">{selectedAction.confidenceLabel}</div>
                   <p className="mt-1 text-sm text-muted-foreground">{selectedAction.confidenceBasis}</p>
                 </div>
@@ -2746,7 +3069,7 @@ export function PropertyDashboardClient({
 
               <div className="grid gap-4">
                 <div className="rounded-2xl border border-border/70 p-4">
-                  <div className="flex items-center gap-2 font-medium"><CheckCircle2 className="size-4 text-emerald-600" /> Recommended actions</div>
+                  <div className="flex items-center gap-2 font-medium"><CheckCircle2 className="size-4 text-emerald-600" /> {copy.recommendedActions}</div>
                   <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                     {selectedAction.detail.recommendedActions.map((item) => (
                       <li key={item} className="flex gap-2"><ArrowRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" />{item}</li>
@@ -2755,7 +3078,7 @@ export function PropertyDashboardClient({
                 </div>
 
                 <div className="rounded-2xl border border-border/70 p-4">
-                  <div className="flex items-center gap-2 font-medium"><Clock3 className="size-4 text-primary" /> Expected outcome</div>
+                  <div className="flex items-center gap-2 font-medium"><Clock3 className="size-4 text-primary" /> {copy.expectedOutcome}</div>
                   <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                     {selectedAction.detail.expectedOutcome.map((item) => (
                       <li key={item} className="flex gap-2"><ArrowRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" />{item}</li>
@@ -2764,7 +3087,7 @@ export function PropertyDashboardClient({
                 </div>
 
                 <div className="rounded-2xl border border-border/70 p-4">
-                  <div className="flex items-center gap-2 font-medium"><AlertTriangle className="size-4 text-amber-600" /> Evidence</div>
+                  <div className="flex items-center gap-2 font-medium"><AlertTriangle className="size-4 text-amber-600" /> {copy.evidence}</div>
                   <div className="mt-3 space-y-2 text-sm text-muted-foreground">
                     {selectedAction.detail.evidence.deterministic.map((fact) => (
                       <div key={`${fact.label}:${fact.value}`} className="flex items-start justify-between gap-4 rounded-xl border border-border/60 px-3 py-2">
@@ -2784,24 +3107,24 @@ export function PropertyDashboardClient({
         <SheetContent side="right" className="w-full max-w-xl overflow-y-auto">
           <div className="space-y-6">
             <SheetHeader>
-              <SheetTitle>Snapshot trail entry</SheetTitle>
+              <SheetTitle>{copy.snapshotTrailEntry}</SheetTitle>
               <SheetDescription>
-                Review the frozen window, freshness state, and top-line metrics captured from the live dashboard.
+                {copy.snapshotTrailDescription}
               </SheetDescription>
             </SheetHeader>
 
             {snapshotDetailLoading ? (
               <div className="rounded-2xl border border-zinc-200/90 px-4 py-6 text-sm text-muted-foreground dark:border-white/10">
-                Loading snapshot details…
+                {copy.loadingSnapshotDetails}
               </div>
             ) : snapshotDetail ? (
               <>
                 <div className="rounded-[24px] border border-zinc-200/95 bg-white/86 p-4 shadow-[0_16px_34px_-24px_rgba(15,23,42,0.28)] dark:border-white/10 dark:bg-white/[0.04]">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">Captured window</p>
+                      <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">{copy.capturedWindow}</p>
                       <h3 className="mt-1 text-lg font-semibold">
-                        {formatDateLabel(snapshotDetail.startDate)} to {formatDateLabel(snapshotDetail.endDate)}
+                        {formatDateLabel(snapshotDetail.startDate, language)} to {formatDateLabel(snapshotDetail.endDate, language)}
                       </h3>
                     </div>
                     <Badge variant="outline" className="rounded-full">
@@ -2810,12 +3133,12 @@ export function PropertyDashboardClient({
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl border border-zinc-200/90 p-3 dark:border-white/10">
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Comparison</div>
-                      <div className="mt-1 text-sm font-medium">{formatCompareModeLabel(snapshotDetail.compareMode)}</div>
+                      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{copy.comparison}</div>
+                      <div className="mt-1 text-sm font-medium">{formatCompareModeLabel(snapshotDetail.compareMode, language)}</div>
                     </div>
                     <div className="rounded-2xl border border-zinc-200/90 p-3 dark:border-white/10">
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Captured at</div>
-                      <div className="mt-1 text-sm font-medium">{new Date(snapshotDetail.createdAt).toLocaleString()}</div>
+                      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{copy.capturedAt}</div>
+                      <div className="mt-1 text-sm font-medium">{new Date(snapshotDetail.createdAt).toLocaleString(getDashboardLocale(language))}</div>
                     </div>
                   </div>
                 </div>
@@ -2823,27 +3146,27 @@ export function PropertyDashboardClient({
                 {snapshotDetail.overview ? (
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl border border-zinc-200/90 p-4 dark:border-white/10">
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Clicks</div>
-                      <div className="mt-2 text-3xl font-semibold">{formatNumber(snapshotDetail.overview.clicks)}</div>
+                      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{copy.clicks}</div>
+                      <div className="mt-2 text-3xl font-semibold">{formatNumber(snapshotDetail.overview.clicks, language)}</div>
                     </div>
                     <div className="rounded-2xl border border-zinc-200/90 p-4 dark:border-white/10">
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Impressions</div>
-                      <div className="mt-2 text-3xl font-semibold">{formatNumber(snapshotDetail.overview.impressions)}</div>
+                      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{copy.impressions}</div>
+                      <div className="mt-2 text-3xl font-semibold">{formatNumber(snapshotDetail.overview.impressions, language)}</div>
                     </div>
                     <div className="rounded-2xl border border-zinc-200/90 p-4 dark:border-white/10">
                       <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">CTR</div>
                       <div className="mt-2 text-3xl font-semibold">{formatPercent(snapshotDetail.overview.ctr)}</div>
                     </div>
                     <div className="rounded-2xl border border-zinc-200/90 p-4 dark:border-white/10">
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Captured actions</div>
-                      <div className="mt-2 text-3xl font-semibold">{formatNumber(snapshotDetail.actionCount)}</div>
+                      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{copy.capturedActions}</div>
+                      <div className="mt-2 text-3xl font-semibold">{formatNumber(snapshotDetail.actionCount, language)}</div>
                     </div>
                   </div>
                 ) : null}
 
                 {snapshotDetail.freshnessSummary?.sources?.length ? (
                   <div className="space-y-3">
-                    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">Freshness at capture time</div>
+                    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">{copy.freshnessAtCapture}</div>
                     {snapshotDetail.freshnessSummary.sources.map((source) => (
                       <div key={source.source} className="rounded-2xl border border-zinc-200/90 px-4 py-3 dark:border-white/10">
                         <div className="flex items-center justify-between gap-3">
@@ -2858,7 +3181,7 @@ export function PropertyDashboardClient({
               </>
             ) : (
               <div className="rounded-2xl border border-zinc-200/90 px-4 py-6 text-sm text-muted-foreground dark:border-white/10">
-                Snapshot details are not available for this item.
+                {copy.noSnapshotDetails}
               </div>
             )}
           </div>
@@ -2868,24 +3191,24 @@ export function PropertyDashboardClient({
       <Dialog open={isFreshnessDialogOpen} onOpenChange={setIsFreshnessDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Recent data may still be incomplete</DialogTitle>
+            <DialogTitle>{copy.freshnessDialogTitle}</DialogTitle>
             <DialogDescription>
-              The selected end date runs past the latest safe coverage for at least one source. Keep the selected dates if you want the freshest available view, or shift the window back to the latest safe date.
+              {copy.freshnessDialogDescription}
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
             {dashboard.freshness.sources.filter((source) => source.safeLatestDate).map((source) => (
               <div key={source.source}>
-                {getSourceLabel(source.source)} is complete through {formatSourceDateCoverage(source.safeLatestDate)}.
+                {getSourceLabel(source.source)} {copy.completeThrough} {formatSourceDateCoverage(source.safeLatestDate)}.
               </div>
             ))}
           </div>
           <DialogFooter className="gap-2 sm:justify-between">
             <Button variant="outline" onClick={applyShiftedWindow}>
-              Shift to safe window
+              {copy.shiftSafeWindow}
             </Button>
             <Button onClick={applyLatestAnyway}>
-              Use latest available data
+              {copy.useLatestData}
             </Button>
           </DialogFooter>
         </DialogContent>

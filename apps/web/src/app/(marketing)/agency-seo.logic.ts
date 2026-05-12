@@ -47,6 +47,14 @@ export function getAgencyHomePath(language: AgencyLandingLanguage) {
   return AGENCY_HOME_PATHS[language];
 }
 
+export function getAgencyPricingPath(language: AgencyLandingLanguage) {
+  return `${getAgencyHomePath(language)}/pricing`;
+}
+
+export function getAgencyDemoPath(language: AgencyLandingLanguage) {
+  return `${getAgencyHomePath(language)}/demo`;
+}
+
 export function getAgencySeoTopicPath(language: AgencyLandingLanguage) {
   return `${getAgencyHomePath(language)}/${AGENCY_SEO_TOPIC_SLUGS[language]}`;
 }
@@ -253,14 +261,14 @@ function parseEuroPrice(price: string) {
   return digits.length > 0 ? digits : "0";
 }
 
-export function buildPricingJsonLd() {
+export function buildPricingJsonLd(language: AgencyLandingLanguage = "en") {
   const offers = PUBLIC_PRICING_PLANS.map((plan) => ({
     "@type": "Offer",
-    name: plan.name.en,
-    description: plan.description.en,
-    price: parseEuroPrice(plan.price.en),
+    name: plan.name[language],
+    description: plan.description[language],
+    price: parseEuroPrice(plan.price[language]),
     priceCurrency: "EUR",
-    url: `${AGENCY_PRODUCTION_BASE_URL}/pricing`,
+    url: `${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath(language)}`,
     availability: "https://schema.org/InStock",
   }));
 

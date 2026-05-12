@@ -48,6 +48,10 @@ test("explicit markdown wins when html is only accepted by wildcard", () => {
 
 test("markdown negotiation is limited to public marketing routes", () => {
   assert.equal(shouldServeMarkdown("text/markdown", "/pricing"), true);
+  assert.equal(shouldServeMarkdown("text/markdown", "/en/pricing"), true);
+  assert.equal(shouldServeMarkdown("text/markdown", "/de/pricing"), true);
+  assert.equal(shouldServeMarkdown("text/markdown", "/en/demo"), true);
+  assert.equal(shouldServeMarkdown("text/markdown", "/de/demo"), true);
   assert.equal(shouldServeMarkdown("text/markdown", "/de/privacy"), true);
   assert.equal(shouldServeMarkdown("text/markdown", "/de/terms"), true);
   assert.equal(shouldServeMarkdown("text/markdown", "/de/impressum"), true);
@@ -89,6 +93,10 @@ test("robots txt includes content signals and preserves crawler boundaries", () 
   assert.match(robots, /Sitemap: https:\/\/webhealth\.devbrew\.dev\/sitemap\.xml/);
   assert.match(robots, /Disallow: \/api/);
   assert.match(robots, /Allow: \/en/);
+  assert.match(robots, /Allow: \/en\/pricing/);
+  assert.match(robots, /Allow: \/de\/pricing/);
+  assert.match(robots, /Allow: \/en\/demo/);
+  assert.match(robots, /Allow: \/de\/demo/);
   assert.match(robots, /Allow: \/de\/privacy/);
   assert.match(robots, /Allow: \/de\/terms/);
   assert.match(robots, /Allow: \/de\/impressum/);
@@ -109,6 +117,27 @@ test("localized legal markdown documents are available", () => {
   assert.ok(document);
   assert.match(document?.markdown ?? "", /Datenschutzhinweise/);
   assert.doesNotMatch(document?.markdown ?? "", /\/privacy\?lang=de/);
+});
+
+test("localized pricing markdown documents are available", () => {
+  const englishDocument = getMarkdownDocument("/en/pricing");
+  const germanDocument = getMarkdownDocument("/de/pricing");
+
+  assert.ok(englishDocument);
+  assert.ok(germanDocument);
+  assert.match(englishDocument?.markdown ?? "", /WebHealth pricing/);
+  assert.match(germanDocument?.markdown ?? "", /WebHealth Preise/);
+});
+
+test("localized demo markdown documents are available", () => {
+  const englishDocument = getMarkdownDocument("/en/demo");
+  const germanDocument = getMarkdownDocument("/de/demo");
+
+  assert.ok(englishDocument);
+  assert.ok(germanDocument);
+  assert.match(englishDocument?.markdown ?? "", /WebHealth demo/);
+  assert.match(germanDocument?.markdown ?? "", /öffentliche Demo/);
+  assert.doesNotMatch(germanDocument?.markdown ?? "", /\/dashboard|\/api|\/properties/);
 });
 
 test("llms txt explains public scope without exposing private discovery routes", () => {

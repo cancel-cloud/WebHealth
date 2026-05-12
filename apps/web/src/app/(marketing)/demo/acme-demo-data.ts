@@ -1,4 +1,5 @@
 import type { LiveDashboardData } from "@webhealth/shared/lib/live-dashboard";
+import type { AgencyLandingLanguage } from "../agency-homepage.logic";
 
 export const ACME_DEMO_BRAND_COLORS = {
   primary: "#2563eb",
@@ -24,6 +25,7 @@ function trendPoint(
 }
 
 function action(params: {
+  language: AgencyLandingLanguage;
   id: string;
   rank: number;
   area: "technical" | "content" | "onpage" | "analytics";
@@ -41,6 +43,8 @@ function action(params: {
   systemScore: number;
   source?: "rules" | "ai" | "rules_ai";
 }): LiveDashboardData["actions"][number] {
+  const isGerman = params.language === "de";
+
   return {
     id: params.id,
     rank: params.rank,
@@ -49,49 +53,88 @@ function action(params: {
     whyNow: params.whyNow,
     detail: {
       observed: [
-        "Search demand is present, but the landing page is not earning its expected share.",
-        "The affected page has enough impressions to validate the recommendation.",
+        isGerman
+          ? "Suchnachfrage ist vorhanden, aber die Landingpage holt nicht den erwarteten Anteil."
+          : "Search demand is present, but the landing page is not earning its expected share.",
+        isGerman
+          ? "Die betroffene Seite hat genug Impressionen, um die Empfehlung zu validieren."
+          : "The affected page has enough impressions to validate the recommendation.",
       ],
       likelyCauses: [
-        "Title and section copy do not match the highest-intent query cluster.",
-        "Internal links do not reinforce the target page strongly enough.",
+        isGerman
+          ? "Title und Abschnittstexte passen nicht sauber zum wichtigsten Suchintent-Cluster."
+          : "Title and section copy do not match the highest-intent query cluster.",
+        isGerman
+          ? "Interne Links stärken die Zielseite noch nicht deutlich genug."
+          : "Internal links do not reinforce the target page strongly enough.",
       ],
       recommendedActions: [
-        "Rewrite the title and first section around the target query.",
-        "Add one supporting internal link from a high-traffic page.",
-        "Check the page again after the next crawl and Search Console import.",
+        isGerman
+          ? "Title und ersten Abschnitt auf die Ziel-Query ausrichten."
+          : "Rewrite the title and first section around the target query.",
+        isGerman
+          ? "Einen unterstützenden internen Link von einer trafficstarken Seite ergänzen."
+          : "Add one supporting internal link from a high-traffic page.",
+        isGerman
+          ? "Seite nach dem nächsten Crawl und Search-Console-Import erneut prüfen."
+          : "Check the page again after the next crawl and Search Console import.",
       ],
       whyThisHelps: [
-        "The fix aligns the page with search intent that already exists.",
-        "The change is narrow enough to measure within the next reporting window.",
+        isGerman
+          ? "Der Fix richtet die Seite auf Suchintention aus, die bereits vorhanden ist."
+          : "The fix aligns the page with search intent that already exists.",
+        isGerman
+          ? "Die Änderung ist eng genug, um sie im nächsten Reporting-Fenster zu messen."
+          : "The change is narrow enough to measure within the next reporting window.",
       ],
       expectedOutcome: [
-        "Higher CTR for the target query cluster.",
-        "More stable rankings for the affected page.",
+        isGerman
+          ? "Höhere CTR im Ziel-Query-Cluster."
+          : "Higher CTR for the target query cluster.",
+        isGerman
+          ? "Stabilere Rankings für die betroffene Seite."
+          : "More stable rankings for the affected page.",
       ],
       evidence: {
         deterministic: [
-          { label: "Affected target", value: params.targetKey },
-          { label: "System rank", value: `#${params.rank}` },
-          { label: "Estimated impact", value: `${Math.round(params.systemScore)} priority score` },
+          { label: isGerman ? "Betroffenes Ziel" : "Affected target", value: params.targetKey },
+          { label: isGerman ? "System-Rang" : "System rank", value: `#${params.rank}` },
+          {
+            label: isGerman ? "Geschätzter Impact" : "Estimated impact",
+            value: isGerman
+              ? `${Math.round(params.systemScore)} Prioritätspunkte`
+              : `${Math.round(params.systemScore)} priority score`,
+          },
         ],
-        inferred: ["Recommendation generated from GSC, GA4, and crawl signals."],
+        inferred: [
+          isGerman
+            ? "Empfehlung aus GSC-, GA4- und Crawl-Signalen erzeugt."
+            : "Recommendation generated from GSC, GA4, and crawl signals.",
+        ],
       },
     },
     recommendationClass: params.recommendationClass,
     primaryMetric: params.primaryMetric,
     expectedDirection: params.recommendationClass === "protect" ? "preserve" : "improve",
     successWindow: params.rank <= 2 ? "7-21d" : "14-42d",
-    successSignal: "Clicks, CTR, and affected-page movement improve in the next dashboard window.",
+    successSignal: isGerman
+      ? "Klicks, CTR und Bewegung der betroffenen Seite verbessern sich im nächsten Dashboard-Fenster."
+      : "Clicks, CTR, and affected-page movement improve in the next dashboard window.",
     timeToValue: params.rank <= 2 ? "days" : "weeks",
-    firstVisibleWin: "The next dashboard refresh shows whether the page moved in the expected direction.",
+    firstVisibleWin: isGerman
+      ? "Der nächste Dashboard-Refresh zeigt, ob sich die Seite in die erwartete Richtung bewegt hat."
+      : "The next dashboard refresh shows whether the page moved in the expected direction.",
     valueAtStake: params.valueAtStake,
     confidenceLabel: params.rank <= 3 ? "high" : "medium",
     confidenceScore: params.rank <= 3 ? 0.84 : 0.68,
-    confidenceBasis: "Multiple data sources point to the same priority.",
+    confidenceBasis: isGerman
+      ? "Mehrere Datenquellen zeigen auf dieselbe Priorität."
+      : "Multiple data sources point to the same priority.",
     owner: params.owner,
     effort: params.effort,
-    priorityReason: "Ranked by impact, confidence, and freshness.",
+    priorityReason: isGerman
+      ? "Nach Impact, Sicherheit und Datenfrische priorisiert."
+      : "Ranked by impact, confidence, and freshness.",
     targetPage: params.targetKey.startsWith("/") ? `https://acmebakery.example${params.targetKey}` : null,
     supportingQueries: ["custom birthday cakes", "wedding cupcakes near me", "same day bakery pickup"],
     affectedTargets: [
@@ -121,13 +164,19 @@ function action(params: {
   } as LiveDashboardData["actions"][number];
 }
 
-const actions = [
+function getActions(language: AgencyLandingLanguage) {
+  const isGerman = language === "de";
+
+  return [
   action({
+    language,
     id: "acme-action-1",
     rank: 1,
     area: "content",
-    title: "Recover the custom cake page from query drift",
-    whyNow: "The page still earns impressions for high-intent cake searches, but clicks fell while competitors gained richer titles.",
+    title: isGerman ? "Custom-Cake-Seite aus Query-Drift zurückholen" : "Recover the custom cake page from query drift",
+    whyNow: isGerman
+      ? "Die Seite bekommt weiter Impressionen für kaufnahe Cake-Suchen, aber Klicks sind gefallen, während Wettbewerber stärkere Titles gewonnen haben."
+      : "The page still earns impressions for high-intent cake searches, but clicks fell while competitors gained richer titles.",
     targetKey: "/custom-cakes",
     actionFamily: "content_refresh",
     causeFamily: "content_decay",
@@ -140,11 +189,14 @@ const actions = [
     systemScore: 94,
   }),
   action({
+    language,
     id: "acme-action-2",
     rank: 2,
     area: "onpage",
-    title: "Lift CTR for wedding cupcake searches",
-    whyNow: "Acme ranks on page one for wedding cupcake queries, but the current snippet underperforms the site benchmark.",
+    title: isGerman ? "CTR für Wedding-Cupcake-Suchen steigern" : "Lift CTR for wedding cupcake searches",
+    whyNow: isGerman
+      ? "Acme rankt für Wedding-Cupcake-Queries auf Seite eins, aber das aktuelle Snippet liegt unter dem Website-Benchmark."
+      : "Acme ranks on page one for wedding cupcake queries, but the current snippet underperforms the site benchmark.",
     targetKey: "wedding cupcakes near me",
     actionFamily: "snippet_lift",
     causeFamily: "ctr_gap",
@@ -157,11 +209,14 @@ const actions = [
     systemScore: 88,
   }),
   action({
+    language,
     id: "acme-action-3",
     rank: 3,
     area: "technical",
-    title: "Fix slow mobile LCP on the bakery menu",
-    whyNow: "The menu page drives qualified mobile traffic, but the latest crawl flags oversized hero imagery.",
+    title: isGerman ? "Langsamen mobilen LCP auf der Menüseite beheben" : "Fix slow mobile LCP on the bakery menu",
+    whyNow: isGerman
+      ? "Die Menüseite bringt qualifizierten mobilen Traffic, aber der letzte Crawl markiert übergroße Hero-Bilder."
+      : "The menu page drives qualified mobile traffic, but the latest crawl flags oversized hero imagery.",
     targetKey: "/menu",
     actionFamily: "performance_fix",
     causeFamily: "performance_core_web_vitals",
@@ -174,11 +229,14 @@ const actions = [
     systemScore: 81,
   }),
   action({
+    language,
     id: "acme-action-4",
     rank: 4,
     area: "content",
-    title: "Create a same-day pickup landing section",
-    whyNow: "Near-win pickup queries have enough impressions to justify a targeted section before weekend demand spikes.",
+    title: isGerman ? "Same-Day-Pickup-Bereich aufbauen" : "Create a same-day pickup landing section",
+    whyNow: isGerman
+      ? "Near-Win-Pickup-Queries haben genug Impressionen, um vor dem Wochenend-Peak einen gezielten Abschnitt zu rechtfertigen."
+      : "Near-win pickup queries have enough impressions to justify a targeted section before weekend demand spikes.",
     targetKey: "same day bakery pickup",
     actionFamily: "near_win_expansion",
     causeFamily: "near_win",
@@ -192,11 +250,14 @@ const actions = [
     source: "ai",
   }),
   action({
+    language,
     id: "acme-action-5",
     rank: 5,
     area: "analytics",
-    title: "Check checkout tracking for cake deposits",
-    whyNow: "GA4 sessions rose while checkout-start events stayed flat, which can hide whether SEO improvements convert.",
+    title: isGerman ? "Checkout-Tracking für Cake Deposits prüfen" : "Check checkout tracking for cake deposits",
+    whyNow: isGerman
+      ? "GA4-Sessions steigen, während Checkout-Start-Events flach bleiben. Dadurch bleibt unklar, ob SEO-Verbesserungen konvertieren."
+      : "GA4 sessions rose while checkout-start events stayed flat, which can hide whether SEO improvements convert.",
     targetKey: "/checkout",
     actionFamily: "analytics_quality",
     causeFamily: "ga4_tracking_gap",
@@ -209,11 +270,14 @@ const actions = [
     systemScore: 66,
   }),
   action({
+    language,
     id: "acme-action-6",
     rank: 6,
     area: "technical",
-    title: "Repair blocked crawl path for seasonal cake pages",
-    whyNow: "The latest crawl found seasonal cake URLs linked from the homepage but excluded by an outdated robots rule.",
+    title: isGerman ? "Blockierten Crawl-Pfad für Seasonal-Cake-Seiten reparieren" : "Repair blocked crawl path for seasonal cake pages",
+    whyNow: isGerman
+      ? "Der letzte Crawl fand Seasonal-Cake-URLs, die von der Homepage verlinkt sind, aber durch eine veraltete Robots-Regel ausgeschlossen werden."
+      : "The latest crawl found seasonal cake URLs linked from the homepage but excluded by an outdated robots rule.",
     targetKey: "/seasonal-cakes",
     actionFamily: "technical_crawl_fix",
     causeFamily: "technical_crawl_blocked",
@@ -225,9 +289,14 @@ const actions = [
     valueAtStake: { clicksAtRisk: 90, trafficExposure: 2600 },
     systemScore: 58,
   }),
-];
+  ];
+}
 
-export const ACME_DEMO_DASHBOARD: LiveDashboardData = {
+export function getAcmeDemoDashboard(language: AgencyLandingLanguage = "en"): LiveDashboardData {
+  const isGerman = language === "de";
+  const actions = getActions(language);
+
+  return {
   property: {
     id: "gsc_sc-domain:acmebakery.example",
     name: "Acme Bakery",
@@ -252,21 +321,21 @@ export const ACME_DEMO_DASHBOARD: LiveDashboardData = {
         state: "complete",
         safeLatestDate: "2026-05-08",
         lastAvailableDate: "2026-05-08",
-        note: "Search Console imported through May 8.",
+        note: isGerman ? "Search Console bis 8. Mai importiert." : "Search Console imported through May 8.",
       },
       {
         source: "ga4",
         state: "complete",
         safeLatestDate: "2026-05-08",
         lastAvailableDate: "2026-05-08",
-        note: "GA4 traffic and user metrics are current.",
+        note: isGerman ? "GA4-Traffic und Nutzer-Metriken sind aktuell." : "GA4 traffic and user metrics are current.",
       },
       {
         source: "crawl",
         state: "complete",
         safeLatestDate: "2026-05-08",
         lastAvailableDate: "2026-05-08",
-        note: "Technical crawl captured 58 pages.",
+        note: isGerman ? "Technischer Crawl hat 58 Seiten erfasst." : "Technical crawl captured 58 pages.",
         capturedAt: "2026-05-08T08:40:00.000Z",
         ageInDays: 1,
       },
@@ -276,9 +345,13 @@ export const ACME_DEMO_DASHBOARD: LiveDashboardData = {
   propertyUpdateState: null,
   operatingContext: {
     status: "slipping",
-    summary: "Acme is gaining branded visibility, but key commercial pages need content and performance work before the next client update.",
-    topRisk: "Custom cake traffic is slipping on mobile.",
-    topOpportunity: "Wedding cupcake and pickup searches are close enough to lift with focused page updates.",
+    summary: isGerman
+      ? "Acme gewinnt Brand-Sichtbarkeit, aber wichtige kommerzielle Seiten brauchen Content- und Performance-Arbeit vor dem nächsten Kunden-Update."
+      : "Acme is gaining branded visibility, but key commercial pages need content and performance work before the next client update.",
+    topRisk: isGerman ? "Custom-Cake-Traffic rutscht mobil ab." : "Custom cake traffic is slipping on mobile.",
+    topOpportunity: isGerman
+      ? "Wedding-Cupcake- und Pickup-Suchen sind nah genug, um mit fokussierten Seitenupdates zu wachsen."
+      : "Wedding cupcake and pickup searches are close enough to lift with focused page updates.",
   },
   overview: {
     clicks: 8340,
@@ -328,11 +401,11 @@ export const ACME_DEMO_DASHBOARD: LiveDashboardData = {
   ],
   evidence: {
     queryOpportunities: [
-      { query: "custom birthday cakes", clicks: 610, impressions: 12900, ctr: 0.0473, position: 5.2, expectedCtr: 0.061, lostClicksEstimate: 177, opportunityScore: 91, recommendedAction: "Refresh the custom cakes page title and intro." },
-      { query: "wedding cupcakes near me", clicks: 184, impressions: 7200, ctr: 0.0256, position: 7.4, expectedCtr: 0.043, lostClicksEstimate: 126, opportunityScore: 88, recommendedAction: "Rewrite title and meta copy around wedding pickup intent." },
-      { query: "same day bakery pickup", clicks: 142, impressions: 4300, ctr: 0.033, position: 8.1, expectedCtr: 0.051, lostClicksEstimate: 77, opportunityScore: 74, recommendedAction: "Add pickup details to the homepage and menu page." },
-      { query: "gluten free cupcakes", clicks: 96, impressions: 3800, ctr: 0.0253, position: 9.2, expectedCtr: 0.041, lostClicksEstimate: 60, opportunityScore: 68, recommendedAction: "Add dietary filter copy and internal links." },
-      { query: "bakery catering office", clicks: 88, impressions: 2900, ctr: 0.0303, position: 10.6, expectedCtr: 0.039, lostClicksEstimate: 25, opportunityScore: 56, recommendedAction: "Create a catering FAQ section." },
+      { query: "custom birthday cakes", clicks: 610, impressions: 12900, ctr: 0.0473, position: 5.2, expectedCtr: 0.061, lostClicksEstimate: 177, opportunityScore: 91, recommendedAction: isGerman ? "Title und Einstieg der Custom-Cakes-Seite aktualisieren." : "Refresh the custom cakes page title and intro." },
+      { query: "wedding cupcakes near me", clicks: 184, impressions: 7200, ctr: 0.0256, position: 7.4, expectedCtr: 0.043, lostClicksEstimate: 126, opportunityScore: 88, recommendedAction: isGerman ? "Title und Meta Copy auf Wedding-Pickup-Intent ausrichten." : "Rewrite title and meta copy around wedding pickup intent." },
+      { query: "same day bakery pickup", clicks: 142, impressions: 4300, ctr: 0.033, position: 8.1, expectedCtr: 0.051, lostClicksEstimate: 77, opportunityScore: 74, recommendedAction: isGerman ? "Pickup-Details auf Homepage und Menüseite ergänzen." : "Add pickup details to the homepage and menu page." },
+      { query: "gluten free cupcakes", clicks: 96, impressions: 3800, ctr: 0.0253, position: 9.2, expectedCtr: 0.041, lostClicksEstimate: 60, opportunityScore: 68, recommendedAction: isGerman ? "Dietary-Filter-Copy und interne Links ergänzen." : "Add dietary filter copy and internal links." },
+      { query: "bakery catering office", clicks: 88, impressions: 2900, ctr: 0.0303, position: 10.6, expectedCtr: 0.039, lostClicksEstimate: 25, opportunityScore: 56, recommendedAction: isGerman ? "Catering-FAQ-Bereich erstellen." : "Create a catering FAQ section." },
     ],
     pageWinnersLosers: [
       { page: "/custom-cakes", clicksCurrent: 1480, clicksCompare: 1660, clicksDelta: -180, impressionsCurrent: 41200, impressionsCompare: 39800, impressionsDelta: 1400, status: "loser" },
@@ -342,9 +415,9 @@ export const ACME_DEMO_DASHBOARD: LiveDashboardData = {
       { page: "/catering", clicksCurrent: 318, clicksCompare: 394, clicksDelta: -76, impressionsCurrent: 8100, impressionsCompare: 8500, impressionsDelta: -400, status: "loser" },
     ],
     nearWins: [
-      { keyword: "same day bakery pickup", position: 8.1, impressions: 4300, clicks: 142, ctr: 0.033, targetLandingPage: "/same-day-pickup", action: "Add pickup availability copy and internal links.", estimatedImpact: 190 },
-      { keyword: "wedding cupcake boxes", position: 9.4, impressions: 3100, clicks: 78, ctr: 0.025, targetLandingPage: "/wedding-cupcakes", action: "Clarify box sizes and local pickup in the snippet.", estimatedImpact: 132 },
-      { keyword: "custom cake delivery", position: 10.2, impressions: 2700, clicks: 54, ctr: 0.02, targetLandingPage: "/custom-cakes", action: "Add delivery constraints and service-area copy.", estimatedImpact: 104 },
+      { keyword: "same day bakery pickup", position: 8.1, impressions: 4300, clicks: 142, ctr: 0.033, targetLandingPage: "/same-day-pickup", action: isGerman ? "Pickup-Verfügbarkeit und interne Links ergänzen." : "Add pickup availability copy and internal links.", estimatedImpact: 190 },
+      { keyword: "wedding cupcake boxes", position: 9.4, impressions: 3100, clicks: 78, ctr: 0.025, targetLandingPage: "/wedding-cupcakes", action: isGerman ? "Boxgrößen und lokalen Pickup im Snippet klarer machen." : "Clarify box sizes and local pickup in the snippet.", estimatedImpact: 132 },
+      { keyword: "custom cake delivery", position: 10.2, impressions: 2700, clicks: 54, ctr: 0.02, targetLandingPage: "/custom-cakes", action: isGerman ? "Liefergrenzen und Service-Area-Copy ergänzen." : "Add delivery constraints and service-area copy.", estimatedImpact: 104 },
     ],
     ctrGaps: [
       { query: "wedding cupcakes near me", impressions: 7200, actualCtr: 0.0256, benchmarkCtr: 0.043, positionBucket: 7, estimatedLostClicks: 126, confidence: 0.81, actionDetail: null },
@@ -368,4 +441,7 @@ export const ACME_DEMO_DASHBOARD: LiveDashboardData = {
     { id: "acme-snapshot-may", createdAt: "2026-05-08T09:00:00.000Z", freshnessState: "complete", startDate: "2026-04-11", endDate: "2026-05-08", compareMode: "previous_period" },
     { id: "acme-snapshot-april", createdAt: "2026-04-10T09:00:00.000Z", freshnessState: "complete", startDate: "2026-03-14", endDate: "2026-04-10", compareMode: "previous_period" },
   ],
-};
+  };
+}
+
+export const ACME_DEMO_DASHBOARD: LiveDashboardData = getAcmeDemoDashboard("en");

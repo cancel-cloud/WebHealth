@@ -5,7 +5,8 @@ import sitemap from "./sitemap";
 test("sitemap includes the public demo page", () => {
   const urls = sitemap().map((entry) => entry.url);
 
-  assert.ok(urls.includes("https://webhealth.devbrew.dev/demo"));
+  assert.ok(urls.includes("https://webhealth.devbrew.dev/de/demo"));
+  assert.ok(urls.includes("https://webhealth.devbrew.dev/en/demo"));
 });
 
 test("sitemap includes localized legal pages and no legacy legal URLs", () => {

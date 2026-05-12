@@ -3,6 +3,11 @@ const STANDALONE_AGENCY_PATHS = new Set([
   "/de",
   "/en",
   "/demo",
+  "/de/demo",
+  "/en/demo",
+  "/pricing",
+  "/de/pricing",
+  "/en/pricing",
   "/de/seo-reporting-tool-agenturen",
   "/en/seo-reporting-software-agencies",
 ]);
