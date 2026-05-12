@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { AgencyLandingLanguage } from "./agency-homepage.logic";
 import { AGENCY_FAQ_ITEMS } from "./agency-homepage.content";
+import { PUBLIC_PRICING_PLANS } from "@/lib/pricing";
 
 export const AGENCY_PRODUCTION_BASE_URL = "https://webhealth.devbrew.dev";
 
@@ -33,8 +34,8 @@ const AGENCY_SEO_DESCRIPTIONS: Record<AgencyLandingLanguage, string> = {
 };
 
 const AGENCY_TOPIC_TITLES: Record<AgencyLandingLanguage, string> = {
-  de: "SEO Reporting Tool für Agenturen | Monatsreports zu Maßnahmen",
-  en: "SEO Reporting Software for Agencies | Monthly Reports to Action",
+  de: "SEO Reporting Tool für Agenturen — Monats-Snapshots",
+  en: "SEO Reporting Software for Agencies — Monthly Snapshots",
 };
 
 const AGENCY_TOPIC_DESCRIPTIONS: Record<AgencyLandingLanguage, string> = {
@@ -164,37 +165,108 @@ export function buildAgencyJsonLd(
 ) {
   const pagePath = page === "home" ? getAgencyHomePath(language) : getAgencySeoTopicPath(language);
   const url = `${AGENCY_PRODUCTION_BASE_URL}${pagePath}`;
+  const graph: Array<Record<string, unknown>> = [
+    {
+      "@type": "Organization",
+      "@id": `${AGENCY_PRODUCTION_BASE_URL}/#organization`,
+      name: "DevBrew",
+      url: AGENCY_PRODUCTION_BASE_URL,
+      brand: {
+        "@type": "Brand",
+        name: "WebHealth",
+      },
+    },
+    {
+      "@type": "Service",
+      "@id": `${url}#service`,
+      name:
+        language === "de"
+          ? "Founder-led SEO Reporting Pilot für Agenturen"
+          : "Founder-led SEO Reporting Pilot for Agencies",
+      serviceType:
+        language === "de"
+          ? "SEO Reporting Tool für Agenturen"
+          : "SEO reporting software for agencies",
+      provider: {
+        "@id": `${AGENCY_PRODUCTION_BASE_URL}/#organization`,
+      },
+      areaServed: language === "de" ? ["DE", "AT", "CH"] : "Europe",
+      url,
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": `${AGENCY_PRODUCTION_BASE_URL}/#software`,
+      name: "WebHealth",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      offers: {
+        "@type": "Offer",
+        price: "149",
+        priceCurrency: "EUR",
+        availability: "https://schema.org/LimitedAvailability",
+      },
+      url,
+    },
+    {
+      "@type": "FAQPage",
+      "@id": `${url}#faq`,
+      mainEntity: AGENCY_FAQ_ITEMS.map((item) => ({
+        "@type": "Question",
+        name: item.question[language],
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.answer[language],
+        },
+      })),
+    },
+  ];
+
+  if (page === "topic") {
+    graph.push({
+      "@type": "BreadcrumbList",
+      "@id": `${url}#breadcrumb`,
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: language === "de" ? "Startseite" : "Homepage",
+          item: `${AGENCY_PRODUCTION_BASE_URL}${getAgencyHomePath(language)}`,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: AGENCY_TOPIC_TITLES[language],
+          item: url,
+        },
+      ],
+    });
+  }
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": graph,
+  };
+}
+
+function parseEuroPrice(price: string) {
+  const digits = price.replace(/[^\d]/g, "");
+  return digits.length > 0 ? digits : "0";
+}
+
+export function buildPricingJsonLd() {
+  const offers = PUBLIC_PRICING_PLANS.map((plan) => ({
+    "@type": "Offer",
+    name: plan.name.en,
+    description: plan.description.en,
+    price: parseEuroPrice(plan.price.en),
+    priceCurrency: "EUR",
+    url: `${AGENCY_PRODUCTION_BASE_URL}/pricing`,
+    availability: "https://schema.org/InStock",
+  }));
 
   return {
     "@context": "https://schema.org",
     "@graph": [
-      {
-        "@type": "Organization",
-        "@id": `${AGENCY_PRODUCTION_BASE_URL}/#organization`,
-        name: "DevBrew",
-        url: AGENCY_PRODUCTION_BASE_URL,
-        brand: {
-          "@type": "Brand",
-          name: "WebHealth",
-        },
-      },
-      {
-        "@type": "Service",
-        "@id": `${url}#service`,
-        name:
-          language === "de"
-            ? "Founder-led SEO Reporting Pilot für Agenturen"
-            : "Founder-led SEO Reporting Pilot for Agencies",
-        serviceType:
-          language === "de"
-            ? "SEO Reporting Tool für Agenturen"
-            : "SEO reporting software for agencies",
-        provider: {
-          "@id": `${AGENCY_PRODUCTION_BASE_URL}/#organization`,
-        },
-        areaServed: language === "de" ? ["DE", "AT", "CH"] : "Europe",
-        url,
-      },
       {
         "@type": "SoftwareApplication",
         "@id": `${AGENCY_PRODUCTION_BASE_URL}/#software`,
@@ -202,24 +274,13 @@ export function buildAgencyJsonLd(
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
         offers: {
-          "@type": "Offer",
-          price: "149",
+          "@type": "AggregateOffer",
           priceCurrency: "EUR",
-          availability: "https://schema.org/LimitedAvailability",
+          lowPrice: "0",
+          highPrice: "149",
+          offerCount: String(offers.length),
+          offers,
         },
-        url,
-      },
-      {
-        "@type": "FAQPage",
-        "@id": `${url}#faq`,
-        mainEntity: AGENCY_FAQ_ITEMS.map((item) => ({
-          "@type": "Question",
-          name: item.question[language],
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: item.answer[language],
-          },
-        })),
       },
     ],
   };

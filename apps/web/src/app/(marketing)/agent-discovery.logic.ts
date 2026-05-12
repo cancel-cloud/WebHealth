@@ -10,6 +10,14 @@ import {
   getAgencyHomePath,
   getAgencySeoTopicPath,
 } from "./agency-seo.logic";
+import { getLegalDocument } from "./legal/legal-content";
+import {
+  buildLegalHref,
+  LEGAL_DOCUMENT_IDS,
+  LEGAL_NAV_LABELS,
+  type LegalDocumentId,
+  type LegalLocale,
+} from "./legal/legal-routes";
 
 const HOMEPAGE_SERVICE_DOC_LINK = '</llms.txt>; rel="service-doc"; type="text/markdown"';
 
@@ -21,6 +29,10 @@ const MARKDOWN_DOCUMENT_PATHS = new Set([
   "/about",
   "/en/seo-reporting-software-agencies",
   "/de/seo-reporting-tool-agenturen",
+  ...LEGAL_DOCUMENT_IDS.flatMap((documentId) => [
+    buildLegalHref(documentId, "en"),
+    buildLegalHref(documentId, "de"),
+  ]),
 ]);
 
 type AcceptPreference = {
@@ -124,10 +136,14 @@ export function getRobotsTxt() {
     "Allow: /en/seo-reporting-software-agencies",
     "Allow: /about",
     "Allow: /pricing",
-    "Allow: /privacy",
-    "Allow: /terms",
-    "Allow: /impressum",
-    "Allow: /dpa",
+    "Allow: /en/privacy",
+    "Allow: /de/privacy",
+    "Allow: /en/terms",
+    "Allow: /de/terms",
+    "Allow: /en/impressum",
+    "Allow: /de/impressum",
+    "Allow: /en/dpa",
+    "Allow: /de/dpa",
     "Disallow: /dashboard",
     "Disallow: /settings",
     "Disallow: /properties",
@@ -163,10 +179,14 @@ function publicLinks() {
     `- [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)`,
     `- [SEO reporting software for agencies](${AGENCY_PRODUCTION_BASE_URL}/en/seo-reporting-software-agencies)`,
     `- [SEO Reporting Tool für Agenturen](${AGENCY_PRODUCTION_BASE_URL}/de/seo-reporting-tool-agenturen)`,
-    `- [Privacy Policy](${AGENCY_PRODUCTION_BASE_URL}/privacy)`,
-    `- [Terms of Service](${AGENCY_PRODUCTION_BASE_URL}/terms)`,
-    `- [Impressum](${AGENCY_PRODUCTION_BASE_URL}/impressum)`,
-    `- [Data Processing Agreement](${AGENCY_PRODUCTION_BASE_URL}/dpa)`,
+    `- [Privacy Policy](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("privacy", "en")})`,
+    `- [Datenschutzhinweise](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("privacy", "de")})`,
+    `- [Terms of Service](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("terms", "en")})`,
+    `- [Nutzungsbedingungen](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("terms", "de")})`,
+    `- [Impressum EN](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("impressum", "en")})`,
+    `- [Impressum DE](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("impressum", "de")})`,
+    `- [Data Processing Agreement](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("dpa", "en")})`,
+    `- [Auftragsverarbeitungsvertrag](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("dpa", "de")})`,
   ].join("\n");
 }
 
@@ -261,7 +281,7 @@ No Stripe entry is required for the free pilot month. If the workflow is useful 
 
 - [Book pilot check](${AGENCY_PILOT.bookingUrl})
 - [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)
-- [Terms of Service](${AGENCY_PRODUCTION_BASE_URL}/terms)
+- [Terms of Service](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("terms", "en")})
 `);
 }
 
@@ -298,10 +318,41 @@ WebHealth connects Google Search Console and Google Analytics 4 to client worksp
 
 ## Public links
 
-- [Impressum](${AGENCY_PRODUCTION_BASE_URL}/impressum)
-- [Privacy Policy](${AGENCY_PRODUCTION_BASE_URL}/privacy)
-- [Terms of Service](${AGENCY_PRODUCTION_BASE_URL}/terms)
+- [Impressum](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("impressum", "en")})
+- [Privacy Policy](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("privacy", "en")})
+- [Terms of Service](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("terms", "en")})
 - [Pricing](${AGENCY_PRODUCTION_BASE_URL}/pricing)
+`);
+}
+
+function legalMarkdown(
+  documentId: LegalDocumentId,
+  locale: LegalLocale,
+) {
+  const document = getLegalDocument(locale, documentId);
+  const links = LEGAL_DOCUMENT_IDS.map(
+    (id) =>
+      `- [${LEGAL_NAV_LABELS[locale][id]}](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref(id, locale)})`,
+  ).join("\n");
+
+  return withTokenEstimate(`
+# ${document.title}
+
+${document.description}
+
+${document.intro.join("\n\n")}
+
+${document.sections
+  .map((section) => {
+    const paragraphs = section.paragraphs?.join("\n\n") ?? "";
+    const bullets = section.bullets?.length ? `\n\n${list(section.bullets)}` : "";
+    return `## ${section.title}\n\n${paragraphs}${bullets}`;
+  })
+  .join("\n\n")}
+
+## Related legal pages
+
+${links}
 `);
 }
 
@@ -352,6 +403,14 @@ export function getMarkdownDocument(pathname: string): MarkdownDocument | null {
   if (normalizedPathname === "/about") return aboutMarkdown();
   if (normalizedPathname === "/en/seo-reporting-software-agencies") return topicMarkdown("en");
   if (normalizedPathname === "/de/seo-reporting-tool-agenturen") return topicMarkdown("de");
+  for (const documentId of LEGAL_DOCUMENT_IDS) {
+    if (normalizedPathname === buildLegalHref(documentId, "en")) {
+      return legalMarkdown(documentId, "en");
+    }
+    if (normalizedPathname === buildLegalHref(documentId, "de")) {
+      return legalMarkdown(documentId, "de");
+    }
+  }
 
   return null;
 }

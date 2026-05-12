@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
 import { getLegalDocument } from "./legal-content";
-import { LEGAL_DOCUMENT_PATHS, LEGAL_LANGUAGE_LABELS } from "./legal-routes";
+import {
+  buildLegalHref,
+  LEGAL_DOCUMENT_PATHS,
+  LEGAL_LANGUAGE_LABELS,
+} from "./legal-routes";
 
 export {
   buildLegalHref,
+  getLegalDocumentIdFromSlug,
+  getLegacyLegalRedirectPath,
   LEGAL_DOCUMENT_IDS,
   LEGAL_DOCUMENT_PATHS,
   LEGAL_LANGUAGE_LABELS,
@@ -26,13 +32,12 @@ export function buildLegalMetadata(
   locale: "en" | "de",
 ): Metadata {
   const document = getLegalDocument(locale, documentId);
-  const path = LEGAL_DOCUMENT_PATHS[documentId];
   const tagline =
     locale === "de"
       ? "Webhealth · Webanalyse & SEO"
       : "Webhealth · Web Analytics & SEO";
   const metaTitle = `${document.title} — ${tagline}`;
-  const localePath = locale === "de" ? `${path}?lang=de` : path;
+  const localePath = buildLegalHref(documentId, locale);
 
   return {
     title: metaTitle,
@@ -40,8 +45,8 @@ export function buildLegalMetadata(
     alternates: {
       canonical: localePath,
       languages: {
-        en: path,
-        de: `${path}?lang=de`,
+        en: buildLegalHref(documentId, "en"),
+        de: buildLegalHref(documentId, "de"),
       },
     },
     openGraph: {

@@ -48,6 +48,10 @@ test("explicit markdown wins when html is only accepted by wildcard", () => {
 
 test("markdown negotiation is limited to public marketing routes", () => {
   assert.equal(shouldServeMarkdown("text/markdown", "/pricing"), true);
+  assert.equal(shouldServeMarkdown("text/markdown", "/de/privacy"), true);
+  assert.equal(shouldServeMarkdown("text/markdown", "/de/terms"), true);
+  assert.equal(shouldServeMarkdown("text/markdown", "/de/impressum"), true);
+  assert.equal(shouldServeMarkdown("text/markdown", "/de/dpa"), true);
   assert.equal(shouldServeMarkdown("text/markdown", "/api/properties"), false);
   assert.equal(shouldServeMarkdown("text/markdown", "/dashboard"), false);
   assert.equal(shouldServeMarkdown("text/markdown", "/admin"), false);
@@ -85,6 +89,10 @@ test("robots txt includes content signals and preserves crawler boundaries", () 
   assert.match(robots, /Sitemap: https:\/\/webhealth\.devbrew\.dev\/sitemap\.xml/);
   assert.match(robots, /Disallow: \/api/);
   assert.match(robots, /Allow: \/en/);
+  assert.match(robots, /Allow: \/de\/privacy/);
+  assert.match(robots, /Allow: \/de\/terms/);
+  assert.match(robots, /Allow: \/de\/impressum/);
+  assert.match(robots, /Allow: \/de\/dpa/);
 });
 
 test("markdown documents expose public marketing content without private routes", () => {
@@ -93,6 +101,14 @@ test("markdown documents expose public marketing content without private routes"
   assert.ok(document);
   assert.match(document?.markdown ?? "", /SEO reporting software for agencies/i);
   assert.doesNotMatch(document?.markdown ?? "", /\/api\/|\/dashboard|\/admin|\/properties|\/settings/);
+});
+
+test("localized legal markdown documents are available", () => {
+  const document = getMarkdownDocument("/de/privacy");
+
+  assert.ok(document);
+  assert.match(document?.markdown ?? "", /Datenschutzhinweise/);
+  assert.doesNotMatch(document?.markdown ?? "", /\/privacy\?lang=de/);
 });
 
 test("llms txt explains public scope without exposing private discovery routes", () => {

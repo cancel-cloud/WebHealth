@@ -12,6 +12,7 @@ export const LEGAL_DOCUMENT_PATHS = {
 
 export type LegalDocumentId = keyof typeof LEGAL_DOCUMENT_PATHS;
 export type LegalDocumentPath = (typeof LEGAL_DOCUMENT_PATHS)[LegalDocumentId];
+export type LocalizedLegalDocumentPath = `/${LegalLocale}${LegalDocumentPath}`;
 
 export const LEGAL_DOCUMENT_IDS = Object.keys(
   LEGAL_DOCUMENT_PATHS,
@@ -52,24 +53,65 @@ export function resolveLegalLocale(value: LegalParamValue): LegalLocale {
 
 export function isLegalPathname(
   pathname: string | null | undefined,
-): pathname is LegalDocumentPath {
-  return (Object.values(LEGAL_DOCUMENT_PATHS) as readonly string[]).includes(
-    pathname ?? "",
-  );
+): boolean {
+  return getLegalDocumentIdFromPathname(pathname) !== null;
 }
 
 export function resolveLegalNavLocale(
   pathname: string | null | undefined,
   value: LegalParamValue,
 ): LegalLocale {
+  const pathLocale = getLegalLocaleFromPathname(pathname);
+  if (pathLocale) return pathLocale;
   if (!isLegalPathname(pathname)) return "en";
   return resolveLegalLocale(value);
+}
+
+export function getLegalDocumentIdFromSlug(
+  slug: string | null | undefined,
+): LegalDocumentId | null {
+  const match = LEGAL_DOCUMENT_IDS.find(
+    (documentId) => LEGAL_DOCUMENT_PATHS[documentId].slice(1) === slug,
+  );
+  return match ?? null;
+}
+
+export function getLegalDocumentIdFromPathname(
+  pathname: string | null | undefined,
+): LegalDocumentId | null {
+  if (!pathname) return null;
+  const normalized =
+    pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  const legacyMatch = LEGAL_DOCUMENT_IDS.find(
+    (documentId) => LEGAL_DOCUMENT_PATHS[documentId] === normalized,
+  );
+  if (legacyMatch) return legacyMatch;
+
+  const [, locale, slug] = normalized.split("/");
+  if (!hasLegalLocale(locale)) return null;
+  return getLegalDocumentIdFromSlug(slug);
+}
+
+export function getLegalLocaleFromPathname(
+  pathname: string | null | undefined,
+): LegalLocale | null {
+  if (!pathname) return null;
+  const [, locale, slug] = pathname.split("/");
+  if (!hasLegalLocale(locale)) return null;
+  return getLegalDocumentIdFromSlug(slug) ? locale : null;
 }
 
 export function buildLegalHref(
   documentId: LegalDocumentId,
   locale: LegalLocale,
-): string {
+): LocalizedLegalDocumentPath {
   const path = LEGAL_DOCUMENT_PATHS[documentId];
-  return locale === "de" ? `${path}?lang=de` : path;
+  return `/${locale}${path}`;
+}
+
+export function getLegacyLegalRedirectPath(
+  documentId: LegalDocumentId,
+  value: LegalParamValue,
+) {
+  return buildLegalHref(documentId, resolveLegalLocale(value));
 }

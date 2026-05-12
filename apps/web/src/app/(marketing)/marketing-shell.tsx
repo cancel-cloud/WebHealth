@@ -11,6 +11,7 @@ import {
   LEGAL_DOCUMENT_IDS,
   LEGAL_NAV_LABELS,
 } from "./legal/legal-routes";
+import { getAgencySeoTopicPath } from "./agency-seo.logic";
 import { shouldUseStandaloneAgencyChrome } from "./marketing-shell.logic";
 
 function LegalFooterLinksFallback() {
@@ -27,6 +28,12 @@ function LegalFooterLinksFallback() {
 }
 
 function MarketingFooter() {
+  const pathname = usePathname();
+  const language = pathname.startsWith("/en") ? "en" : "de";
+  const topicLabel =
+    language === "de"
+      ? "SEO Reporting Tool für Agenturen"
+      : "SEO reporting software for agencies";
   const nickLaunchesHref =
     "https://nicklaunches.com/products/webhealth-seo-backlog/?utm_source=webhealth.devbrew.dev&utm_medium=badge&utm_campaign=featured";
 
@@ -52,6 +59,13 @@ function MarketingFooter() {
             </span>
           </div>
           <nav className="flex flex-wrap items-center gap-5" aria-label="Footer navigation">
+            <Link
+              href={getAgencySeoTopicPath(language)}
+              className="text-xs transition-colors hover:underline"
+              style={{ color: "oklch(0.55 0.02 250)" }}
+            >
+              {topicLabel}
+            </Link>
             <Link
               href="/about"
               className="text-xs transition-colors hover:underline"

@@ -23,18 +23,18 @@ test("resolveLegalLocale defaults to English and accepts German", async () => {
   assert.equal(resolveLegalLocale?.(["de", "en"]), "de");
 });
 
-test("buildLegalHref keeps the base slug and adds the German query param only when needed", async () => {
+test("buildLegalHref returns fully localized legal paths", async () => {
   const legal = await importModule("./legal");
   const buildLegalHref = (legal as {
     buildLegalHref?: (documentId: "privacy" | "terms" | "impressum" | "dpa", locale: "en" | "de") => string;
   } | null)?.buildLegalHref;
 
   assert.equal(typeof buildLegalHref, "function");
-  assert.equal(buildLegalHref?.("privacy", "en"), "/privacy");
-  assert.equal(buildLegalHref?.("privacy", "de"), "/privacy?lang=de");
-  assert.equal(buildLegalHref?.("impressum", "de"), "/impressum?lang=de");
-  assert.equal(buildLegalHref?.("dpa", "en"), "/dpa");
-  assert.equal(buildLegalHref?.("dpa", "de"), "/dpa?lang=de");
+  assert.equal(buildLegalHref?.("privacy", "en"), "/en/privacy");
+  assert.equal(buildLegalHref?.("privacy", "de"), "/de/privacy");
+  assert.equal(buildLegalHref?.("impressum", "de"), "/de/impressum");
+  assert.equal(buildLegalHref?.("dpa", "en"), "/en/dpa");
+  assert.equal(buildLegalHref?.("dpa", "de"), "/de/dpa");
 });
 
 test("resolveLegalNavLocale only preserves language on legal pages", async () => {
@@ -44,12 +44,13 @@ test("resolveLegalNavLocale only preserves language on legal pages", async () =>
   } | null)?.resolveLegalNavLocale;
 
   assert.equal(typeof resolveLegalNavLocale, "function");
+  assert.equal(resolveLegalNavLocale?.("/de/privacy", null), "de");
+  assert.equal(resolveLegalNavLocale?.("/en/terms", "fr"), "en");
   assert.equal(resolveLegalNavLocale?.("/privacy", "de"), "de");
-  assert.equal(resolveLegalNavLocale?.("/terms", "fr"), "en");
   assert.equal(resolveLegalNavLocale?.("/settings", "de"), "en");
 });
 
-test("buildLegalMetadata exposes canonical base URLs and German alternates", async () => {
+test("buildLegalMetadata exposes localized canonical URLs and alternates", async () => {
   const legal = await importModule("./legal");
   const buildLegalMetadata = (legal as {
     buildLegalMetadata?: (documentId: "privacy" | "terms" | "impressum" | "dpa", locale: "en" | "de") => {
@@ -63,18 +64,30 @@ test("buildLegalMetadata exposes canonical base URLs and German alternates", asy
   assert.equal(typeof buildLegalMetadata, "function");
 
   const metadata = buildLegalMetadata?.("terms", "de");
-  assert.equal(metadata?.alternates?.canonical, "/terms?lang=de");
+  assert.equal(metadata?.alternates?.canonical, "/de/terms");
   assert.deepEqual(metadata?.alternates?.languages, {
-    en: "/terms",
-    de: "/terms?lang=de",
+    en: "/en/terms",
+    de: "/de/terms",
   });
 
   const dpaMetadata = buildLegalMetadata?.("dpa", "de");
-  assert.equal(dpaMetadata?.alternates?.canonical, "/dpa?lang=de");
+  assert.equal(dpaMetadata?.alternates?.canonical, "/de/dpa");
   assert.deepEqual(dpaMetadata?.alternates?.languages, {
-    en: "/dpa",
-    de: "/dpa?lang=de",
+    en: "/en/dpa",
+    de: "/de/dpa",
   });
+});
+
+test("legacy legal paths redirect to English and German query paths redirect to German", async () => {
+  const legal = await importModule("./legal");
+  const getLegacyLegalRedirectPath = (legal as {
+    getLegacyLegalRedirectPath?: (documentId: "privacy" | "terms" | "impressum" | "dpa", value?: string | string[] | null) => string;
+  } | null)?.getLegacyLegalRedirectPath;
+
+  assert.equal(typeof getLegacyLegalRedirectPath, "function");
+  assert.equal(getLegacyLegalRedirectPath?.("privacy", undefined), "/en/privacy");
+  assert.equal(getLegacyLegalRedirectPath?.("privacy", "de"), "/de/privacy");
+  assert.equal(getLegacyLegalRedirectPath?.("terms", "fr"), "/en/terms");
 });
 
 test("legal dictionaries stay aligned across English and German", async () => {

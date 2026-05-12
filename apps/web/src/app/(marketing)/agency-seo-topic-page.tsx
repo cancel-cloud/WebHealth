@@ -1,11 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Check, MousePointerClick } from "lucide-react";
+import { AgencyComparisonSection } from "./agency-comparison-section";
 import type { AgencyLandingLanguage } from "./agency-homepage.logic";
 import {
   AGENCY_FAQ_ITEMS,
   AGENCY_HOME_COPY,
   AGENCY_PILOT,
+  AGENCY_TOPIC_FAQ_ITEMS,
 } from "./agency-homepage.content";
 import { getLocalizedValue } from "./agency-homepage.logic";
 import { AgencyWorkspaceDemo } from "./agency-workspace-demo";
@@ -106,6 +108,7 @@ export function AgencySeoTopicPage({
 }) {
   const copy = TOPIC_COPY[language];
   const alternateLanguage = language === "de" ? "en" : "de";
+  const faqItems = [...AGENCY_FAQ_ITEMS, ...AGENCY_TOPIC_FAQ_ITEMS];
 
   return (
     <main className="bg-background text-foreground">
@@ -193,6 +196,67 @@ export function AgencySeoTopicPage({
         </div>
       </section>
 
+      <section
+        className="border-t border-border bg-muted/30 px-6 py-16"
+        id="monatlicher-seo-report"
+      >
+        <div className="mx-auto max-w-3xl">
+          <h2 className="font-display text-3xl font-semibold tracking-tight">
+            {language === "de"
+              ? "Was zeigt ein monatlicher SEO-Report für Agenturen?"
+              : "What does a monthly SEO report for agencies show?"}
+          </h2>
+          <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
+            {language === "de"
+              ? "Ein nutzbarer Monatsreport beantwortet vier Fragen für das Kundenmeeting. Alles andere ist Datenballast."
+              : "A useful monthly report answers four questions for the client meeting. Everything else is data clutter."}
+          </p>
+          <ul className="mt-6 space-y-4 text-base leading-7">
+            <li>
+              <strong>
+                {language === "de" ? "Was hat sich verändert?" : "What changed?"}
+              </strong>{" "}
+              {language === "de"
+                ? "KPI-Veränderungen aus GSC und GA4 zeigen, ob Klicks, Impressionen, Sitzungen oder Positionen wirklich Bewegung haben."
+                : "GSC and GA4 deltas show whether clicks, impressions, sessions, or rankings actually moved."}
+            </li>
+            <li>
+              <strong>
+                {language === "de" ? "Welche Seiten haben verloren?" : "Which pages lost?"}
+              </strong>{" "}
+              {language === "de"
+                ? "Seiten mit Traffic-Rückgang werden mit unterstützenden Analytics- und Crawl-Signalen geprüft."
+                : "Pages with traffic drops are reviewed with supporting analytics and crawl signals."}
+            </li>
+            <li>
+              <strong>
+                {language === "de"
+                  ? "Welche Queries sind nah an besseren Positionen?"
+                  : "Which queries are close to better positions?"}
+              </strong>{" "}
+              {language === "de"
+                ? "Near-Win-Queries und CTR-Lücken helfen, die nächsten Content- oder Snippet-Arbeiten zu priorisieren."
+                : "Near-win queries and CTR gaps help prioritize the next content or snippet work."}
+            </li>
+            <li>
+              <strong>
+                {language === "de"
+                  ? "Welche 3-5 Maßnahmen gehören in diese Woche?"
+                  : "Which 3-5 actions belong in this week?"}
+              </strong>{" "}
+              {language === "de"
+                ? "Der Snapshot endet mit einem reviewbaren Backlog, nicht mit einer reinen Diagrammsammlung."
+                : "The snapshot ends with a reviewable backlog, not just a collection of charts."}
+            </li>
+          </ul>
+          <p className="mt-6 text-sm leading-6 text-muted-foreground">
+            {language === "de"
+              ? "WebHealth ordnet GSC-, GA4- und Crawl-Daten in genau dieser Reihenfolge: von Veränderung zur priorisierten Maßnahme."
+              : "WebHealth orders GSC, GA4, and crawl data in that sequence: from change to prioritized action."}
+          </p>
+        </div>
+      </section>
+
       <section className="border-y border-border bg-muted/30 px-6 py-16">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-end">
@@ -242,6 +306,8 @@ export function AgencySeoTopicPage({
         </div>
       </section>
 
+      <AgencyComparisonSection language={language} />
+
       <section className="border-y border-border bg-muted/30 px-6 py-16">
         <div className="mx-auto max-w-4xl text-center">
           <h2 className="font-display text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
@@ -259,7 +325,7 @@ export function AgencySeoTopicPage({
             {copy.faqTitle}
           </h2>
           <div className="mt-8 grid gap-4">
-            {AGENCY_FAQ_ITEMS.map((item) => (
+            {faqItems.map((item) => (
               <article key={item.question.en} className="rounded-lg border border-border bg-card p-5">
                 <h3 className="font-display text-lg font-semibold">
                   {getLocalizedValue(item.question, language)}

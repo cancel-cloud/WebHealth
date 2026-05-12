@@ -49,9 +49,10 @@ test("agency SEO topic metadata uses the localized topic slug", () => {
   assert.equal(getAgencySeoTopicPath("en"), "/en/seo-reporting-software-agencies");
   assert.equal(metadata.alternates?.canonical, "/en/seo-reporting-software-agencies");
   assert.match(String(metadata.title), /SEO Reporting Software for Agencies/);
+  assert.ok(String(metadata.title).length <= 58);
 });
 
-test("agency JSON-LD exposes organization, service, software, and FAQ data", () => {
+test("agency JSON-LD exposes organization, service, software, FAQ, and topic breadcrumbs", () => {
   const jsonLd = buildAgencyJsonLd("de", "home");
   const graph = jsonLd["@graph"];
 
@@ -61,6 +62,33 @@ test("agency JSON-LD exposes organization, service, software, and FAQ data", () 
   assert.equal(graph.some((item) => item["@type"] === "SoftwareApplication"), true);
   assert.equal(graph.some((item) => item["@type"] === "FAQPage"), true);
   assert.equal(graph.find((item) => item["@type"] === "Service")?.url, `${AGENCY_PRODUCTION_BASE_URL}/de`);
+
+  const topicJsonLd = buildAgencyJsonLd("de", "topic");
+  const topicGraph = topicJsonLd["@graph"];
+  const breadcrumb = topicGraph.find((item) => item["@type"] === "BreadcrumbList");
+  assert.ok(breadcrumb);
+  assert.match(JSON.stringify(breadcrumb), /seo-reporting-tool-agenturen/);
+});
+
+test("pricing JSON-LD covers all public plans", async () => {
+  const seoModule = await import("./agency-seo.logic");
+  const buildPricingJsonLd = (seoModule as {
+    buildPricingJsonLd?: () => { "@graph": Array<{ "@type": string; offers?: unknown }> };
+  }).buildPricingJsonLd;
+
+  assert.equal(typeof buildPricingJsonLd, "function");
+  const jsonLd = buildPricingJsonLd?.();
+  const serialized = JSON.stringify(jsonLd);
+
+  assert.match(serialized, /AggregateOffer|Offer/);
+  assert.match(serialized, /Solo/);
+  assert.match(serialized, /Starter/);
+  assert.match(serialized, /Studio/);
+  assert.match(serialized, /Agency/);
+  assert.match(serialized, /"0"/);
+  assert.match(serialized, /"29"/);
+  assert.match(serialized, /"79"/);
+  assert.match(serialized, /"149"/);
 });
 
 test("marketing site JSON-LD exposes baseline schema for shared marketing pages", () => {

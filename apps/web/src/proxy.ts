@@ -8,9 +8,27 @@ import {
   getMarkdownRoutePath,
   shouldServeMarkdown,
 } from "./app/(marketing)/agent-discovery.logic";
+import {
+  getLegacyLegalRedirectPath,
+  LEGAL_DOCUMENT_IDS,
+  LEGAL_DOCUMENT_PATHS,
+} from "./app/(marketing)/legal/legal-routes";
 
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  const legacyLegalDocumentId = LEGAL_DOCUMENT_IDS.find(
+    (documentId) => LEGAL_DOCUMENT_PATHS[documentId] === pathname,
+  );
+  if (legacyLegalDocumentId) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = getLegacyLegalRedirectPath(
+      legacyLegalDocumentId,
+      request.nextUrl.searchParams.get("lang"),
+    );
+    redirectUrl.search = "";
+    return NextResponse.redirect(redirectUrl, 301);
+  }
 
   if (pathname === "/") {
     const redirectUrl = request.nextUrl.clone();
