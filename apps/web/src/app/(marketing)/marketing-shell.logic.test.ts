@@ -14,12 +14,17 @@ test("localized agency pages use their standalone header and footer", () => {
     shouldUseStandaloneAgencyChrome("/en/seo-reporting-software-agencies"),
     true,
   );
+  assert.equal(shouldUseStandaloneAgencyChrome("/pricing"), true);
+  assert.equal(shouldUseStandaloneAgencyChrome("/de/pricing"), true);
+  assert.equal(shouldUseStandaloneAgencyChrome("/en/pricing"), true);
+  assert.equal(shouldUseStandaloneAgencyChrome("/demo"), true);
+  assert.equal(shouldUseStandaloneAgencyChrome("/de/demo"), true);
+  assert.equal(shouldUseStandaloneAgencyChrome("/en/demo"), true);
   assert.equal(shouldUseStandaloneAgencyChrome("/en/"), true);
 });
 
 test("standard marketing pages keep the shared marketing shell", () => {
   assert.equal(shouldUseStandaloneAgencyChrome("/about"), false);
-  assert.equal(shouldUseStandaloneAgencyChrome("/pricing"), false);
   assert.equal(shouldUseStandaloneAgencyChrome("/privacy"), false);
   assert.equal(shouldUseStandaloneAgencyChrome(null), false);
 });

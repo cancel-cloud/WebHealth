@@ -7,7 +7,9 @@ import type { AgencyLandingLanguage } from "./agency-homepage.logic";
 import {
   AGENCY_PRODUCTION_BASE_URL,
   AGENCY_SEO_TITLES,
+  getAgencyDemoPath,
   getAgencyHomePath,
+  getAgencyPricingPath,
   getAgencySeoTopicPath,
 } from "./agency-seo.logic";
 import { getLegalDocument } from "./legal/legal-content";
@@ -25,7 +27,11 @@ const MARKDOWN_DOCUMENT_PATHS = new Set([
   "/en",
   "/de",
   "/pricing",
+  "/en/pricing",
+  "/de/pricing",
   "/demo",
+  "/en/demo",
+  "/de/demo",
   "/about",
   "/en/seo-reporting-software-agencies",
   "/de/seo-reporting-tool-agenturen",
@@ -136,6 +142,10 @@ export function getRobotsTxt() {
     "Allow: /en/seo-reporting-software-agencies",
     "Allow: /about",
     "Allow: /pricing",
+    "Allow: /en/pricing",
+    "Allow: /de/pricing",
+    "Allow: /en/demo",
+    "Allow: /de/demo",
     "Allow: /en/privacy",
     "Allow: /de/privacy",
     "Allow: /en/terms",
@@ -174,8 +184,10 @@ function publicLinks() {
   return [
     `- [English homepage](${AGENCY_PRODUCTION_BASE_URL}/en)`,
     `- [German homepage](${AGENCY_PRODUCTION_BASE_URL}/de)`,
-    `- [Pricing](${AGENCY_PRODUCTION_BASE_URL}/pricing)`,
-    `- [Public demo](${AGENCY_PRODUCTION_BASE_URL}/demo)`,
+    `- [English pricing](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath("en")})`,
+    `- [German pricing](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath("de")})`,
+    `- [English public demo](${AGENCY_PRODUCTION_BASE_URL}${getAgencyDemoPath("en")})`,
+    `- [German public demo](${AGENCY_PRODUCTION_BASE_URL}${getAgencyDemoPath("de")})`,
     `- [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)`,
     `- [SEO reporting software for agencies](${AGENCY_PRODUCTION_BASE_URL}/en/seo-reporting-software-agencies)`,
     `- [SEO Reporting Tool für Agenturen](${AGENCY_PRODUCTION_BASE_URL}/de/seo-reporting-tool-agenturen)`,
@@ -256,14 +268,36 @@ ${AGENCY_FAQ_ITEMS.map((item) => `### ${item.question[language]}\n\n${item.answe
 
 ## Public links
 
-- [Pricing](${AGENCY_PRODUCTION_BASE_URL}/pricing)
-- [Public demo](${AGENCY_PRODUCTION_BASE_URL}/demo)
+- [Pricing](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath(language)})
+- [Public demo](${AGENCY_PRODUCTION_BASE_URL}${getAgencyDemoPath(language)})
 - [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)
 - [Localized SEO page](${AGENCY_PRODUCTION_BASE_URL}${getAgencySeoTopicPath(language)})
 `);
 }
 
-function pricingMarkdown() {
+function pricingMarkdown(language: AgencyLandingLanguage) {
+  if (language === "de") {
+    return withTokenEstimate(`
+# WebHealth Preise
+
+Der empfohlene Agentur-Weg ist der Founding Agency Pilot: erster Monat kostenlos, danach EUR ${AGENCY_PILOT.price}/Monat für passende Agenturen.
+
+## Was im Pilot passiert
+
+WebHealth richtet mit der Agentur 3-10 Kunden-Websites ein und erstellt einen gebrandeten SEO-Monats-Snapshot mit KPI-Veränderungen, Traffic-Drops, auffälligen Seiten, Query-Chancen, Crawl-Hinweisen und den wichtigsten nächsten Maßnahmen für Kundenmeetings.
+
+## Zahlung
+
+Für den kostenlosen Pilot-Monat ist kein Stripe-Eintrag nötig. Wenn der Workflow nach dem ersten Monats-Snapshot nützlich ist, schickt WebHealth den Zahlungslink für den Founder-Preis.
+
+## Öffentliche Links
+
+- [Pilot-Check buchen](${AGENCY_PILOT.bookingUrl})
+- [Über WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)
+- [Nutzungsbedingungen](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("terms", "de")})
+`);
+  }
+
   return withTokenEstimate(`
 # WebHealth pricing
 
@@ -285,7 +319,23 @@ No Stripe entry is required for the free pilot month. If the workflow is useful 
 `);
 }
 
-function demoMarkdown() {
+function demoMarkdown(language: AgencyLandingLanguage) {
+  if (language === "de") {
+    return withTokenEstimate(`
+# WebHealth Demo
+
+Die öffentliche Demo zeigt ein fiktives Acme-Bakery-Dashboard und macht sichtbar, wie WebHealth Search Console, GA4, Crawl-Checks und KI-gestützte Prüfung in priorisierte SEO-Maßnahmen übersetzt.
+
+Backend-Aktionen wie Refreshes, Zuweisungen, Status-Updates und Share-Links sind in der öffentlichen Demo deaktiviert.
+
+## Öffentliche Links
+
+- [Demo öffnen](${AGENCY_PRODUCTION_BASE_URL}${getAgencyDemoPath("de")})
+- [Preise](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath("de")})
+- [Über WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)
+`);
+  }
+
   return withTokenEstimate(`
 # WebHealth demo
 
@@ -295,8 +345,8 @@ Backend actions such as refreshes, assignment, action-state updates, and share-l
 
 ## Public links
 
-- [Open the demo](${AGENCY_PRODUCTION_BASE_URL}/demo)
-- [Pricing](${AGENCY_PRODUCTION_BASE_URL}/pricing)
+- [Open the demo](${AGENCY_PRODUCTION_BASE_URL}${getAgencyDemoPath("en")})
+- [Pricing](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath("en")})
 - [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)
 `);
 }
@@ -321,7 +371,7 @@ WebHealth connects Google Search Console and Google Analytics 4 to client worksp
 - [Impressum](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("impressum", "en")})
 - [Privacy Policy](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("privacy", "en")})
 - [Terms of Service](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("terms", "en")})
-- [Pricing](${AGENCY_PRODUCTION_BASE_URL}/pricing)
+- [Pricing](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath("en")})
 `);
 }
 
@@ -388,8 +438,8 @@ ${boundary}
 ## Public links
 
 - [Homepage](${AGENCY_PRODUCTION_BASE_URL}${getAgencyHomePath(language)})
-- [Public demo](${AGENCY_PRODUCTION_BASE_URL}/demo)
-- [Pricing](${AGENCY_PRODUCTION_BASE_URL}/pricing)
+- [Public demo](${AGENCY_PRODUCTION_BASE_URL}${getAgencyDemoPath(language)})
+- [Pricing](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath(language)})
 `);
 }
 
@@ -398,8 +448,12 @@ export function getMarkdownDocument(pathname: string): MarkdownDocument | null {
 
   if (normalizedPathname === "/en") return homepageMarkdown("en");
   if (normalizedPathname === "/de") return homepageMarkdown("de");
-  if (normalizedPathname === "/pricing") return pricingMarkdown();
-  if (normalizedPathname === "/demo") return demoMarkdown();
+  if (normalizedPathname === "/pricing") return pricingMarkdown("de");
+  if (normalizedPathname === "/en/pricing") return pricingMarkdown("en");
+  if (normalizedPathname === "/de/pricing") return pricingMarkdown("de");
+  if (normalizedPathname === "/demo") return demoMarkdown("en");
+  if (normalizedPathname === "/en/demo") return demoMarkdown("en");
+  if (normalizedPathname === "/de/demo") return demoMarkdown("de");
   if (normalizedPathname === "/about") return aboutMarkdown();
   if (normalizedPathname === "/en/seo-reporting-software-agencies") return topicMarkdown("en");
   if (normalizedPathname === "/de/seo-reporting-tool-agenturen") return topicMarkdown("de");

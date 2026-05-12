@@ -21,6 +21,7 @@ export function buildDashboardHref(next: {
   startDate: string;
   endDate: string;
   routeMode?: "authenticated" | "publicDemo";
+  language?: "en" | "de";
 }) {
   const params = new URLSearchParams(next.currentSearchParams);
   params.set("preset", next.preset);
@@ -34,7 +35,9 @@ export function buildDashboardHref(next: {
   }
 
   const routePath = next.routeMode === "publicDemo"
-    ? "/demo"
+    ? next.language
+      ? `/${next.language}/demo`
+      : "/demo"
     : `/properties/${encodeURIComponent(next.propertyId)}`;
   return `${routePath}?${params.toString()}`;
 }
