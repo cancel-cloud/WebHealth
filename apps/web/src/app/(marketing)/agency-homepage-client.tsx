@@ -6,7 +6,7 @@ import { CookieSettingsButton } from "@/components/cookie-consent";
 import { AgencyComparisonSection } from "./agency-comparison-section";
 import { AgencyHeader } from "./agency-header";
 import { AgencyWorkspaceDemo } from "./agency-workspace-demo";
-import { getAgencySeoTopicPath } from "./agency-seo.logic";
+import { getAgencyDemoPath, getAgencySeoTopicPath } from "./agency-seo.logic";
 import {
   buildLegalHref,
   LEGAL_DOCUMENT_IDS,
@@ -215,7 +215,7 @@ export function AgencyHomepageClient({
                   </Button>
 
                   <Button asChild variant="outline" size="lg" className="rounded-full px-8">
-                    <Link href="/demo">
+                    <Link href={getAgencyDemoPath(language)}>
                       {getLocalizedValue(
                         AGENCY_HOME_COPY.hero.secondaryCta,
                         language,
@@ -414,7 +414,7 @@ export function AgencyHomepageClient({
                 </p>
               </div>
               <Button asChild className="rounded-full px-6 md:shrink-0">
-                <Link href="/demo">
+                <Link href={getAgencyDemoPath(language)}>
                   {getLocalizedValue(AGENCY_HOME_COPY.hero.secondaryCta, language)}
                   <ArrowRight className="ml-2 size-4" aria-hidden="true" />
                 </Link>
