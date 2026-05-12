@@ -11,6 +11,10 @@ test("agency SEO topic page renders product proof, interactive demo, and visible
   assert.match(source, /agency-workspace-screenshot\.png/);
   assert.match(source, /AgencyWorkspaceDemo/);
   assert.match(source, /AGENCY_FAQ_ITEMS/);
+  assert.match(source, /AGENCY_TOPIC_FAQ_ITEMS/);
+  assert.match(source, /monatlicher SEO-Report/);
+  assert.match(source, /monthly SEO report/);
+  assert.match(source, /AgencyComparisonSection/);
   assert.match(source, /Fiktive Beispieldaten, keine Kundenergebnisse/);
   assert.match(source, /Fictional sample data, not customer results/);
   assert.match(source, /Kein Ersatz für Ahrefs, Semrush oder Screaming Frog/);

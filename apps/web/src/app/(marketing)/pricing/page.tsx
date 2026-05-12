@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PricingSection } from "@/components/pricing-section";
+import { buildPricingJsonLd, serializeJsonLd } from "../agency-seo.logic";
 
 export const metadata: Metadata = {
   title: "Preise — WebHealth Founding Agency Pilot",
@@ -21,6 +22,10 @@ export const metadata: Metadata = {
 export default function PricingPage() {
   return (
     <div className="py-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildPricingJsonLd()) }}
+      />
       <PricingSection />
       <section className="mx-auto mt-20 max-w-3xl px-6 text-base leading-relaxed">
         <h2 className="font-display text-2xl font-semibold">

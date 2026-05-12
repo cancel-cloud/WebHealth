@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { getLegalDictionary } from "../legal/legal-dictionaries";
-import { LegalDocumentPage } from "../legal/legal-document-page";
-import { buildLegalMetadata, resolveLegalLocale } from "../legal/legal";
+import { permanentRedirect } from "next/navigation";
+import { buildLegalMetadata, getLegacyLegalRedirectPath } from "../legal/legal";
 
 type LegalPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -10,19 +9,10 @@ type LegalPageProps = {
 export async function generateMetadata({
   searchParams,
 }: LegalPageProps): Promise<Metadata> {
-  const locale = resolveLegalLocale((await searchParams).lang);
-  return buildLegalMetadata("impressum", locale);
+  const params = await searchParams;
+  return buildLegalMetadata("impressum", params.lang === "de" ? "de" : "en");
 }
 
 export default async function ImpressumPage({ searchParams }: LegalPageProps) {
-  const locale = resolveLegalLocale((await searchParams).lang);
-  const dictionary = await getLegalDictionary(locale);
-
-  return (
-    <LegalDocumentPage
-      documentId="impressum"
-      locale={locale}
-      dictionary={dictionary}
-    />
-  );
+  permanentRedirect(getLegacyLegalRedirectPath("impressum", (await searchParams).lang));
 }

@@ -31,6 +31,9 @@ test("agency landing source uses same-page anchors and a visible demo CTA", () =
   assert.match(homepageSource, /id="faq"/);
   assert.match(homepageSource, /href="\/demo"/);
   assert.match(homepageSource, /id="demo"/);
+  assert.match(homepageSource, /getAgencySeoTopicPath/);
+  assert.match(homepageSource, /SEO Reporting Tool für Agenturen/);
+  assert.match(homepageSource, /SEO reporting software for agencies/);
   assert.match(headerSource, /samePageAnchors \? `#\$\{id\}`/);
   assert.doesNotMatch(homepageSource, /href="\/pricing"/);
 });

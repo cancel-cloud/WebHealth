@@ -77,7 +77,7 @@ Agenturen kaufen keine Abstraktion. Sie kaufen weniger Vorarbeit vor dem Kundenm
 
 ---
 
-### Post 6 - A - EN - ready 
+### Post 6 - A - EN - ready - done
 WebHealth output is intentionally boring – and that’s the point.
 
 1. Which pages changed  
@@ -92,7 +92,7 @@ No hype. Just the exact meeting prep your SEO lead would do manually.
 
 ---
 
-### Post 7 - F - DE - ready
+### Post 7 - F - DE - ready - will not do
 Ich dachte erst, WebHealth muss wie ein cooles SEO-Tool klingen.
 
 Falsch.
@@ -103,7 +103,7 @@ Weniger sexy. Wahrscheinlich näher am echten Problem.
 
 ---
 
-### Post 8 - C - EN - ready
+### Post 8 - C - EN - ready - done
 If your report needs 14 charts before it tells you what to do…  
 it’s not a report.  
 It’s a data room.

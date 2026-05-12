@@ -1,0 +1,219 @@
+# ----------------------------------------
+# Überblick über Nutzer-Engagement und ‑bindung erhalten – Übersicht
+# Konto: DevBrew
+# Property: WebHealth
+# ----------------------------------------
+#  
+# Startdatum: 20260414
+# Enddatum: 20260511
+X. Tag,Aktive Nutzer
+0000,1
+0001,0
+0002,0
+0003,0
+0004,0
+0005,1
+0006,0
+0007,1
+0008,0
+0009,2
+0010,2
+0011,4
+0012,5
+0013,6
+0014,3
+0015,0
+0016,0
+0017,1
+0018,2
+0019,4
+0020,3
+0021,2
+0022,5
+0023,4
+0024,4
+0025,6
+0026,0
+0027,3
+
+# Startdatum: 20260414
+# Enddatum: 20260511
+X. Tag,Neue Nutzer
+0000,0
+0001,0
+0002,0
+0003,0
+0004,0
+0005,0
+0006,0
+0007,0
+0008,0
+0009,1
+0010,0
+0011,2
+0012,2
+0013,1
+0014,0
+0015,0
+0016,0
+0017,0
+0018,0
+0019,0
+0020,0
+0021,0
+0022,1
+0023,0
+0024,1
+0025,2
+0026,0
+0027,0
+
+# Woher sind neue Nutzer gekommen?
+# Startdatum: 20260414
+# Enddatum: 20260511
+Erste Nutzerinteraktion – primäre Channelgruppe (Standard-Channelgruppe),Neue Nutzer
+Direct,8
+Referral,2
+
+#  
+# Startdatum: 20260414
+# Enddatum: 20260511
+Seitentitel und Bildschirmklasse,Aufrufe
+Webhealth | SEO & Analytics Monitoring,760
+Webhealth for Agencies,244
+WebHealth Agentur-Pilot — SEO-Reports in Maßnahmen verwandeln,96
+SEO Reporting Software for Agencies | WebHealth Pilot,57
+SEO Reporting Tool für Agenturen | WebHealth Pilot,16
+Pricing — Webhealth,15
+Webhealth for Agencies — Live SEO & Analytics Snapshots,15
+"SEO Reporting Tool für Agenturen: GSC, GA4 und Crawl-Daten priorisieren",10
+Demo Report — Webhealth,8
+WebHealth Demo | Acme Bakery Dashboard,8
+Preise — WebHealth Founding Agency Pilot,6
+SEO Reporting Tool für Agenturen | Monatsreports zu Maßnahmen,6
+"SEO Reporting Software for Agencies: Prioritize GSC, GA4, and Crawl Data",4
+About Webhealth — SEO and Analytics Built for Agencies,3
+Auftragsverarbeitungsvertrag — Webhealth · Webanalyse & SEO,2
+Impressum — Webhealth · Webanalyse & SEO,2
+SEO Reporting Software for Agencies | Monthly Reports to Action,2
+Data Processing Agreement — Webhealth · Web Analytics & SEO,1
+"Pricing — Webhealth Plans for Solo, Pro, and Agency Teams",1
+
+#  
+# Startdatum: 20260414
+# Enddatum: 20260511
+Plattform,Aktive Nutzer
+"[""Web""]",14
+
+#  
+# Startdatum: 20260414
+# Enddatum: 20260511
+Kohorte,1. Tag,7. Tag
+0,0,0
+1,0,0
+2,0,0
+3,0,0
+4,0,0
+5,0,0
+6,0,0
+7,0,0
+8,0,0
+9,1,0
+10,0,0
+11,0.5,0
+12,0.5,0.5
+13,0,0
+14,0,0
+15,0,0
+16,0,0
+17,0,0
+18,0,0
+19,0,0
+20,0,0
+21,0,0
+22,0,0
+23,0,0
+24,0,0
+25,0,0
+26,0,0
+27,0,0
+
+#  
+# Startdatum: 20260414
+# Enddatum: 20260511
+Kohorte,1. Tag,7. Tag
+0,0,0
+1,0,0
+2,0,0
+3,0,0
+4,0,0
+5,0,0
+6,0,0
+7,0,0
+8,0,0
+9,1543,0
+10,0,0
+11,1753,0
+12,8,125
+13,0,0
+14,0,0
+15,0,0
+16,0,0
+17,0,0
+18,0,0
+19,0,0
+20,0,0
+21,0,0
+22,0,0
+23,0,0
+24,0,0
+25,0,0
+26,0,0
+27,0,0
+
+#  
+# Startdatum: 20260331
+# Enddatum: 20260511
+Kohorte,Durchschnittliche Interaktionsdauer pro aktivem Nutzer
+0000,36.654761904761905
+0001,78.66666666666667
+0002,199.59756097560975
+0003,5.95
+0004,2.3333333333333335
+0005,36.44736842105263
+0006,0
+0007,3.4722222222222223
+0008,34.457142857142856
+0009,0.8823529411764706
+0010,7.9393939393939394
+0011,5.59375
+0012,101.70967741935483
+0013,26.5
+0014,0.6551724137931034
+0015,7.321428571428571
+0016,0
+0017,3.076923076923077
+0018,0
+0019,0
+0020,0
+0021,0
+0022,0
+0023,18.45
+0024,14.947368421052632
+0025,28.555555555555557
+0026,0.8235294117647058
+0027,8.0625
+0028,18.533333333333335
+0029,0
+0030,0
+0031,16.5
+0032,90.63636363636364
+0033,52.1
+0034,126.77777777777777
+0035,27.125
+0036,21.571428571428573
+0037,37.166666666666664
+0038,0
+0039,7.5
+0040,0
+0041,0

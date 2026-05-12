@@ -1,0 +1,200 @@
+# ----------------------------------------
+# Web- und/oder App-Traffic analysieren ‒ Übersicht
+# Konto: DevBrew
+# Property: WebHealth
+# ----------------------------------------
+#  
+# Startdatum: 20260414
+# Enddatum: 20260511
+Landes-ID,Aktive Nutzer
+CA,1
+DE,14
+
+# Startdatum: 20260414
+# Enddatum: 20260511
+Land,Aktive Nutzer
+DE,14
+CA,1
+
+#  
+# Startdatum: 20260414
+# Enddatum: 20260511
+Stadt,Aktive Nutzer
+Weilburg,14
+Hunfelden,6
+Hunstetten,2
+Weilmunster,2
+Giessen,1
+Toronto,1
+
+#  
+# Startdatum: 20260414
+# Enddatum: 20260511
+X. Tag,Durchschnittliche Interaktionsdauer pro aktivem Nutzer
+0000,6
+0001,0
+0002,0
+0003,0
+0004,0
+0005,129
+0006,0
+0007,80
+0008,0
+0009,655.5
+0010,913.5
+0011,1923
+0012,492.6
+0013,404.1666666666667
+0014,591.3333333333334
+0015,0
+0016,0
+0017,198
+0018,348.5
+0019,528.5
+0020,436.3333333333333
+0021,360
+0022,101.8
+0023,663.5
+0024,212.5
+0025,14.833333333333334
+0026,0
+0027,74.33333333333333
+
+# Startdatum: 20260414
+# Enddatum: 20260511
+X. Tag,Sitzungen mit Interaktionen pro aktivem Nutzer
+0000,2
+0001,0
+0002,0
+0003,0
+0004,0
+0005,2
+0006,0
+0007,2
+0008,0
+0009,4
+0010,4
+0011,2.5
+0012,2.2
+0013,1.5
+0014,3.3333333333333335
+0015,0
+0016,0
+0017,1
+0018,1.5
+0019,3.75
+0020,2.6666666666666665
+0021,4.5
+0022,1.6
+0023,1
+0024,1.25
+0025,1.6666666666666667
+0026,0
+0027,0.3333333333333333
+
+# Startdatum: 20260414
+# Enddatum: 20260511
+X. Tag,Durchschnittliche Interaktionsdauer pro Sitzung
+0000,3
+0001,0
+0002,0
+0003,0
+0004,0
+0005,64.5
+0006,0
+0007,40
+0008,0
+0009,145.66666666666666
+0010,166.0909090909091
+0011,641
+0012,205.25
+0013,173.21428571428572
+0014,161.27272727272728
+0015,0
+0016,0
+0017,198
+0018,232.33333333333334
+0019,132.125
+0020,119
+0021,60
+0022,63.625
+0023,530.8
+0024,141.66666666666666
+0025,7.416666666666667
+0026,0
+0027,31.857142857142858
+
+#  
+# Startdatum: 20260414
+# Enddatum: 20260511
+Ereignisname,Ereignisanzahl
+page_view,1256
+user_engagement,327
+scroll,271
+session_start,155
+first_visit,10
+click,5
+form_start,1
+
+#  
+# Startdatum: 20260414
+# Enddatum: 20260511
+Seitentitel und Bildschirmklasse,Aufrufe
+Webhealth | SEO & Analytics Monitoring,760
+Webhealth for Agencies,244
+WebHealth Agentur-Pilot — SEO-Reports in Maßnahmen verwandeln,96
+SEO Reporting Software for Agencies | WebHealth Pilot,57
+SEO Reporting Tool für Agenturen | WebHealth Pilot,16
+Pricing — Webhealth,15
+Webhealth for Agencies — Live SEO & Analytics Snapshots,15
+"SEO Reporting Tool für Agenturen: GSC, GA4 und Crawl-Daten priorisieren",10
+Demo Report — Webhealth,8
+WebHealth Demo | Acme Bakery Dashboard,8
+Preise — WebHealth Founding Agency Pilot,6
+SEO Reporting Tool für Agenturen | Monatsreports zu Maßnahmen,6
+"SEO Reporting Software for Agencies: Prioritize GSC, GA4, and Crawl Data",4
+About Webhealth — SEO and Analytics Built for Agencies,3
+Auftragsverarbeitungsvertrag — Webhealth · Webanalyse & SEO,2
+Impressum — Webhealth · Webanalyse & SEO,2
+SEO Reporting Software for Agencies | Monthly Reports to Action,2
+Data Processing Agreement — Webhealth · Web Analytics & SEO,1
+"Pricing — Webhealth Plans for Solo, Pro, and Agency Teams",1
+
+#  
+# Startdatum: 20260414
+# Enddatum: 20260511
+X. Tag,Aktive Nutzer pro Tag / monatlich aktive Nutzer,Täglich aktive / wöchentlich aktive Nutzer,Wöchentlich aktive / monatlich aktive Nutzer
+0000,0.1111111111111111,1,0.1111111111111111
+0001,0,0,0.1111111111111111
+0002,0,0,0.1111111111111111
+0003,0,0,0.1111111111111111
+0004,0,0,0.1111111111111111
+0005,0.1111111111111111,0.5,0.2222222222222222
+0006,0,0,0.2222222222222222
+0007,0.1111111111111111,1,0.1111111111111111
+0008,0,0,0.1111111111111111
+0009,0.2,0.6666666666666666,0.3
+0010,0.2,0.6666666666666666,0.3
+0011,0.3333333333333333,0.8,0.4166666666666667
+0012,0.35714285714285715,0.7142857142857143,0.5
+0013,0.4,0.75,0.5333333333333333
+0014,0.2,0.42857142857142855,0.4666666666666667
+0015,0,0,0.5833333333333334
+0016,0,0,0.5833333333333334
+0017,0.08333333333333333,0.14285714285714285,0.5833333333333334
+0018,0.2,0.2857142857142857,0.7
+0019,0.4,0.6666666666666666,0.6
+0020,0.3333333333333333,0.75,0.4444444444444444
+0021,0.2222222222222222,0.5,0.4444444444444444
+0022,0.5,0.7142857142857143,0.7
+0023,0.36363636363636365,0.4444444444444444,0.8181818181818182
+0024,0.3333333333333333,0.4,0.8333333333333334
+0025,0.42857142857142855,0.5,0.8571428571428571
+0026,0,0,0.7857142857142857
+0027,0.21428571428571427,0.2727272727272727,0.7857142857142857
+
+#  
+# Startdatum: 20260414
+# Enddatum: 20260511
+Sprache,Aktive Nutzer
+English,14

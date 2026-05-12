@@ -1181,3 +1181,66 @@ export const AGENCY_FAQ_ITEMS: FaqItem[] = [
     },
   },
 ];
+
+export const AGENCY_TOPIC_FAQ_ITEMS: FaqItem[] = [
+  {
+    question: {
+      en: "How is WebHealth different from Looker Studio?",
+      de: "Wie unterscheidet sich WebHealth von Looker Studio?",
+    },
+    answer: {
+      en: "Looker Studio is useful for dashboards and recurring views. WebHealth is the decision layer above GSC, GA4, and crawl signals: it highlights what changed and turns it into a ranked action backlog for review.",
+      de: "Looker Studio ist hilfreich für Dashboards und wiederkehrende Ansichten. WebHealth ist die Entscheidungsschicht über GSC, GA4 und Crawl-Signalen: Es zeigt, was sich verändert hat, und macht daraus einen priorisierten Maßnahmen-Backlog zur Prüfung.",
+    },
+  },
+  {
+    question: {
+      en: "How often is a monthly SEO snapshot generated?",
+      de: "Wie oft wird ein Monats-Snapshot generiert?",
+    },
+    answer: {
+      en: "The pilot is built around one monthly snapshot per connected client site. Early pilot delivery is founder-led, while scheduled automated delivery remains a visible rollout target.",
+      de: "Der Pilot ist auf einen Monats-Snapshot pro verbundener Kunden-Website ausgelegt. Die frühe Pilot-Auslieferung ist founder-led; geplante automatische Auslieferung bleibt als Rollout-Ziel sichtbar.",
+    },
+  },
+  {
+    question: {
+      en: "Which Search Console properties are supported?",
+      de: "Welche Search-Console-Properties werden unterstützt?",
+    },
+    answer: {
+      en: "WebHealth works with the Google properties your connected account can read. The product already handles the agency flow around discovered GSC and GA4 properties; edge cases are reviewed during pilot setup.",
+      de: "WebHealth arbeitet mit den Google-Properties, die dein verbundenes Konto lesen darf. Der Agenturfluss rund um erkannte GSC- und GA4-Properties ist bereits angelegt; Sonderfälle prüfen wir im Pilot-Setup.",
+    },
+  },
+  {
+    question: {
+      en: "Can I manage several clients separately?",
+      de: "Kann ich mehrere Kunden getrennt verwalten?",
+    },
+    answer: {
+      en: "Yes, the agency pilot is designed for multiple client sites in one workspace. Granular per-client permissions are still labeled as follow-up product work, not as a finished control surface.",
+      de: "Ja, der Agentur-Pilot ist für mehrere Kunden-Websites in einem Workspace gedacht. Granulare Rechte pro Kunde sind weiterhin klar als nachgelagerte Produktarbeit markiert, nicht als fertige Kontrollfläche.",
+    },
+  },
+  {
+    question: {
+      en: "Is customer data hosted in the EU?",
+      de: "Werden Kundendaten in der EU gehostet?",
+    },
+    answer: {
+      en: "The connected-data core is positioned as Germany-hosted on a local hosting provider. The legal pages describe processing details and subprocessors.",
+      de: "Der verbundene Datenkern ist als in Deutschland gehostet positioniert, auf Infrastruktur eines lokalen Hosting-Providers. Die Legal Pages beschreiben Verarbeitung und Subprozessoren.",
+    },
+  },
+  {
+    question: {
+      en: "How much setup time does each client site need?",
+      de: "Wie viel Setup-Zeit braucht eine Kunden-Website?",
+    },
+    answer: {
+      en: "The pilot starts with a short fit check and founder-led setup for 3-10 client sites. Property selection is intentionally reviewed with you so the first monthly snapshot is useful, not just connected.",
+      de: "Der Pilot startet mit einem kurzen Fit-Check und founder-led Setup für 3-10 Kunden-Websites. Die Property-Auswahl prüfen wir bewusst gemeinsam, damit der erste Monats-Snapshot nützlich ist und nicht nur verbunden.",
+    },
+  },
+];

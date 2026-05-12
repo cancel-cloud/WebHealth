@@ -4,6 +4,10 @@ import {
   getAgencyHomePath,
   getAgencySeoTopicPath,
 } from "./(marketing)/agency-seo.logic";
+import {
+  buildLegalHref,
+  LEGAL_DOCUMENT_IDS,
+} from "./(marketing)/legal/legal-routes";
 
 const BASE_URL = AGENCY_PRODUCTION_BASE_URL;
 
@@ -51,29 +55,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.6,
     },
-    {
-      url: `${BASE_URL}/privacy`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
-    {
-      url: `${BASE_URL}/terms`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
-    {
-      url: `${BASE_URL}/impressum`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
-    {
-      url: `${BASE_URL}/dpa`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
+    ...LEGAL_DOCUMENT_IDS.flatMap((documentId) =>
+      (["en", "de"] as const).map((locale) => ({
+        url: `${BASE_URL}${buildLegalHref(documentId, locale)}`,
+        lastModified: new Date(),
+        changeFrequency: "yearly" as const,
+        priority: 0.3,
+      })),
+    ),
   ];
 }
