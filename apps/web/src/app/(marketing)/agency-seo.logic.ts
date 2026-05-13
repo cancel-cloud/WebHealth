@@ -5,7 +5,7 @@ import { PUBLIC_PRICING_PLANS } from "@/lib/pricing";
 
 export const AGENCY_PRODUCTION_BASE_URL = "https://webhealth.devbrew.dev";
 
-export type AgencySeoPage = "home" | "topic";
+export type AgencySeoPage = "home" | "topic" | "about";
 
 export const AGENCY_HOME_PATHS: Record<AgencyLandingLanguage, string> = {
   de: "/de",
@@ -43,6 +43,16 @@ const AGENCY_TOPIC_DESCRIPTIONS: Record<AgencyLandingLanguage, string> = {
   en: "WebHealth shows agencies how GSC, GA4, and crawl data become monthly snapshots, prioritized SEO actions, and client meeting prep.",
 };
 
+const AGENCY_ABOUT_TITLES: Record<AgencyLandingLanguage, string> = {
+  de: "Über WebHealth — SEO Reporting für Agenturen",
+  en: "About WebHealth — SEO Reporting for Agencies",
+};
+
+const AGENCY_ABOUT_DESCRIPTIONS: Record<AgencyLandingLanguage, string> = {
+  de: "Wer WebHealth baut, wie der Agentur-Pilot funktioniert und warum das Produkt SEO-Reports in überprüfbare Maßnahmen übersetzt.",
+  en: "Who builds WebHealth, how the agency pilot works, and why the product turns SEO reporting into reviewable actions.",
+};
+
 export function getAgencyHomePath(language: AgencyLandingLanguage) {
   return AGENCY_HOME_PATHS[language];
 }
@@ -53,6 +63,10 @@ export function getAgencyPricingPath(language: AgencyLandingLanguage) {
 
 export function getAgencyDemoPath(language: AgencyLandingLanguage) {
   return `${getAgencyHomePath(language)}/demo`;
+}
+
+export function getAgencyAboutPath(language: AgencyLandingLanguage) {
+  return `${getAgencyHomePath(language)}/about`;
 }
 
 export function getAgencySeoTopicPath(language: AgencyLandingLanguage) {
@@ -105,8 +119,18 @@ export function resolvePreferredAgencyLanguage(
 }
 
 export function getAgencyLanguageAlternates(page: AgencySeoPage) {
-  const de = page === "home" ? getAgencyHomePath("de") : getAgencySeoTopicPath("de");
-  const en = page === "home" ? getAgencyHomePath("en") : getAgencySeoTopicPath("en");
+  const de =
+    page === "home"
+      ? getAgencyHomePath("de")
+      : page === "about"
+        ? getAgencyAboutPath("de")
+        : getAgencySeoTopicPath("de");
+  const en =
+    page === "home"
+      ? getAgencyHomePath("en")
+      : page === "about"
+        ? getAgencyAboutPath("en")
+        : getAgencySeoTopicPath("en");
 
   return {
     de,
@@ -162,6 +186,31 @@ export function buildAgencySeoTopicMetadata(
       card: "summary_large_image",
       title: AGENCY_TOPIC_TITLES[language],
       description: AGENCY_TOPIC_DESCRIPTIONS[language],
+      images: ["/og-image.png"],
+    },
+  };
+}
+
+export function buildAgencyAboutMetadata(language: AgencyLandingLanguage): Metadata {
+  const path = getAgencyAboutPath(language);
+
+  return {
+    title: AGENCY_ABOUT_TITLES[language],
+    description: AGENCY_ABOUT_DESCRIPTIONS[language],
+    alternates: {
+      canonical: path,
+      languages: getAgencyLanguageAlternates("about"),
+    },
+    openGraph: {
+      url: path,
+      title: AGENCY_ABOUT_TITLES[language],
+      description: AGENCY_ABOUT_DESCRIPTIONS[language],
+      images: ["/og-image.png"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: AGENCY_ABOUT_TITLES[language],
+      description: AGENCY_ABOUT_DESCRIPTIONS[language],
       images: ["/og-image.png"],
     },
   };

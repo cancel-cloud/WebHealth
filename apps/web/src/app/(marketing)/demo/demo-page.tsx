@@ -8,7 +8,9 @@ import { AgencyHeader } from "../agency-header";
 import type { AgencyLandingLanguage } from "../agency-homepage.logic";
 import {
   AGENCY_PRODUCTION_BASE_URL,
+  getAgencyAboutPath,
   getAgencyDemoPath,
+  getAgencyPricingPath,
 } from "../agency-seo.logic";
 import {
   ACME_DEMO_BRAND_COLORS,
@@ -172,8 +174,8 @@ Backend-Aktionen wie Refreshes, Zuweisungen, Status-Updates und Share-Links sind
 ## Öffentliche Links
 
 - [Demo öffnen](${AGENCY_PRODUCTION_BASE_URL}${path})
-- [Preise](${AGENCY_PRODUCTION_BASE_URL}/de/pricing)
-- [Über WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)
+- [Preise](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath("de")})
+- [Über WebHealth](${AGENCY_PRODUCTION_BASE_URL}${getAgencyAboutPath("de")})
 `;
   }
 
@@ -187,7 +189,7 @@ Backend actions such as refreshes, assignment, action-state updates, and share-l
 ## Public links
 
 - [Open the demo](${AGENCY_PRODUCTION_BASE_URL}${path})
-- [Pricing](${AGENCY_PRODUCTION_BASE_URL}/en/pricing)
-- [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)
+- [Pricing](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath("en")})
+- [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}${getAgencyAboutPath("en")})
 `;
 }

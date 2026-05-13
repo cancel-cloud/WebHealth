@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PricingSection } from "@/components/pricing-section";
 import type { PublicPricingLanguage } from "@/lib/pricing";
 import { AgencyHeader } from "../agency-header";
+import { getAgencyAboutPath } from "../agency-seo.logic";
 
 const PRICING_PAGE_COPY = {
   de: {
@@ -50,7 +51,7 @@ const PRICING_PAGE_COPY = {
         body: (
           <>
             Lies mehr über das Team und den Betrieb von WebHealth auf der{" "}
-            <Link href="/about" className="underline">
+            <Link href={getAgencyAboutPath("de")} className="underline">
               About-Seite
             </Link>
             , oder schreib an{" "}
@@ -107,7 +108,7 @@ const PRICING_PAGE_COPY = {
         body: (
           <>
             Read more about the team and how WebHealth operates on the{" "}
-            <Link href="/about" className="underline">
+            <Link href={getAgencyAboutPath("en")} className="underline">
               About page
             </Link>
             , or email{" "}

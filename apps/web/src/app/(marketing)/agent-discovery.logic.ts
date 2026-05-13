@@ -7,6 +7,7 @@ import type { AgencyLandingLanguage } from "./agency-homepage.logic";
 import {
   AGENCY_PRODUCTION_BASE_URL,
   AGENCY_SEO_TITLES,
+  getAgencyAboutPath,
   getAgencyDemoPath,
   getAgencyHomePath,
   getAgencyPricingPath,
@@ -33,6 +34,8 @@ const MARKDOWN_DOCUMENT_PATHS = new Set([
   "/en/demo",
   "/de/demo",
   "/about",
+  "/en/about",
+  "/de/about",
   "/en/seo-reporting-software-agencies",
   "/de/seo-reporting-tool-agenturen",
   ...LEGAL_DOCUMENT_IDS.flatMap((documentId) => [
@@ -141,6 +144,8 @@ export function getRobotsTxt() {
     "Allow: /de/seo-reporting-tool-agenturen",
     "Allow: /en/seo-reporting-software-agencies",
     "Allow: /about",
+    "Allow: /en/about",
+    "Allow: /de/about",
     "Allow: /pricing",
     "Allow: /en/pricing",
     "Allow: /de/pricing",
@@ -188,7 +193,8 @@ function publicLinks() {
     `- [German pricing](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath("de")})`,
     `- [English public demo](${AGENCY_PRODUCTION_BASE_URL}${getAgencyDemoPath("en")})`,
     `- [German public demo](${AGENCY_PRODUCTION_BASE_URL}${getAgencyDemoPath("de")})`,
-    `- [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)`,
+    `- [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}${getAgencyAboutPath("en")})`,
+    `- [Über WebHealth](${AGENCY_PRODUCTION_BASE_URL}${getAgencyAboutPath("de")})`,
     `- [SEO reporting software for agencies](${AGENCY_PRODUCTION_BASE_URL}/en/seo-reporting-software-agencies)`,
     `- [SEO Reporting Tool für Agenturen](${AGENCY_PRODUCTION_BASE_URL}/de/seo-reporting-tool-agenturen)`,
     `- [Privacy Policy](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("privacy", "en")})`,
@@ -270,7 +276,7 @@ ${AGENCY_FAQ_ITEMS.map((item) => `### ${item.question[language]}\n\n${item.answe
 
 - [Pricing](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath(language)})
 - [Public demo](${AGENCY_PRODUCTION_BASE_URL}${getAgencyDemoPath(language)})
-- [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)
+- [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}${getAgencyAboutPath(language)})
 - [Localized SEO page](${AGENCY_PRODUCTION_BASE_URL}${getAgencySeoTopicPath(language)})
 `);
 }
@@ -293,7 +299,7 @@ Für den kostenlosen Pilot-Monat ist kein Stripe-Eintrag nötig. Wenn der Workfl
 ## Öffentliche Links
 
 - [Pilot-Check buchen](${AGENCY_PILOT.bookingUrl})
-- [Über WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)
+- [Über WebHealth](${AGENCY_PRODUCTION_BASE_URL}${getAgencyAboutPath("de")})
 - [Nutzungsbedingungen](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("terms", "de")})
 `);
   }
@@ -314,7 +320,7 @@ No Stripe entry is required for the free pilot month. If the workflow is useful 
 ## Public links
 
 - [Book pilot check](${AGENCY_PILOT.bookingUrl})
-- [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)
+- [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}${getAgencyAboutPath("en")})
 - [Terms of Service](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("terms", "en")})
 `);
 }
@@ -332,7 +338,7 @@ Backend-Aktionen wie Refreshes, Zuweisungen, Status-Updates und Share-Links sind
 
 - [Demo öffnen](${AGENCY_PRODUCTION_BASE_URL}${getAgencyDemoPath("de")})
 - [Preise](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath("de")})
-- [Über WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)
+- [Über WebHealth](${AGENCY_PRODUCTION_BASE_URL}${getAgencyAboutPath("de")})
 `);
   }
 
@@ -347,11 +353,35 @@ Backend actions such as refreshes, assignment, action-state updates, and share-l
 
 - [Open the demo](${AGENCY_PRODUCTION_BASE_URL}${getAgencyDemoPath("en")})
 - [Pricing](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath("en")})
-- [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}/about)
+- [About WebHealth](${AGENCY_PRODUCTION_BASE_URL}${getAgencyAboutPath("en")})
 `);
 }
 
-function aboutMarkdown() {
+function aboutMarkdown(language: AgencyLandingLanguage) {
+  if (language === "de") {
+    return withTokenEstimate(`
+# Über WebHealth
+
+WebHealth wird von DevBrew gebaut, damit Agenturen SEO-Maßnahmen ausliefern statt Daten zu jagen.
+
+WebHealth verbindet Google Search Console und Google Analytics 4 mit Crawl-Checks und übersetzt die Signale in priorisierte, überprüfbare Fix-Listen für Kunden-Websites.
+
+## Betriebsnotizen
+
+- WebHealth wird von DevBrew betrieben, einem kleinen Studio aus Frankfurt.
+- Das Produkt ist für Agenturen und freie Webteams gebaut.
+- Empfehlungen sollen deterministisch, überprüfbar und auf GSC-, GA4- oder Crawl-Evidenz zurückführbar sein.
+- Google OAuth Tokens werden verschlüsselt gespeichert, und öffentliche Datenschutzdetails stehen in den Datenschutzhinweisen.
+
+## Öffentliche Links
+
+- [Impressum](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("impressum", "de")})
+- [Datenschutzhinweise](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("privacy", "de")})
+- [Nutzungsbedingungen](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("terms", "de")})
+- [Preise](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath("de")})
+`);
+  }
+
   return withTokenEstimate(`
 # About WebHealth
 
@@ -454,7 +484,9 @@ export function getMarkdownDocument(pathname: string): MarkdownDocument | null {
   if (normalizedPathname === "/demo") return demoMarkdown("en");
   if (normalizedPathname === "/en/demo") return demoMarkdown("en");
   if (normalizedPathname === "/de/demo") return demoMarkdown("de");
-  if (normalizedPathname === "/about") return aboutMarkdown();
+  if (normalizedPathname === "/about") return aboutMarkdown("en");
+  if (normalizedPathname === "/en/about") return aboutMarkdown("en");
+  if (normalizedPathname === "/de/about") return aboutMarkdown("de");
   if (normalizedPathname === "/en/seo-reporting-software-agencies") return topicMarkdown("en");
   if (normalizedPathname === "/de/seo-reporting-tool-agenturen") return topicMarkdown("de");
   for (const documentId of LEGAL_DOCUMENT_IDS) {

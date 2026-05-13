@@ -137,6 +137,7 @@ export const AGENCY_HOME_COPY = {
     integrations: { en: "Integrations", de: "Integrationen" },
     pricing: { en: "Pricing", de: "Preise" },
     faq: { en: "FAQ", de: "FAQ" },
+    about: { en: "About", de: "Über uns" },
     signIn: { en: "Sign in", de: "Anmelden" },
     selfServeCta: { en: "Try for yourself", de: "Loslegen" },
     pilotCta: {
