@@ -125,7 +125,7 @@ Vier Wörter. Viel klarer.
 
 ---
 
-### Post 10 - A - EN - ready
+### Post 10 - A - EN - ready - queued
 Trying to make one monthly SEO workflow less annoying:
 
 Export GSC → open GA4 → check crawl sheets → rebuild the same logic again.
