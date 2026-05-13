@@ -31,6 +31,7 @@ test("PostHog browser tracking only enables after analytics consent with a key",
   assert.equal(isPosthogBrowserEnabled("declined", "phc_test"), false);
   assert.equal(isPosthogBrowserEnabled("unknown", "phc_test"), false);
   assert.equal(isPosthogBrowserEnabled("accepted", ""), false);
+  assert.equal(isPosthogBrowserEnabled("accepted", "phc_replace_with_client_key"), false);
 });
 
 test("analytics URL sanitizer redacts public share tokens", () => {

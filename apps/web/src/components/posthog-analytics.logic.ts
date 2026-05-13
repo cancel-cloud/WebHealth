@@ -27,6 +27,7 @@ type PosthogIdentityInput = {
 
 const SHARE_PROPERTY_TOKEN_PATH = /^\/share\/property\/[^/]+$/;
 const SHARE_PROPERTY_REDACTED_PATH = "/share/property/[token]";
+const POSTHOG_PLACEHOLDER_PATTERN = /^phc_replace_/i;
 
 export type PosthogIdentityAction =
   | { type: "identify"; distinctId: string; properties: { email?: string; name?: string } }
@@ -52,7 +53,8 @@ export function isPosthogBrowserEnabled(
   consent: CookieConsentState,
   key: string | null | undefined,
 ) {
-  return consent === "accepted" && Boolean(key?.trim());
+  const trimmed = key?.trim() ?? "";
+  return consent === "accepted" && Boolean(trimmed) && !POSTHOG_PLACEHOLDER_PATTERN.test(trimmed);
 }
 
 export function sanitizeAnalyticsUrl(url: string) {
