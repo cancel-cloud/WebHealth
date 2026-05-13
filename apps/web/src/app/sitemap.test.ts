@@ -9,6 +9,14 @@ test("sitemap includes the public demo page", () => {
   assert.ok(urls.includes("https://webhealth.devbrew.dev/en/demo"));
 });
 
+test("sitemap includes localized about pages without legacy about", () => {
+  const urls = sitemap().map((entry) => entry.url);
+
+  assert.ok(urls.includes("https://webhealth.devbrew.dev/de/about"));
+  assert.ok(urls.includes("https://webhealth.devbrew.dev/en/about"));
+  assert.equal(urls.includes("https://webhealth.devbrew.dev/about"), false);
+});
+
 test("sitemap includes localized legal pages and no legacy legal URLs", () => {
   const urls = sitemap().map((entry) => entry.url);
 

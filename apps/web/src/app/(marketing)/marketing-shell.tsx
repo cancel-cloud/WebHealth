@@ -11,7 +11,11 @@ import {
   LEGAL_DOCUMENT_IDS,
   LEGAL_NAV_LABELS,
 } from "./legal/legal-routes";
-import { getAgencySeoTopicPath } from "./agency-seo.logic";
+import {
+  getAgencyAboutPath,
+  getAgencyPricingPath,
+  getAgencySeoTopicPath,
+} from "./agency-seo.logic";
 import { shouldUseStandaloneAgencyChrome } from "./marketing-shell.logic";
 
 function LegalFooterLinksFallback() {
@@ -67,18 +71,18 @@ function MarketingFooter() {
               {topicLabel}
             </Link>
             <Link
-              href="/about"
+              href={getAgencyAboutPath(language)}
               className="text-xs transition-colors hover:underline"
               style={{ color: "oklch(0.55 0.02 250)" }}
             >
-              About
+              {language === "de" ? "Über uns" : "About"}
             </Link>
             <Link
-              href="/pricing"
+              href={getAgencyPricingPath(language)}
               className="text-xs transition-colors hover:underline"
               style={{ color: "oklch(0.55 0.02 250)" }}
             >
-              Pricing
+              {language === "de" ? "Preise" : "Pricing"}
             </Link>
             <Suspense fallback={<LegalFooterLinksFallback />}>
               <LegalFooterLinks />

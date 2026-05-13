@@ -52,6 +52,8 @@ test("markdown negotiation is limited to public marketing routes", () => {
   assert.equal(shouldServeMarkdown("text/markdown", "/de/pricing"), true);
   assert.equal(shouldServeMarkdown("text/markdown", "/en/demo"), true);
   assert.equal(shouldServeMarkdown("text/markdown", "/de/demo"), true);
+  assert.equal(shouldServeMarkdown("text/markdown", "/en/about"), true);
+  assert.equal(shouldServeMarkdown("text/markdown", "/de/about"), true);
   assert.equal(shouldServeMarkdown("text/markdown", "/de/privacy"), true);
   assert.equal(shouldServeMarkdown("text/markdown", "/de/terms"), true);
   assert.equal(shouldServeMarkdown("text/markdown", "/de/impressum"), true);
@@ -97,6 +99,8 @@ test("robots txt includes content signals and preserves crawler boundaries", () 
   assert.match(robots, /Allow: \/de\/pricing/);
   assert.match(robots, /Allow: \/en\/demo/);
   assert.match(robots, /Allow: \/de\/demo/);
+  assert.match(robots, /Allow: \/en\/about/);
+  assert.match(robots, /Allow: \/de\/about/);
   assert.match(robots, /Allow: \/de\/privacy/);
   assert.match(robots, /Allow: \/de\/terms/);
   assert.match(robots, /Allow: \/de\/impressum/);
@@ -137,6 +141,17 @@ test("localized demo markdown documents are available", () => {
   assert.ok(germanDocument);
   assert.match(englishDocument?.markdown ?? "", /WebHealth demo/);
   assert.match(germanDocument?.markdown ?? "", /öffentliche Demo/);
+  assert.doesNotMatch(germanDocument?.markdown ?? "", /\/dashboard|\/api|\/properties/);
+});
+
+test("localized about markdown documents are available", () => {
+  const englishDocument = getMarkdownDocument("/en/about");
+  const germanDocument = getMarkdownDocument("/de/about");
+
+  assert.ok(englishDocument);
+  assert.ok(germanDocument);
+  assert.match(englishDocument?.markdown ?? "", /About WebHealth/);
+  assert.match(germanDocument?.markdown ?? "", /Über WebHealth/);
   assert.doesNotMatch(germanDocument?.markdown ?? "", /\/dashboard|\/api|\/properties/);
 });
 

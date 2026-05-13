@@ -11,6 +11,7 @@ import {
   type AgencyLandingLanguage,
 } from "./agency-homepage.logic";
 import {
+  getAgencyAboutPath,
   getAgencyDemoPath,
   getAgencyHomePath,
   getAgencyPricingPath,
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { id: "demo", key: "demo" },
   { id: "pricing", key: "pricing" },
   { id: "faq", key: "faq" },
+  { id: "about", key: "about" },
 ] as const;
 
 function getSectionHref({
@@ -32,6 +34,7 @@ function getSectionHref({
   samePageAnchors: boolean;
 }) {
   if (id === "demo") return getAgencyDemoPath(language);
+  if (id === "about") return getAgencyAboutPath(language);
   return samePageAnchors ? `#${id}` : `${getAgencyHomePath(language)}#${id}`;
 }
 
@@ -42,7 +45,7 @@ export function AgencyHeader({
 }: {
   language: AgencyLandingLanguage;
   samePageAnchors?: boolean;
-  languageSwitcherPage?: "home" | "pricing" | "demo";
+  languageSwitcherPage?: "home" | "pricing" | "demo" | "about";
 }) {
   const { data: session, isPending } = authClient.useSession();
 
@@ -108,7 +111,9 @@ export function AgencyHeader({
                     ? getAgencyPricingPath(nextLanguage)
                     : languageSwitcherPage === "demo"
                       ? getAgencyDemoPath(nextLanguage)
-                    : getAgencyHomePath(nextLanguage)
+                      : languageSwitcherPage === "about"
+                        ? getAgencyAboutPath(nextLanguage)
+                        : getAgencyHomePath(nextLanguage)
                 }
                 hrefLang={nextLanguage}
                 className={`rounded-full px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-widest transition-colors sm:px-3 ${

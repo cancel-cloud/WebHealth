@@ -20,11 +20,13 @@ test("localized agency pages use their standalone header and footer", () => {
   assert.equal(shouldUseStandaloneAgencyChrome("/demo"), true);
   assert.equal(shouldUseStandaloneAgencyChrome("/de/demo"), true);
   assert.equal(shouldUseStandaloneAgencyChrome("/en/demo"), true);
+  assert.equal(shouldUseStandaloneAgencyChrome("/about"), true);
+  assert.equal(shouldUseStandaloneAgencyChrome("/de/about"), true);
+  assert.equal(shouldUseStandaloneAgencyChrome("/en/about"), true);
   assert.equal(shouldUseStandaloneAgencyChrome("/en/"), true);
 });
 
 test("standard marketing pages keep the shared marketing shell", () => {
-  assert.equal(shouldUseStandaloneAgencyChrome("/about"), false);
   assert.equal(shouldUseStandaloneAgencyChrome("/privacy"), false);
   assert.equal(shouldUseStandaloneAgencyChrome(null), false);
 });

@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   AGENCY_PRODUCTION_BASE_URL,
+  buildAgencyAboutMetadata,
   buildAgencyHomeMetadata,
   buildAgencyJsonLd,
   buildMarketingSiteJsonLd,
   buildAgencySeoTopicMetadata,
   getAgencyRootRedirectPath,
+  getAgencyAboutPath,
   getAgencySeoTopicPath,
   resolvePreferredAgencyLanguage,
   serializeJsonLd,
@@ -50,6 +52,23 @@ test("agency SEO topic metadata uses the localized topic slug", () => {
   assert.equal(metadata.alternates?.canonical, "/en/seo-reporting-software-agencies");
   assert.match(String(metadata.title), /SEO Reporting Software for Agencies/);
   assert.ok(String(metadata.title).length <= 58);
+});
+
+test("agency about metadata uses localized canonical URLs", () => {
+  const germanMetadata = buildAgencyAboutMetadata("de");
+  const englishMetadata = buildAgencyAboutMetadata("en");
+
+  assert.equal(getAgencyAboutPath("de"), "/de/about");
+  assert.equal(getAgencyAboutPath("en"), "/en/about");
+  assert.equal(germanMetadata.alternates?.canonical, "/de/about");
+  assert.equal(englishMetadata.alternates?.canonical, "/en/about");
+  assert.deepEqual(germanMetadata.alternates?.languages, {
+    de: "/de/about",
+    en: "/en/about",
+    "x-default": "/de/about",
+  });
+  assert.match(String(germanMetadata.title), /Über WebHealth/);
+  assert.match(String(englishMetadata.title), /About WebHealth/);
 });
 
 test("agency JSON-LD exposes organization, service, software, FAQ, and topic breadcrumbs", () => {

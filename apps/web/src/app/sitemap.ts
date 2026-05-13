@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import {
   AGENCY_PRODUCTION_BASE_URL,
+  getAgencyAboutPath,
   getAgencyDemoPath,
   getAgencyHomePath,
   getAgencyPricingPath,
@@ -40,7 +41,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
-      url: `${BASE_URL}/about`,
+      url: `${BASE_URL}${getAgencyAboutPath("de")}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${BASE_URL}${getAgencyAboutPath("en")}`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.6,
