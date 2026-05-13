@@ -710,7 +710,8 @@ export function PropertyDashboardClient({
   const safeLatestDate = dashboard.freshness.safeLatestDate;
   const crawlFreshness = dashboard.freshness.sources.find((source) => source.source === "crawl");
   const propertySiteUrl = getPropertySiteUrl(dashboard.property.url);
-  const propertyFaviconUrl = getPropertyFaviconUrl(dashboard.property.url);
+  const propertyFaviconUrl = isPublicDemo ? "" : getPropertyFaviconUrl(dashboard.property.url);
+  const showPropertyFavicon = Boolean(propertyFaviconUrl) && !faviconFailed;
   const headerFreshnessSources = HEADER_SOURCE_ORDER
     .map((sourceKey) => dashboard.freshness.sources.find((source) => source.source === sourceKey))
     .filter((source): source is FreshnessSource => Boolean(source));
@@ -1515,9 +1516,9 @@ export function PropertyDashboardClient({
           <div className="flex min-w-0 items-center gap-5">
             <div
               className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white font-display text-3xl font-extrabold text-white shadow-[0_18px_36px_-22px_rgba(59,130,246,0.75)] ring-1 ring-zinc-200 dark:bg-white/10 dark:ring-white/10"
-              style={faviconFailed ? { background: `linear-gradient(135deg, ${brandColors.primary}, ${brandColors.accent})` } : undefined}
+              style={!showPropertyFavicon ? { background: `linear-gradient(135deg, ${brandColors.primary}, ${brandColors.accent})` } : undefined}
             >
-              {faviconFailed ? (
+              {!showPropertyFavicon ? (
                 dashboard.property.name.slice(0, 1).toUpperCase()
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -1530,9 +1531,15 @@ export function PropertyDashboardClient({
               )}
             </div>
             <div className="min-w-0">
-              <h1 className="truncate font-display text-[44px] font-semibold leading-none tracking-[-0.035em] text-foreground">
-                {dashboard.property.name}
-              </h1>
+              {isPublicDemo ? (
+                <h2 className="truncate font-display text-[44px] font-semibold leading-none tracking-[-0.035em] text-foreground">
+                  {dashboard.property.name}
+                </h2>
+              ) : (
+                <h1 className="truncate font-display text-[44px] font-semibold leading-none tracking-[-0.035em] text-foreground">
+                  {dashboard.property.name}
+                </h1>
+              )}
               <div className="mt-3 flex flex-wrap items-center gap-3 text-xl text-muted-foreground">
                 <a
                   href={propertySiteUrl}
@@ -1669,9 +1676,9 @@ export function PropertyDashboardClient({
                 {dashboard.property.name.slice(0, 1).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <h1 className="truncate font-display text-3xl font-semibold leading-none tracking-[-0.02em]">
+                <div className="truncate font-display text-3xl font-semibold leading-none tracking-[-0.02em]">
                   {dashboard.property.name}
-                </h1>
+                </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                   <a
                     href={dashboard.property.url.replace(/^sc-domain:/, "https://")}
@@ -2255,9 +2262,9 @@ export function PropertyDashboardClient({
             </div>
 
             <div className="space-y-2">
-              <h1 className="max-w-3xl text-[clamp(2rem,4vw,3.5rem)] font-semibold tracking-[-0.05em] text-foreground">
+              <div className="max-w-3xl text-[clamp(2rem,4vw,3.5rem)] font-semibold tracking-[-0.05em] text-foreground">
                 {dashboard.property.name}
-              </h1>
+              </div>
               <p className="max-w-2xl text-[15px] leading-7 text-muted-foreground">
                 {dashboard.operatingContext.summary}
               </p>
