@@ -22,17 +22,26 @@ function currencyAxis(value: number) {
 
 export function ProductAnalyticsCharts({
   actualSpend,
+  estimatedSpend,
   jobThroughput,
 }: {
   actualSpend: ActualSpendPoint[];
+  estimatedSpend: ActualSpendPoint[];
   jobThroughput: JobThroughputPoint[];
 }) {
+  const spendDates = Array.from(new Set([
+    ...actualSpend.map((point) => point.date),
+    ...estimatedSpend.map((point) => point.date),
+  ])).sort();
+  const actualByDate = new Map(actualSpend.map((point) => [point.date, point.totalUsd]));
+  const estimatedByDate = new Map(estimatedSpend.map((point) => [point.date, point.totalUsd]));
   const actualSpendOption: EChartsOption = {
     tooltip: { trigger: "axis", valueFormatter: (value) => currencyAxis(Number(value)) },
-    grid: { left: 54, right: 18, top: 28, bottom: 34 },
+    legend: { top: 0, textStyle: { color: "#64748b" } },
+    grid: { left: 54, right: 18, top: 42, bottom: 34 },
     xAxis: {
       type: "category",
-      data: actualSpend.map((point) => point.date),
+      data: spendDates,
       boundaryGap: false,
       axisTick: { show: false },
       axisLabel: { color: "#64748b", fontSize: 11 },
@@ -44,14 +53,23 @@ export function ProductAnalyticsCharts({
     },
     series: [
       {
-        name: "Actual OpenAI",
+        name: "OpenAI billed cost",
         type: "line",
         smooth: true,
         showSymbol: false,
         areaStyle: { color: "#0ea5e933" },
         lineStyle: { color: "#0ea5e9", width: 2.5 },
         itemStyle: { color: "#0ea5e9" },
-        data: actualSpend.map((point) => point.totalUsd),
+        data: spendDates.map((date) => actualByDate.get(date) ?? 0),
+      },
+      {
+        name: "AI run estimate",
+        type: "line",
+        smooth: true,
+        showSymbol: false,
+        lineStyle: { color: "#8b5cf6", width: 2.5 },
+        itemStyle: { color: "#8b5cf6" },
+        data: spendDates.map((date) => estimatedByDate.get(date) ?? 0),
       },
     ],
   };
@@ -84,13 +102,13 @@ export function ProductAnalyticsCharts({
   return (
     <div className="grid gap-4 xl:grid-cols-2">
       <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-semibold font-display">Actual OpenAI Spend</h2>
+        <h2 className="text-lg font-semibold font-display">OpenAI Cost</h2>
         <div className="mt-4 h-[280px]">
-          {actualSpend.length ? (
-            <EchartsChart option={actualSpendOption} className="size-full" ariaLabel="Actual OpenAI daily spend" />
+          {spendDates.length ? (
+            <EchartsChart option={actualSpendOption} className="size-full" ariaLabel="OpenAI daily spend" />
           ) : (
             <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
-              No imported OpenAI billing data yet.
+              No OpenAI billed cost or AI run estimate yet.
             </div>
           )}
         </div>

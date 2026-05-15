@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@webhealth/shared/db";
 import {
   metricsBackfillJobs,
+  openaiCostLedger,
   openaiDailyCosts,
   propertyRefreshJobs,
 } from "@webhealth/shared/db/schema";
@@ -14,7 +15,7 @@ export async function GET() {
   try {
     await requireAdminSession();
 
-    const [dailyCosts, metricsJobs, propertyRefreshJobRows] = await Promise.all([
+    const [dailyCosts, estimatedDailyCosts, metricsJobs, propertyRefreshJobRows] = await Promise.all([
       db
         .select({
           sourceDate: openaiDailyCosts.sourceDate,
@@ -23,6 +24,16 @@ export async function GET() {
         .from(openaiDailyCosts)
         .groupBy(openaiDailyCosts.sourceDate)
         .orderBy(desc(openaiDailyCosts.sourceDate))
+        .limit(14),
+      db
+        .select({
+          sourceDate: sql<string>`${openaiCostLedger.createdAt}::date::text`,
+          totalUsd: sql<string>`sum(${openaiCostLedger.costEstimateUsd})::text`,
+        })
+        .from(openaiCostLedger)
+        .where(sql`${openaiCostLedger.outcome} = 'succeeded'`)
+        .groupBy(sql`${openaiCostLedger.createdAt}::date`)
+        .orderBy(desc(sql`${openaiCostLedger.createdAt}::date`))
         .limit(14),
       db
         .select({
@@ -91,6 +102,7 @@ export async function GET() {
       stats,
       jobs: [],
       dailyCosts,
+      estimatedDailyCosts,
       detailRequests: [],
       jobActivity,
     });

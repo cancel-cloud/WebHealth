@@ -250,7 +250,7 @@ export function AiPromptsEditor({
       <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
         <div className="mb-4">
           <h2 className="font-display text-lg font-semibold">Latest AI run diagnostics</h2>
-          <p className="text-sm text-muted-foreground">Recent worker outcomes with errors, token usage, and cost estimates.</p>
+          <p className="text-sm text-muted-foreground">Recent worker outcomes with errors, token usage, and AI run estimates.</p>
         </div>
         <div className="space-y-3">
           {latestRuns.map((run) => (
@@ -268,7 +268,7 @@ export function AiPromptsEditor({
                 </div>
                 <div className="text-xs text-muted-foreground md:text-right">
                   <div>{formatRunDate(run.updatedAt)}</div>
-                  <div>{formatUsd(run.costEstimateUsd)}</div>
+                  <div>AI run estimate {formatUsd(run.costEstimateUsd)}</div>
                 </div>
               </div>
               {run.error ? (
