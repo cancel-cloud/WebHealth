@@ -1,4 +1,11 @@
 # TODO — Placeholder / Dummy Data Tracker
+- onboarding is not on screen
+- darkmode medium ugly
+- Ai billing from OpenAi is missing? even though its in posthog analytics
+- Client Snapshot is english?
+- Everything regarding dashboard is english! not good, i wanted dual language
+
+
 - onboarding is missing completly
 - auto merging properties is not doing one thing
 - toggleing properties in properties page on does not refresh sidebar properties
