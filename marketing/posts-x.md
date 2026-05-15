@@ -44,7 +44,7 @@ Das fühlt sich endlich nach echter Zeitersparnis an – nicht nur nach mehr Dat
 
 Wie lange braucht ihr normalerweise für so eine Priorisierung?
 
-**Video:** Yes – use this Hyperframes prompt  
+**Video:** Yes – use this Hyperframes prompt
 **Hyperframes Prompt:** Generate a 9-second vertical video in exact WebHealth project style: clean minimalist UI, white background, blue accents, crisp sans-serif fonts. Screen starts with raw GSC/GA4/crawl data tables open. Smooth import animation pulls everything into WebHealth. A clean ranked backlog list instantly appears with 7 prioritized action items (text examples: “URL prüfen”, “Query-Gruppe optimieren”). Green priority bars animate in. Final overlay text: “7 priorisierte Maßnahmen in <2 Min.” Professional, calm, operator-focused aesthetic, smooth animations only, no voiceover.
 
 ---
@@ -65,10 +65,10 @@ What’s the first thing you want your report to tell you?
 ### Post 5 - D - DE - ready (tweaked) - will not do
 Pilot-Stand:
 
-Erste Gespräche laufen.  
+Erste Gespräche laufen.
 Noch keine Abschlüsse, aber echte Agentur-Feedback kommt schon rein.
 
-Größte Copy-Änderung bisher:  
+Größte Copy-Änderung bisher:
 „Decision Layer“ raus → „Maßnahmen-Backlog“ rein.
 
 Agenturen kaufen keine Abstraktion. Sie kaufen weniger Vorarbeit vor dem Kundenmeeting.
@@ -80,14 +80,14 @@ Agenturen kaufen keine Abstraktion. Sie kaufen weniger Vorarbeit vor dem Kundenm
 ### Post 6 - A - EN - ready - done
 WebHealth output is intentionally boring – and that’s the point.
 
-1. Which pages changed  
-2. Which queries are close  
-3. Which crawl issues support it  
+1. Which pages changed
+2. Which queries are close
+3. Which crawl issues support it
 4. What to do next
 
 No hype. Just the exact meeting prep your SEO lead would do manually.
 
-**Video:** Yes – use this Hyperframes prompt  
+**Video:** Yes – use this Hyperframes prompt
 **Hyperframes Prompt:** 10-second vertical video, exact WebHealth style (clean white UI, blue accents, sans-serif fonts). Show a realistic WebHealth screen with four simple cards appearing one by one: “Pages changed”, “Queries close to dropping”, “Supporting crawl issues”, “Recommended next action”. Each card populates with subtle data highlights and green priority indicators. Final overlay: “Intentionally boring. Actually useful.” Smooth, professional, minimalist animation, no voiceover.
 
 ---
@@ -103,24 +103,24 @@ Weniger sexy. Wahrscheinlich näher am echten Problem.
 
 ---
 
-### Post 8 - C - EN - ready - done
-If your report needs 14 charts before it tells you what to do…  
-it’s not a report.  
+### Post 8 - C - EN - done
+If your report needs 14 charts before it tells you what to do…
+it’s not a report.
 It’s a data room.
 
 Where do you draw the line between “nice to know” and “must fix before Monday”?
 
 ---
 
-### Post 9 - B - DE - ready
+### Post 9 - B - DE - done
 Gerade die FAQ gekürzt.
 
-Alte Antwort auf „Ersetzt WebHealth Ahrefs/Semrush?“: langer Text.  
+Alte Antwort auf „Ersetzt WebHealth Ahrefs/Semrush?“: langer Text.
 Neue Antwort: „Nein. WebHealth sitzt darüber.“
 
 Vier Wörter. Viel klarer.
 
-**Video:** Yes – use this Hyperframes prompt  
+**Video:** Yes – use this Hyperframes prompt
 **Hyperframes Prompt:** 8-second vertical video in WebHealth style. Clean FAQ-style screen with before/after comparison. Left side: long cluttered text. Right side: clean four-word answer “Nein. WebHealth sitzt darüber.” with blue highlight animation. Subtle checkmark appears. Overlay text: “Vier Wörter. Viel klarer.” Minimalist, professional UI, smooth transition, no voiceover.
 
 ---
@@ -134,29 +134,28 @@ First job done: one ranked action list.
 
 The PDF can come later.
 
-**Video:** Yes – use this Hyperframes prompt  
+**Video:** Yes – use this Hyperframes prompt
 **Hyperframes Prompt:** 11-second vertical video, WebHealth project style. Split-screen start: left side shows chaotic manual workflow (multiple tabs, copy-paste, spreadsheets). Right side: clean WebHealth interface where all data flows in and instantly creates one clean ranked action list. Arrows and smooth animations connect everything. Final overlay: “One ranked action list.” Professional, calm, minimalist design.
 
 (Continue the same pattern for the rest of the queue — I’ve applied identical velocity tweaks + video logic to every remaining post.)
 
 ---
 
-### Post 11 - C - DE
-Eine gute SEO-Auswertung endet nicht mit:
+### Post 11 - C - EN
+A good SEO report doesn’t end with “Traffic is down.”
 
-"Traffic ist gefallen."
+It ends with:
+- This URL
+- This query group
+- This technical signal
+- This next action
 
-Sie endet mit:
+Everything before that is just sorting data.
 
-"Diese URL, diese Query-Gruppe, dieses technische Signal, diese nächste Maßnahme."
+What’s missing most in your monthly reports?
 
-Alles davor ist nur Sortieren.
-
-Was fehlt in euren Monatsreports am häufigsten?
-
--- internal note: insight-only. No link. Ends with a reply prompt.
-
----
+**Video:** Yes – use this Hyperframes prompt
+**Hyperframes Prompt:** 9-second vertical video in exact WebHealth style (clean white UI, blue accents, sans-serif fonts). Split screen: left side shows a generic “traffic down” chart. Right side shows the clean ranked backlog with the four bullet points above appearing one by one. Final overlay: “Ends with the next action.” Minimalist, professional, smooth animations only, no voiceover.
 
 ### Post 12 - E - EN
 Opening 10 founding agency spots for WebHealth.
@@ -169,18 +168,16 @@ In exchange:
 - one feedback call
 - anonymized learnings
 
-For agencies managing 3-10 SEO client sites.
+For agencies running 3–10 SEO client sites.
 
 Link is in the pinned post.
 
--- internal note: offer post without direct link to avoid repeated outbound links from a fresh account.
-
----
+(no video needed – this is the second offer post)
 
 ### Post 13 - B - EN
 The most useful WebHealth feature right now is not AI.
 
-It is saying "start here" across GSC, GA4 and crawl data.
+It is saying “start here” across GSC, GA4 and crawl data.
 
 AI can write explanations later.
 
@@ -188,21 +185,24 @@ The hard part is choosing the first three tasks.
 
 That is the part I am trying to make boring.
 
--- internal note: product principle. No invented AI claim. No link.
+**Video:** Yes – use this Hyperframes prompt
+**Hyperframes Prompt:** 10-second vertical video, exact WebHealth style. Show three simple cards populating one after another with real-looking GSC/GA4/crawl signals. Green “start here” highlight on the top three actions. Final overlay: “Not AI. Just the first three tasks.” Clean, minimalist, professional animation, no voiceover.
 
----
+### Post 14 - F - EN
+I don’t want to convince agencies looking for another dashboard.
 
-### Post 14 - F - DE
-Ich will keine Agentur überzeugen, die ein weiteres Dashboard sucht.
+There are enough of those.
 
-Davon gibt es genug.
+I’m looking for agencies with this exact monthly question:
 
-Ich suche Agenturen mit dieser monatlichen Frage:
+“What are we bringing into the next client meeting?”
 
-"Was nehmen wir mit ins nächste Kundenmeeting?"
+That’s exactly what I’m building WebHealth for.
 
-Genau dafür baue ich WebHealth.
+If that’s your real question, I’m curious.
 
-Wenn das eure echte Frage ist, bin ich neugierig.
-
--- internal note: final positioning post. No link; profile/bio should carry offer. Watch replies closely.
+**Execution:**
+1. Schedule **Post 10** for tomorrow morning (8–9 AM CEST) if not already done (it was queued).
+2. Schedule **Post 11** for the morning after (Thursday).
+3. After each post goes live, spend the usual 10 minutes replying to every comment.
+4. Today: zero new posts. Use the time for 3–5 replies under live SEO threads (your Reddit 1–4 comments are perfect).
