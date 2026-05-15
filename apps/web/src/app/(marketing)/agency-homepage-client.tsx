@@ -162,7 +162,7 @@ export function AgencyHomepageClient({
   const heroTitle = getLocalizedValue(AGENCY_HOME_COPY.hero.title, language);
   const howTitle = getLocalizedValue(AGENCY_HOME_COPY.how.title, language);
   const pricingLabels = LEGAL_NAV_LABELS[language];
-  const agencyPricingPlan = AGENCY_PRICING_PLANS.find((plan) => plan.tier === "agency");
+  // const agencyPricingPlan = AGENCY_PRICING_PLANS.find((plan) => plan.tier === "agency");
 
   return (
     <>
@@ -950,6 +950,7 @@ export function AgencyHomepageClient({
                 ))}
               </div>
 
+              {/*
               {agencyPricingPlan ? (
                 <article className="mt-6 rounded-lg border border-border bg-card p-6 shadow-sm">
                   <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
@@ -996,6 +997,7 @@ export function AgencyHomepageClient({
                   </ul>
                 </article>
               ) : null}
+              */}
 
             </div>
           </section>
