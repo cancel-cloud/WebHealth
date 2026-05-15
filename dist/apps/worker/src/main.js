@@ -1,6 +1,6 @@
 import {
   buildPosthogErrorEventProperties
-} from "./chunks/chunk-WJRBKJF5.js";
+} from "./chunks/chunk-DWZQMWUX.js";
 import "./chunks/chunk-3LHI6BO3.js";
 
 // apps/worker/src/load-env.ts
@@ -195,7 +195,7 @@ function recordPosthogWorkerError(event, recorder) {
     void recorder(event);
     return;
   }
-  void import("./chunks/product-event-store-OH3PSJ4P.js").then(({ recordProductEvent }) => recordProductEvent(event)).catch(() => {
+  void import("./chunks/product-event-store-I6RBYADM.js").then(({ recordProductEvent }) => recordProductEvent(event)).catch(() => {
   });
 }
 function initWorkerMonitoring(env = process.env) {
@@ -255,6 +255,7 @@ async function main() {
   let automatedPropertyRefreshWorkerControls = null;
   let metricsBackfillWorkerControls = null;
   let activePropertyAutomationSchedulerControls = null;
+  let openAICostReconciliationSchedulerControls = null;
   let closeDb = null;
   let healthServer = null;
   let healthHeartbeatTimer = null;
@@ -283,6 +284,7 @@ async function main() {
       automatedPropertyRefreshWorkerControls?.stop();
       metricsBackfillWorkerControls?.stop();
       activePropertyAutomationSchedulerControls?.stop();
+      openAICostReconciliationSchedulerControls?.stop();
       await Promise.allSettled([
         healthServer?.close() ?? Promise.resolve(),
         closeDb?.() ?? Promise.resolve()
@@ -300,11 +302,12 @@ async function main() {
   healthServer = startWorkerHealthServer({ state: runtimeState });
   workerPhase = "imports";
   markWorkerPhase(runtimeState, "imports");
-  const sharedDbModule = await import("./chunks/db-EZLJMW4C.js");
+  const sharedDbModule = await import("./chunks/db-VBV7VJDO.js");
   const { ensureWorkerDatabaseReady } = await import("./chunks/worker-db-bootstrap-KWVAEAVL.js");
-  const { startPropertyRefreshWorkerLoop, runSinglePropertyRefreshWorkerTick } = await import("./chunks/property-refresh-worker-GRVSDSV5.js");
-  const { startMetricsBackfillWorkerLoop, runSingleMetricsBackfillWorkerTick } = await import("./chunks/metrics-cache-3XD3WLJO.js");
-  const { startActivePropertyAutomationScheduler } = await import("./chunks/active-property-automation-4ZY6WRL5.js");
+  const { startPropertyRefreshWorkerLoop, runSinglePropertyRefreshWorkerTick } = await import("./chunks/property-refresh-worker-GPZNWYYJ.js");
+  const { startMetricsBackfillWorkerLoop, runSingleMetricsBackfillWorkerTick } = await import("./chunks/metrics-cache-3X3KDPIY.js");
+  const { startActivePropertyAutomationScheduler } = await import("./chunks/active-property-automation-BW52APZZ.js");
+  const { startOpenAICostReconciliationScheduler } = await import("./chunks/openai-cost-reconciliation-3V2SB7FG.js");
   closeDb = sharedDbModule.closeDb;
   workerPhase = "database-ready";
   markWorkerPhase(runtimeState, "database-ready");
@@ -326,6 +329,7 @@ async function main() {
   markWorkerPhase(runtimeState, "worker-loop");
   console.log("[worker][INFO][BOOT] starting worker process");
   activePropertyAutomationSchedulerControls = startActivePropertyAutomationScheduler();
+  openAICostReconciliationSchedulerControls = startOpenAICostReconciliationScheduler({ once });
   metricsBackfillWorkerControls = startMetricsBackfillWorkerLoop();
   propertyRefreshWorkerControls = startPropertyRefreshWorkerLoop({
     lane: "manual",

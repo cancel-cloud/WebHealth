@@ -2,13 +2,13 @@ import {
   getLatestPropertyCrawl,
   getLatestPropertyRefreshState,
   getLatestPropertyRefreshStateForWindow
-} from "./chunk-EAKCPVXN.js";
+} from "./chunk-LFZV57ZT.js";
 import {
   getLatestMetricsBackfillState
-} from "./chunk-JW6TXCX7.js";
+} from "./chunk-6YN5OF6M.js";
 import {
   db
-} from "./chunk-JWILAXM7.js";
+} from "./chunk-PCKVAB6H.js";
 import {
   actionItems,
   aiAnalysisRuns,
@@ -16,7 +16,7 @@ import {
   analysisWindowCache,
   propertyShareLinks,
   snapshotExports
-} from "./chunk-RO4LFVWN.js";
+} from "./chunk-EBBHWYW3.js";
 
 // packages/shared/src/lib/live-dashboard.ts
 import { createHash as createHash2 } from "node:crypto";
@@ -1206,6 +1206,16 @@ async function getTeamBrandingProfile(teamId) {
   return normalizeTeamBrandingProfile(toPartialBrandingProfile(row));
 }
 
+// packages/shared/src/lib/language.ts
+var DEFAULT_SUPPORTED_LANGUAGE = "de";
+function normalizeSupportedLanguage(value) {
+  if (typeof value !== "string") return DEFAULT_SUPPORTED_LANGUAGE;
+  const normalized = value.trim().toLowerCase().replace("_", "-");
+  if (normalized === "de" || normalized.startsWith("de-")) return "de";
+  if (normalized === "en" || normalized.startsWith("en-")) return "en";
+  return DEFAULT_SUPPORTED_LANGUAGE;
+}
+
 // packages/shared/src/lib/ai-dashboard-actions.ts
 import { and, desc, eq, isNull } from "drizzle-orm";
 
@@ -1859,6 +1869,7 @@ async function fetchLatestSnapshots(teamId, propertyId) {
     id: row.id,
     createdAt: row.createdAt.toISOString(),
     freshnessState: row.freshnessState,
+    language: normalizeSupportedLanguage(row.language),
     startDate: normalizeDateString(row.startDate) ?? "",
     endDate: normalizeDateString(row.endDate) ?? "",
     compareMode: row.compareMode
@@ -2543,11 +2554,13 @@ async function createSnapshotExport(params) {
     freshnessState: dashboard.freshness.state,
     freshnessSummary: dashboard.freshness,
     brandingSnapshot,
-    dashboardPayload: dashboard
+    dashboardPayload: dashboard,
+    language: normalizeSupportedLanguage(params.language)
   }).returning({
     id: snapshotExports.id,
     createdAt: snapshotExports.createdAt,
     freshnessState: snapshotExports.freshnessState,
+    language: snapshotExports.language,
     startDate: snapshotExports.startDate,
     endDate: snapshotExports.endDate,
     compareMode: snapshotExports.compareMode
@@ -2556,6 +2569,7 @@ async function createSnapshotExport(params) {
     id: row.id,
     createdAt: row.createdAt.toISOString(),
     freshnessState: row.freshnessState,
+    language: normalizeSupportedLanguage(row.language),
     startDate: normalizeDateString(row.startDate) ?? "",
     endDate: normalizeDateString(row.endDate) ?? "",
     compareMode: row.compareMode
@@ -2579,6 +2593,7 @@ async function getSnapshotExportDetail(params) {
     id: row.id,
     createdAt: row.createdAt.toISOString(),
     freshnessState: row.freshnessState,
+    language: normalizeSupportedLanguage(row.language),
     startDate: normalizeDateString(row.startDate) ?? "",
     endDate: normalizeDateString(row.endDate) ?? "",
     requestedEndDate: normalizeDateString(row.requestedEndDate) ?? "",
@@ -2599,6 +2614,7 @@ function mapPropertyShareRow(row) {
     teamId: row.teamId,
     createdAt: row.createdAt.toISOString(),
     expiresAt: row.expiresAt?.toISOString() ?? null,
+    language: normalizeSupportedLanguage(row.language),
     brandSnapshot: row.brandSnapshot,
     payloadSnapshot: row.payloadSnapshot
   };
@@ -2686,7 +2702,8 @@ async function createPropertyShareLink(params) {
     startDate: dashboard.analysisWindow.startDate,
     endDate: dashboard.analysisWindow.requestedEndDate,
     brandSnapshot,
-    payloadSnapshot: dashboard
+    payloadSnapshot: dashboard,
+    language: normalizeSupportedLanguage(params.language)
   }).returning({
     id: propertyShareLinks.id,
     token: propertyShareLinks.token,
@@ -2741,6 +2758,7 @@ function buildPropertyShareDownloadPayload(params) {
     metadata: {
       exportType: "dashboard_snapshot_json",
       createdAt: params.createdAt ?? (/* @__PURE__ */ new Date()).toISOString(),
+      language: normalizeSupportedLanguage(params.language ?? DEFAULT_SUPPORTED_LANGUAGE),
       propertyId: params.dashboard.property.id,
       propertyName: params.dashboard.property.name,
       startDate: params.dashboard.analysisWindow.startDate,

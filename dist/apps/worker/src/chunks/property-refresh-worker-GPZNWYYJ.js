@@ -1,7 +1,16 @@
 import {
+  clearOpenAICostLedgerForRun,
+  getOpenAICostLedgerRunSummary,
+  markOpenAICostLedgerRunOutcome,
+  normalizeOpenAIUsage,
+  recordOpenAICostLedgerEntry
+} from "./chunk-LPDIN26R.js";
+import {
   recordProductEvent
-} from "./chunk-I4FNGP6C.js";
-import "./chunk-WJRBKJF5.js";
+} from "./chunk-OM5MVMXX.js";
+import {
+  buildAiRunFailedCostProperties
+} from "./chunk-DWZQMWUX.js";
 import {
   buildAiActionIdentity,
   buildAiEvidenceIndex,
@@ -10,7 +19,7 @@ import {
   resolveAnalysisWindow,
   resolveTeamReportSources,
   validateAiRecommendation
-} from "./chunk-ZN26GRWO.js";
+} from "./chunk-TJBJ3VFI.js";
 import {
   claimNextPropertyRefreshJob,
   completePropertyRefreshJob,
@@ -19,13 +28,13 @@ import {
   heartbeatPropertyRefreshJob,
   storePropertyCrawlSnapshot,
   updatePropertyRefreshJobProgress
-} from "./chunk-EAKCPVXN.js";
+} from "./chunk-LFZV57ZT.js";
 import {
   composeReportMetricsFromCache
-} from "./chunk-JW6TXCX7.js";
+} from "./chunk-6YN5OF6M.js";
 import {
   db
-} from "./chunk-JWILAXM7.js";
+} from "./chunk-PCKVAB6H.js";
 import {
   actionItems,
   aiAnalysisRuns,
@@ -34,7 +43,7 @@ import {
   aiRuntimeSettings,
   ga4ReportArtifacts,
   properties
-} from "./chunk-RO4LFVWN.js";
+} from "./chunk-EBBHWYW3.js";
 import "./chunk-EJ6QGHXW.js";
 import "./chunk-3LHI6BO3.js";
 
@@ -418,54 +427,14 @@ import { createHash } from "node:crypto";
 import { and, desc, eq as eq2 } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
-// packages/shared/src/lib/openai/cost-estimator.ts
-var MODEL_PRICING = {
-  "gpt-5.5": { inputPer1M: 5, outputPer1M: 30, cachedInputPer1M: 0.5 },
-  "gpt-5.4-mini": { inputPer1M: 0.75, outputPer1M: 4.5, cachedInputPer1M: 0.08 },
-  "gpt-5.4-nano": { inputPer1M: 0.2, outputPer1M: 1.25, cachedInputPer1M: 0.02 },
-  "gpt-5.4": { inputPer1M: 2.5, outputPer1M: 15, cachedInputPer1M: 0.25 },
-  "gpt-5.2": { inputPer1M: 1.75, outputPer1M: 14, cachedInputPer1M: 0.175 },
-  "gpt-5-mini": { inputPer1M: 0.25, outputPer1M: 2 },
-  "gpt-5": { inputPer1M: 1.75, outputPer1M: 14, cachedInputPer1M: 0.175 },
-  "gpt-5.3": { inputPer1M: 1.75, outputPer1M: 14, cachedInputPer1M: 0.175 }
-};
-function getPricing(model) {
-  if (!model) return null;
-  const normalized = model.toLowerCase();
-  for (const [prefix, pricing] of Object.entries(MODEL_PRICING)) {
-    if (normalized.startsWith(prefix)) return pricing;
+// packages/shared/src/lib/openai/request-tracing.ts
+function extractOpenAIRequestId(headers) {
+  if (headers instanceof Headers) {
+    return headers.get("x-request-id");
   }
-  return null;
-}
-function estimateOpenAICostUsd(model, usage) {
-  if (!usage) return null;
-  const pricing = getPricing(model);
-  if (!pricing) return null;
-  const inputTokens = usage.inputTokens ?? 0;
-  const outputTokens = usage.outputTokens ?? 0;
-  const cachedInputTokens = usage.cachedInputTokens ?? 0;
-  const nonCachedInputTokens = Math.max(0, inputTokens - cachedInputTokens);
-  const inputCost = nonCachedInputTokens / 1e6 * pricing.inputPer1M;
-  const cachedCost = pricing.cachedInputPer1M != null ? cachedInputTokens / 1e6 * pricing.cachedInputPer1M : cachedInputTokens / 1e6 * pricing.inputPer1M;
-  const outputCost = outputTokens / 1e6 * pricing.outputPer1M;
-  return Number((inputCost + cachedCost + outputCost).toFixed(6));
-}
-function normalizeOpenAIUsage(raw) {
-  if (!raw || typeof raw !== "object") return null;
-  const usage = raw;
-  const inputTokens = typeof usage.input_tokens === "number" ? usage.input_tokens : void 0;
-  const outputTokens = typeof usage.output_tokens === "number" ? usage.output_tokens : void 0;
-  const totalTokens = typeof usage.total_tokens === "number" ? usage.total_tokens : void 0;
-  const inputDetails = usage.input_tokens_details && typeof usage.input_tokens_details === "object" ? usage.input_tokens_details : void 0;
-  const outputDetails = usage.output_tokens_details && typeof usage.output_tokens_details === "object" ? usage.output_tokens_details : void 0;
-  return {
-    inputTokens,
-    outputTokens,
-    totalTokens,
-    cachedInputTokens: typeof inputDetails?.cached_tokens === "number" ? inputDetails.cached_tokens : void 0,
-    reasoningTokens: typeof outputDetails?.reasoning_tokens === "number" ? outputDetails.reasoning_tokens : void 0,
-    raw: usage
-  };
+  const value = headers["x-request-id"];
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
 }
 
 // packages/shared/src/lib/ai-runtime-settings.ts
@@ -725,6 +694,16 @@ async function callOpenAIJson(params) {
     })
   });
   const raw = await response.json().catch(() => null);
+  const usage = normalizeOpenAIUsage(raw?.usage);
+  if (usage) {
+    await recordOpenAICostLedgerEntry({
+      ...params.ledger,
+      model: params.model,
+      usage,
+      requestId: extractOpenAIRequestId(response.headers),
+      outcome: "succeeded"
+    });
+  }
   if (!response.ok) {
     const message = raw && typeof raw === "object" && "error" in raw ? JSON.stringify(raw.error) : `OpenAI Responses API failed with ${response.status}`;
     throw new Error(message);
@@ -733,7 +712,7 @@ async function callOpenAIJson(params) {
   if (!text) throw new Error(describeOpenAIResponseWithoutText(raw));
   return {
     output: JSON.parse(text),
-    usage: normalizeOpenAIUsage(raw?.usage),
+    usage,
     raw
   };
 }
@@ -915,6 +894,7 @@ async function runAiAnalysisForPropertyWindow(params) {
       updatedAt: /* @__PURE__ */ new Date()
     }).where(and(eq2(aiAnalysisRuns.id, existingRun.id), eq2(aiAnalysisRuns.status, existingRun.status))).returning();
     if (!run) return { status: "reused", runId: existingRun.id };
+    await clearOpenAICostLedgerForRun(run.id);
   }
   void recordProductEvent({
     teamId: params.teamId,
@@ -941,7 +921,14 @@ async function runAiAnalysisForPropertyWindow(params) {
         userInput: sourceInput.gsc,
         schemaName: "gsc_source_summary",
         schema: SOURCE_SUMMARY_SCHEMA,
-        maxOutputTokens: runtimeSettings.maxOutputTokens
+        maxOutputTokens: runtimeSettings.maxOutputTokens,
+        ledger: {
+          aiRunId: run.id,
+          teamId: params.teamId,
+          propertyId: property.id,
+          refreshJobId: params.refreshJobId ?? null,
+          callPurpose: "gsc_source_summary"
+        }
       }),
       callOpenAIJson({
         model: summaryModel,
@@ -949,7 +936,14 @@ async function runAiAnalysisForPropertyWindow(params) {
         userInput: sourceInput.ga4 ?? { note: "No linked GA4 property." },
         schemaName: "ga4_source_summary",
         schema: SOURCE_SUMMARY_SCHEMA,
-        maxOutputTokens: runtimeSettings.maxOutputTokens
+        maxOutputTokens: runtimeSettings.maxOutputTokens,
+        ledger: {
+          aiRunId: run.id,
+          teamId: params.teamId,
+          propertyId: property.id,
+          refreshJobId: params.refreshJobId ?? null,
+          callPurpose: "ga4_source_summary"
+        }
       }),
       callOpenAIJson({
         model: summaryModel,
@@ -957,7 +951,14 @@ async function runAiAnalysisForPropertyWindow(params) {
         userInput: sourceInput.crawl ?? { note: "No crawl snapshot available." },
         schemaName: "crawl_source_summary",
         schema: SOURCE_SUMMARY_SCHEMA,
-        maxOutputTokens: runtimeSettings.maxOutputTokens
+        maxOutputTokens: runtimeSettings.maxOutputTokens,
+        ledger: {
+          aiRunId: run.id,
+          teamId: params.teamId,
+          propertyId: property.id,
+          refreshJobId: params.refreshJobId ?? null,
+          callPurpose: "crawl_source_summary"
+        }
       })
     ]);
     await db.update(aiAnalysisRuns).set({ phase: "analysis", updatedAt: /* @__PURE__ */ new Date() }).where(eq2(aiAnalysisRuns.id, run.id));
@@ -974,16 +975,22 @@ async function runAiAnalysisForPropertyWindow(params) {
       },
       schemaName: "ai_recommendations",
       schema: ANALYZER_SCHEMA,
-      maxOutputTokens: runtimeSettings.maxOutputTokens
+      maxOutputTokens: runtimeSettings.maxOutputTokens,
+      ledger: {
+        aiRunId: run.id,
+        teamId: params.teamId,
+        propertyId: property.id,
+        refreshJobId: params.refreshJobId ?? null,
+        callPurpose: "main_analyzer"
+      }
     });
     const evidenceIndex = buildAiEvidenceIndex(sourceInput);
     const validRecommendations = analyzer.output.recommendations.filter((recommendation) => {
       return validateAiRecommendation(recommendation, { evidenceIndex }).ok;
     });
-    const usage = combineUsage([gscSummary.usage, ga4Summary.usage, crawlSummary.usage, analyzer.usage]);
-    const summaryCost = estimateOpenAICostUsd(summaryModel, combineUsage([gscSummary.usage, ga4Summary.usage, crawlSummary.usage])) ?? 0;
-    const analyzerCost = estimateOpenAICostUsd(analyzerModel, analyzer.usage) ?? 0;
-    const totalCost = Number((summaryCost + analyzerCost).toFixed(6));
+    const ledgerSummary = await getOpenAICostLedgerRunSummary(run.id);
+    const usage = ledgerSummary.usageSnapshot ?? combineUsage([gscSummary.usage, ga4Summary.usage, crawlSummary.usage, analyzer.usage]);
+    const totalCost = Number(ledgerSummary.successfulEstimateUsd.toFixed(6));
     await db.update(aiAnalysisRuns).set({
       status: "complete",
       phase: "done",
@@ -1072,6 +1079,8 @@ async function runAiAnalysisForPropertyWindow(params) {
     return { status: "complete", runId: run.id, recommendations: validRecommendations.length };
   } catch (error) {
     const message = error instanceof Error ? error.message : "AI analysis failed";
+    await markOpenAICostLedgerRunOutcome(run.id, "failed");
+    const ledgerSummary = await getOpenAICostLedgerRunSummary(run.id);
     await failRun(run.id, message);
     void recordProductEvent({
       teamId: params.teamId,
@@ -1080,7 +1089,11 @@ async function runAiAnalysisForPropertyWindow(params) {
       source: "worker",
       entityType: "property",
       entityId: property.id,
-      properties: { aiRunId: run.id, message }
+      properties: buildAiRunFailedCostProperties({
+        aiRunId: run.id,
+        message,
+        failedCostEstimateUsd: ledgerSummary.failedEstimateUsd
+      })
     }).catch(() => {
     });
     return { status: "failed", runId: run.id, reason: message };
@@ -1097,7 +1110,7 @@ async function isRefreshPropertyActive(job) {
 }
 async function warmDashboardFromPayload(job) {
   const payload = job.payload ?? {};
-  const { getLiveDashboardData } = await import("./live-dashboard-DWGGL2MV.js");
+  const { getLiveDashboardData } = await import("./live-dashboard-VXJ6ISK7.js");
   await getLiveDashboardData({
     teamId: job.teamId,
     propertyId: job.propertyId,

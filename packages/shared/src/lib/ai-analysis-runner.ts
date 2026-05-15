@@ -25,11 +25,18 @@ import { composeReportMetricsFromCache } from "@webhealth/shared/lib/metrics-cac
 import { getLatestPropertyCrawl } from "@webhealth/shared/lib/property-refresh";
 import { resolveAnalysisWindow } from "@webhealth/shared/lib/live-dashboard";
 import {
-  estimateOpenAICostUsd,
   normalizeOpenAIUsage,
 } from "@webhealth/shared/lib/openai/cost-estimator";
+import {
+  clearOpenAICostLedgerForRun,
+  getOpenAICostLedgerRunSummary,
+  markOpenAICostLedgerRunOutcome,
+  recordOpenAICostLedgerEntry,
+} from "@webhealth/shared/lib/openai/cost-ledger";
+import { extractOpenAIRequestId } from "@webhealth/shared/lib/openai/request-tracing";
 import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import { getAiRuntimeSettings } from "@webhealth/shared/lib/ai-runtime-settings";
+import { buildAiRunFailedCostProperties } from "@webhealth/shared/lib/product-events";
 
 type DateString = string;
 
@@ -263,6 +270,13 @@ async function callOpenAIJson<T>(params: {
   schemaName: string;
   schema: unknown;
   maxOutputTokens: number;
+  ledger: {
+    aiRunId: string;
+    teamId: string;
+    propertyId: string;
+    refreshJobId?: string | null;
+    callPurpose: string;
+  };
 }): Promise<OpenAIJsonResult<T>> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY is not configured.");
@@ -303,6 +317,16 @@ async function callOpenAIJson<T>(params: {
   });
 
   const raw = await response.json().catch(() => null);
+  const usage = normalizeOpenAIUsage((raw as Record<string, unknown> | null)?.usage);
+  if (usage) {
+    await recordOpenAICostLedgerEntry({
+      ...params.ledger,
+      model: params.model,
+      usage,
+      requestId: extractOpenAIRequestId(response.headers),
+      outcome: "succeeded",
+    });
+  }
   if (!response.ok) {
     const message =
       raw && typeof raw === "object" && "error" in raw
@@ -316,7 +340,7 @@ async function callOpenAIJson<T>(params: {
 
   return {
     output: JSON.parse(text) as T,
-    usage: normalizeOpenAIUsage((raw as Record<string, unknown> | null)?.usage),
+    usage,
     raw,
   };
 }
@@ -538,6 +562,7 @@ export async function runAiAnalysisForPropertyWindow(params: {
       .where(and(eq(aiAnalysisRuns.id, existingRun.id), eq(aiAnalysisRuns.status, existingRun.status)))
       .returning();
     if (!run) return { status: "reused" as const, runId: existingRun.id };
+    await clearOpenAICostLedgerForRun(run.id);
   }
 
   void recordProductEvent({
@@ -568,6 +593,13 @@ export async function runAiAnalysisForPropertyWindow(params: {
         schemaName: "gsc_source_summary",
         schema: SOURCE_SUMMARY_SCHEMA,
         maxOutputTokens: runtimeSettings.maxOutputTokens,
+        ledger: {
+          aiRunId: run.id,
+          teamId: params.teamId,
+          propertyId: property.id,
+          refreshJobId: params.refreshJobId ?? null,
+          callPurpose: "gsc_source_summary",
+        },
       }),
       callOpenAIJson<AiSourceSummary>({
         model: summaryModel,
@@ -576,6 +608,13 @@ export async function runAiAnalysisForPropertyWindow(params: {
         schemaName: "ga4_source_summary",
         schema: SOURCE_SUMMARY_SCHEMA,
         maxOutputTokens: runtimeSettings.maxOutputTokens,
+        ledger: {
+          aiRunId: run.id,
+          teamId: params.teamId,
+          propertyId: property.id,
+          refreshJobId: params.refreshJobId ?? null,
+          callPurpose: "ga4_source_summary",
+        },
       }),
       callOpenAIJson<AiSourceSummary>({
         model: summaryModel,
@@ -584,6 +623,13 @@ export async function runAiAnalysisForPropertyWindow(params: {
         schemaName: "crawl_source_summary",
         schema: SOURCE_SUMMARY_SCHEMA,
         maxOutputTokens: runtimeSettings.maxOutputTokens,
+        ledger: {
+          aiRunId: run.id,
+          teamId: params.teamId,
+          propertyId: property.id,
+          refreshJobId: params.refreshJobId ?? null,
+          callPurpose: "crawl_source_summary",
+        },
       }),
     ]);
 
@@ -603,16 +649,22 @@ export async function runAiAnalysisForPropertyWindow(params: {
       schemaName: "ai_recommendations",
       schema: ANALYZER_SCHEMA,
       maxOutputTokens: runtimeSettings.maxOutputTokens,
+      ledger: {
+        aiRunId: run.id,
+        teamId: params.teamId,
+        propertyId: property.id,
+        refreshJobId: params.refreshJobId ?? null,
+        callPurpose: "main_analyzer",
+      },
     });
 
     const evidenceIndex = buildAiEvidenceIndex(sourceInput);
     const validRecommendations = analyzer.output.recommendations.filter((recommendation) => {
       return validateAiRecommendation(recommendation, { evidenceIndex }).ok;
     });
-    const usage = combineUsage([gscSummary.usage, ga4Summary.usage, crawlSummary.usage, analyzer.usage]);
-    const summaryCost = estimateOpenAICostUsd(summaryModel, combineUsage([gscSummary.usage, ga4Summary.usage, crawlSummary.usage])) ?? 0;
-    const analyzerCost = estimateOpenAICostUsd(analyzerModel, analyzer.usage) ?? 0;
-    const totalCost = Number((summaryCost + analyzerCost).toFixed(6));
+    const ledgerSummary = await getOpenAICostLedgerRunSummary(run.id);
+    const usage = ledgerSummary.usageSnapshot ?? combineUsage([gscSummary.usage, ga4Summary.usage, crawlSummary.usage, analyzer.usage]);
+    const totalCost = Number(ledgerSummary.successfulEstimateUsd.toFixed(6));
 
     await db
       .update(aiAnalysisRuns)
@@ -715,6 +767,8 @@ export async function runAiAnalysisForPropertyWindow(params: {
     return { status: "complete" as const, runId: run.id, recommendations: validRecommendations.length };
   } catch (error) {
     const message = error instanceof Error ? error.message : "AI analysis failed";
+    await markOpenAICostLedgerRunOutcome(run.id, "failed");
+    const ledgerSummary = await getOpenAICostLedgerRunSummary(run.id);
     await failRun(run.id, message);
     void recordProductEvent({
       teamId: params.teamId,
@@ -723,7 +777,11 @@ export async function runAiAnalysisForPropertyWindow(params: {
       source: "worker",
       entityType: "property",
       entityId: property.id,
-      properties: { aiRunId: run.id, message },
+      properties: buildAiRunFailedCostProperties({
+        aiRunId: run.id,
+        message,
+        failedCostEstimateUsd: ledgerSummary.failedEstimateUsd,
+      }),
     }).catch(() => {});
     return { status: "failed" as const, runId: run.id, reason: message };
   }

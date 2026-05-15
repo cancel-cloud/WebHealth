@@ -22,6 +22,7 @@ __export(schema_exports, {
   gscDailyFacts: () => gscDailyFacts,
   gscDailyRaw: () => gscDailyRaw,
   metricsBackfillJobs: () => metricsBackfillJobs,
+  openaiCostLedger: () => openaiCostLedger,
   openaiDailyCosts: () => openaiDailyCosts,
   planSettings: () => planSettings,
   productEvents: () => productEvents,
@@ -203,6 +204,7 @@ var propertyShareLinks = pgTable("property_share_links", {
   endDate: date("end_date").notNull(),
   brandSnapshot: jsonb("brand_snapshot").notNull(),
   payloadSnapshot: jsonb("payload_snapshot").notNull(),
+  language: text("language").default("de").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
 }, (t) => [
   index("property_share_links_token_idx").on(t.token),
@@ -268,6 +270,7 @@ var snapshotExports = pgTable("snapshot_exports", {
   freshnessSummary: jsonb("freshness_summary"),
   brandingSnapshot: jsonb("branding_snapshot"),
   dashboardPayload: jsonb("dashboard_payload").notNull(),
+  language: text("language").default("de").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
 }, (t) => [
   index("snapshot_exports_property_created_idx").on(t.propertyId, t.createdAt),
@@ -338,6 +341,9 @@ var userSettings = pgTable("user_settings", {
   syncFailure: boolean("sync_failure").default(true).notNull(),
   // Billing preferences
   emailReceipts: boolean("email_receipts").default(true).notNull(),
+  // Language preference
+  preferredLanguage: text("preferred_language"),
+  preferredLanguageSource: text("preferred_language_source"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -620,6 +626,31 @@ var aiRecommendations = pgTable("ai_recommendations", {
   index("ai_recommendations_team_created_idx").on(t.teamId, t.createdAt),
   index("ai_recommendations_action_item_idx").on(t.actionItemId)
 ]);
+var openaiCostLedger = pgTable("openai_cost_ledger", {
+  id: text("id").primaryKey(),
+  aiRunId: text("ai_run_id").notNull().references(() => aiAnalysisRuns.id, { onDelete: "cascade" }),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  refreshJobId: text("refresh_job_id").references(() => propertyRefreshJobs.id, { onDelete: "set null" }),
+  callPurpose: text("call_purpose").notNull(),
+  model: text("model").notNull(),
+  requestId: text("request_id"),
+  outcome: text("outcome").default("succeeded").notNull(),
+  inputTokens: integer("input_tokens").default(0).notNull(),
+  outputTokens: integer("output_tokens").default(0).notNull(),
+  totalTokens: integer("total_tokens").default(0).notNull(),
+  cachedInputTokens: integer("cached_input_tokens").default(0).notNull(),
+  reasoningTokens: integer("reasoning_tokens").default(0).notNull(),
+  usageSnapshot: jsonb("usage_snapshot").notNull(),
+  costEstimateUsd: numeric("cost_estimate_usd", { precision: 14, scale: 6 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+}, (t) => [
+  index("openai_cost_ledger_run_outcome_idx").on(t.aiRunId, t.outcome, t.createdAt),
+  index("openai_cost_ledger_team_created_idx").on(t.teamId, t.createdAt),
+  index("openai_cost_ledger_property_created_idx").on(t.propertyId, t.createdAt),
+  index("openai_cost_ledger_request_idx").on(t.requestId)
+]);
 var featureFlags = pgTable("feature_flags", {
   id: text("id").primaryKey(),
   name: text("name").unique().notNull(),
@@ -708,6 +739,7 @@ export {
   aiRuntimeSettings,
   aiAnalysisRuns,
   aiRecommendations,
+  openaiCostLedger,
   featureFlags,
   userFeatureFlags,
   planSettings,

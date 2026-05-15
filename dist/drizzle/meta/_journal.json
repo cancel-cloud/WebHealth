@@ -15,6 +15,20 @@
       "when": 1778068800000,
       "tag": "0001_add_user_onboarding_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778868000000,
+      "tag": "0002_add_openai_cost_ledger",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778853600000,
+      "tag": "0003_add_language_preferences",
+      "breakpoints": true
     }
   ]
 }

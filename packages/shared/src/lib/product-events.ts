@@ -189,3 +189,18 @@ export function buildPosthogErrorEventProperties(input: {
 
   return properties;
 }
+
+export function buildAiRunFailedCostProperties(input: {
+  aiRunId: string;
+  message?: string | null;
+  failedCostEstimateUsd?: number | null;
+}) {
+  const properties: Record<string, unknown> = {
+    aiRunId: input.aiRunId,
+  };
+  if (input.message) properties.message = sanitizeErrorMessage(input.message);
+  if (typeof input.failedCostEstimateUsd === "number") {
+    properties.failedCostEstimateUsd = Number(input.failedCostEstimateUsd.toFixed(6));
+  }
+  return properties;
+}

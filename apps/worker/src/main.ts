@@ -38,6 +38,9 @@ async function main() {
         typeof import("@webhealth/shared/lib/active-property-automation")["startActivePropertyAutomationScheduler"]
       >
     | null = null;
+  let openAICostReconciliationSchedulerControls:
+    | ReturnType<typeof import("./openai-cost-reconciliation")["startOpenAICostReconciliationScheduler"]>
+    | null = null;
   let closeDb: (() => Promise<void>) | null = null;
   let healthServer: WorkerHealthServer | null = null;
   let healthHeartbeatTimer: NodeJS.Timeout | null = null;
@@ -70,6 +73,7 @@ async function main() {
       automatedPropertyRefreshWorkerControls?.stop();
       metricsBackfillWorkerControls?.stop();
       activePropertyAutomationSchedulerControls?.stop();
+      openAICostReconciliationSchedulerControls?.stop();
       await Promise.allSettled([
         healthServer?.close() ?? Promise.resolve(),
         closeDb?.() ?? Promise.resolve(),
@@ -102,6 +106,7 @@ async function main() {
   const { startActivePropertyAutomationScheduler } = await import(
     "@webhealth/shared/lib/active-property-automation"
   );
+  const { startOpenAICostReconciliationScheduler } = await import("./openai-cost-reconciliation");
   closeDb = sharedDbModule.closeDb;
 
   workerPhase = "database-ready";
@@ -126,6 +131,7 @@ async function main() {
   markWorkerPhase(runtimeState, "worker-loop");
   console.log("[worker][INFO][BOOT] starting worker process");
   activePropertyAutomationSchedulerControls = startActivePropertyAutomationScheduler();
+  openAICostReconciliationSchedulerControls = startOpenAICostReconciliationScheduler({ once });
   metricsBackfillWorkerControls = startMetricsBackfillWorkerLoop();
   propertyRefreshWorkerControls = startPropertyRefreshWorkerLoop({
     lane: "manual",
