@@ -1,11 +1,13 @@
 import { desc, sql } from "drizzle-orm";
 import { db } from "@webhealth/shared/db";
-import { productEvents } from "@webhealth/shared/db/schema";
+import { openaiCostLedger, productEvents } from "@webhealth/shared/db/schema";
 import { ProductAnalyticsCharts } from "./product-analytics-charts";
 import { PosthogInstallCheck } from "./posthog-install-check";
 import {
   buildActualSpendSeries,
   buildActualSpendSummary,
+  buildEstimatedSpendSeries,
+  buildEstimatedSpendSummary,
   buildJobThroughputSeries,
   type JobThroughputRow,
 } from "./page.logic";
@@ -31,6 +33,7 @@ type TeamUsageRow = {
 };
 
 type DailyActualCostRow = { sourceDate: string; totalUsd: string | null };
+type DailyEstimatedCostRow = DailyActualCostRow;
 type RecentProductEvent = {
   id: string;
   name: string;
@@ -52,6 +55,7 @@ function formatUsdDisplay(amount: string | number) {
 export default async function ProductAnalyticsPage() {
   const [
     actualDailyCostRows,
+    estimatedDailyCostRows,
     metricsJobStatusRows,
     propertyRefreshStatusRows,
     snapshotStatusRows,
@@ -63,7 +67,15 @@ export default async function ProductAnalyticsPage() {
       select source_date::text as "sourceDate", sum(amount_usd)::text as "totalUsd"
       from openai_daily_costs
       group by source_date
-      order by source_date asc
+      order by source_date desc
+      limit 60
+    `),
+    db.execute(sql<DailyEstimatedCostRow>`
+      select created_at::date::text as "sourceDate", sum(cost_estimate_usd)::text as "totalUsd"
+      from ${openaiCostLedger}
+      where outcome = 'succeeded'
+      group by created_at::date
+      order by created_at::date desc
       limit 60
     `),
     db.execute(sql<{ family: "source_data"; status: string; count: number }>`
@@ -177,6 +189,12 @@ export default async function ProductAnalyticsPage() {
   }));
   const actualSpendSeries = buildActualSpendSeries(actualDailyCosts);
   const actualSpendTotal = buildActualSpendSummary(actualDailyCosts);
+  const estimatedDailyCosts = Array.from(estimatedDailyCostRows).map((row) => ({
+    sourceDate: String(row.sourceDate ?? ""),
+    totalUsd: row.totalUsd == null ? null : String(row.totalUsd),
+  }));
+  const estimatedSpendSeries = buildEstimatedSpendSeries(estimatedDailyCosts);
+  const estimatedSpendTotal = buildEstimatedSpendSummary(estimatedDailyCosts);
   const jobThroughputSeries = buildJobThroughputSeries([
     ...Array.from(metricsJobStatusRows),
     ...Array.from(propertyRefreshStatusRows),
@@ -217,16 +235,20 @@ export default async function ProductAnalyticsPage() {
       <div>
         <h1 className="text-3xl font-semibold tracking-tight font-display">Product Analytics</h1>
         <p className="mt-1 text-muted-foreground">
-          Product usage, snapshots, source-data jobs, property refreshes, and actual OpenAI billing.
+          Product usage, snapshots, source-data jobs, property refreshes, OpenAI billed cost, and AI run estimates.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
-          <p className="text-sm text-muted-foreground">Actual OpenAI billing</p>
+          <p className="text-sm text-muted-foreground">OpenAI billed cost</p>
           <p className="mt-2 text-3xl font-bold font-display">{formatUsdDisplay(actualSpendTotal)}</p>
         </div>
-        {metrics.slice(0, 3).map((metric) => (
+        <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <p className="text-sm text-muted-foreground">AI run estimate</p>
+          <p className="mt-2 text-3xl font-bold font-display">{formatUsdDisplay(estimatedSpendTotal)}</p>
+        </div>
+        {metrics.slice(0, 2).map((metric) => (
           <div key={metric.label} className="rounded-lg border border-border bg-card p-5 shadow-sm">
             <p className="text-sm text-muted-foreground">{metric.label}</p>
             <p className="mt-2 text-3xl font-bold font-display">{metric.value}</p>
@@ -236,6 +258,7 @@ export default async function ProductAnalyticsPage() {
 
       <ProductAnalyticsCharts
         actualSpend={actualSpendSeries}
+        estimatedSpend={estimatedSpendSeries}
         jobThroughput={jobThroughputSeries}
       />
 
@@ -272,8 +295,8 @@ export default async function ProductAnalyticsPage() {
         </div>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {metrics.slice(3).map((metric) => (
+      <div className="grid gap-4 md:grid-cols-4">
+        {metrics.slice(2).map((metric) => (
           <div key={metric.label} className="rounded-lg border border-border bg-card p-5 shadow-sm">
             <p className="text-sm text-muted-foreground">{metric.label}</p>
             <p className="mt-2 text-3xl font-bold font-display">{metric.value}</p>

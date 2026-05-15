@@ -3,6 +3,8 @@ export type DailyActualCostRow = {
   totalUsd: string | null;
 };
 
+export type DailyEstimatedCostRow = DailyActualCostRow;
+
 export type JobThroughputRow = {
   family: "source_data" | "property_refresh" | "snapshot";
   status: string;
@@ -31,6 +33,14 @@ export function buildActualSpendSeries(rows: DailyActualCostRow[]) {
       totalUsd: parseUsd(row.totalUsd),
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export function buildEstimatedSpendSummary(rows: DailyEstimatedCostRow[]) {
+  return buildActualSpendSummary(rows);
+}
+
+export function buildEstimatedSpendSeries(rows: DailyEstimatedCostRow[]) {
+  return buildActualSpendSeries(rows);
 }
 
 const FAMILY_LABELS: Record<JobThroughputRow["family"], string> = {

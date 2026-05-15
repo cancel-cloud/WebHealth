@@ -32,6 +32,7 @@ type DebugResponse = {
     total: number;
   };
   dailyCosts: Array<{ sourceDate: string; totalUsd: string }>;
+  estimatedDailyCosts: Array<{ sourceDate: string; totalUsd: string }>;
   jobActivity: {
     counts: {
       sourceData: { queued: number; active: number; failed: number; total: number };
@@ -85,6 +86,10 @@ export function DebugConsole() {
     () => data?.dailyCosts.reduce((sum, row) => sum + Number(row.totalUsd ?? 0), 0) ?? 0,
     [data],
   );
+  const estimatedOpenAiTotal = useMemo(
+    () => data?.estimatedDailyCosts.reduce((sum, row) => sum + Number(row.totalUsd ?? 0), 0) ?? 0,
+    [data],
+  );
 
   return (
     <div className="space-y-6">
@@ -94,11 +99,12 @@ export function DebugConsole() {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <MetricCard label="Queued ops" value={data?.stats.queued ?? 0} />
         <MetricCard label="Active ops" value={data?.stats.processing ?? 0} />
         <MetricCard label="Failed ops" value={data?.stats.failed ?? 0} />
-        <MetricCard label="OpenAI billing" value={formatUsd(actualOpenAiTotal)} />
+        <MetricCard label="AI run estimate" value={formatUsd(estimatedOpenAiTotal)} />
+        <MetricCard label="OpenAI billed cost" value={formatUsd(actualOpenAiTotal)} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

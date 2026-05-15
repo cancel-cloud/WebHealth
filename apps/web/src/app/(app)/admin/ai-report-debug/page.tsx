@@ -6,7 +6,7 @@ export default function AiReportDebugPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Operations Debug Console</h1>
         <p className="text-muted-foreground text-sm">
-          Inspect source-data refreshes, property refreshes, and imported OpenAI billing in one place.
+          Inspect source-data refreshes, property refreshes, AI run estimates, and OpenAI billed cost in one place.
         </p>
       </div>
       <DebugConsole />

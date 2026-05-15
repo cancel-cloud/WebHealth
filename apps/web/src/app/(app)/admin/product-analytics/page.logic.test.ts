@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   buildActualSpendSeries,
   buildActualSpendSummary,
+  buildEstimatedSpendSeries,
+  buildEstimatedSpendSummary,
   buildJobThroughputSeries,
 } from "./page.logic";
 
@@ -27,6 +29,29 @@ test("buildActualSpendSeries sorts imported OpenAI billing by day", () => {
     [
       { date: "2026-04-01", totalUsd: 1.5 },
       { date: "2026-04-02", totalUsd: 2.25 },
+    ],
+  );
+});
+
+test("buildEstimatedSpendSummary totals AI run cost estimates", () => {
+  assert.equal(
+    buildEstimatedSpendSummary([
+      { sourceDate: "2026-05-13", totalUsd: "0.054441" },
+      { sourceDate: "2026-05-15", totalUsd: "0.024664" },
+    ]),
+    "0.079105",
+  );
+});
+
+test("buildEstimatedSpendSeries sorts AI run estimates by day", () => {
+  assert.deepEqual(
+    buildEstimatedSpendSeries([
+      { sourceDate: "2026-05-15", totalUsd: "0.024664" },
+      { sourceDate: "2026-05-13", totalUsd: "0.054441" },
+    ]),
+    [
+      { date: "2026-05-13", totalUsd: 0.054441 },
+      { date: "2026-05-15", totalUsd: 0.024664 },
     ],
   );
 });
