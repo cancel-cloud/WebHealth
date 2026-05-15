@@ -4,16 +4,17 @@ import { userSettings } from "@webhealth/shared/db/schema";
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { listAdminEmails } from "@webhealth/shared/lib/admin-access";
+import { DEFAULT_SUPPORTED_LANGUAGE } from "@webhealth/shared/lib/language";
 import { badRequest } from "@webhealth/shared/lib/http-errors";
 import { requireSession, getUserTeamMemberships } from "@/lib/server/authz";
 import { handleRouteError } from "@/lib/server/route-security";
-
-const ALLOWED_FIELDS = ['weeklyDigest', 'syncFailure', 'emailReceipts'] as const;
+import { normalizeSettingsPatch } from "./route.logic";
 
 const DEFAULT_SETTINGS = {
   weeklyDigest: true,
   syncFailure: true,
   emailReceipts: true,
+  preferredLanguage: DEFAULT_SUPPORTED_LANGUAGE,
 };
 
 // GET /api/settings — fetch the current user's settings
@@ -57,8 +58,8 @@ export async function GET() {
     };
 
     if (existing) {
-      const { weeklyDigest, syncFailure, emailReceipts } = existing;
-      return NextResponse.json({ weeklyDigest, syncFailure, emailReceipts, ...baseResponse });
+      const { weeklyDigest, syncFailure, emailReceipts, preferredLanguage } = existing;
+      return NextResponse.json({ weeklyDigest, syncFailure, emailReceipts, preferredLanguage, ...baseResponse });
     }
 
     return NextResponse.json({ ...DEFAULT_SETTINGS, ...baseResponse });
@@ -74,16 +75,9 @@ export async function PATCH(req: Request) {
 
     const userId = session.user.id;
     const body = await req.json();
+    const { patch, hasChanges } = normalizeSettingsPatch(body);
 
-    // Only pick allowed fields from the request body
-    const patch: Record<string, unknown> = {};
-    for (const field of ALLOWED_FIELDS) {
-      if (typeof body[field] === 'boolean') {
-        patch[field] = body[field];
-      }
-    }
-
-    if (Object.keys(patch).length === 0) {
+    if (!hasChanges) {
       throw badRequest("NO_VALID_SETTINGS_FIELDS", "No valid fields provided");
     }
 
@@ -96,8 +90,8 @@ export async function PATCH(req: Request) {
       })
       .returning();
 
-    const { weeklyDigest, syncFailure, emailReceipts } = updated;
-    return NextResponse.json({ weeklyDigest, syncFailure, emailReceipts });
+    const { weeklyDigest, syncFailure, emailReceipts, preferredLanguage } = updated;
+    return NextResponse.json({ weeklyDigest, syncFailure, emailReceipts, preferredLanguage });
   } catch (error: unknown) {
     return handleRouteError("PATCH /api/settings error", error);
   }

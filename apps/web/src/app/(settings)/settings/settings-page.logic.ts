@@ -1,4 +1,5 @@
 import { formatPlanName } from "@/lib/plan-label";
+import { normalizeSupportedLanguage, type SupportedLanguage } from "@webhealth/shared/lib/language";
 
 export type Settings = {
   weeklyDigest: boolean;
@@ -10,6 +11,7 @@ export type Settings = {
   teamTier?: string;
   hasStripeCustomer?: boolean;
   subscriptionCancelAt?: string | null;
+  preferredLanguage: SupportedLanguage;
 };
 
 export type SettingsTab = "account" | "contact";
@@ -79,6 +81,7 @@ export function normalizeSettingsResponse(data: unknown): Settings {
     hasStripeCustomer: Boolean(source.hasStripeCustomer),
     subscriptionCancelAt:
       typeof source.subscriptionCancelAt === "string" ? source.subscriptionCancelAt : null,
+    preferredLanguage: normalizeSupportedLanguage(source.preferredLanguage),
   };
 }
 
