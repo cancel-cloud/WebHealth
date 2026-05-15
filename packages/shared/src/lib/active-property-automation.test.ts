@@ -5,7 +5,7 @@ import {
   buildActivePropertyAutomationPlan,
   getDailyMetricsRefreshWindow,
   type ActiveAutomationProperty,
-} from "./active-property-automation-policy";
+} from "./active-property-automation";
 
 function property(overrides: Partial<ActiveAutomationProperty> & Pick<ActiveAutomationProperty, "id" | "type">): ActiveAutomationProperty {
   return {
