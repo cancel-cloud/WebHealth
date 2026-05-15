@@ -573,7 +573,7 @@ export default function SettingsPage() {
               <p className="text-sm font-medium">Receipts</p>
               <div className="group relative">
                 <Info className="size-3.5 cursor-help text-muted-foreground" />
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-64 -tranzinc-x-1/2 rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-64 -translate-x-1/2 rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md opacity-0 transition-opacity group-hover:opacity-100">
                   Stripe sends receipts automatically to your account email. If
                   you didn&apos;t receive one, click{" "}
                   <span className="font-medium">
