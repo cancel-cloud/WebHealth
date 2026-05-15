@@ -1,0 +1,3 @@
+# OpenAI cost tracking uses estimates and billed-cost reconciliation
+
+WebHealth records **AI run estimates** from OpenAI response usage so product analytics and PostHog can attribute spend to a specific AI analysis run. WebHealth also imports **OpenAI billed costs** from the OpenAI organization Costs API with a worker-only admin key, because provider billing is daily/project/line-item data and cannot reliably replace per-run attribution. This intentionally keeps attribution and invoice reconciliation as separate cost tracks instead of treating PostHog events or provider daily totals as the single source for both jobs.

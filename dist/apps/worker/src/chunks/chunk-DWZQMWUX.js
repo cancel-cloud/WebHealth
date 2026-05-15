@@ -85,11 +85,22 @@ function buildPosthogErrorEventProperties(input) {
   }
   return properties;
 }
+function buildAiRunFailedCostProperties(input) {
+  const properties = {
+    aiRunId: input.aiRunId
+  };
+  if (input.message) properties.message = sanitizeErrorMessage(input.message);
+  if (typeof input.failedCostEstimateUsd === "number") {
+    properties.failedCostEstimateUsd = Number(input.failedCostEstimateUsd.toFixed(6));
+  }
+  return properties;
+}
 
 export {
   buildProductEventPayload,
   resolvePosthogProjectToken,
   buildPosthogCaptureEndpoint,
   buildPosthogCapturePayload,
-  buildPosthogErrorEventProperties
+  buildPosthogErrorEventProperties,
+  buildAiRunFailedCostProperties
 };

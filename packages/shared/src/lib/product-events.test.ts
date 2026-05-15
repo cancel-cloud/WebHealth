@@ -6,6 +6,7 @@ import {
   buildPosthogCaptureEndpoint,
   buildPosthogCapturePayload,
   buildProductEventPayload,
+  buildAiRunFailedCostProperties,
   getPosthogDistinctId,
   resolvePosthogProjectToken,
   isProductEventName,
@@ -186,4 +187,16 @@ test("PostHog capture endpoint falls back to the managed proxy", () => {
     buildPosthogCaptureEndpoint({}),
     "https://d.devbrew.dev/i/v0/e/",
   );
+});
+
+test("buildAiRunFailedCostProperties keeps failed spend separate from successful costEstimateUsd", () => {
+  const properties = buildAiRunFailedCostProperties({
+    aiRunId: "air_1",
+    message: "failed after OpenAI usage",
+    failedCostEstimateUsd: 0.012345,
+  });
+
+  assert.equal(properties.aiRunId, "air_1");
+  assert.equal(properties.failedCostEstimateUsd, 0.012345);
+  assert.equal(properties.costEstimateUsd, undefined);
 });
