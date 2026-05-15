@@ -186,6 +186,7 @@ export const propertyShareLinks = pgTable("property_share_links", {
   endDate: date("end_date").notNull(),
   brandSnapshot: jsonb("brand_snapshot").notNull(),
   payloadSnapshot: jsonb("payload_snapshot").notNull(),
+  language: text("language").default("de").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("property_share_links_token_idx").on(t.token),
@@ -264,6 +265,7 @@ export const snapshotExports = pgTable("snapshot_exports", {
   freshnessSummary: jsonb("freshness_summary"),
   brandingSnapshot: jsonb("branding_snapshot"),
   dashboardPayload: jsonb("dashboard_payload").notNull(),
+  language: text("language").default("de").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("snapshot_exports_property_created_idx").on(t.propertyId, t.createdAt),
@@ -336,6 +338,9 @@ export const userSettings = pgTable("user_settings", {
   syncFailure:    boolean("sync_failure").default(true).notNull(),
   // Billing preferences
   emailReceipts:  boolean("email_receipts").default(true).notNull(),
+  // Language preference
+  preferredLanguage: text("preferred_language"),
+  preferredLanguageSource: text("preferred_language_source"),
   createdAt:      timestamp("created_at").defaultNow().notNull(),
   updatedAt:      timestamp("updated_at").defaultNow().notNull(),
 });

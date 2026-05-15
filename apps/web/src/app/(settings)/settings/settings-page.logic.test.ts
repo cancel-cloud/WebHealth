@@ -27,6 +27,7 @@ test("normalizeSettingsResponse coerces optional values into stable defaults", (
       syncFailure: true,
       emailReceipts: undefined,
       teamTier: "studio",
+      preferredLanguage: "en",
     }),
     {
       weeklyDigest: true,
@@ -38,7 +39,15 @@ test("normalizeSettingsResponse coerces optional values into stable defaults", (
       teamTier: "studio",
       hasStripeCustomer: false,
       subscriptionCancelAt: null,
+      preferredLanguage: "en",
     }
+  );
+});
+
+test("normalizeSettingsResponse defaults unsupported preferred language to German", () => {
+  assert.equal(
+    normalizeSettingsResponse({ preferredLanguage: "fr" }).preferredLanguage,
+    "de",
   );
 });
 

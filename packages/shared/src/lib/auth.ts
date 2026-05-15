@@ -3,9 +3,10 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { eq } from "drizzle-orm";
 import { db } from "@webhealth/shared/db";
 import * as schema from "@webhealth/shared/db/schema";
-import { user, teams, teamMembers, systemLogs } from "@webhealth/shared/db/schema";
+import { user, teams, teamMembers, systemLogs, userSettings } from "@webhealth/shared/db/schema";
 import { nanoid } from "nanoid";
 import { updateGoogleAccountTokens, decryptProviderToken } from "@webhealth/shared/lib/provider-tokens";
+import { getGoogleSeedLanguagePreference } from "@webhealth/shared/lib/language";
 
 async function persistGoogleAccountState(account: {
   providerId: string;
@@ -30,10 +31,10 @@ async function persistGoogleAccountState(account: {
 }
 
 /**
- * Call Google's userinfo endpoint with the stored access token to get the
- * profile picture URL and write it to user.image. Fire-and-forget — never throws.
+ * Call Google's userinfo endpoint with the stored access token to get profile
+ * metadata. Fire-and-forget — never throws.
  */
-async function syncProfilePictureFromGoogle(userId: string) {
+async function syncGoogleProfileMetadata(userId: string) {
   const googleAccount = await db.query.account.findFirst({
     where: (t, { and, eq }) => and(eq(t.userId, userId), eq(t.providerId, "google")),
     columns: { accessToken: true },
@@ -52,9 +53,30 @@ async function syncProfilePictureFromGoogle(userId: string) {
 
   const data = await res.json() as Record<string, unknown>;
   const picture = typeof data?.picture === "string" ? data.picture : undefined;
-  if (!picture) return;
+  const locale = typeof data?.locale === "string" ? data.locale : null;
+  const existingSettings = await db.query.userSettings.findFirst({
+    where: (table, { eq }) => eq(table.userId, userId),
+    columns: { preferredLanguage: true },
+  });
+  const languageSeed = getGoogleSeedLanguagePreference(existingSettings?.preferredLanguage ?? null, locale);
+  const updatedAt = new Date();
 
-  await db.update(user).set({ image: picture, updatedAt: new Date() }).where(eq(user.id, userId));
+  await Promise.all([
+    picture
+      ? db.update(user).set({ image: picture, updatedAt }).where(eq(user.id, userId))
+      : Promise.resolve(),
+    languageSeed
+      ? db
+          .insert(userSettings)
+          .values({
+            id: nanoid(),
+            userId,
+            preferredLanguage: languageSeed.preferredLanguage,
+            preferredLanguageSource: languageSeed.preferredLanguageSource,
+          })
+          .onConflictDoNothing()
+      : Promise.resolve(),
+  ]);
 }
 
 export const auth = betterAuth({
@@ -134,8 +156,8 @@ export const auth = betterAuth({
             },
           }).catch(() => {});
 
-          // Sync profile picture from Google on every sign-in
-          syncProfilePictureFromGoogle(session.userId).catch(() => {});
+          // Sync Google profile metadata without overwriting explicit user preferences.
+          syncGoogleProfileMetadata(session.userId).catch(() => {});
         },
       },
     },
