@@ -176,6 +176,7 @@ export function buildSnapshotDownload(params: {
     analysisWindow: Pick<LiveDashboardData["analysisWindow"], "startDate" | "requestedEndDate">;
   };
   brandColors: { primary: string; accent: string };
+  language?: "en" | "de";
 }) {
   const startDate = params.dashboard.analysisWindow.startDate;
   const endDate = params.dashboard.analysisWindow.requestedEndDate;
@@ -185,6 +186,7 @@ export function buildSnapshotDownload(params: {
       metadata: {
         exportType: "dashboard_snapshot_json",
         createdAt: new Date().toISOString(),
+        language: params.language ?? "en",
         propertyId: params.dashboard.property.id,
         propertyName: params.dashboard.property.name,
         startDate,

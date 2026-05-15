@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildDegradedStates,
   buildClientReportComparison,
+  buildPropertyShareDownloadPayload,
   buildFreshnessSources,
   mergeActionWorkflowState,
   resolveAnalysisWindow,
@@ -340,6 +341,17 @@ test("selectPreviousPropertyShare ignores revoked and expired shares", () => {
 
   const selected = selectPreviousPropertyShare(rows, new Date("2026-03-28T10:00:00.000Z"));
   assert.equal(selected?.shareId, "valid");
+});
+
+test("buildPropertyShareDownloadPayload persists the capture language", () => {
+  const payload = buildPropertyShareDownloadPayload({
+    dashboard: dashboardFixture(),
+    brandSnapshot: {},
+    createdAt: "2026-03-28T10:00:00.000Z",
+    language: "en",
+  });
+
+  assert.equal(payload.metadata.language, "en");
 });
 
 test("buildClientReportComparison returns baseline state without previous report", () => {
