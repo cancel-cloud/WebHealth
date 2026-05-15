@@ -24,6 +24,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getPricingBadgeClassNames } from "@/components/pricing-badge-styles";
 import { useFeedbackModal } from "@/components/feedback-modal-context";
 import { getAppErrorMessage } from "@/lib/client/app-error";
@@ -36,6 +43,10 @@ import {
   PUBLIC_PRICING_PLANS,
 } from "@/lib/pricing";
 import { toast } from "sonner";
+import {
+  SUPPORTED_LANGUAGE_LABELS,
+  type SupportedLanguage,
+} from "@webhealth/shared/lib/language";
 import {
   Sparkles,
   Bug,
@@ -57,6 +68,7 @@ export default function SettingsPage() {
 
   const [settings, setSettings] = useState<Settings | null>(null);
   const [isPlanSyncing, setIsPlanSyncing] = useState(false);
+  const [isLanguageSaving, setIsLanguageSaving] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     const data = await requestJson<Record<string, unknown>>("/api/settings");
@@ -143,6 +155,32 @@ export default function SettingsPage() {
     }
   };
 
+  const handleLanguageChange = async (preferredLanguage: SupportedLanguage) => {
+    if (settings?.preferredLanguage === preferredLanguage) return;
+    setIsLanguageSaving(true);
+
+    try {
+      const data = await requestJson<Record<string, unknown>>("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preferredLanguage }),
+      });
+      setSettings((current) => normalizeSettingsResponse({ ...(current ?? {}), ...data }));
+      router.refresh();
+      toast.success(
+        preferredLanguage === "de"
+          ? "Sprache gespeichert"
+          : "Language saved",
+      );
+    } catch (error) {
+      toast.error("Language update failed", {
+        description: getAppErrorMessage(error, "Please try again."),
+      });
+    } finally {
+      setIsLanguageSaving(false);
+    }
+  };
+
   const handleTabChange = (nextTab: "account" | "contact") => {
     const params = new URLSearchParams(searchParams.toString());
     if (nextTab === "account") {
@@ -206,60 +244,96 @@ export default function SettingsPage() {
         <TabsContent value="account" className="space-y-8">
           <section className="rounded-lg border border-border/70 bg-card/80 p-6 shadow-sm">
             {settings ? (
-              <div className="flex min-w-0 items-start gap-4">
-                <Avatar className="size-20 rounded-lg border border-border/60">
-                  <AvatarImage src={image} alt={name} />
-                  <AvatarFallback className="rounded-lg bg-primary/10 text-2xl font-bold text-primary">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+                <div className="flex min-w-0 items-start gap-4">
+                  <Avatar className="size-20 rounded-lg border border-border/60">
+                    <AvatarImage src={image} alt={name} />
+                    <AvatarFallback className="rounded-lg bg-primary/10 text-2xl font-bold text-primary">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
 
-                <div className="min-w-0 space-y-3">
-                  <div className="space-y-1">
-                    <p className="truncate text-2xl font-bold font-display">
-                      {name}
-                    </p>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {email}
+                  <div className="min-w-0 space-y-3">
+                    <div className="space-y-1">
+                      <p className="truncate text-2xl font-bold font-display">
+                        {name}
+                      </p>
+                      <p className="truncate text-sm text-muted-foreground">
+                        {email}
+                      </p>
+                    </div>
+
+                    <Badge
+                      variant="outline"
+                      className="rounded-full px-3 py-1 text-xs font-medium capitalize"
+                    >
+                      {activePlanName}
+                    </Badge>
+
+                    {settings.subscriptionCancelAt ? (
+                      <p className="text-sm text-muted-foreground">
+                        Active until{" "}
+                        <span className="font-medium text-foreground">
+                          {new Date(
+                            settings.subscriptionCancelAt,
+                          ).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                        .
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Manage your workspace account and billing details.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2 lg:pt-1">
+                  <div>
+                    <h2 className="text-sm font-semibold text-foreground">
+                      Sprache / Language
+                    </h2>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Controls the app and future client snapshots.
                     </p>
                   </div>
-
-                  <Badge
-                    variant="outline"
-                    className="rounded-full px-3 py-1 text-xs font-medium capitalize"
+                  <Select
+                    value={settings.preferredLanguage}
+                    onValueChange={(value) => void handleLanguageChange(value as SupportedLanguage)}
+                    disabled={isLanguageSaving}
                   >
-                    {activePlanName}
-                  </Badge>
-
-                  {settings.subscriptionCancelAt ? (
-                    <p className="text-sm text-muted-foreground">
-                      Active until{" "}
-                      <span className="font-medium text-foreground">
-                        {new Date(
-                          settings.subscriptionCancelAt,
-                        ).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </span>
-                      .
-                    </p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Manage your workspace account and billing details.
-                    </p>
-                  )}
+                    <SelectTrigger aria-label="Application language">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(["de", "en"] as const).map((language) => (
+                        <SelectItem key={language} value={language}>
+                          {SUPPORTED_LANGUAGE_LABELS[language]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             ) : (
-              <div className="flex items-start gap-4">
-                <Skeleton className="size-20 rounded-lg" />
-                <div className="min-w-0 flex-1 space-y-3">
-                  <Skeleton className="h-7 w-48" />
-                  <Skeleton className="h-4 w-72" />
-                  <Skeleton className="h-6 w-36 rounded-full" />
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+                <div className="flex items-start gap-4">
+                  <Skeleton className="size-20 rounded-lg" />
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <Skeleton className="h-7 w-48" />
+                    <Skeleton className="h-4 w-72" />
+                    <Skeleton className="h-6 w-36 rounded-full" />
+                    <Skeleton className="h-4 w-56" />
+                  </div>
+                </div>
+                <div className="space-y-2 lg:pt-1">
+                  <Skeleton className="h-4 w-32" />
                   <Skeleton className="h-4 w-56" />
+                  <Skeleton className="h-10 w-full rounded-lg" />
                 </div>
               </div>
             )}
@@ -362,7 +436,7 @@ export default function SettingsPage() {
                     const price =
                       plan.tier === "agency"
                         ? `€${getAgencyPrice(DEFAULT_AGENCY_SITE_COUNT)}`
-                        : getLocalizedPricingValue(plan.price, "en");
+                        : getLocalizedPricingValue(plan.price, settings.preferredLanguage);
 
                     return (
                       <article
@@ -378,21 +452,21 @@ export default function SettingsPage() {
                             <Badge
                               className={`${pricingBadgeClasses.base} ${pricingBadgeClasses.mostPopularSpacing} ${pricingBadgeClasses.mostPopular}`}
                             >
-                              {getLocalizedPricingValue(plan.badge, "en")}
+                              {getLocalizedPricingValue(plan.badge, settings.preferredLanguage)}
                             </Badge>
                           ) : isCurrent ? (
                             <Badge variant="outline" className="rounded-full">
-                              Current Plan
+                              {settings.preferredLanguage === "de" ? "Aktueller Plan" : "Current Plan"}
                             </Badge>
                           ) : null}
                         </div>
 
                         <div className="mt-4 min-h-[8.5rem]">
                           <h3 className="font-display text-sm font-semibold uppercase tracking-[0.2em]">
-                            {getLocalizedPricingValue(plan.name, "en")}
+                            {getLocalizedPricingValue(plan.name, settings.preferredLanguage)}
                           </h3>
                           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                            {getLocalizedPricingValue(plan.description, "en")}
+                            {getLocalizedPricingValue(plan.description, settings.preferredLanguage)}
                           </p>
                         </div>
 
@@ -401,14 +475,14 @@ export default function SettingsPage() {
                             {price}
                           </span>
                           <span className="pb-1 text-sm text-muted-foreground">
-                            {getLocalizedPricingValue(plan.period, "en")}
+                            {getLocalizedPricingValue(plan.period, settings.preferredLanguage)}
                           </span>
                         </div>
 
                         <div className="mt-3 min-h-10">
                           {plan.note ? (
                             <p className="text-xs text-muted-foreground">
-                              {getLocalizedPricingValue(plan.note, "en")}
+                              {getLocalizedPricingValue(plan.note, settings.preferredLanguage)}
                             </p>
                           ) : null}
                         </div>
@@ -424,7 +498,7 @@ export default function SettingsPage() {
                                 aria-hidden="true"
                               />
                               <span>
-                                {getLocalizedPricingValue(feature, "en")}
+                                {getLocalizedPricingValue(feature, settings.preferredLanguage)}
                               </span>
                             </li>
                           ))}
@@ -438,7 +512,7 @@ export default function SettingsPage() {
                               className="h-10 w-full rounded-full"
                             >
                               <a href="mailto:kontakt@devbrew.dev?subject=Webhealth%20Agency%20Interest">
-                                {getLocalizedPricingValue(plan.cta, "en")}
+                                {getLocalizedPricingValue(plan.cta, settings.preferredLanguage)}
                               </a>
                             </Button>
                           ) : plan.tier === "solo" ? (
@@ -449,8 +523,8 @@ export default function SettingsPage() {
                             >
                               <Link href="/dashboard">
                                 {isCurrent
-                                  ? "Current Plan"
-                                  : getLocalizedPricingValue(plan.cta, "en")}
+                                  ? settings.preferredLanguage === "de" ? "Aktueller Plan" : "Current Plan"
+                                  : getLocalizedPricingValue(plan.cta, settings.preferredLanguage)}
                               </Link>
                             </Button>
                           ) : (
@@ -475,8 +549,8 @@ export default function SettingsPage() {
                               }}
                             >
                               {isCurrent
-                                ? "Current Plan"
-                                : getLocalizedPricingValue(plan.cta, "en")}
+                                ? settings.preferredLanguage === "de" ? "Aktueller Plan" : "Current Plan"
+                                : getLocalizedPricingValue(plan.cta, settings.preferredLanguage)}
                             </Button>
                           )}
                         </div>

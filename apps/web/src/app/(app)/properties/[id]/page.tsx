@@ -9,6 +9,7 @@ import {
   requireUnrestrictedSession,
 } from "@/lib/server/authz";
 import { decodeRouteParam } from "@/lib/server/route-params";
+import { getUserPreferredLanguage } from "@/lib/server/language";
 import { PropertyDashboardClient } from "./property-dashboard-client";
 import { SetupDismissButton } from "../../dashboard/setup-dismiss-button";
 
@@ -24,6 +25,7 @@ export default async function PropertyDashboardPage({
   const { id } = await params;
   const propertyId = decodeRouteParam(id);
   const query = await searchParams;
+  const language = await getUserPreferredLanguage(session.user.id);
 
   let resolved;
   try {
@@ -96,6 +98,7 @@ export default async function PropertyDashboardPage({
       ) : null}
       <PropertyDashboardClient
         dashboard={dashboard}
+        language={language}
         currentUser={{
           id: session.user.id,
           email: session.user.email,

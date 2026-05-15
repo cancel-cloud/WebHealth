@@ -55,6 +55,7 @@ import {
   Users,
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
+import { useAppCopy, type AppLanguageCopy } from "@/lib/app-language";
 
 type SidebarMeta = {
   teamTier: string;
@@ -89,12 +90,14 @@ const ICONS: Record<
 
 function SidebarLink({
   item,
+  label,
   onNavigate,
   onFeatureRequest,
   nested = false,
   badge,
 }: {
   item: AppSidebarItem;
+  label?: string;
   onNavigate?: () => void;
   onFeatureRequest?: () => void;
   nested?: boolean;
@@ -120,7 +123,7 @@ function SidebarLink({
           stateClasses.icon,
         )}
       />
-      <span className="truncate">{item.label}</span>
+      <span className="truncate">{label ?? item.label}</span>
       {typeof badge === "number" ? (
         <span className="ml-auto shrink-0 rounded-full bg-primary/12 px-2 py-0.5 text-xs font-semibold tabular-nums text-primary">
           {badge}
@@ -202,6 +205,29 @@ function parseSidebarSourceCoverage(
   return "linked";
 }
 
+function getSidebarItemLabel(itemId: string, copy: AppLanguageCopy["sidebar"]) {
+  const labels: Record<string, string> = {
+    dashboard: copy.overview,
+    properties: copy.properties,
+    "ai-insights": copy.aiInsights,
+    settings: copy.settings,
+    "admin-syncing": copy.syncing,
+    "admin-users": copy.userManagement,
+    "admin-feedback": copy.feedbackInbox,
+    "admin-product-analytics": copy.productAnalytics,
+    "admin-logs": copy.systemLogs,
+    "admin-feature-flags": copy.featureFlags,
+    "admin-global-settings": copy.globalSettings,
+    "admin-ai-prompts": copy.aiPrompts,
+    "admin-ai-report-debug": copy.opsDebugConsole,
+    "admin-glitchtip-test": copy.glitchtipTest,
+    "contact-support": copy.contactSupport,
+    "feature-request": copy.featureRequests,
+  };
+
+  return labels[itemId] ?? itemId;
+}
+
 function isSidebarPropertyCurrent(pathname: string, propertyId: string) {
   const currentId = pathname.split("/").at(-1);
   if (!currentId) return false;
@@ -216,10 +242,12 @@ function isSidebarPropertyCurrent(pathname: string, propertyId: string) {
 function SidebarPropertyLink({
   property,
   pathname,
+  copy,
   onNavigate,
 }: {
   property: SidebarProperty;
   pathname: string;
+  copy: AppLanguageCopy["sidebar"];
   onNavigate?: () => void;
 }) {
   const current = isSidebarPropertyCurrent(pathname, property.id);
@@ -255,10 +283,10 @@ function SidebarPropertyLink({
         )}
         aria-label={
           property.sourceCoverage === "linked"
-            ? "Linked"
+            ? copy.linked
             : property.sourceCoverage === "gsc_only"
-              ? "Search Console only"
-              : "Analytics only"
+              ? copy.gscOnly
+              : copy.analyticsOnly
         }
       />
     </Link>
@@ -280,9 +308,14 @@ export function AppSidebar({
   const searchParams = useSearchParams();
   const { data: session } = authClient.useSession();
   const { theme, setTheme } = useTheme();
+  const copy = useAppCopy();
   const [meta, setMeta] = useState<SidebarMeta | null>(null);
   const metaRequestIdRef = useRef(0);
-  const themeOptions = getAppSidebarFooterThemeOptions();
+  const themeOptionLabels = copy.theme;
+  const themeOptions = getAppSidebarFooterThemeOptions().map((option) => ({
+    ...option,
+    label: themeOptionLabels[option.value],
+  }));
   const model = getAppSidebarModel({
     pathname,
     isAdmin,
@@ -321,9 +354,9 @@ export function AppSidebar({
                 label:
                   typeof property.label === "string"
                     ? property.label
-                    : typeof property.gscUrl === "string"
-                      ? property.gscUrl
-                      : "Website",
+                      : typeof property.gscUrl === "string"
+                        ? property.gscUrl
+                      : copy.sidebar.websiteFallback,
                 gscUrl:
                   typeof property.gscUrl === "string"
                     ? property.gscUrl
@@ -342,7 +375,7 @@ export function AppSidebar({
         });
       })
       .catch(() => {});
-  }, []);
+  }, [copy.sidebar.websiteFallback]);
 
   useEffect(() => {
     loadMeta();
@@ -401,6 +434,7 @@ export function AppSidebar({
               <SidebarLink
                 key={item.id}
                 item={item}
+                label={getSidebarItemLabel(item.id, copy.sidebar)}
                 onNavigate={onNavigate}
                 onFeatureRequest={onFeatureRequest}
                 badge={
@@ -415,7 +449,7 @@ export function AppSidebar({
           {meta?.reportableProperties.length ? (
             <section className="space-y-2">
               <p className="px-3 text-xs font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/45">
-                Your Properties
+                {copy.sidebar.yourProperties}
               </p>
               <div className="space-y-1">
                 {meta.reportableProperties.map((property) => (
@@ -423,6 +457,7 @@ export function AppSidebar({
                     key={property.id}
                     property={property}
                     pathname={pathname}
+                    copy={copy.sidebar}
                     onNavigate={onNavigate}
                   />
                 ))}
@@ -433,7 +468,7 @@ export function AppSidebar({
           {model.adminItems.length > 0 ? (
             <section className="space-y-2">
               <p className="px-3 text-xs font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/45">
-                Admin
+                {copy.sidebar.admin}
               </p>
               <Collapsible
                 key={model.adminItems.some((item) => item.current) ? "admin-current" : "admin-default"}
@@ -442,7 +477,7 @@ export function AppSidebar({
                 <CollapsibleTrigger asChild>
                   <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground/78 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 focus-visible:outline-none">
                     <Settings className="size-4 shrink-0 text-sidebar-foreground/60" />
-                    <span className="flex-1 truncate">Admin tools</span>
+                    <span className="flex-1 truncate">{copy.sidebar.adminTools}</span>
                     <ChevronDown className="size-4 shrink-0 text-sidebar-foreground/55 transition-transform data-[state=open]:rotate-180" />
                   </button>
                 </CollapsibleTrigger>
@@ -451,6 +486,7 @@ export function AppSidebar({
                     <SidebarLink
                       key={item.id}
                       item={item}
+                      label={getSidebarItemLabel(item.id, copy.sidebar)}
                       onNavigate={onNavigate}
                       onFeatureRequest={onFeatureRequest}
                       nested
@@ -463,7 +499,7 @@ export function AppSidebar({
 
           <section className="space-y-2">
             <p className="px-3 text-xs font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/45">
-              Help
+              {copy.sidebar.help}
             </p>
 
             <Collapsible
@@ -478,7 +514,7 @@ export function AppSidebar({
                 <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground/78 transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 focus-visible:outline-none">
                   <CircleHelp className="size-4 shrink-0 text-sidebar-foreground/60" />
                   <span className="flex-1 truncate">
-                    {model.supportGroup.label}
+                    {copy.sidebar.help}
                   </span>
                   <ChevronDown className="size-4 shrink-0 text-sidebar-foreground/55 transition-transform data-[state=open]:rotate-180" />
                 </button>
@@ -488,6 +524,7 @@ export function AppSidebar({
                   <SidebarLink
                     key={item.id}
                     item={item}
+                    label={getSidebarItemLabel(item.id, copy.sidebar)}
                     onNavigate={onNavigate}
                     onFeatureRequest={onFeatureRequest}
                     nested
@@ -507,15 +544,15 @@ export function AppSidebar({
                 <Avatar className="size-10 rounded-lg">
                   <AvatarImage
                     src={session?.user?.image ?? ""}
-                    alt={session?.user?.name ?? "User"}
+                    alt={session?.user?.name ?? copy.sidebar.userFallback}
                   />
                   <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-semibold">
-                    {session?.user?.name?.charAt(0).toUpperCase() ?? "U"}
+                    {session?.user?.name?.charAt(0).toUpperCase() ?? copy.sidebar.userFallback.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">
-                    {session?.user?.name ?? "Account"}
+                    {session?.user?.name ?? copy.sidebar.account}
                   </span>
                   <span className="block truncate text-xs text-sidebar-foreground/58">
                     {session?.user?.email ?? ""}
@@ -533,7 +570,7 @@ export function AppSidebar({
               <DropdownMenuLabel className="space-y-2 p-3 font-normal">
                 <div className="space-y-0.5">
                   <p className="truncate text-sm font-semibold">
-                    {session?.user?.name ?? "Account"}
+                    {session?.user?.name ?? copy.sidebar.account}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
                     {session?.user?.email ?? ""}
@@ -547,18 +584,18 @@ export function AppSidebar({
               <DropdownMenuItem asChild>
                 <Link href="/settings" onClick={onNavigate}>
                   <Settings className="mr-2 size-4" />
-                  Settings
+                  {copy.sidebar.settings}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings?tab=contact" onClick={onNavigate}>
                   <MessageSquare className="mr-2 size-4" />
-                  Contact &amp; Support
+                  {copy.sidebar.contactAndSupport}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Theme
+                {copy.sidebar.theme}
               </DropdownMenuLabel>
               <div className="overflow-hidden rounded-lg border border-border/70">
                 {themeOptions.map((option, index) => {
@@ -592,7 +629,7 @@ export function AppSidebar({
                 onClick={handleSignOut}
               >
                 <LogOut className="mr-2 size-4" />
-                Sign out
+                {copy.sidebar.signOut}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

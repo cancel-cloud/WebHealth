@@ -16,6 +16,7 @@ import {
   Sparkles,
   Palette,
 } from "lucide-react";
+import { useAppCopy } from "@/lib/app-language";
 
 const GH = "[&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-medium";
 
@@ -52,6 +53,7 @@ export function CommandPalette({
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { setTheme } = useTheme();
+  const copy = useAppCopy().command;
 
   // Only wire ⌘K / Ctrl+K
   useEffect(() => {
@@ -82,65 +84,65 @@ export function CommandPalette({
       <DialogContent
         className="p-0 overflow-hidden max-w-lg rounded-lg gap-0"
         showCloseButton={false}
-        aria-label="Command palette"
+        aria-label={copy.title}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           inputRef.current?.focus();
         }}
       >
-        <DialogTitle className="sr-only">Command palette</DialogTitle>
+        <DialogTitle className="sr-only">{copy.title}</DialogTitle>
         <Command className="w-full">
           <Command.Input
             ref={inputRef}
-            placeholder="Type a command or search…"
+            placeholder={copy.placeholder}
             className="h-12 w-full border-b border-border bg-transparent px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none"
           />
           <Command.List className="max-h-80 overflow-y-auto p-2">
             <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
-              No results found.
+              {copy.empty}
             </Command.Empty>
 
-            <Command.Group heading="Navigation" className={GH}>
-              <CmdItem onSelect={() => run(() => router.push("/dashboard"))} icon={LayoutDashboard} label="Go to Dashboard" />
-              <CmdItem onSelect={() => run(() => router.push("/properties"))} icon={Globe} label="Go to Properties" />
-              <CmdItem onSelect={() => run(() => router.push("/settings"))} icon={Settings} label="Go to Settings" />
-              <CmdItem onSelect={() => run(() => router.push("/settings/branding"))} icon={Palette} label="Go to Branding" />
+            <Command.Group heading={copy.navigation} className={GH}>
+              <CmdItem onSelect={() => run(() => router.push("/dashboard"))} icon={LayoutDashboard} label={copy.goToDashboard} />
+              <CmdItem onSelect={() => run(() => router.push("/properties"))} icon={Globe} label={copy.goToProperties} />
+              <CmdItem onSelect={() => run(() => router.push("/settings"))} icon={Settings} label={copy.goToSettings} />
+              <CmdItem onSelect={() => run(() => router.push("/settings/branding"))} icon={Palette} label={copy.goToBranding} />
             </Command.Group>
 
             <Command.Separator className="my-1 h-px bg-border" />
 
-            <Command.Group heading="Actions" className={GH}>
-              <CmdItem onSelect={() => run(() => router.push("/properties"))} icon={Plus} label="Open Properties" />
-              <CmdItem onSelect={() => run(() => router.push("/properties"))} icon={RefreshCw} label="Sync Properties" />
-              <CmdItem onSelect={() => run(() => router.push("/settings?tab=contact"))} icon={MessageSquare} label="Contact Support" />
-              <CmdItem onSelect={() => run(() => onFeatureRequest?.())} icon={Sparkles} label="Feature Requests" />
+            <Command.Group heading={copy.actions} className={GH}>
+              <CmdItem onSelect={() => run(() => router.push("/properties"))} icon={Plus} label={copy.openProperties} />
+              <CmdItem onSelect={() => run(() => router.push("/properties"))} icon={RefreshCw} label={copy.syncProperties} />
+              <CmdItem onSelect={() => run(() => router.push("/settings?tab=contact"))} icon={MessageSquare} label={copy.contactSupport} />
+              <CmdItem onSelect={() => run(() => onFeatureRequest?.())} icon={Sparkles} label={copy.featureRequests} />
             </Command.Group>
 
             <Command.Separator className="my-1 h-px bg-border" />
 
-            <Command.Group heading="Appearance" className={GH}>
-              <CmdItem onSelect={() => run(() => setTheme("light"))} icon={Sun} label="Light Mode" />
-              <CmdItem onSelect={() => run(() => setTheme("dark"))} icon={Moon} label="Dark Mode" />
-              <CmdItem onSelect={() => run(() => setTheme("system"))} icon={Monitor} label="System Mode" />
+            <Command.Group heading={copy.appearance} className={GH}>
+              <CmdItem onSelect={() => run(() => setTheme("light"))} icon={Sun} label={copy.lightMode} />
+              <CmdItem onSelect={() => run(() => setTheme("dark"))} icon={Moon} label={copy.darkMode} />
+              <CmdItem onSelect={() => run(() => setTheme("system"))} icon={Monitor} label={copy.systemMode} />
             </Command.Group>
 
             {isAdmin && (
               <>
                 <Command.Separator className="my-1 h-px bg-border" />
-                <Command.Group heading="Admin" className={GH}>
-                  <CmdItem onSelect={() => run(() => router.push("/admin/users"))} icon={Users} label="User Management" />
-                  <CmdItem onSelect={() => run(() => router.push("/admin/logs"))} icon={ScrollText} label="System Logs" />
-                  <CmdItem onSelect={() => run(() => router.push("/admin/feature-flags"))} icon={Flag} label="Feature Flags" />
-                  <CmdItem onSelect={() => run(() => router.push("/admin/global-settings"))} icon={SlidersHorizontal} label="Global Settings" />
-                  <CmdItem onSelect={() => run(() => router.push("/admin/ai-report-debug"))} icon={Bug} label="Ops Debug Console" />
+                <Command.Group heading={copy.admin} className={GH}>
+                  <CmdItem onSelect={() => run(() => router.push("/admin/users"))} icon={Users} label={copy.userManagement} />
+                  <CmdItem onSelect={() => run(() => router.push("/admin/logs"))} icon={ScrollText} label={copy.systemLogs} />
+                  <CmdItem onSelect={() => run(() => router.push("/admin/feature-flags"))} icon={Flag} label={copy.featureFlags} />
+                  <CmdItem onSelect={() => run(() => router.push("/admin/global-settings"))} icon={SlidersHorizontal} label={copy.globalSettings} />
+                  <CmdItem onSelect={() => run(() => router.push("/admin/ai-report-debug"))} icon={Bug} label={copy.opsDebugConsole} />
                 </Command.Group>
               </>
             )}
 
             <Command.Separator className="my-1 h-px bg-border" />
 
-            <Command.Group heading="Account" className={GH}>
-              <CmdItem onSelect={signOut} icon={LogOut} label="Sign Out" className="text-destructive [&_svg]:text-destructive" />
+            <Command.Group heading={copy.account} className={GH}>
+              <CmdItem onSelect={signOut} icon={LogOut} label={copy.signOut} className="text-destructive [&_svg]:text-destructive" />
             </Command.Group>
           </Command.List>
         </Command>

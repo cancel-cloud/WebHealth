@@ -15,6 +15,32 @@ import { shouldOpenOnboardingModal } from "./onboarding-modal.logic";
 import { WorkspaceActionBoard } from "./workspace-action-board";
 import { ManagePropertiesDialog } from "./manage-properties-dialog";
 import { SetupDismissButton } from "./setup-dismiss-button";
+import { getUserPreferredLanguage } from "@/lib/server/language";
+
+const DASHBOARD_PAGE_COPY = {
+  en: {
+    title: "Open a live website dashboard",
+    subtitle: "Use this page as a launcher. Website analysis now lives at the property level, with snapshots as historical context.",
+    portfolioTitle: "Portfolio Websites overview",
+    portfolioSubtitle: "Pick a site to open its live decision surface.",
+    emptyPortfolio: "Activate a synced property first. The live dashboard is created from your active website sources.",
+    activeSources: "Active sources",
+    activeSourcesDescription: "Synced sources enabled for dashboard work.",
+    liveDashboards: "Live dashboards",
+    liveDashboardsDescription: "Active website surfaces ready for decisions.",
+  },
+  de: {
+    title: "Live-Website-Dashboard öffnen",
+    subtitle: "Nutze diese Seite als Startpunkt. Website-Analysen liegen auf Property-Ebene, Snapshots liefern den historischen Kontext.",
+    portfolioTitle: "Portfolio-Websites",
+    portfolioSubtitle: "Wähle eine Site, um die Live-Entscheidungsfläche zu öffnen.",
+    emptyPortfolio: "Aktiviere zuerst eine synchronisierte Property. Das Live-Dashboard entsteht aus deinen aktiven Website-Quellen.",
+    activeSources: "Aktive Quellen",
+    activeSourcesDescription: "Synchronisierte Quellen für Dashboard-Arbeit.",
+    liveDashboards: "Live-Dashboards",
+    liveDashboardsDescription: "Aktive Website-Flächen bereit für Entscheidungen.",
+  },
+} as const;
 
 export default async function DashboardPage({
   searchParams,
@@ -33,6 +59,8 @@ export default async function DashboardPage({
     where: eq(userSchema.id, session!.user.id),
     columns: { onboardingCompletedAt: true },
   });
+  const language = await getUserPreferredLanguage(session!.user.id);
+  const copy = DASHBOARD_PAGE_COPY[language];
 
   let propertyCount = 0;
   let websites: Awaited<ReturnType<typeof listTeamCombinedReportableProperties>> = [];
@@ -101,9 +129,9 @@ export default async function DashboardPage({
 
       <div>
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Open a live website dashboard</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{copy.title}</h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">
-            Use this page as a launcher. Website analysis now lives at the property level, with snapshots as historical context.
+            {copy.subtitle}
           </p>
         </div>
       </div>
@@ -111,8 +139,8 @@ export default async function DashboardPage({
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight">Portfolio Websites overview</h2>
-            <p className="text-sm text-muted-foreground">Pick a site to open its live decision surface.</p>
+            <h2 className="text-xl font-semibold tracking-tight">{copy.portfolioTitle}</h2>
+            <p className="text-sm text-muted-foreground">{copy.portfolioSubtitle}</p>
           </div>
           <ManagePropertiesDialog properties={allProperties} />
         </div>
@@ -129,21 +157,21 @@ export default async function DashboardPage({
           </div>
         ) : (
           <div className="rounded-lg border border-border/70 bg-card/90 p-8 text-center text-muted-foreground shadow-sm">
-            Activate a synced property first. The live dashboard is created from your active website sources.
+            {copy.emptyPortfolio}
           </div>
         )}
       </section>
 
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-lg border border-border/70 bg-card/90 p-4 shadow-sm">
-          <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Active sources</div>
+          <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{copy.activeSources}</div>
           <div className="mt-1 text-2xl font-semibold tracking-tight">{propertyCount}</div>
-          <p className="mt-1 text-xs text-muted-foreground">Synced sources enabled for dashboard work.</p>
+          <p className="mt-1 text-xs text-muted-foreground">{copy.activeSourcesDescription}</p>
         </div>
         <div className="rounded-lg border border-border/70 bg-card/90 p-4 shadow-sm">
-          <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Live dashboards</div>
+          <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{copy.liveDashboards}</div>
           <div className="mt-1 text-2xl font-semibold tracking-tight">{websites.length}</div>
-          <p className="mt-1 text-xs text-muted-foreground">Active website surfaces ready for decisions.</p>
+          <p className="mt-1 text-xs text-muted-foreground">{copy.liveDashboardsDescription}</p>
         </div>
       </div>
 
