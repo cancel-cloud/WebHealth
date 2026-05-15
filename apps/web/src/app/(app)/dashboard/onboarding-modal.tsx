@@ -33,6 +33,8 @@ import {
   type LinkableGoogleProperty,
 } from "./property-linking.logic";
 import type { PropertiesSyncResult } from "./sync-button";
+import { SUPPORTED_LANGUAGE_LABELS, type SupportedLanguage } from "@webhealth/shared/lib/language";
+import { useAppLanguage } from "@/lib/app-language";
 
 type OnboardingStep = "sync" | "link" | "activate" | "guide";
 type SyncState = "idle" | "syncing" | "success" | "error";
@@ -61,6 +63,9 @@ export function OnboardingModal({
   const [isSavingLinks, setIsSavingLinks] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const appLanguage = useAppLanguage();
+  const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>(appLanguage);
+  const [isSavingLanguage, setIsSavingLanguage] = useState(false);
   const { issue, hasBlockingIssue, openDialog, refreshHealth } = useGoogleAccessRecovery();
 
   const ga4Options = useMemo(() => getGa4PropertyOptions(properties), [properties]);
@@ -132,6 +137,24 @@ export function OnboardingModal({
       setActionError(getAppErrorMessage(error, "Could not complete onboarding."));
     } finally {
       setIsCompleting(false);
+    }
+  }
+
+  async function saveLanguage(language: SupportedLanguage) {
+    setSelectedLanguage(language);
+    setIsSavingLanguage(true);
+    setActionError(null);
+    try {
+      await requestJson("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preferredLanguage: language }),
+      });
+      startTransition(() => router.refresh());
+    } catch (error) {
+      setActionError(getAppErrorMessage(error, "Could not save language preference."));
+    } finally {
+      setIsSavingLanguage(false);
     }
   }
 
@@ -222,6 +245,31 @@ export function OnboardingModal({
               {label}
             </Badge>
           ))}
+        </div>
+
+        <div className="grid gap-3 rounded-lg border border-border/70 bg-muted/25 p-4 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-center">
+          <div>
+            <p className="text-sm font-medium">Sprache / Language</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              We preselect this from Google when available. You can change it here or later in Settings; snapshots use this language when captured.
+            </p>
+          </div>
+          <Select
+            value={selectedLanguage}
+            onValueChange={(value) => void saveLanguage(value as SupportedLanguage)}
+            disabled={isSavingLanguage}
+          >
+            <SelectTrigger aria-label="Application language">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(["de", "en"] as const).map((language) => (
+                <SelectItem key={language} value={language}>
+                  {SUPPORTED_LANGUAGE_LABELS[language]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {actionError ? (

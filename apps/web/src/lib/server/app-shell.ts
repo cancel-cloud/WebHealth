@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@webhealth/shared/lib/auth";
 import { db } from "@webhealth/shared/db";
 import { isAdminEmail } from "@webhealth/shared/lib/admin-access";
+import { getUserPreferredLanguage } from "@/lib/server/language";
 
 export async function getAppShellAccess({
   allowRestricted = false,
@@ -26,5 +27,6 @@ export async function getAppShellAccess({
 
   return {
     isAdmin: await isAdminEmail(session.user.email ?? null),
+    language: await getUserPreferredLanguage(session.user.id),
   };
 }

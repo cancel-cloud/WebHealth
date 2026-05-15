@@ -30,6 +30,7 @@ import {
   getGoogleAccessDialogModel,
   getGoogleAccessToastModel,
 } from "./google-access-recovery.logic";
+import { useAppCopy } from "@/lib/app-language";
 
 const GOOGLE_ACCESS_TOAST_ID = "google-access-recovery";
 const GOOGLE_REAUTH_PENDING_KEY = "webhealth_google_reauth_pending";
@@ -70,6 +71,7 @@ export function GoogleAccessRecoveryProvider({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const hasHandledPendingReauthRef = useRef(false);
+  const copy = useAppCopy().googleAccess;
 
   const issue = getIssueFromHealth(health);
 
@@ -159,20 +161,20 @@ export function GoogleAccessRecoveryProvider({
         await refreshHealth();
         setDialogOpen(false);
         router.refresh();
-        toast.success("Google access restored. Properties synced.", {
+        toast.success(copy.restored, {
           id: GOOGLE_ACCESS_TOAST_ID,
           duration: 5000,
         });
       } catch (error) {
         window.sessionStorage.removeItem(GOOGLE_REAUTH_PENDING_KEY);
         await refreshHealth({ openDialogOnIssue: true });
-        toast.error(getAppErrorMessage(error, "Google reconnected, but property sync failed."), {
+        toast.error(getAppErrorMessage(error, copy.reconnectFailed), {
           id: GOOGLE_ACCESS_TOAST_ID,
           duration: 8000,
         });
       }
     })();
-  }, [health, refreshHealth, router]);
+  }, [copy.reconnectFailed, copy.restored, health, refreshHealth, router]);
 
   const dialogModel = issue ? getGoogleAccessDialogModel(issue) : null;
 
@@ -195,10 +197,10 @@ export function GoogleAccessRecoveryProvider({
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">
-              {dialogModel?.title ?? "Review Google access"}
+              {dialogModel?.title ?? copy.reviewTitle}
             </DialogTitle>
             <DialogDescription>
-              {dialogModel?.description ?? "Reconnect Google to restore property sync and refresh actions."}
+              {dialogModel?.description ?? copy.reviewDescription}
             </DialogDescription>
           </DialogHeader>
 
@@ -208,11 +210,11 @@ export function GoogleAccessRecoveryProvider({
                 <ShieldAlert className="size-5" />
               </div>
               <div className="space-y-2">
-                <p className="font-medium text-amber-950">What needs to happen</p>
+                <p className="font-medium text-amber-950">{copy.needsToHappen}</p>
                 <ol className="space-y-2 text-sm text-amber-950/85">
-                  <li>Reconnect your Google account.</li>
-                  <li>Approve the required Search Console and Analytics access on the consent screen.</li>
-                  <li>Return to WebHealth so we can refresh your properties automatically.</li>
+                  <li>{copy.reconnectAccount}</li>
+                  <li>{copy.approveAccess}</li>
+                  <li>{copy.returnToWebHealth}</li>
                 </ol>
               </div>
             </div>
@@ -220,12 +222,12 @@ export function GoogleAccessRecoveryProvider({
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Not now
+              {copy.close}
             </Button>
             <Button onClick={() => void startReconnect()} disabled={isReconnecting} className="rounded-full">
               {isReconnecting
-                ? "Redirecting..."
-                : (dialogModel?.primaryActionLabel ?? "Reconnect Google")}
+                ? copy.reconnecting
+                : (dialogModel?.primaryActionLabel ?? copy.reconnectGoogle)}
             </Button>
           </DialogFooter>
         </DialogContent>

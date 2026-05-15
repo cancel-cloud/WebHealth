@@ -12,10 +12,10 @@ export default async function SettingsFullLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAdmin } = await getAppShellAccess({ allowRestricted: true });
+  const { isAdmin, language } = await getAppShellAccess({ allowRestricted: true });
 
   return (
-    <AppShell isAdmin={isAdmin}>
+    <AppShell isAdmin={isAdmin} language={language}>
       <Suspense>{children}</Suspense>
     </AppShell>
   );

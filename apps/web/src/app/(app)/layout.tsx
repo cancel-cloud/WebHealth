@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { isAdmin } = await getAppShellAccess();
+  const { isAdmin, language } = await getAppShellAccess();
 
-  return <AppShell isAdmin={isAdmin}>{children}</AppShell>;
+  return <AppShell isAdmin={isAdmin} language={language}>{children}</AppShell>;
 }

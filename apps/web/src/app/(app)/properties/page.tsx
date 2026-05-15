@@ -51,6 +51,66 @@ import {
   type ManagedPropertyRow,
 } from "../dashboard/manage-properties-dialog.logic";
 import { getGa4PropertyOptions } from "../dashboard/property-linking.logic";
+import { useAppLanguage } from "@/lib/app-language";
+
+const PROPERTIES_COPY = {
+  en: {
+    activated: "Property activated",
+    deactivated: "Property deactivated",
+    updateFailed: "Could not update property activation",
+    setup: "Setup",
+    linkToActivate: "Link GSC + GA4 to activate.",
+    included: "Included",
+    managedByCanonical: "Managed by the canonical dashboard.",
+    activeDashboard: "Active dashboard",
+    inactive: "Inactive",
+    title: "Properties",
+    subtitle: "Google Search Console and Analytics properties synced to your account.",
+    paused: "Your existing properties stay visible, but sync and linking are paused until Google access is restored.",
+    reconnect: "Reconnect Google",
+    explainer: "Activate only complete GSC + GA4 website dashboards. Paid plans can refresh the default 28-day Google data in the background and send relevant source evidence to OpenAI for AI insights. Solo users stay manual: open the property and press Re-run to fetch fresh Google data and AI recommendations.",
+    emptyTitle: "No properties synced",
+    emptyDescription: "No Google Search Console or Analytics properties are associated with this connected Google account yet.",
+    search: "Search properties...",
+    name: "Name",
+    url: "URL",
+    type: "Type",
+    active: "Active",
+    status: "Status",
+    synced: "Synced",
+    openLiveDashboard: "Open live dashboard",
+    linkGa4ThenActivate: "Link GA4, then activate.",
+    secondary: "Secondary to the website dashboard.",
+  },
+  de: {
+    activated: "Property aktiviert",
+    deactivated: "Property deaktiviert",
+    updateFailed: "Property-Aktivierung konnte nicht aktualisiert werden",
+    setup: "Setup",
+    linkToActivate: "GSC + GA4 verknüpfen, um zu aktivieren.",
+    included: "Enthalten",
+    managedByCanonical: "Wird vom kanonischen Dashboard verwaltet.",
+    activeDashboard: "Aktives Dashboard",
+    inactive: "Inaktiv",
+    title: "Properties",
+    subtitle: "Mit deinem Konto synchronisierte Google Search Console- und Analytics-Properties.",
+    paused: "Deine bestehenden Properties bleiben sichtbar, aber Synchronisierung und Verknüpfung pausieren bis Google-Zugriff wiederhergestellt ist.",
+    reconnect: "Google erneut verbinden",
+    explainer: "Aktiviere nur vollständige GSC- + GA4-Website-Dashboards. Bezahlte Pläne können die standardmäßigen 28 Tage Google-Daten im Hintergrund aktualisieren und relevante Quellenbelege an OpenAI für KI-Insights senden. Solo-Nutzer bleiben manuell: Property öffnen und Re-run drücken, um frische Google-Daten und KI-Empfehlungen zu holen.",
+    emptyTitle: "Keine Properties synchronisiert",
+    emptyDescription: "Für dieses verbundene Google-Konto sind noch keine Google Search Console- oder Analytics-Properties vorhanden.",
+    search: "Properties suchen...",
+    name: "Name",
+    url: "URL",
+    type: "Typ",
+    active: "Aktiv",
+    status: "Status",
+    synced: "Synchronisiert",
+    openLiveDashboard: "Live-Dashboard öffnen",
+    linkGa4ThenActivate: "GA4 verknüpfen, dann aktivieren.",
+    secondary: "Sekundär zum Website-Dashboard.",
+  },
+} as const;
 
 type Property = {
   id: string;
@@ -153,6 +213,8 @@ function LinkGa4Dialog({
 }
 
 export default function PropertiesPage() {
+  const language = useAppLanguage();
+  const copy = PROPERTIES_COPY[language];
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAutoSyncing, setIsAutoSyncing] = useState(false);
@@ -244,11 +306,11 @@ export default function PropertiesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ active, propertyIds: targetIds }),
       });
-      toast.success(active ? "Property activated" : "Property deactivated");
+      toast.success(active ? copy.activated : copy.deactivated);
       await loadProperties();
       dispatchAppSidebarPropertiesRefresh();
     } catch (error) {
-      toast.error(getAppErrorMessage(error, "Could not update property activation"));
+      toast.error(getAppErrorMessage(error, copy.updateFailed));
     } finally {
       setPendingActivationId(null);
     }
@@ -259,9 +321,9 @@ export default function PropertiesPage() {
     if (!row?.linked) {
       return (
         <div className="min-w-0 space-y-1">
-          <Badge variant="outline" className="border-amber-200 text-amber-700">Setup</Badge>
+          <Badge variant="outline" className="border-amber-200 text-amber-700">{copy.setup}</Badge>
           <p className="max-w-44 whitespace-normal text-xs leading-snug text-muted-foreground">
-            Link GSC + GA4 to activate.
+            {copy.linkToActivate}
           </p>
         </div>
       );
@@ -270,9 +332,9 @@ export default function PropertiesPage() {
     if (property.id !== row.sourceIds[0]) {
       return (
         <div className="min-w-0 space-y-1">
-          <Badge variant="outline">Included</Badge>
+          <Badge variant="outline">{copy.included}</Badge>
           <p className="max-w-44 whitespace-normal break-words text-xs leading-snug text-muted-foreground">
-            Managed by the canonical dashboard.
+            {copy.managedByCanonical}
           </p>
         </div>
       );
@@ -287,7 +349,7 @@ export default function PropertiesPage() {
           aria-label={`Toggle ${row.name}`}
         />
         <span className="whitespace-normal text-xs leading-snug text-muted-foreground">
-          {row.active ? "Active dashboard" : "Inactive"}
+          {row.active ? copy.activeDashboard : copy.inactive}
         </span>
       </div>
     );
@@ -298,9 +360,9 @@ export default function PropertiesPage() {
       <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
           <h1 className="text-3xl font-semibold tracking-tight font-display" style={{ textWrap: "balance" }}>
-            Properties
+            {copy.title}
           </h1>
-          <p className="mt-1 max-w-3xl text-muted-foreground">Google Search Console and Analytics properties synced to your account.</p>
+          <p className="mt-1 max-w-3xl text-muted-foreground">{copy.subtitle}</p>
         </div>
         <div className="shrink-0 self-start xl:self-auto">
           <SyncButton
@@ -322,18 +384,18 @@ export default function PropertiesPage() {
                 {recoveryModel?.description}
               </p>
               <p className="text-sm text-amber-900/80">
-                Your existing properties stay visible, but sync and linking are paused until Google access is restored.
+                {copy.paused}
               </p>
             </div>
             <Button onClick={openDialog} className="rounded-full">
-              Reconnect Google
+              {copy.reconnect}
             </Button>
           </div>
         </div>
       ) : null}
 
       <div className="rounded-lg border border-border/70 bg-muted/25 p-4 text-sm text-muted-foreground">
-        Activate only complete GSC + GA4 website dashboards. Paid plans can refresh the default 28-day Google data in the background and send relevant source evidence to OpenAI for AI insights. Solo users stay manual: open the property and press Re-run to fetch fresh Google data and AI recommendations.
+        {copy.explainer}
       </div>
 
       {loading ? (
@@ -349,9 +411,9 @@ export default function PropertiesPage() {
           <div className="size-16 bg-muted/50 rounded-lg flex items-center justify-center mb-6">
             <Globe aria-hidden="true" className="size-8 text-muted-foreground/50" />
           </div>
-          <h3 className="text-xl font-medium text-foreground font-display">No properties synced</h3>
+          <h3 className="text-xl font-medium text-foreground font-display">{copy.emptyTitle}</h3>
           <p className="max-w-sm mt-3 text-muted-foreground leading-relaxed">
-            No Google Search Console or Analytics properties are associated with this connected Google account yet.
+            {copy.emptyDescription}
           </p>
         </div>
       ) : (
@@ -359,7 +421,7 @@ export default function PropertiesPage() {
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -tranzinc-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <Input
-              placeholder="Search properties…"
+              placeholder={copy.search}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -369,13 +431,13 @@ export default function PropertiesPage() {
           <Table className="table-fixed">
             <TableHeader className="bg-muted/30">
               <TableRow className="hover:bg-transparent border-border/50">
-                <TableHead className="w-[30%] py-4 font-medium">Name</TableHead>
-                <TableHead className="w-[18%] py-4 font-medium">URL</TableHead>
-                <TableHead className="w-[5%] py-4 font-medium">Type</TableHead>
+                <TableHead className="w-[30%] py-4 font-medium">{copy.name}</TableHead>
+                <TableHead className="w-[18%] py-4 font-medium">{copy.url}</TableHead>
+                <TableHead className="w-[5%] py-4 font-medium">{copy.type}</TableHead>
                 <TableHead className="w-[12%] py-4 font-medium">GA4</TableHead>
-                <TableHead className="w-[18%] py-4 font-medium">Active</TableHead>
-                <TableHead className="w-[9%] py-4 font-medium">Status</TableHead>
-                <TableHead className="w-[8%] py-4 text-right font-medium">Synced</TableHead>
+                <TableHead className="w-[18%] py-4 font-medium">{copy.active}</TableHead>
+                <TableHead className="w-[9%] py-4 font-medium">{copy.status}</TableHead>
+                <TableHead className="w-[8%] py-4 text-right font-medium">{copy.synced}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -385,19 +447,19 @@ export default function PropertiesPage() {
                     <div className="min-w-0 space-y-1.5">
                       <div className="break-words font-medium leading-snug">{property.name}</div>
                       {!property.active ? (
-                        <Badge variant="outline" className="border-amber-200 text-amber-700">Inactive</Badge>
+                        <Badge variant="outline" className="border-amber-200 text-amber-700">{copy.inactive}</Badge>
                       ) : null}
                       {property.type === "gsc" && property.active ? (
                         <Link
                           href={`/properties/${encodeURIComponent(property.id)}`}
                           className="inline-flex items-center text-xs font-medium text-primary hover:text-primary/80"
                         >
-                          Open live dashboard
+                          {copy.openLiveDashboard}
                         </Link>
                       ) : property.type === "gsc" ? (
-                        <span className="block text-xs leading-snug text-muted-foreground">Link GA4, then activate.</span>
+                        <span className="block text-xs leading-snug text-muted-foreground">{copy.linkGa4ThenActivate}</span>
                       ) : (
-                        <span className="block text-xs leading-snug text-muted-foreground">Secondary to the website dashboard.</span>
+                        <span className="block text-xs leading-snug text-muted-foreground">{copy.secondary}</span>
                       )}
                     </div>
                   </TableCell>

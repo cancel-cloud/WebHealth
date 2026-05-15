@@ -21,8 +21,26 @@ import {
 } from "@/components/feedback-modal-context";
 import { FeatureRequestModal } from "@/components/feature-request-modal";
 import { GoogleAccessRecoveryProvider } from "@/components/google-access-recovery";
+import { AppLanguageProvider, useAppCopy } from "@/lib/app-language";
+import type { SupportedLanguage } from "@webhealth/shared/lib/language";
 
 export function AppShell({
+  children,
+  isAdmin,
+  language,
+}: {
+  children: React.ReactNode;
+  isAdmin?: boolean;
+  language: SupportedLanguage;
+}) {
+  return (
+    <AppLanguageProvider language={language}>
+      <AppShellInner isAdmin={isAdmin}>{children}</AppShellInner>
+    </AppLanguageProvider>
+  );
+}
+
+function AppShellInner({
   children,
   isAdmin,
 }: {
@@ -33,6 +51,7 @@ export function AppShell({
   const [feedbackModalState, setFeedbackModalState] = useState(() =>
     getFeedbackModalInitialState(),
   );
+  const copy = useAppCopy();
 
   const openFeedback = useCallback(
     (input: {
@@ -62,9 +81,9 @@ export function AppShell({
             className="w-[calc(100vw-1rem)] max-w-80 border-none bg-transparent p-3 shadow-none"
           >
             <SheetHeader className="sr-only">
-              <SheetTitle>Navigation</SheetTitle>
+              <SheetTitle>{copy.shell.navigation}</SheetTitle>
               <SheetDescription>
-                Navigate the authenticated WebHealth application.
+                {copy.shell.navigationDescription}
               </SheetDescription>
             </SheetHeader>
             <AppSidebar
@@ -81,7 +100,7 @@ export function AppShell({
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Open navigation"
+              aria-label={copy.shell.openNavigation}
               className="rounded-lg border border-app-shell-border/70 bg-background/80"
               onClick={() => setMobileOpen(true)}
             >
@@ -100,7 +119,7 @@ export function AppShell({
                   Webhealth
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
-                  SEO operations cockpit
+                  {copy.shell.productSubtitle}
                 </span>
               </span>
             </Link>
