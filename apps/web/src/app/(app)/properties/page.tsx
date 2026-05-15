@@ -419,7 +419,7 @@ export default function PropertiesPage() {
       ) : (
         <div className="space-y-3">
           <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -tranzinc-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <Input
               placeholder={copy.search}
               value={searchQuery}

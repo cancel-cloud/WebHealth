@@ -725,7 +725,7 @@ export function AgencyHomepageClient({
                 </div>
 
                 <div className="relative min-h-[260px] overflow-hidden sm:min-h-[360px] lg:min-h-[500px]">
-                  <div className="absolute left-1/2 top-1/2 flex size-28 -tranzinc-x-1/2 -tranzinc-y-1/2 items-center justify-center rounded-[1.5rem] bg-[linear-gradient(135deg,#3154f4,#1597e5)] shadow-[0_34px_80px_-28px_rgba(49,84,244,0.65)] sm:h-36 sm:w-36 sm:rounded-[2rem] lg:h-40 lg:w-40">
+                  <div className="absolute left-1/2 top-1/2 flex size-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[1.5rem] bg-[linear-gradient(135deg,#3154f4,#1597e5)] shadow-[0_34px_80px_-28px_rgba(49,84,244,0.65)] sm:h-36 sm:w-36 sm:rounded-[2rem] lg:h-40 lg:w-40">
                     <div className="size-11 rounded-full bg-background sm:h-14 sm:w-14 lg:h-16 lg:w-16" />
                   </div>
 

@@ -455,7 +455,7 @@ function WebsiteLauncherCard({ website, setupDismissed }: WebsiteLauncherCardPro
           </div>
           <Link
             href={`/properties/${encodeURIComponent(website.id)}`}
-            className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary transition-transform group-hover:tranzinc-x-0.5"
+            className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary transition-transform group-hover:translate-x-0.5"
           >
             Open dashboard
             <ArrowRight className="size-4" />

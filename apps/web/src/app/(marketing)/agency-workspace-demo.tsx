@@ -200,7 +200,7 @@ export function AgencyWorkspaceDemo({
                     key={client.domain}
                     type="button"
                     onClick={() => dispatchWorkspace({ type: "show_client", index })}
-                    className="rounded-2xl border border-border bg-card p-5 text-left shadow-sm transition-transform hover:-tranzinc-y-0.5"
+                    className="rounded-2xl border border-border bg-card p-5 text-left shadow-sm transition-transform hover:-translate-y-0.5"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">
