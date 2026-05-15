@@ -8,7 +8,7 @@ import {
   buildPropertyPageRegistryChanges,
   type PropertyPageRegistryInput,
   type PropertyRefreshTriggerSource,
-} from "./property-refresh-policy";
+} from "./property-refresh";
 
 test("matchesPropertyRefreshPayload requires an exact dashboard window match", () => {
   assert.equal(
