@@ -7,6 +7,7 @@ import {
   requireUnrestrictedSession,
 } from "@/lib/server/authz";
 import { decodeRouteParam } from "@/lib/server/route-params";
+import { getUserPreferredLanguage } from "@/lib/server/language";
 import { handleRouteError } from "@/lib/server/route-security";
 import { buildPropertyShareUrl, normalizeShareRequestBody } from "./route.logic";
 
@@ -26,6 +27,7 @@ export async function POST(
       teamId: membership.teamId,
       createdByUserId: session.user.id,
       propertyId: resolved.canonicalGscProperty.id,
+      language: await getUserPreferredLanguage(session.user.id),
       preset: body.preset,
       compareMode: body.compareMode,
       startDate: body.startDate,

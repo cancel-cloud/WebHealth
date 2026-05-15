@@ -3,11 +3,99 @@ import type { CSSProperties } from "react";
 import { ArrowDownRight, ArrowUpRight, CheckCircle2, ExternalLink } from "lucide-react";
 import { getPropertyShareReportByToken, type ClientReportComparison } from "@webhealth/shared/lib/live-dashboard";
 import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
+import type { SupportedLanguage } from "@webhealth/shared/lib/language";
 import { PropertyShareTrendChart } from "./property-share-trend-chart";
 
-function formatNumber(value: number | null | undefined) {
+const SHARE_COPY = {
+  en: {
+    snapshot: "Website performance snapshot",
+    snapshotPeriod: "Snapshot period",
+    to: "to",
+    noComparisonSelected: "No comparison selected",
+    sharedOn: "Shared on",
+    clicks: "Clicks",
+    impressions: "Impressions",
+    avgPosition: "Avg. position",
+    sessions: "Sessions",
+    users: "Users",
+    comparisonUnavailable: "Comparison data unavailable for this period.",
+    previousPeriod: "Compared with previous period",
+    lastYear: "Compared with same period last year",
+    noComparison: "No comparison period",
+    changedTitle: "What changed since the last snapshot",
+    baseline: "This is the baseline snapshot. Future shared snapshots will show how performance changed from this point.",
+    improved: "Traffic and visibility improved compared with the last shared snapshot.",
+    softened: "Some visibility softened compared with the last shared snapshot. The tables below show which pages and queries moved most.",
+    stable: "Performance is broadly stable compared with the last shared snapshot.",
+    previousSnapshot: "Previous shared snapshot",
+    pagesMovement: "Pages with the biggest movement",
+    queriesMovement: "Queries with the biggest movement",
+    completedChanges: "Completed and detected changes",
+    noPageMovement: "No page movement is available yet.",
+    noQueryMovement: "No query movement is available yet.",
+    pageChanged: "Page content changed during this snapshot period.",
+    noCompletedChanges: "No completed changes were recorded for this snapshot period.",
+    topPages: "Top pages",
+    topPagesDescription: "Pages that contributed most to traffic in this snapshot period.",
+    page: "Page",
+    previous: "Previous",
+    change: "Change",
+    movement: "Movement",
+    topQueries: "Top queries",
+    topQueriesDescription: "Search terms that brought visibility and clicks during this snapshot period.",
+    query: "Query",
+    position: "Position",
+  },
+  de: {
+    snapshot: "Website-Performance-Snapshot",
+    snapshotPeriod: "Snapshot-Zeitraum",
+    to: "bis",
+    noComparisonSelected: "Kein Vergleich ausgewählt",
+    sharedOn: "Geteilt am",
+    clicks: "Klicks",
+    impressions: "Impressionen",
+    avgPosition: "Ø Position",
+    sessions: "Sitzungen",
+    users: "Nutzer",
+    comparisonUnavailable: "Für diesen Zeitraum sind keine Vergleichsdaten verfügbar.",
+    previousPeriod: "Verglichen mit dem vorherigen Zeitraum",
+    lastYear: "Verglichen mit demselben Zeitraum im Vorjahr",
+    noComparison: "Kein Vergleichszeitraum",
+    changedTitle: "Was sich seit dem letzten Snapshot geändert hat",
+    baseline: "Dies ist der Basis-Snapshot. Zukünftige geteilte Snapshots zeigen, wie sich die Performance ab hier verändert.",
+    improved: "Traffic und Sichtbarkeit haben sich gegenüber dem letzten geteilten Snapshot verbessert.",
+    softened: "Ein Teil der Sichtbarkeit ist gegenüber dem letzten geteilten Snapshot schwächer. Die Tabellen zeigen, welche Seiten und Suchanfragen sich am stärksten bewegt haben.",
+    stable: "Die Performance ist gegenüber dem letzten geteilten Snapshot weitgehend stabil.",
+    previousSnapshot: "Vorheriger geteilter Snapshot",
+    pagesMovement: "Seiten mit der größten Bewegung",
+    queriesMovement: "Suchanfragen mit der größten Bewegung",
+    completedChanges: "Abgeschlossene und erkannte Änderungen",
+    noPageMovement: "Noch keine Seitenbewegung verfügbar.",
+    noQueryMovement: "Noch keine Suchanfragenbewegung verfügbar.",
+    pageChanged: "Seiteninhalte haben sich in diesem Snapshot-Zeitraum geändert.",
+    noCompletedChanges: "Für diesen Snapshot-Zeitraum wurden keine abgeschlossenen Änderungen erfasst.",
+    topPages: "Top-Seiten",
+    topPagesDescription: "Seiten, die in diesem Snapshot-Zeitraum den meisten Traffic beigetragen haben.",
+    page: "Seite",
+    previous: "Vorher",
+    change: "Änderung",
+    movement: "Bewegung",
+    topQueries: "Top-Suchanfragen",
+    topQueriesDescription: "Suchbegriffe, die in diesem Snapshot-Zeitraum Sichtbarkeit und Klicks gebracht haben.",
+    query: "Suchanfrage",
+    position: "Position",
+  },
+} as const;
+
+type ShareCopy = (typeof SHARE_COPY)[SupportedLanguage];
+
+function getShareLocale(language: SupportedLanguage) {
+  return language === "de" ? "de-DE" : "en-US";
+}
+
+function formatNumber(value: number | null | undefined, language: SupportedLanguage) {
   if (value == null) return "—";
-  return Math.round(value).toLocaleString();
+  return Math.round(value).toLocaleString(getShareLocale(language));
 }
 
 function formatPercent(value: number | null | undefined) {
@@ -20,18 +108,18 @@ function formatPosition(value: number | null | undefined) {
   return value.toFixed(1);
 }
 
-function formatFullDate(value: string | null | undefined) {
+function formatFullDate(value: string | null | undefined, language: SupportedLanguage) {
   if (!value) return "—";
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(getShareLocale(language), {
     day: "numeric",
     month: "long",
     year: "numeric",
   }).format(new Date(`${value}T00:00:00.000Z`));
 }
 
-function formatDateTime(value: string | null | undefined) {
+function formatDateTime(value: string | null | undefined, language: SupportedLanguage) {
   if (!value) return "—";
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(getShareLocale(language), {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -46,10 +134,10 @@ function formatPropertyUrl(rawUrl: string) {
   return `https://${rawUrl}`;
 }
 
-function formatCompareMode(compareMode: string) {
-  if (compareMode === "previous_period") return "Compared with previous period";
-  if (compareMode === "same_period_last_year") return "Compared with same period last year";
-  return "No comparison period";
+function formatCompareMode(compareMode: string, copy: ShareCopy) {
+  if (compareMode === "previous_period") return copy.previousPeriod;
+  if (compareMode === "same_period_last_year") return copy.lastYear;
+  return copy.noComparison;
 }
 
 function getDeltaTone(delta: number | null, invert = false) {
@@ -69,13 +157,15 @@ function DeltaPill({
   delta,
   invert,
   children,
+  unavailableLabel,
 }: {
   delta: number | null;
   invert?: boolean;
   children: string;
+  unavailableLabel: string;
 }) {
   const tone = getDeltaTone(delta, invert);
-  if (delta == null) return <span className="text-xs font-medium text-zinc-500">Comparison data unavailable for this period.</span>;
+  if (delta == null) return <span className="text-xs font-medium text-zinc-500">{unavailableLabel}</span>;
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
@@ -92,20 +182,20 @@ function DeltaPill({
   );
 }
 
-function getRecapSentence(comparison: ClientReportComparison) {
+function getRecapSentence(comparison: ClientReportComparison, copy: ShareCopy) {
   if (!comparison.previousCreatedAt) {
-    return "This is the baseline snapshot. Future shared snapshots will show how performance changed from this point.";
+    return copy.baseline;
   }
 
   const clicksDelta = comparison.metricDeltas.clicks;
   const impressionsDelta = comparison.metricDeltas.impressions;
   if ((clicksDelta ?? 0) > 0 && (impressionsDelta ?? 0) >= 0) {
-    return "Traffic and visibility improved compared with the last shared snapshot.";
+    return copy.improved;
   }
   if ((clicksDelta ?? 0) < 0 || (impressionsDelta ?? 0) < 0) {
-    return "Some visibility softened compared with the last shared snapshot. The tables below show which pages and queries moved most.";
+    return copy.softened;
   }
-  return "Performance is broadly stable compared with the last shared snapshot.";
+  return copy.stable;
 }
 
 export default async function PropertySharePage({
@@ -132,6 +222,8 @@ export default async function PropertySharePage({
   const dashboard = share.payloadSnapshot;
   const comparison = share.clientReportComparison;
   const brand = share.brandSnapshot;
+  const language = share.language;
+  const copy = SHARE_COPY[language];
   const primary = brand.primaryColor;
   const accent = brand.accentColor;
   const propertyUrl = formatPropertyUrl(dashboard.property.url);
@@ -143,14 +235,14 @@ export default async function PropertySharePage({
   );
   const metricCards = [
     {
-      label: "Clicks",
-      value: formatNumber(dashboard.overview.clicks),
+      label: copy.clicks,
+      value: formatNumber(dashboard.overview.clicks, language),
       delta: compareBaselineAvailable ? dashboard.overview.clicks - dashboard.overview.compare.clicks : null,
       deltaText: compareBaselineAvailable ? formatDelta(dashboard.overview.clicks - dashboard.overview.compare.clicks) : null,
     },
     {
-      label: "Impressions",
-      value: formatNumber(dashboard.overview.impressions),
+      label: copy.impressions,
+      value: formatNumber(dashboard.overview.impressions, language),
       delta: compareBaselineAvailable ? dashboard.overview.impressions - dashboard.overview.compare.impressions : null,
       deltaText: compareBaselineAvailable ? formatDelta(dashboard.overview.impressions - dashboard.overview.compare.impressions) : null,
     },
@@ -161,15 +253,15 @@ export default async function PropertySharePage({
       deltaText: compareBaselineAvailable ? formatDelta(dashboard.overview.ctr - dashboard.overview.compare.ctr, { percent: true }) : null,
     },
     {
-      label: "Avg. position",
+      label: copy.avgPosition,
       value: formatPosition(dashboard.overview.position),
       delta: compareBaselineAvailable ? dashboard.overview.position - dashboard.overview.compare.position : null,
       deltaText: compareBaselineAvailable ? formatDelta(dashboard.overview.position - dashboard.overview.compare.position, { position: true }) : null,
       invert: true,
     },
     {
-      label: "Sessions",
-      value: formatNumber(dashboard.overview.sessions),
+      label: copy.sessions,
+      value: formatNumber(dashboard.overview.sessions, language),
       delta: compareBaselineAvailable && dashboard.overview.sessions != null && dashboard.overview.compare.sessions != null
         ? dashboard.overview.sessions - dashboard.overview.compare.sessions
         : null,
@@ -178,8 +270,8 @@ export default async function PropertySharePage({
         : null,
     },
     {
-      label: "Users",
-      value: formatNumber(dashboard.overview.users),
+      label: copy.users,
+      value: formatNumber(dashboard.overview.users, language),
       delta: compareBaselineAvailable && dashboard.overview.users != null && dashboard.overview.compare.users != null
         ? dashboard.overview.users - dashboard.overview.compare.users
         : null,
@@ -210,7 +302,7 @@ export default async function PropertySharePage({
                   ) : null}
                   <span className="text-sm font-medium text-zinc-500">{brand.agencyName || "WebHealth"}</span>
                 </div>
-                <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-zinc-500">Website performance snapshot</p>
+                <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-zinc-500">{copy.snapshot}</p>
                 <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight md:text-5xl">
                   {dashboard.property.name}
                 </h1>
@@ -221,20 +313,20 @@ export default async function PropertySharePage({
               </div>
               <div className="grid gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600 lg:min-w-[340px]">
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Snapshot period</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{copy.snapshotPeriod}</div>
                   <div className="mt-1 font-medium text-zinc-950">
-                    {formatFullDate(dashboard.analysisWindow.startDate)} to {formatFullDate(dashboard.analysisWindow.endDate)}
+                    {formatFullDate(dashboard.analysisWindow.startDate, language)} {copy.to} {formatFullDate(dashboard.analysisWindow.endDate, language)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{formatCompareMode(dashboard.analysisWindow.compareMode)}</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{formatCompareMode(dashboard.analysisWindow.compareMode, copy)}</div>
                   <div className="mt-1 font-medium text-zinc-950">
                     {dashboard.analysisWindow.compareStartDate && dashboard.analysisWindow.compareEndDate
-                      ? `${formatFullDate(dashboard.analysisWindow.compareStartDate)} to ${formatFullDate(dashboard.analysisWindow.compareEndDate)}`
-                      : "No comparison selected"}
+                      ? `${formatFullDate(dashboard.analysisWindow.compareStartDate, language)} ${copy.to} ${formatFullDate(dashboard.analysisWindow.compareEndDate, language)}`
+                      : copy.noComparisonSelected}
                   </div>
                 </div>
-                <div className="text-xs text-zinc-500">Shared on {formatDateTime(share.createdAt)}</div>
+                <div className="text-xs text-zinc-500">{copy.sharedOn} {formatDateTime(share.createdAt, language)}</div>
               </div>
             </div>
           </div>
@@ -246,7 +338,7 @@ export default async function PropertySharePage({
               <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{metric.label}</div>
               <div className="mt-3 font-display text-3xl font-bold" style={{ color: primary }}>{metric.value}</div>
               <div className="mt-3">
-                <DeltaPill delta={metric.delta} invert={metric.invert}>
+                <DeltaPill delta={metric.delta} invert={metric.invert} unavailableLabel={copy.comparisonUnavailable}>
                   {metric.deltaText ?? ""}
                 </DeltaPill>
               </div>
@@ -257,47 +349,47 @@ export default async function PropertySharePage({
         <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h2 className="font-display text-2xl font-semibold tracking-tight">What changed since the last snapshot</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">{getRecapSentence(comparison)}</p>
+              <h2 className="font-display text-2xl font-semibold tracking-tight">{copy.changedTitle}</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">{getRecapSentence(comparison, copy)}</p>
               {comparison.previousCreatedAt ? (
-                <p className="mt-1 text-xs text-zinc-500">Previous shared snapshot: {formatDateTime(comparison.previousCreatedAt)}</p>
+                <p className="mt-1 text-xs text-zinc-500">{copy.previousSnapshot}: {formatDateTime(comparison.previousCreatedAt, language)}</p>
               ) : null}
             </div>
           </div>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-3">
             <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Pages with the biggest movement</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{copy.pagesMovement}</div>
               <div className="mt-3 space-y-2">
                 {comparison.pageMovements.length ? comparison.pageMovements.slice(0, 4).map((row) => (
                   <div key={row.label} className="flex items-center justify-between gap-3 text-sm">
                     <span className="min-w-0 truncate font-medium">{row.label}</span>
                     <span className={row.delta >= 0 ? "font-semibold text-emerald-700" : "font-semibold text-rose-700"}>
-                      {row.delta >= 0 ? "+" : ""}{formatNumber(row.delta)}
+                      {row.delta >= 0 ? "+" : ""}{formatNumber(row.delta, language)}
                     </span>
                   </div>
                 )) : (
-                  <p className="text-sm text-zinc-500">No page movement is available yet.</p>
+                  <p className="text-sm text-zinc-500">{copy.noPageMovement}</p>
                 )}
               </div>
             </div>
             <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Queries with the biggest movement</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{copy.queriesMovement}</div>
               <div className="mt-3 space-y-2">
                 {comparison.queryMovements.length ? comparison.queryMovements.slice(0, 4).map((row) => (
                   <div key={row.label} className="flex items-center justify-between gap-3 text-sm">
                     <span className="min-w-0 truncate font-medium">{row.label}</span>
                     <span className={row.delta >= 0 ? "font-semibold text-emerald-700" : "font-semibold text-rose-700"}>
-                      {row.delta >= 0 ? "+" : ""}{formatNumber(row.delta)}
+                      {row.delta >= 0 ? "+" : ""}{formatNumber(row.delta, language)}
                     </span>
                   </div>
                 )) : (
-                  <p className="text-sm text-zinc-500">No query movement is available yet.</p>
+                  <p className="text-sm text-zinc-500">{copy.noQueryMovement}</p>
                 )}
               </div>
             </div>
             <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Completed and detected changes</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{copy.completedChanges}</div>
               <div className="mt-3 space-y-3">
                 {comparison.completedWork.length ? comparison.completedWork.slice(0, 3).map((item) => (
                   <div key={`${item.title}:${item.target}`} className="flex gap-2 text-sm">
@@ -310,32 +402,32 @@ export default async function PropertySharePage({
                 )) : comparison.changedPages.length ? comparison.changedPages.slice(0, 3).map((item) => (
                   <div key={item.url} className="text-sm">
                     <div className="truncate font-medium">{item.url}</div>
-                    <div className="text-zinc-500">Page content changed during this snapshot period.</div>
+                    <div className="text-zinc-500">{copy.pageChanged}</div>
                   </div>
                 )) : (
-                  <p className="text-sm text-zinc-500">No completed changes were recorded for this snapshot period.</p>
+                  <p className="text-sm text-zinc-500">{copy.noCompletedChanges}</p>
                 )}
               </div>
             </div>
           </div>
         </section>
 
-        <PropertyShareTrendChart trend={dashboard.trend} primary={primary} accent={accent} />
+        <PropertyShareTrendChart trend={dashboard.trend} primary={primary} accent={accent} language={language} />
 
         <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-1">
-            <h2 className="font-display text-2xl font-semibold tracking-tight">Top pages</h2>
-            <p className="text-sm text-zinc-500">Pages that contributed most to traffic in this snapshot period.</p>
+            <h2 className="font-display text-2xl font-semibold tracking-tight">{copy.topPages}</h2>
+            <p className="text-sm text-zinc-500">{copy.topPagesDescription}</p>
           </div>
           <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
             <table className="w-full min-w-[720px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
-                  <th className="px-4 py-3 text-left">Page</th>
-                  <th className="px-4 py-3 text-right">Clicks</th>
-                  <th className="px-4 py-3 text-right">Previous</th>
-                  <th className="px-4 py-3 text-right">Change</th>
-                  <th className="px-4 py-3 text-left">Movement</th>
+                  <th className="px-4 py-3 text-left">{copy.page}</th>
+                  <th className="px-4 py-3 text-right">{copy.clicks}</th>
+                  <th className="px-4 py-3 text-right">{copy.previous}</th>
+                  <th className="px-4 py-3 text-right">{copy.change}</th>
+                  <th className="px-4 py-3 text-left">{copy.movement}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200">
@@ -344,10 +436,10 @@ export default async function PropertySharePage({
                   return (
                     <tr key={row.page}>
                       <td className="max-w-[360px] truncate px-4 py-3 font-medium">{row.page}</td>
-                      <td className="px-4 py-3 text-right">{formatNumber(row.clicksCurrent)}</td>
-                      <td className="px-4 py-3 text-right text-zinc-500">{formatNumber(row.clicksCompare)}</td>
+                      <td className="px-4 py-3 text-right">{formatNumber(row.clicksCurrent, language)}</td>
+                      <td className="px-4 py-3 text-right text-zinc-500">{formatNumber(row.clicksCompare, language)}</td>
                       <td className={`px-4 py-3 text-right font-semibold ${delta >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
-                        {delta >= 0 ? "+" : ""}{formatNumber(delta)}
+                        {delta >= 0 ? "+" : ""}{formatNumber(delta, language)}
                       </td>
                       <td className="px-4 py-3 text-zinc-600">{row.status}</td>
                     </tr>
@@ -360,26 +452,26 @@ export default async function PropertySharePage({
 
         <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-1">
-            <h2 className="font-display text-2xl font-semibold tracking-tight">Top queries</h2>
-            <p className="text-sm text-zinc-500">Search terms that brought visibility and clicks during this snapshot period.</p>
+            <h2 className="font-display text-2xl font-semibold tracking-tight">{copy.topQueries}</h2>
+            <p className="text-sm text-zinc-500">{copy.topQueriesDescription}</p>
           </div>
           <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
             <table className="w-full min-w-[720px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
-                  <th className="px-4 py-3 text-left">Query</th>
-                  <th className="px-4 py-3 text-right">Clicks</th>
-                  <th className="px-4 py-3 text-right">Impressions</th>
+                  <th className="px-4 py-3 text-left">{copy.query}</th>
+                  <th className="px-4 py-3 text-right">{copy.clicks}</th>
+                  <th className="px-4 py-3 text-right">{copy.impressions}</th>
                   <th className="px-4 py-3 text-right">CTR</th>
-                  <th className="px-4 py-3 text-right">Position</th>
+                  <th className="px-4 py-3 text-right">{copy.position}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200">
                 {dashboard.evidence.queryOpportunities.slice(0, 8).map((row) => (
                   <tr key={row.query}>
                     <td className="max-w-[360px] truncate px-4 py-3 font-medium">{row.query}</td>
-                    <td className="px-4 py-3 text-right">{formatNumber(row.clicks)}</td>
-                    <td className="px-4 py-3 text-right">{formatNumber(row.impressions)}</td>
+                    <td className="px-4 py-3 text-right">{formatNumber(row.clicks, language)}</td>
+                    <td className="px-4 py-3 text-right">{formatNumber(row.impressions, language)}</td>
                     <td className="px-4 py-3 text-right">{formatPercent(row.ctr)}</td>
                     <td className="px-4 py-3 text-right">{formatPosition(row.position)}</td>
                   </tr>

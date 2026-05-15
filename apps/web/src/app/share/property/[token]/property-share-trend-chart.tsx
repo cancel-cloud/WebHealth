@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { EchartsChart } from "@/components/echarts-chart";
+import type { SupportedLanguage } from "@webhealth/shared/lib/language";
 
 type TrendPoint = {
   date: string;
@@ -13,15 +14,15 @@ type TrendPoint = {
 
 type TrendMetric = "clicks" | "impressions" | "sessions" | "users";
 
-const METRICS: Array<{ value: TrendMetric; label: string; color: string; axis: 0 | 1 }> = [
-  { value: "clicks", label: "Clicks", color: "#6366f1", axis: 0 },
-  { value: "impressions", label: "Impressions", color: "#0ea5e9", axis: 1 },
-  { value: "sessions", label: "Sessions", color: "#10b981", axis: 0 },
-  { value: "users", label: "Users", color: "#fb923c", axis: 0 },
+const METRICS: Array<{ value: TrendMetric; label: Record<SupportedLanguage, string>; color: string; axis: 0 | 1 }> = [
+  { value: "clicks", label: { en: "Clicks", de: "Klicks" }, color: "#6366f1", axis: 0 },
+  { value: "impressions", label: { en: "Impressions", de: "Impressionen" }, color: "#0ea5e9", axis: 1 },
+  { value: "sessions", label: { en: "Sessions", de: "Sitzungen" }, color: "#10b981", axis: 0 },
+  { value: "users", label: { en: "Users", de: "Nutzer" }, color: "#fb923c", axis: 0 },
 ];
 
-function formatDateLabel(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+function formatDateLabel(value: string, language: SupportedLanguage) {
+  return new Intl.DateTimeFormat(language === "de" ? "de-DE" : "en-US", {
     month: "short",
     day: "numeric",
   }).format(new Date(`${value}T00:00:00.000Z`));
@@ -31,10 +32,12 @@ export function PropertyShareTrendChart({
   trend,
   primary,
   accent,
+  language,
 }: {
   trend: TrendPoint[];
   primary: string;
   accent: string;
+  language: SupportedLanguage;
 }) {
   const availableMetrics = useMemo(() => {
     return METRICS.filter((metric) => trend.some((point) => point[metric.value] != null));
@@ -44,7 +47,7 @@ export function PropertyShareTrendChart({
   );
 
   const activeMetrics = availableMetrics.filter((metric) => selectedMetrics.includes(metric.value));
-  const labels = trend.map((point) => formatDateLabel(point.date));
+  const labels = trend.map((point) => formatDateLabel(point.date, language));
 
   function toggleMetric(metric: TrendMetric) {
     setSelectedMetrics((current) => {
@@ -59,8 +62,8 @@ export function PropertyShareTrendChart({
     <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="font-display text-2xl font-semibold tracking-tight">Traffic trend</h2>
-          <p className="mt-1 text-sm text-zinc-500">How traffic moved through the snapshot period.</p>
+          <h2 className="font-display text-2xl font-semibold tracking-tight">{language === "de" ? "Traffic-Trend" : "Traffic trend"}</h2>
+          <p className="mt-1 text-sm text-zinc-500">{language === "de" ? "Wie sich der Traffic im Snapshot-Zeitraum bewegt hat." : "How traffic moved through the snapshot period."}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {availableMetrics.map((metric) => (
@@ -75,7 +78,7 @@ export function PropertyShareTrendChart({
               }`}
               style={selectedMetrics.includes(metric.value) ? { backgroundColor: metric.value === "clicks" ? primary : metric.value === "impressions" ? accent : metric.color } : undefined}
             >
-              {metric.label}
+              {metric.label[language]}
             </button>
           ))}
         </div>
@@ -112,7 +115,7 @@ export function PropertyShareTrendChart({
                 },
               ],
               series: activeMetrics.map((metric) => ({
-                name: metric.label,
+                name: metric.label[language],
                 type: "line",
                 yAxisIndex: metric.axis,
                 data: trend.map((point) => point[metric.value] ?? null),
@@ -127,11 +130,11 @@ export function PropertyShareTrendChart({
               })),
             }}
             className="size-full"
-            ariaLabel="Traffic trend for the shared snapshot period"
+            ariaLabel={language === "de" ? "Traffic-Trend für den geteilten Snapshot-Zeitraum" : "Traffic trend for the shared snapshot period"}
           />
         ) : (
           <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-zinc-200 text-sm text-zinc-500">
-            No trend data is available for this snapshot period.
+            {language === "de" ? "Für diesen Snapshot-Zeitraum sind keine Trenddaten verfügbar." : "No trend data is available for this snapshot period."}
           </div>
         )}
       </div>

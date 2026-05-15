@@ -9,6 +9,7 @@ import {
   requirePrimaryTeamMembership,
   requireUnrestrictedSession,
 } from "@/lib/server/authz";
+import { getUserPreferredLanguage } from "@/lib/server/language";
 import { decodeRouteParam } from "@/lib/server/route-params";
 import { handleRouteError } from "@/lib/server/route-security";
 
@@ -71,6 +72,7 @@ export async function POST(
       teamId: membership.teamId,
       createdByUserId: session.user.id,
       propertyId: resolved.canonicalGscProperty.id,
+      language: await getUserPreferredLanguage(session.user.id),
       preset: body.preset,
       compareMode: body.compareMode,
       startDate: body.startDate,

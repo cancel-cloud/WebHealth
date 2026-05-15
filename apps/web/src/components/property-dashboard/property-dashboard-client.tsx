@@ -1426,6 +1426,7 @@ export function PropertyDashboardClient({
     const download = buildSnapshotDownload({
       dashboard,
       brandColors,
+      language,
     });
     const blob = new Blob([JSON.stringify(download.payload, null, 2)], {
       type: "application/json",

@@ -438,8 +438,8 @@ export function getAcmeDemoDashboard(language: AgencyLandingLanguage = "en"): Li
   topAction: actions[0] ?? null,
   actions,
   recentSnapshots: [
-    { id: "acme-snapshot-may", createdAt: "2026-05-08T09:00:00.000Z", freshnessState: "complete", startDate: "2026-04-11", endDate: "2026-05-08", compareMode: "previous_period" },
-    { id: "acme-snapshot-april", createdAt: "2026-04-10T09:00:00.000Z", freshnessState: "complete", startDate: "2026-03-14", endDate: "2026-04-10", compareMode: "previous_period" },
+    { id: "acme-snapshot-may", createdAt: "2026-05-08T09:00:00.000Z", freshnessState: "complete", startDate: "2026-04-11", endDate: "2026-05-08", compareMode: "previous_period", language: isGerman ? "de" : "en" },
+    { id: "acme-snapshot-april", createdAt: "2026-04-10T09:00:00.000Z", freshnessState: "complete", startDate: "2026-03-14", endDate: "2026-04-10", compareMode: "previous_period", language: isGerman ? "de" : "en" },
   ],
   };
 }

@@ -82,10 +82,12 @@ test("buildSnapshotDownload returns metadata and a stable json filename", () => 
       },
     },
     brandColors: { primary: "#111111", accent: "#222222" },
+    language: "de",
   });
 
   assert.equal(result.filename, "webhealth-example-site-2026-03-01-2026-03-28.json");
   assert.equal(result.payload.metadata.exportType, "dashboard_snapshot_json");
+  assert.equal(result.payload.metadata.language, "de");
   assert.equal(result.payload.brandColors.primary, "#111111");
 });
 

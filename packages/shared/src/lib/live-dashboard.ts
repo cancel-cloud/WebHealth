@@ -28,6 +28,7 @@ import type {
 } from "@webhealth/shared/lib/action-types";
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { getTeamBrandingProfile } from "@webhealth/shared/lib/team-branding";
+import { DEFAULT_SUPPORTED_LANGUAGE, normalizeSupportedLanguage, type SupportedLanguage } from "@webhealth/shared/lib/language";
 import { getLatestCompleteAiActions } from "@webhealth/shared/lib/ai-dashboard-actions";
 
 export type AnalysisPreset = "last_7d" | "last_28d" | "last_90d" | "custom";
@@ -134,6 +135,7 @@ export type LiveDashboardSnapshotSummary = {
   id: string;
   createdAt: string;
   freshnessState: FreshnessState;
+  language: SupportedLanguage;
   startDate: string;
   endDate: string;
   compareMode: CompareMode;
@@ -771,6 +773,7 @@ async function fetchLatestSnapshots(teamId: string, propertyId: string): Promise
     id: row.id,
     createdAt: row.createdAt.toISOString(),
     freshnessState: row.freshnessState as FreshnessState,
+    language: normalizeSupportedLanguage(row.language),
     startDate: normalizeDateString(row.startDate) ?? "",
     endDate: normalizeDateString(row.endDate) ?? "",
     compareMode: row.compareMode as CompareMode,
@@ -1591,6 +1594,7 @@ export async function createSnapshotExport(params: {
   teamId: string;
   createdByUserId: string;
   propertyId: string;
+  language?: SupportedLanguage | null;
   preset?: string | null;
   compareMode?: string | null;
   startDate?: string | null;
@@ -1624,11 +1628,13 @@ export async function createSnapshotExport(params: {
       freshnessSummary: dashboard.freshness,
       brandingSnapshot,
       dashboardPayload: dashboard,
+      language: normalizeSupportedLanguage(params.language),
     })
     .returning({
       id: snapshotExports.id,
       createdAt: snapshotExports.createdAt,
       freshnessState: snapshotExports.freshnessState,
+      language: snapshotExports.language,
       startDate: snapshotExports.startDate,
       endDate: snapshotExports.endDate,
       compareMode: snapshotExports.compareMode,
@@ -1638,6 +1644,7 @@ export async function createSnapshotExport(params: {
     id: row.id,
     createdAt: row.createdAt.toISOString(),
     freshnessState: row.freshnessState as FreshnessState,
+    language: normalizeSupportedLanguage(row.language),
     startDate: normalizeDateString(row.startDate) ?? "",
     endDate: normalizeDateString(row.endDate) ?? "",
     compareMode: row.compareMode as CompareMode,
@@ -1676,6 +1683,7 @@ export async function getSnapshotExportDetail(params: {
     id: row.id,
     createdAt: row.createdAt.toISOString(),
     freshnessState: row.freshnessState as FreshnessState,
+    language: normalizeSupportedLanguage(row.language),
     startDate: normalizeDateString(row.startDate) ?? "",
     endDate: normalizeDateString(row.endDate) ?? "",
     requestedEndDate: normalizeDateString(row.requestedEndDate) ?? "",
@@ -1696,6 +1704,7 @@ export type PropertyShareLinkDetail = {
   teamId: string;
   createdAt: string;
   expiresAt: string | null;
+  language: SupportedLanguage;
   brandSnapshot: Awaited<ReturnType<typeof getTeamBrandingProfile>>;
   payloadSnapshot: LiveDashboardData;
 };
@@ -1748,6 +1757,7 @@ export type PropertyShareCandidate = {
   revokedAt: Date | null;
   brandSnapshot: unknown;
   payloadSnapshot: unknown;
+  language?: string | null;
 };
 
 function mapPropertyShareRow(row: PropertyShareCandidate): PropertyShareLinkDetail {
@@ -1759,6 +1769,7 @@ function mapPropertyShareRow(row: PropertyShareCandidate): PropertyShareLinkDeta
     teamId: row.teamId,
     createdAt: row.createdAt.toISOString(),
     expiresAt: row.expiresAt?.toISOString() ?? null,
+    language: normalizeSupportedLanguage(row.language),
     brandSnapshot: row.brandSnapshot as Awaited<ReturnType<typeof getTeamBrandingProfile>>,
     payloadSnapshot: row.payloadSnapshot as LiveDashboardData,
   };
@@ -1868,6 +1879,7 @@ export async function createPropertyShareLink(params: {
   startDate?: string | null;
   endDate?: string | null;
   expiresAt?: Date | null;
+  language?: SupportedLanguage | null;
 }) {
   const dashboard = await getLiveDashboardData({
     teamId: params.teamId,
@@ -1895,6 +1907,7 @@ export async function createPropertyShareLink(params: {
       endDate: dashboard.analysisWindow.requestedEndDate,
       brandSnapshot,
       payloadSnapshot: dashboard,
+      language: normalizeSupportedLanguage(params.language),
     })
     .returning({
       id: propertyShareLinks.id,
@@ -1960,11 +1973,13 @@ export function buildPropertyShareDownloadPayload(params: {
   dashboard: LiveDashboardData;
   brandSnapshot: Awaited<ReturnType<typeof getTeamBrandingProfile>>;
   createdAt?: string;
+  language?: SupportedLanguage | null;
 }) {
   return {
     metadata: {
       exportType: "dashboard_snapshot_json",
       createdAt: params.createdAt ?? new Date().toISOString(),
+      language: normalizeSupportedLanguage(params.language ?? DEFAULT_SUPPORTED_LANGUAGE),
       propertyId: params.dashboard.property.id,
       propertyName: params.dashboard.property.name,
       startDate: params.dashboard.analysisWindow.startDate,
