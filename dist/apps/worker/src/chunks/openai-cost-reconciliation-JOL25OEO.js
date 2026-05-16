@@ -1,13 +1,18 @@
+import { createRequire } from "node:module"; const require = createRequire(import.meta.url);
 import {
   backfillOpenAICostLedgerFromCompletedRuns
-} from "./chunk-JUBVCEZG.js";
+} from "./chunk-CNKUOBR3.js";
+import "./chunk-3WHTUT5J.js";
+import "./chunk-EJUXHIF3.js";
 import {
   openaiDailyCosts
-} from "./chunk-W7P3RKIV.js";
-import "./chunk-3LHI6BO3.js";
+} from "./chunk-BBVSZM4K.js";
+import {
+  sql
+} from "./chunk-VNGVKUAM.js";
+import "./chunk-3RY4ISVK.js";
 
 // packages/shared/src/lib/openai/cost-reconciler.ts
-import { sql } from "drizzle-orm";
 var DAY_SECONDS = 24 * 60 * 60;
 var OPENAI_COSTS_MAX_DAILY_BUCKETS = 31;
 function formatUtcDateFromUnixSeconds(value) {
@@ -108,7 +113,7 @@ async function fetchOpenAICostBuckets(input) {
 }
 async function upsertOpenAIDailyCostRows(rows) {
   if (!rows.length) return { rows: 0 };
-  const { db } = await import("./db-J7MSJUF6.js");
+  const { db } = await import("./db-J6HVVNBU.js");
   await db.insert(openaiDailyCosts).values(rows).onConflictDoUpdate({
     target: openaiDailyCosts.id,
     set: {

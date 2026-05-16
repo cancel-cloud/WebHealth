@@ -1,6 +1,19 @@
+import { createRequire } from "node:module"; const require = createRequire(import.meta.url);
+import {
+  boolean,
+  date,
+  index,
+  integer,
+  jsonb,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  unique
+} from "./chunk-VNGVKUAM.js";
 import {
   __export
-} from "./chunk-3LHI6BO3.js";
+} from "./chunk-3RY4ISVK.js";
 
 // packages/shared/src/db/schema.ts
 var schema_exports = {};
@@ -44,18 +57,6 @@ __export(schema_exports, {
   userSettings: () => userSettings,
   verification: () => verification
 });
-import {
-  pgTable,
-  text,
-  timestamp,
-  boolean,
-  jsonb,
-  date,
-  integer,
-  numeric,
-  unique,
-  index
-} from "drizzle-orm/pg-core";
 var user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),

@@ -132,16 +132,20 @@ async function main() {
   console.log("[worker][INFO][BOOT] starting worker process");
   activePropertyAutomationSchedulerControls = startActivePropertyAutomationScheduler();
   openAICostReconciliationSchedulerControls = startOpenAICostReconciliationScheduler({ once });
-  metricsBackfillWorkerControls = startMetricsBackfillWorkerLoop();
+  metricsBackfillWorkerControls = startMetricsBackfillWorkerLoop({
+    concurrency: parseInt(process.env.METRICS_BACKFILL_WORKER_CONCURRENCY ?? "2", 10),
+  });
   propertyRefreshWorkerControls = startPropertyRefreshWorkerLoop({
     lane: "manual",
     workerName: "pref",
+    concurrency: parseInt(process.env.PROPERTY_REFRESH_WORKER_CONCURRENCY ?? "1", 10),
   });
   automatedPropertyRefreshWorkerControls = startPropertyRefreshWorkerLoop({
     lane: "automation",
     workerName: "apref",
     intervalMs: parseInt(process.env.AUTOMATED_PROPERTY_REFRESH_WORKER_POLL_MS ?? "6000", 10),
     maxPollMs: parseInt(process.env.AUTOMATED_PROPERTY_REFRESH_WORKER_MAX_POLL_MS ?? "45000", 10),
+    concurrency: parseInt(process.env.AUTOMATED_PROPERTY_REFRESH_WORKER_CONCURRENCY ?? "2", 10),
   });
   markLoopTick(runtimeState);
   healthHeartbeatTimer = setInterval(() => {

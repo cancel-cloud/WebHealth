@@ -57,6 +57,18 @@ function assertPropertyRefreshLease<T>(job: T | null): T {
   return job;
 }
 
+export function resolvePropertyRefreshWorkerConcurrency(input?: {
+  value?: string | number;
+  fallback?: number;
+  max?: number;
+}) {
+  const fallback = input?.fallback ?? 1;
+  const max = input?.max ?? 4;
+  const parsed = Number(input?.value ?? fallback);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(Math.floor(parsed), max);
+}
+
 async function processCrawlRefreshJob(job: ClaimedPropertyRefreshJob, workerId: string) {
   console.log(`[property-refresh][INFO] starting crawl refresh job=${job.id} property=${job.propertyId}`);
   assertPropertyRefreshLease(await updatePropertyRefreshJobProgress({
@@ -219,11 +231,36 @@ export async function runSinglePropertyRefreshWorkerTick(
   return { processed: true as const, jobId: job.id };
 }
 
+async function runPropertyRefreshWorkerBatch(
+  workerId: string,
+  options: { lane: PropertyRefreshClaimLane; concurrency: number },
+) {
+  const concurrency = resolvePropertyRefreshWorkerConcurrency({
+    value: options.concurrency,
+    fallback: 1,
+  });
+  const results = await Promise.allSettled(
+    Array.from({ length: concurrency }, () =>
+      runSinglePropertyRefreshWorkerTick(workerId, { lane: options.lane }),
+    ),
+  );
+  const jobIds: string[] = [];
+  for (const result of results) {
+    if (result.status === "rejected") {
+      console.error("[property-refresh][ERROR] worker slot failed", result.reason);
+      continue;
+    }
+    if (result.value.processed) jobIds.push(result.value.jobId);
+  }
+  return { processed: jobIds.length > 0, jobIds };
+}
+
 export function startPropertyRefreshWorkerLoop(input: {
   lane?: PropertyRefreshClaimLane;
   workerName?: string;
   intervalMs?: number;
   maxPollMs?: number;
+  concurrency?: number;
 } = {}) {
   let stopped = false;
   let isRunning = false;
@@ -232,6 +269,10 @@ export function startPropertyRefreshWorkerLoop(input: {
   const workerId = `${input.workerName ?? "pref"}_${nanoid(8)}`;
   const intervalMs = input.intervalMs ?? parseInt(process.env.PROPERTY_REFRESH_WORKER_POLL_MS ?? "4000", 10);
   const maxPollMs = input.maxPollMs ?? parseInt(process.env.PROPERTY_REFRESH_WORKER_MAX_POLL_MS ?? "30000", 10);
+  const concurrency = resolvePropertyRefreshWorkerConcurrency({
+    value: input.concurrency ?? process.env.PROPERTY_REFRESH_WORKER_CONCURRENCY,
+    fallback: 1,
+  });
   let idleCount = 0;
 
   const loop = async () => {
@@ -239,10 +280,10 @@ export function startPropertyRefreshWorkerLoop(input: {
     isRunning = true;
     let processed = false;
     try {
-      const result = await runSinglePropertyRefreshWorkerTick(workerId, { lane });
+      const result = await runPropertyRefreshWorkerBatch(workerId, { lane, concurrency });
       processed = result.processed;
       if (processed) {
-        console.log(`[property-refresh][INFO] processed job worker=${workerId} job=${result.jobId}`);
+        console.log(`[property-refresh][INFO] processed jobs worker=${workerId} jobs=${result.jobIds.join(",")}`);
       }
     } finally {
       isRunning = false;
@@ -254,7 +295,7 @@ export function startPropertyRefreshWorkerLoop(input: {
     }
   };
 
-  console.log(`[property-refresh][INFO] loop started worker=${workerId} lane=${lane} pollMs=${intervalMs} maxPollMs=${maxPollMs}`);
+  console.log(`[property-refresh][INFO] loop started worker=${workerId} lane=${lane} pollMs=${intervalMs} maxPollMs=${maxPollMs} concurrency=${concurrency}`);
   void loop();
 
   return {

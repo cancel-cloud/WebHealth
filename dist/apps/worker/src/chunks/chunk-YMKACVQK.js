@@ -1,3 +1,5 @@
+import { createRequire } from "node:module"; const require = createRequire(import.meta.url);
+
 // packages/shared/src/lib/product-events.ts
 var DEFAULT_POSTHOG_CAPTURE_HOST = "https://d.devbrew.dev";
 var PII_KEYS = /* @__PURE__ */ new Set([
