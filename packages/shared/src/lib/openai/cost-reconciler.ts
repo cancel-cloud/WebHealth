@@ -21,6 +21,7 @@ export type OpenAICostBucket = {
 export type OpenAICostsApiResponse = {
   object?: string;
   data?: OpenAICostBucket[];
+  has_more?: boolean;
   next_page?: string | null;
 };
 
@@ -35,6 +36,7 @@ export type OpenAICostDailyRow = {
 };
 
 const DAY_SECONDS = 24 * 60 * 60;
+const OPENAI_COSTS_MAX_DAILY_BUCKETS = 31;
 
 function formatUtcDateFromUnixSeconds(value: number) {
   return new Date(value * 1000).toISOString().slice(0, 10);
@@ -83,6 +85,23 @@ export function buildOpenAICostsApiUrl(input: {
   return url;
 }
 
+export function splitOpenAICostsDailyWindows(input: {
+  startTime: number;
+  endTime: number;
+  maxDays?: number;
+}) {
+  const maxDays = Math.max(1, input.maxDays ?? OPENAI_COSTS_MAX_DAILY_BUCKETS);
+  const step = maxDays * DAY_SECONDS;
+  const windows: Array<{ startTime: number; endTime: number }> = [];
+  for (let startTime = input.startTime; startTime < input.endTime; startTime += step) {
+    windows.push({
+      startTime,
+      endTime: Math.min(startTime + step, input.endTime),
+    });
+  }
+  return windows;
+}
+
 export function mapOpenAICostBucketToDailyRows(bucket: OpenAICostBucket): OpenAICostDailyRow[] {
   const sourceDate = formatUtcDateFromUnixSeconds(bucket.start_time);
   return (bucket.results ?? []).map((result) => {
@@ -116,14 +135,16 @@ export async function fetchOpenAICostBuckets(input: {
 }) {
   const fetcher = input.fetchFn ?? fetch;
   const buckets: OpenAICostBucket[] = [];
-  let page: string | null = null;
 
-  do {
+  for (const window of splitOpenAICostsDailyWindows({
+    startTime: input.startTime,
+    endTime: input.endTime,
+  })) {
     const url = buildOpenAICostsApiUrl({
       baseUrl: input.baseUrl,
-      startTime: input.startTime,
-      endTime: input.endTime,
-      page,
+      startTime: window.startTime,
+      endTime: window.endTime,
+      limit: OPENAI_COSTS_MAX_DAILY_BUCKETS,
     });
     const response = await fetcher(url, {
       headers: {
@@ -132,11 +153,16 @@ export async function fetchOpenAICostBuckets(input: {
     });
     const body = await response.json().catch(() => null) as OpenAICostsApiResponse | null;
     if (!response.ok) {
-      throw new Error(`OpenAI Costs API failed with ${response.status}`);
+      const message = body && "error" in body
+        ? (body as { error?: { message?: string } }).error?.message
+        : null;
+      throw new Error(`OpenAI Costs API failed with ${response.status}${message ? `: ${message}` : ""}`);
+    }
+    if (body?.has_more || body?.next_page) {
+      throw new Error("OpenAI Costs API returned an unexpected paginated response for a 31-day reconciliation window.");
     }
     buckets.push(...(body?.data ?? []));
-    page = body?.next_page ?? null;
-  } while (page);
+  }
 
   return buckets;
 }
