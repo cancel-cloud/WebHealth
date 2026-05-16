@@ -20,7 +20,7 @@ node dist/apps/worker/src/main.js
 2. Use **Dockerfile**.
 3. Keep **Base Directory** as `/`.
 4. Set **Dockerfile Location** to `apps/worker/Dockerfile`.
-5. Do not add a separate build or start command. The Docker image installs production dependencies from `dist/package.json` and starts the compiled worker bundle directly.
+5. Do not add a separate build or start command. The Docker image copies the committed `dist/` runtime bundle and starts the compiled worker directly. It does not run `npm install` during deployment.
 
 Before committing, pushing, or finishing any worker refactor or feature task, rebuild and verify the committed runtime bundle:
 
@@ -28,6 +28,8 @@ Before committing, pushing, or finishing any worker refactor or feature task, re
 pnpm worker:build-dist
 pnpm worker:verify-dist
 ```
+
+`dist/` is committed on purpose for the worker deployment path. If worker code, shared worker logic, migrations, or worker env examples change, build the bundle locally before committing so Coolify can deploy without compiling or installing dependencies on the VPS.
 
 ## 3) Required env vars
 
@@ -45,6 +47,14 @@ pnpm worker:verify-dist
 - `WORKER_MAX_JOB_RUNTIME_MS`
 - `WORKER_WATCHDOG_INTERVAL_MS`
 - `WORKER_READY_STALE_AFTER_MS`
+
+Optional throughput knobs for small VPS deployments:
+
+- `PROPERTY_REFRESH_WORKER_CONCURRENCY=1`
+- `AUTOMATED_PROPERTY_REFRESH_WORKER_CONCURRENCY=2`
+- `METRICS_BACKFILL_WORKER_CONCURRENCY=2`
+
+The worker caps these values at `4` per loop to avoid accidentally oversaturating a small host.
 
 ## 4) Direct Postgres access
 
