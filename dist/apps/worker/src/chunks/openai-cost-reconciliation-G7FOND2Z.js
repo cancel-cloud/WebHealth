@@ -9,6 +9,7 @@ import "./chunk-3LHI6BO3.js";
 // packages/shared/src/lib/openai/cost-reconciler.ts
 import { sql } from "drizzle-orm";
 var DAY_SECONDS = 24 * 60 * 60;
+var OPENAI_COSTS_MAX_DAILY_BUCKETS = 31;
 function formatUtcDateFromUnixSeconds(value) {
   return new Date(value * 1e3).toISOString().slice(0, 10);
 }
@@ -40,6 +41,18 @@ function buildOpenAICostsApiUrl(input) {
   if (input.page) url.searchParams.set("page", input.page);
   return url;
 }
+function splitOpenAICostsDailyWindows(input) {
+  const maxDays = Math.max(1, input.maxDays ?? OPENAI_COSTS_MAX_DAILY_BUCKETS);
+  const step = maxDays * DAY_SECONDS;
+  const windows = [];
+  for (let startTime = input.startTime; startTime < input.endTime; startTime += step) {
+    windows.push({
+      startTime,
+      endTime: Math.min(startTime + step, input.endTime)
+    });
+  }
+  return windows;
+}
 function mapOpenAICostBucketToDailyRows(bucket) {
   const sourceDate = formatUtcDateFromUnixSeconds(bucket.start_time);
   return (bucket.results ?? []).map((result) => {
@@ -66,13 +79,15 @@ function mapOpenAICostBucketToDailyRows(bucket) {
 async function fetchOpenAICostBuckets(input) {
   const fetcher = input.fetchFn ?? fetch;
   const buckets = [];
-  let page = null;
-  do {
+  for (const window of splitOpenAICostsDailyWindows({
+    startTime: input.startTime,
+    endTime: input.endTime
+  })) {
     const url = buildOpenAICostsApiUrl({
       baseUrl: input.baseUrl,
-      startTime: input.startTime,
-      endTime: input.endTime,
-      page
+      startTime: window.startTime,
+      endTime: window.endTime,
+      limit: OPENAI_COSTS_MAX_DAILY_BUCKETS
     });
     const response = await fetcher(url, {
       headers: {
@@ -81,11 +96,14 @@ async function fetchOpenAICostBuckets(input) {
     });
     const body = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new Error(`OpenAI Costs API failed with ${response.status}`);
+      const message = body && "error" in body ? body.error?.message : null;
+      throw new Error(`OpenAI Costs API failed with ${response.status}${message ? `: ${message}` : ""}`);
+    }
+    if (body?.has_more || body?.next_page) {
+      throw new Error("OpenAI Costs API returned an unexpected paginated response for a 31-day reconciliation window.");
     }
     buckets.push(...body?.data ?? []);
-    page = body?.next_page ?? null;
-  } while (page);
+  }
   return buckets;
 }
 async function upsertOpenAIDailyCostRows(rows) {
