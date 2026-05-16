@@ -124,6 +124,7 @@ type CachedDashboardPayload = {
 export type LiveDashboardInput = {
   teamId: string;
   propertyId: string;
+  language?: SupportedLanguage | null;
   preset?: string | null;
   compareMode?: string | null;
   startDate?: string | null;
@@ -1105,6 +1106,7 @@ export function mergeActionWorkflowState(params: {
 
 export async function getLiveDashboardData(input: LiveDashboardInput): Promise<LiveDashboardData> {
   const property = await fetchAuthorizedProperty(input.teamId, input.propertyId);
+  const language = normalizeSupportedLanguage(input.language);
   const today = normalizeDateString(input.today) ?? formatDate(new Date());
   const safeLatestDate = buildSafeLatestDate(today);
   const window = resolveAnalysisWindow({
@@ -1321,6 +1323,7 @@ export async function getLiveDashboardData(input: LiveDashboardInput): Promise<L
     compareMode: window.compareMode,
     compareStartDate: window.compareStartDate,
     compareEndDate: window.compareEndDate,
+    language,
   });
   if (aiActions.length) {
     const deterministicActions = payload.actions
@@ -1603,6 +1606,7 @@ export async function createSnapshotExport(params: {
   const dashboard = await getLiveDashboardData({
     teamId: params.teamId,
     propertyId: params.propertyId,
+    language: params.language,
     preset: params.preset,
     compareMode: params.compareMode,
     startDate: params.startDate,
@@ -1884,6 +1888,7 @@ export async function createPropertyShareLink(params: {
   const dashboard = await getLiveDashboardData({
     teamId: params.teamId,
     propertyId: params.propertyId,
+    language: params.language,
     preset: params.preset,
     compareMode: params.compareMode,
     startDate: params.startDate,

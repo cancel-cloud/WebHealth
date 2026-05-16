@@ -31,6 +31,7 @@ async function warmDashboardFromPayload(job: ClaimedPropertyRefreshJob) {
   await getLiveDashboardData({
     teamId: job.teamId,
     propertyId: job.propertyId,
+    language: await getRefreshJobLanguage(job),
     preset: typeof payload.preset === "string" ? payload.preset : null,
     compareMode: typeof payload.compareMode === "string" ? payload.compareMode : null,
     startDate: typeof payload.startDate === "string" ? payload.startDate : null,

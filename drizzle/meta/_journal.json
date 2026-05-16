@@ -29,6 +29,13 @@
       "when": 1778853600000,
       "tag": "0003_add_language_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778946363000,
+      "tag": "0004_add_ai_action_language",
+      "breakpoints": true
     }
   ]
 }

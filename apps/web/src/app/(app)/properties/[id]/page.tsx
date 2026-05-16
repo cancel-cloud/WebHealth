@@ -87,6 +87,7 @@ export default async function PropertyDashboardPage({
     getLiveDashboardData({
       teamId: membership.teamId,
       propertyId: resolved.canonicalGscProperty.id,
+      language,
       preset: typeof query.preset === "string" ? query.preset : null,
       compareMode: typeof query.compare === "string" ? query.compare : null,
       startDate: typeof query.start === "string" ? query.start : null,

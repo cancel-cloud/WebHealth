@@ -4,10 +4,10 @@ import {
   markOpenAICostLedgerRunOutcome,
   normalizeOpenAIUsage,
   recordOpenAICostLedgerEntry
-} from "./chunk-LPDIN26R.js";
+} from "./chunk-JUBVCEZG.js";
 import {
   recordProductEvent
-} from "./chunk-OM5MVMXX.js";
+} from "./chunk-YQ3SJ2OA.js";
 import {
   buildAiRunFailedCostProperties
 } from "./chunk-DWZQMWUX.js";
@@ -23,7 +23,7 @@ import {
   resolveAnalysisWindow,
   resolveTeamReportSources,
   validateAiRecommendation
-} from "./chunk-NCBD42PS.js";
+} from "./chunk-I7GOANBG.js";
 import {
   claimNextPropertyRefreshJob,
   completePropertyRefreshJob,
@@ -32,13 +32,13 @@ import {
   heartbeatPropertyRefreshJob,
   storePropertyCrawlSnapshot,
   updatePropertyRefreshJobProgress
-} from "./chunk-LFZV57ZT.js";
+} from "./chunk-NJNNY4LE.js";
 import {
   composeReportMetricsFromCache
-} from "./chunk-6YN5OF6M.js";
+} from "./chunk-2JYD3WZO.js";
 import {
   db
-} from "./chunk-PCKVAB6H.js";
+} from "./chunk-NO6FDL7M.js";
 import {
   actionItems,
   aiAnalysisRuns,
@@ -47,7 +47,7 @@ import {
   aiRuntimeSettings,
   ga4ReportArtifacts,
   properties
-} from "./chunk-EBBHWYW3.js";
+} from "./chunk-W7P3RKIV.js";
 import "./chunk-EJ6QGHXW.js";
 import "./chunk-3LHI6BO3.js";
 
@@ -862,6 +862,7 @@ async function runAiAnalysisForPropertyWindow(params) {
     compareStartDate: window.compareStartDate,
     compareEndDate: window.compareEndDate,
     sourceVersionHash,
+    language,
     status: "processing",
     phase: "source_check",
     summaryModel: runtimeSettings.summaryModel,
@@ -896,6 +897,7 @@ async function runAiAnalysisForPropertyWindow(params) {
       analyzerModel: runtimeSettings.analyzerModel,
       sourceSummaryInput: sourceInput,
       promptVersions,
+      language,
       startedAt: /* @__PURE__ */ new Date(),
       finishedAt: null,
       updatedAt: /* @__PURE__ */ new Date()
@@ -1066,6 +1068,7 @@ async function runAiAnalysisForPropertyWindow(params) {
         fingerprint: identity.fingerprint,
         source: "ai",
         title: recommendation.title,
+        language,
         area: recommendation.area,
         targetType: recommendation.target.type,
         targetKey: recommendation.target.value,
@@ -1120,10 +1123,11 @@ async function isRefreshPropertyActive(job) {
 }
 async function warmDashboardFromPayload(job) {
   const payload = job.payload ?? {};
-  const { getLiveDashboardData } = await import("./live-dashboard-UQBTTGPS.js");
+  const { getLiveDashboardData } = await import("./live-dashboard-GROYMJRG.js");
   await getLiveDashboardData({
     teamId: job.teamId,
     propertyId: job.propertyId,
+    language: await getRefreshJobLanguage(job),
     preset: typeof payload.preset === "string" ? payload.preset : null,
     compareMode: typeof payload.compareMode === "string" ? payload.compareMode : null,
     startDate: typeof payload.startDate === "string" ? payload.startDate : null,

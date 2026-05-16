@@ -1,6 +1,6 @@
 import {
   openaiCostLedger
-} from "./chunk-EBBHWYW3.js";
+} from "./chunk-W7P3RKIV.js";
 
 // packages/shared/src/lib/openai/cost-ledger.ts
 import { eq, sql } from "drizzle-orm";
@@ -124,20 +124,20 @@ function summarizeOpenAICostLedgerRows(rows) {
   };
 }
 async function recordOpenAICostLedgerEntry(input) {
-  const { db } = await import("./db-VBV7VJDO.js");
+  const { db } = await import("./db-J7MSJUF6.js");
   const [row] = await db.insert(openaiCostLedger).values(buildOpenAICostLedgerInsert(input)).returning();
   return row;
 }
 async function markOpenAICostLedgerRunOutcome(aiRunId, outcome) {
-  const { db } = await import("./db-VBV7VJDO.js");
+  const { db } = await import("./db-J7MSJUF6.js");
   await db.update(openaiCostLedger).set({ outcome, updatedAt: /* @__PURE__ */ new Date() }).where(eq(openaiCostLedger.aiRunId, aiRunId));
 }
 async function clearOpenAICostLedgerForRun(aiRunId) {
-  const { db } = await import("./db-VBV7VJDO.js");
+  const { db } = await import("./db-J7MSJUF6.js");
   await db.delete(openaiCostLedger).where(eq(openaiCostLedger.aiRunId, aiRunId));
 }
 async function getOpenAICostLedgerRunSummary(aiRunId) {
-  const { db } = await import("./db-VBV7VJDO.js");
+  const { db } = await import("./db-J7MSJUF6.js");
   const rows = await db.select({
     outcome: openaiCostLedger.outcome,
     costEstimateUsd: openaiCostLedger.costEstimateUsd,
@@ -150,7 +150,7 @@ async function getOpenAICostLedgerRunSummary(aiRunId) {
   })));
 }
 async function backfillOpenAICostLedgerFromCompletedRuns() {
-  const { db } = await import("./db-VBV7VJDO.js");
+  const { db } = await import("./db-J7MSJUF6.js");
   await db.execute(sql`
     insert into openai_cost_ledger (
       id,
