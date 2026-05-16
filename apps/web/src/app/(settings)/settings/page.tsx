@@ -47,6 +47,7 @@ import {
   SUPPORTED_LANGUAGE_LABELS,
   type SupportedLanguage,
 } from "@webhealth/shared/lib/language";
+import { useAppLanguage } from "@/lib/app-language";
 import {
   Sparkles,
   Bug,
@@ -59,11 +60,136 @@ import {
   Check,
 } from "lucide-react";
 
+const SETTINGS_PAGE_COPY = {
+  en: {
+    title: "Settings",
+    subtitle: "Manage billing, workspace preferences, and support options for your workspace.",
+    restrictedFallback: "Your account is currently restricted. Contact an administrator from the Contact Us tab for help.",
+    tabs: { account: "Account", contact: "Contact Us" },
+    activeUntil: "Active until",
+    accountSummary: "Manage your workspace account and billing details.",
+    languageTitle: "Language",
+    languageDescription: "Controls the app and future client snapshots.",
+    languageAria: "Application language",
+    languageSaved: "Language saved",
+    languageErrorTitle: "Language update failed",
+    tryAgain: "Please try again.",
+    billingPortalError: "Billing portal error",
+    failedBillingPortal: "Failed to open billing portal",
+    planCurrent: "Current Plan",
+    planAlreadyCurrent: "Plan already up to date",
+    planNoCustomer: "No Stripe billing profile exists yet, so your workspace remains on Solo.",
+    planRefreshed: "Plan refreshed",
+    activePlan: "Active plan",
+    syncFailed: "Sync failed",
+    deletionFailed: "Deletion failed",
+    contactSupport: "Please contact support.",
+    brandingEyebrow: "Agency branding",
+    brandingTitle: "Manage export branding in one place",
+    brandingDescription: "Agency name, contact details, logo, icon, and export colors now live on a dedicated page instead of being hidden inside snapshot payloads.",
+    brandingAction: "Open Branding Page",
+    planTitle: "Choose Your Plan",
+    planDescription: "Review the same public pricing shown on the landing page, then manage billing, cancellation, and invoices from Stripe.",
+    syncPlanTitle: "Sync your plan status from Stripe",
+    refreshPlan: "Refresh Plan",
+    refreshing: "Refreshing...",
+    billingPortalTitle: "Open Stripe billing portal",
+    billingPortalDisabledTitle: "Billing portal is available after a Stripe checkout creates a billing profile",
+    manageBilling: "Manage Billing, Cancellation & Invoices",
+    cancelNoticeSuffix: "then it reverts to Solo Plan.",
+    checkoutMissing: "Stripe checkout URL missing",
+    checkoutFailed: "Checkout failed",
+    billingPreferences: "Billing Preferences",
+    receipts: "Receipts",
+    receiptsTooltip: "Stripe sends receipts automatically to your account email. If you didn't receive one, click Manage Billing & Invoices above to view them in the billing portal.",
+    dangerZone: "Danger Zone",
+    dangerDescription: "Permanently delete your account and all associated data.",
+    deleteAccount: "Delete Account",
+    deleteTitle: "Delete your account?",
+    deleteDescription: "This action is permanent and irreversible. All your properties, snapshots, and data will be deleted.",
+    cancel: "Cancel",
+    confirmDelete: "Yes, delete my account",
+    contactTitle: "We're here to help",
+    contactDescription: "Reach out through any of the channels below.",
+    contactCards: {
+      feature: ["Have a cool feature idea?", "Share your idea directly with us from inside the app."],
+      bug: ["Found a non-critical bug?", "UI glitches or formatting issues? Send a bug report here."],
+      billing: ["Having account or billing issues?", "Email us for priority support"],
+      discussions: ["Have a question or idea?", "Join the conversation on GitHub Discussions"],
+      privacy: ["Privacy Policy", "Read our privacy policy and data handling practices"],
+      terms: ["Terms of Service", "Review our terms of service and usage guidelines"],
+      impressum: ["Impressum", "View the legal notice and provider identification details"],
+    },
+  },
+  de: {
+    title: "Einstellungen",
+    subtitle: "Verwalte Abrechnung, Arbeitsbereich, Präferenzen und Support-Optionen für deinen Arbeitsbereich.",
+    restrictedFallback: "Dein Konto ist derzeit eingeschränkt. Kontaktiere über den Tab Kontakt einen Administrator.",
+    tabs: { account: "Konto", contact: "Kontakt" },
+    activeUntil: "Aktiv bis",
+    accountSummary: "Verwalte dein Arbeitsbereichskonto und deine Abrechnungsdaten.",
+    languageTitle: "Sprache",
+    languageDescription: "Steuert die App und zukünftige Kunden-Snapshots.",
+    languageAria: "Anwendungssprache",
+    languageSaved: "Sprache gespeichert",
+    languageErrorTitle: "Sprache konnte nicht gespeichert werden",
+    tryAgain: "Bitte versuche es erneut.",
+    billingPortalError: "Fehler im Abrechnungsportal",
+    failedBillingPortal: "Abrechnungsportal konnte nicht geöffnet werden",
+    planCurrent: "Aktueller Plan",
+    planAlreadyCurrent: "Plan ist bereits aktuell",
+    planNoCustomer: "Es gibt noch kein Stripe-Abrechnungsprofil, daher bleibt dein Arbeitsbereich im Solo-Plan.",
+    planRefreshed: "Plan aktualisiert",
+    activePlan: "Aktiver Plan",
+    syncFailed: "Synchronisierung fehlgeschlagen",
+    deletionFailed: "Löschen fehlgeschlagen",
+    contactSupport: "Bitte kontaktiere den Support.",
+    brandingEyebrow: "Agentur-Branding",
+    brandingTitle: "Export-Branding an einem Ort verwalten",
+    brandingDescription: "Agenturname, Kontaktdaten, Logo, Icon und Exportfarben liegen jetzt auf einer eigenen Seite statt versteckt in Snapshot-Payloads.",
+    brandingAction: "Branding-Seite öffnen",
+    planTitle: "Plan auswählen",
+    planDescription: "Prüfe die gleichen öffentlichen Preise wie auf der Landingpage und verwalte Abrechnung, Kündigung und Rechnungen anschließend in Stripe.",
+    syncPlanTitle: "Planstatus aus Stripe synchronisieren",
+    refreshPlan: "Plan aktualisieren",
+    refreshing: "Aktualisiert...",
+    billingPortalTitle: "Stripe-Abrechnungsportal öffnen",
+    billingPortalDisabledTitle: "Das Abrechnungsportal ist verfügbar, nachdem ein Stripe-Checkout ein Abrechnungsprofil angelegt hat",
+    manageBilling: "Abrechnung, Kündigung & Rechnungen verwalten",
+    cancelNoticeSuffix: "danach fällt er auf den Solo-Plan zurück.",
+    checkoutMissing: "Stripe-Checkout-URL fehlt",
+    checkoutFailed: "Checkout fehlgeschlagen",
+    billingPreferences: "Abrechnungseinstellungen",
+    receipts: "Belege",
+    receiptsTooltip: "Stripe sendet Belege automatisch an die E-Mail-Adresse deines Kontos. Falls kein Beleg angekommen ist, öffne oben Abrechnung & Rechnungen verwalten, um sie im Abrechnungsportal anzusehen.",
+    dangerZone: "Gefahrenbereich",
+    dangerDescription: "Lösche dein Konto und alle zugehörigen Daten dauerhaft.",
+    deleteAccount: "Konto löschen",
+    deleteTitle: "Konto löschen?",
+    deleteDescription: "Diese Aktion ist dauerhaft und kann nicht rückgängig gemacht werden. Alle deine Properties, Snapshots und Daten werden gelöscht.",
+    cancel: "Abbrechen",
+    confirmDelete: "Ja, mein Konto löschen",
+    contactTitle: "Wir helfen dir weiter",
+    contactDescription: "Melde dich über einen der folgenden Kanäle.",
+    contactCards: {
+      feature: ["Gute Feature-Idee?", "Teile deine Idee direkt aus der App mit uns."],
+      bug: ["Nicht-kritischen Fehler gefunden?", "UI-Fehler oder Formatierungsprobleme? Sende hier einen Bug-Report."],
+      billing: ["Probleme mit Konto oder Abrechnung?", "Schreibe uns für priorisierten Support"],
+      discussions: ["Frage oder Idee?", "Diskutiere mit uns in GitHub Discussions"],
+      privacy: ["Datenschutzerklärung", "Lies unsere Datenschutzerklärung und Datenverarbeitungspraxis"],
+      terms: ["Nutzungsbedingungen", "Prüfe unsere Nutzungsbedingungen und Richtlinien"],
+      impressum: ["Impressum", "Rechtliche Angaben und Anbieterkennzeichnung ansehen"],
+    },
+  },
+} as const;
+
 export default function SettingsPage() {
   const { data: session } = authClient.useSession();
   const { openFeedback } = useFeedbackModal();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const language = useAppLanguage();
+  const copy = SETTINGS_PAGE_COPY[language];
   const activeTab = resolveSettingsTab(searchParams.get("tab"));
 
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -103,11 +229,11 @@ export default function SettingsPage() {
       const data = await requestJson<{ url?: string }>("/api/stripe/portal", {
         method: "POST",
       });
-      if (!data?.url) throw new Error("Failed to open billing portal");
+      if (!data?.url) throw new Error(copy.failedBillingPortal);
       window.location.href = data.url;
     } catch (error) {
-      toast.error("Billing portal error", {
-        description: getAppErrorMessage(error, "Please try again."),
+      toast.error(copy.billingPortalError, {
+        description: getAppErrorMessage(error, copy.tryAgain),
       });
     }
   };
@@ -125,19 +251,18 @@ export default function SettingsPage() {
       router.refresh();
 
       if (data?.reason === "no_customer") {
-        toast.info("Plan already up to date", {
-          description:
-            "No Stripe billing profile exists yet, so your workspace remains on Solo.",
+        toast.info(copy.planAlreadyCurrent, {
+          description: copy.planNoCustomer,
         });
         return;
       }
 
-      toast.success("Plan refreshed", {
-        description: `Active plan: ${formatPlanName(data?.tier ?? "free")}.`,
+      toast.success(copy.planRefreshed, {
+        description: `${copy.activePlan}: ${formatPlanName(data?.tier ?? "free")}.`,
       });
     } catch (error) {
-      toast.error("Sync failed", {
-        description: getAppErrorMessage(error, "Please try again."),
+      toast.error(copy.syncFailed, {
+        description: getAppErrorMessage(error, copy.tryAgain),
       });
     } finally {
       setIsPlanSyncing(false);
@@ -149,8 +274,8 @@ export default function SettingsPage() {
       await requestJson("/api/account", { method: "DELETE" });
       window.location.href = "/";
     } catch (error) {
-      toast.error("Deletion failed", {
-        description: getAppErrorMessage(error, "Please contact support."),
+      toast.error(copy.deletionFailed, {
+        description: getAppErrorMessage(error, copy.contactSupport),
       });
     }
   };
@@ -167,14 +292,10 @@ export default function SettingsPage() {
       });
       setSettings((current) => normalizeSettingsResponse({ ...(current ?? {}), ...data }));
       router.refresh();
-      toast.success(
-        preferredLanguage === "de"
-          ? "Sprache gespeichert"
-          : "Language saved",
-      );
+      toast.success(SETTINGS_PAGE_COPY[preferredLanguage].languageSaved);
     } catch (error) {
-      toast.error("Language update failed", {
-        description: getAppErrorMessage(error, "Please try again."),
+      toast.error(copy.languageErrorTitle, {
+        description: getAppErrorMessage(error, copy.tryAgain),
       });
     } finally {
       setIsLanguageSaving(false);
@@ -209,11 +330,10 @@ export default function SettingsPage() {
           className="text-3xl font-semibold tracking-tight font-display"
           style={{ textWrap: "balance" }}
         >
-          Settings
+          {copy.title}
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Manage billing, workspace preferences, and support options for your
-          workspace.
+          {copy.subtitle}
         </p>
       </div>
 
@@ -221,7 +341,7 @@ export default function SettingsPage() {
         <div className="rounded-lg border border-amber-300/45 bg-amber-100/70 px-5 py-3 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
           {settings.restrictionMessage?.trim()
             ? settings.restrictionMessage
-            : "Your account is currently restricted. Contact an administrator from the Contact Us tab for help."}
+            : copy.restrictedFallback}
         </div>
       ) : null}
 
@@ -234,10 +354,10 @@ export default function SettingsPage() {
       >
         <TabsList className="h-auto rounded-lg border border-border/70 bg-muted/35 p-1">
           <TabsTrigger value="account" className="rounded-lg px-4 py-2.5">
-            Account
+            {copy.tabs.account}
           </TabsTrigger>
           <TabsTrigger value="contact" className="rounded-lg px-4 py-2.5">
-            Contact Us
+            {copy.tabs.contact}
           </TabsTrigger>
         </TabsList>
 
@@ -272,7 +392,7 @@ export default function SettingsPage() {
 
                     {settings.subscriptionCancelAt ? (
                       <p className="text-sm text-muted-foreground">
-                        Active until{" "}
+                        {copy.activeUntil}{" "}
                         <span className="font-medium text-foreground">
                           {new Date(
                             settings.subscriptionCancelAt,
@@ -286,7 +406,7 @@ export default function SettingsPage() {
                       </p>
                     ) : (
                       <p className="text-sm text-muted-foreground">
-                        Manage your workspace account and billing details.
+                        {copy.accountSummary}
                       </p>
                     )}
                   </div>
@@ -295,10 +415,10 @@ export default function SettingsPage() {
                 <div className="space-y-2 lg:pt-1">
                   <div>
                     <h2 className="text-sm font-semibold text-foreground">
-                      Sprache / Language
+                      {copy.languageTitle}
                     </h2>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      Controls the app and future client snapshots.
+                      {copy.languageDescription}
                     </p>
                   </div>
                   <Select
@@ -306,7 +426,7 @@ export default function SettingsPage() {
                     onValueChange={(value) => void handleLanguageChange(value as SupportedLanguage)}
                     disabled={isLanguageSaving}
                   >
-                    <SelectTrigger aria-label="Application language">
+                    <SelectTrigger aria-label={copy.languageAria}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -344,20 +464,20 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/35 px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
                   <Palette className="size-3.5" />
-                  Agency branding
+                  {copy.brandingEyebrow}
                 </div>
                 <div>
                   <h2 className="text-2xl font-semibold font-display tracking-tight">
-                    Manage export branding in one place
+                    {copy.brandingTitle}
                   </h2>
                   <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                    Agency name, contact details, logo, icon, and export colors now live on a dedicated page instead of being hidden inside snapshot payloads.
+                    {copy.brandingDescription}
                   </p>
                 </div>
               </div>
 
               <Button asChild className="rounded-full">
-                <Link href="/settings/branding">Open Branding Page</Link>
+                <Link href="/settings/branding">{copy.brandingAction}</Link>
               </Button>
             </div>
           </section>
@@ -369,11 +489,10 @@ export default function SettingsPage() {
                   id="plan-heading"
                   className="text-2xl font-semibold font-display tracking-tight"
                 >
-                  Choose Your Plan
+                  {copy.planTitle}
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Review the same public pricing shown on the landing page,
-                  then manage billing, cancellation, and invoices from Stripe.
+                  {copy.planDescription}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -382,9 +501,9 @@ export default function SettingsPage() {
                   size="sm"
                   disabled={settings === null || isPlanSyncing}
                   onClick={handleSyncPlan}
-                  title="Sync your plan status from Stripe"
+                  title={copy.syncPlanTitle}
                 >
-                  {isPlanSyncing ? "Refreshing..." : "Refresh Plan"}
+                  {isPlanSyncing ? copy.refreshing : copy.refreshPlan}
                 </Button>
                 <Button
                   variant="outline"
@@ -392,12 +511,12 @@ export default function SettingsPage() {
                   disabled={!settings?.hasStripeCustomer}
                   title={
                     settings?.hasStripeCustomer
-                      ? "Open Stripe billing portal"
-                      : "Billing portal is available after a Stripe checkout creates a billing profile"
+                      ? copy.billingPortalTitle
+                      : copy.billingPortalDisabledTitle
                   }
                   onClick={handleBillingPortal}
                 >
-                  Manage Billing, Cancellation &amp; Invoices
+                  {copy.manageBilling}
                 </Button>
               </div>
             </div>
@@ -424,7 +543,7 @@ export default function SettingsPage() {
                         day: "numeric",
                       })}
                     </span>
-                    , then it reverts to Solo Plan.
+                    , {copy.cancelNoticeSuffix}
                   </div>
                 ) : null}
 
@@ -456,7 +575,7 @@ export default function SettingsPage() {
                             </Badge>
                           ) : isCurrent ? (
                             <Badge variant="outline" className="rounded-full">
-                              {settings.preferredLanguage === "de" ? "Aktueller Plan" : "Current Plan"}
+                              {copy.planCurrent}
                             </Badge>
                           ) : null}
                         </div>
@@ -523,7 +642,7 @@ export default function SettingsPage() {
                             >
                               <Link href="/dashboard">
                                 {isCurrent
-                                  ? settings.preferredLanguage === "de" ? "Aktueller Plan" : "Current Plan"
+                                  ? copy.planCurrent
                                   : getLocalizedPricingValue(plan.cta, settings.preferredLanguage)}
                               </Link>
                             </Button>
@@ -539,17 +658,17 @@ export default function SettingsPage() {
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({ plan: plan.tier }),
                                   });
-                                  if (!data?.url) throw new Error("Stripe checkout URL missing");
+                                  if (!data?.url) throw new Error(copy.checkoutMissing);
                                   window.location.href = data.url;
                                 } catch (error) {
-                                  toast.error("Checkout failed", {
-                                    description: getAppErrorMessage(error, "Please try again."),
+                                  toast.error(copy.checkoutFailed, {
+                                    description: getAppErrorMessage(error, copy.tryAgain),
                                   });
                                 }
                               }}
                             >
                               {isCurrent
-                                ? settings.preferredLanguage === "de" ? "Aktueller Plan" : "Current Plan"
+                                ? copy.planCurrent
                                 : getLocalizedPricingValue(plan.cta, settings.preferredLanguage)}
                             </Button>
                           )}
@@ -567,19 +686,14 @@ export default function SettingsPage() {
               id="billing-heading"
               className="text-2xl font-semibold font-display tracking-tight"
             >
-              Billing Preferences
+              {copy.billingPreferences}
             </h2>
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium">Receipts</p>
+              <p className="text-sm font-medium">{copy.receipts}</p>
               <div className="group relative">
                 <Info className="size-3.5 cursor-help text-muted-foreground" />
                 <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-64 -translate-x-1/2 rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md opacity-0 transition-opacity group-hover:opacity-100">
-                  Stripe sends receipts automatically to your account email. If
-                  you didn&apos;t receive one, click{" "}
-                  <span className="font-medium">
-                    Manage Billing &amp; Invoices
-                  </span>{" "}
-                  above to view them in the billing portal.
+                  {copy.receiptsTooltip}
                 </div>
               </div>
             </div>
@@ -590,32 +704,31 @@ export default function SettingsPage() {
               id="danger-heading"
               className="text-2xl font-semibold font-display tracking-tight text-destructive"
             >
-              Danger Zone
+              {copy.dangerZone}
             </h2>
             <p className="text-sm text-muted-foreground">
-              Permanently delete your account and all associated data.
+              {copy.dangerDescription}
             </p>
 
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="destructive" size="sm">
-                  Delete Account
+                  {copy.deleteAccount}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Delete your account?</DialogTitle>
+                  <DialogTitle>{copy.deleteTitle}</DialogTitle>
                   <DialogDescription>
-                    This action is <strong>permanent and irreversible</strong>.
-                    All your properties, snapshots, and data will be deleted.
+                    {copy.deleteDescription}
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
                   <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
+                    <Button variant="outline">{copy.cancel}</Button>
                   </DialogClose>
                   <Button variant="destructive" onClick={handleDeleteAccount}>
-                    Yes, delete my account
+                    {copy.confirmDelete}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -627,10 +740,10 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-semibold font-display tracking-tight">
-                We&apos;re here to help
+                {copy.contactTitle}
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Reach out through any of the channels below.
+                {copy.contactDescription}
               </p>
             </div>
 
@@ -638,9 +751,8 @@ export default function SettingsPage() {
               {[
                 {
                   icon: Sparkles,
-                  title: "Have a cool feature idea?",
-                  description:
-                    "Share your idea directly with us from inside the app.",
+                  title: copy.contactCards.feature[0],
+                  description: copy.contactCards.feature[1],
                   onClick: () =>
                     openFeedback({
                       source: "settings",
@@ -649,9 +761,8 @@ export default function SettingsPage() {
                 },
                 {
                   icon: Bug,
-                  title: "Found a non-critical bug?",
-                  description:
-                    "UI glitches or formatting issues? Send a bug report here.",
+                  title: copy.contactCards.bug[0],
+                  description: copy.contactCards.bug[1],
                   onClick: () =>
                     openFeedback({
                       source: "settings",
@@ -660,37 +771,36 @@ export default function SettingsPage() {
                 },
                 {
                   icon: CircleAlert,
-                  title: "Having account or billing issues?",
+                  title: copy.contactCards.billing[0],
                   description: settings?.adminContacts?.length
-                    ? `Email an admin for priority support — ${settings.adminContacts[0]}`
-                    : "Email us for priority support — kontakt@devbrew.dev",
+                    ? language === "de"
+                      ? `Schreibe einem Admin für priorisierten Support — ${settings.adminContacts[0]}`
+                      : `Email an admin for priority support — ${settings.adminContacts[0]}`
+                    : `${copy.contactCards.billing[1]} — kontakt@devbrew.dev`,
                   href: `mailto:${settings?.adminContacts?.[0] ?? "kontakt@devbrew.dev"}`,
                 },
                 {
                   icon: MessageSquare,
-                  title: "Have a question or idea?",
-                  description: "Join the conversation on GitHub Discussions",
+                  title: copy.contactCards.discussions[0],
+                  description: copy.contactCards.discussions[1],
                   href: "https://github.com/cancel-cloud/WebHealth/discussions",
                 },
                 {
                   icon: Shield,
-                  title: "Privacy Policy",
-                  description:
-                    "Read our privacy policy and data handling practices",
+                  title: copy.contactCards.privacy[0],
+                  description: copy.contactCards.privacy[1],
                   href: "/privacy",
                 },
                 {
                   icon: FileText,
-                  title: "Terms of Service",
-                  description:
-                    "Review our terms of service and usage guidelines",
+                  title: copy.contactCards.terms[0],
+                  description: copy.contactCards.terms[1],
                   href: "/terms",
                 },
                 {
                   icon: FileText,
-                  title: "Impressum",
-                  description:
-                    "View the legal notice and provider identification details",
+                  title: copy.contactCards.impressum[0],
+                  description: copy.contactCards.impressum[1],
                   href: "/impressum",
                 },
               ].map(({ icon: Icon, title, description, href, onClick }) => {

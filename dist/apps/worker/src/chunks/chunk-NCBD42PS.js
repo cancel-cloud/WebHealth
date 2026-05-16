@@ -1208,6 +1208,9 @@ async function getTeamBrandingProfile(teamId) {
 
 // packages/shared/src/lib/language.ts
 var DEFAULT_SUPPORTED_LANGUAGE = "de";
+function parseSupportedLanguage(value) {
+  return value === "de" || value === "en" ? value : null;
+}
 function normalizeSupportedLanguage(value) {
   if (typeof value !== "string") return DEFAULT_SUPPORTED_LANGUAGE;
   const normalized = value.trim().toLowerCase().replace("_", "-");
@@ -1288,6 +1291,14 @@ function buildAiActionIdentity(input) {
     targetType: input.target.type,
     targetKey
   };
+}
+function buildAiRecommendationLanguageInstruction(language) {
+  const outputLanguage = language === "de" ? "German" : "English";
+  return [
+    `Write user-visible recommendation fields (title, summary, clientSafeSummary) in ${outputLanguage}.`,
+    "Preserve URLs, queries, metrics, evidence anchor labels and values, source labels, model names, vendor names, product names, and technical identifiers verbatim.",
+    "Do not translate evidence values or invent localized metric labels when they came from source data."
+  ].join(" ");
 }
 function buildDefaultAiPromptTemplateSeeds() {
   return [
@@ -2777,7 +2788,11 @@ export {
   resolveAiAnalysisRunConflictAction,
   validateAiRecommendation,
   buildAiActionIdentity,
+  buildAiRecommendationLanguageInstruction,
   buildDefaultAiPromptTemplateRows,
+  DEFAULT_SUPPORTED_LANGUAGE,
+  parseSupportedLanguage,
+  normalizeSupportedLanguage,
   resolveAnalysisWindow,
   buildFreshnessSources,
   buildDegradedStates,

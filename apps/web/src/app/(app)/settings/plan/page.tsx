@@ -2,69 +2,62 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Check } from "lucide-react";
-import { PRICING_PLANS } from "@/lib/pricing";
+import { getLocalizedPricingValue, PUBLIC_PRICING_PLANS } from "@/lib/pricing";
+import { requireUnrestrictedSession } from "@/lib/server/authz";
+import { getUserPreferredLanguage } from "@/lib/server/language";
 
-const PLANS = [
-  {
-    name: PRICING_PLANS.solo.name,
-    price: PRICING_PLANS.solo.priceLabel,
-    period: "forever",
-    description: "For solo developers getting started.",
-    active: true,
-    features: PRICING_PLANS.solo.features,
+const PLAN_PAGE_COPY = {
+  en: {
+    back: "Back to Settings",
+    title: "Plans & Pricing",
+    description: "Choose the plan that fits your needs.",
+    currentPlan: "Current Plan",
+    upgradeTo: "Upgrade to",
+    trial: "All plans include a 14-day free trial. No credit card required.",
   },
-  {
-    name: PRICING_PLANS.starter.name,
-    price: PRICING_PLANS.starter.priceLabel,
-    period: "per month",
-    description: PRICING_PLANS.starter.description,
-    active: false,
-    features: PRICING_PLANS.starter.features,
+  de: {
+    back: "Zurück zu Einstellungen",
+    title: "Pläne & Preise",
+    description: "Wähle den Plan, der zu deinem Bedarf passt.",
+    currentPlan: "Aktueller Plan",
+    upgradeTo: "Upgrade auf",
+    trial: "Alle Pläne enthalten eine 14-tägige kostenlose Testphase. Keine Kreditkarte erforderlich.",
   },
-  {
-    name: PRICING_PLANS.studio.name,
-    price: PRICING_PLANS.studio.priceLabel,
-    period: "per month",
-    description: PRICING_PLANS.studio.description,
-    active: false,
-    features: PRICING_PLANS.studio.features,
-  },
-  {
-    name: PRICING_PLANS.agency.name,
-    price: PRICING_PLANS.agency.priceLabel,
-    period: "per month",
-    description: PRICING_PLANS.agency.description,
-    active: false,
-    features: [
-      "Planned agency collaboration",
-      "Client permissions planned",
-      "Custom domain planned",
-      "SSO planned",
-    ],
-  },
-];
+} as const;
 
-export default function PlanPage() {
+export default async function PlanPage() {
+  const session = await requireUnrestrictedSession();
+  const language = await getUserPreferredLanguage(session.user.id);
+  const copy = PLAN_PAGE_COPY[language];
+  const plans = PUBLIC_PRICING_PLANS.map((plan) => ({
+    name: getLocalizedPricingValue(plan.name, language),
+    price: getLocalizedPricingValue(plan.price, language),
+    period: getLocalizedPricingValue(plan.period, language),
+    description: getLocalizedPricingValue(plan.description, language),
+    active: plan.tier === "solo",
+    features: plan.features.map((feature) => getLocalizedPricingValue(feature, language)),
+  }));
+
   return (
     <div className="space-y-8 max-w-4xl">
       <div className="flex items-center gap-4">
         <Button asChild variant="ghost" size="sm" className="-ml-2">
           <Link href="/settings">
             <ChevronLeft aria-hidden="true" className="size-4 mr-1" />
-            Back to Settings
+            {copy.back}
           </Link>
         </Button>
       </div>
 
       <div>
         <h1 className="text-3xl font-semibold tracking-tight font-display" style={{ textWrap: "balance" }}>
-          Plans & Pricing
+          {copy.title}
         </h1>
-        <p className="text-muted-foreground mt-1">Choose the plan that fits your needs.</p>
+        <p className="text-muted-foreground mt-1">{copy.description}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {PLANS.map((plan) => (
+        {plans.map((plan) => (
           <div
             key={plan.name}
             className={`relative rounded-lg border p-6 flex flex-col gap-5 ${
@@ -75,7 +68,7 @@ export default function PlanPage() {
           >
             {plan.active && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground shadow-sm">Current Plan</Badge>
+                <Badge className="bg-primary text-primary-foreground shadow-sm">{copy.currentPlan}</Badge>
               </div>
             )}
 
@@ -103,14 +96,14 @@ export default function PlanPage() {
               variant={plan.active ? "outline" : "default"}
               disabled={plan.active}
             >
-              {plan.active ? "Current Plan" : `Upgrade to ${plan.name}`}
+              {plan.active ? copy.currentPlan : `${copy.upgradeTo} ${plan.name}`}
             </Button>
           </div>
         ))}
       </div>
 
       <p className="text-center text-sm text-muted-foreground">
-        All plans include a 14-day free trial. No credit card required.
+        {copy.trial}
       </p>
     </div>
   );

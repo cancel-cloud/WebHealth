@@ -1,7 +1,9 @@
 import { headers } from "next/headers";
 import { FlagsTable } from "./flags-table";
+import { ADMIN_PAGE_COPY, getAdminLanguage } from "../admin-page-copy";
 
 export default async function AdminFeatureFlagsPage() {
+  const copy = ADMIN_PAGE_COPY[await getAdminLanguage()].featureFlags;
   const cookieHeader = (await headers()).get("cookie") ?? "";
 
   const [flagsRes, usersRes] = await Promise.all([
@@ -28,9 +30,9 @@ export default async function AdminFeatureFlagsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Feature Flags</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{copy.title}</h1>
         <p className="text-muted-foreground text-sm">
-          Toggle features globally or override per user. Click a row to manage per-user overrides.
+          {copy.description}
         </p>
       </div>
       <FlagsTable flags={flags} allUsers={allUsers} />

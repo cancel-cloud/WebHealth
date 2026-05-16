@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useAppLanguage } from "@/lib/app-language";
 
 const EMPTY_PROFILE: TeamBrandingProfile = {
   agencyName: "",
@@ -37,7 +38,102 @@ const EMPTY_PROFILE: TeamBrandingProfile = {
   footerNote: "",
 };
 
+const BRANDING_COPY = {
+  en: {
+    loadError: "Could not load branding",
+    saveError: "Could not save branding",
+    tryAgain: "Please try again.",
+    saved: "Branding saved",
+    savedDescription: "Snapshot exports will use this branding profile.",
+    back: "Back to Settings",
+    eyebrow: "Agency branding",
+    title: "Brand the exported client surface",
+    description: "This is the dedicated source for your agency name, contact details, icon, logo, and export color accents. Snapshot exports should read from here instead of burying branding inside generated payloads.",
+    identity: "Identity",
+    identityDescription: "Use stable branding values here. This is not per-snapshot copy.",
+    agencyName: "Agency name",
+    logoUrl: "Logo URL",
+    iconUrl: "Icon URL",
+    contact: "Contact",
+    contactDescription: "The export layer should not guess who the client should contact.",
+    contactName: "Contact name",
+    contactEmail: "Contact email",
+    contactPhone: "Contact phone",
+    websiteUrl: "Agency website",
+    exportColors: "Export colors",
+    exportColorsDescription: "Keep this restrained. These colors should accent exports, not turn them into marketing pages.",
+    primaryColor: "Primary color",
+    accentColor: "Accent color",
+    footerNote: "Footer note",
+    footerPlaceholder: "Optional note shown in branded exports.",
+    saving: "Saving…",
+    save: "Save branding",
+    preview: "Preview",
+    previewTitle: "Snapshot brand card",
+    exportFacing: "Export-facing",
+    agencyFallback: "Your agency name",
+    preparedFor: "Prepared for branded client snapshots",
+    contactNameFallback: "Contact name",
+    phoneFallback: "Phone number",
+    visitWebsite: "Visit agency website",
+    ownsTitle: "What this page owns",
+    owns: [
+      "Agency identity and contact information for exports.",
+      "Default logo/icon URLs used by branded snapshot generation.",
+      "Color accents and optional footer copy.",
+    ],
+    notOwns: "What it does not own: live dashboard analysis, durable action state, or per-snapshot copy edits.",
+  },
+  de: {
+    loadError: "Branding konnte nicht geladen werden",
+    saveError: "Branding konnte nicht gespeichert werden",
+    tryAgain: "Bitte versuche es erneut.",
+    saved: "Branding gespeichert",
+    savedDescription: "Snapshot-Exporte nutzen dieses Branding-Profil.",
+    back: "Zurück zu Einstellungen",
+    eyebrow: "Agentur-Branding",
+    title: "Exportierte Kundenflächen branden",
+    description: "Dies ist die zentrale Quelle für Agenturname, Kontaktdaten, Icon, Logo und Exportfarben. Snapshot-Exporte lesen von hier, statt Branding in generierten Payloads zu verstecken.",
+    identity: "Identität",
+    identityDescription: "Nutze hier stabile Branding-Werte. Das ist keine Copy pro Snapshot.",
+    agencyName: "Agenturname",
+    logoUrl: "Logo-URL",
+    iconUrl: "Icon-URL",
+    contact: "Kontakt",
+    contactDescription: "Die Exportebene sollte nicht raten, wen der Kunde kontaktieren soll.",
+    contactName: "Kontaktname",
+    contactEmail: "Kontakt-E-Mail",
+    contactPhone: "Kontakttelefon",
+    websiteUrl: "Agentur-Website",
+    exportColors: "Exportfarben",
+    exportColorsDescription: "Halte das zurückhaltend. Diese Farben sollen Exporte akzentuieren, nicht in Marketingseiten verwandeln.",
+    primaryColor: "Primärfarbe",
+    accentColor: "Akzentfarbe",
+    footerNote: "Footer-Hinweis",
+    footerPlaceholder: "Optionaler Hinweis für gebrandete Exporte.",
+    saving: "Speichert…",
+    save: "Branding speichern",
+    preview: "Vorschau",
+    previewTitle: "Snapshot-Brandingkarte",
+    exportFacing: "Exportseite",
+    agencyFallback: "Dein Agenturname",
+    preparedFor: "Vorbereitet für gebrandete Kunden-Snapshots",
+    contactNameFallback: "Kontaktname",
+    phoneFallback: "Telefonnummer",
+    visitWebsite: "Agentur-Website öffnen",
+    ownsTitle: "Wofür diese Seite zuständig ist",
+    owns: [
+      "Agenturidentität und Kontaktdaten für Exporte.",
+      "Standard-Logo- und Icon-URLs für gebrandete Snapshot-Erstellung.",
+      "Farbliche Akzente und optionale Footer-Copy.",
+    ],
+    notOwns: "Nicht zuständig für: Live-Dashboard-Analyse, dauerhaften Maßnahmenstatus oder Copy-Änderungen pro Snapshot.",
+  },
+} as const;
+
 export function BrandingPageClient() {
+  const language = useAppLanguage();
+  const copy = BRANDING_COPY[language];
   const [profile, setProfile] = useState<TeamBrandingProfile>(EMPTY_PROFILE);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -47,13 +143,13 @@ export function BrandingPageClient() {
       const data = (await requestJson<{ branding?: TeamBrandingProfile }>("/api/settings/branding")) ?? {};
       setProfile({ ...EMPTY_PROFILE, ...(data.branding ?? {}) });
     } catch (error) {
-      toast.error("Could not load branding", {
-        description: getAppErrorMessage(error, "Please try again."),
+      toast.error(copy.loadError, {
+        description: getAppErrorMessage(error, copy.tryAgain),
       });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [copy.loadError, copy.tryAgain]);
 
   useEffect(() => {
     loadProfile();
@@ -73,12 +169,12 @@ export function BrandingPageClient() {
           body: JSON.stringify(profile),
         })) ?? {};
       setProfile({ ...EMPTY_PROFILE, ...(data.branding ?? {}) });
-      toast.success("Branding saved", {
-        description: "Snapshot exports will use this branding profile.",
+      toast.success(copy.saved, {
+        description: copy.savedDescription,
       });
     } catch (error) {
-      toast.error("Could not save branding", {
-        description: getAppErrorMessage(error, "Please try again."),
+      toast.error(copy.saveError, {
+        description: getAppErrorMessage(error, copy.tryAgain),
       });
     } finally {
       setSaving(false);
@@ -103,21 +199,20 @@ export function BrandingPageClient() {
         <Button asChild variant="ghost" size="sm" className="-ml-2">
           <Link href="/settings">
             <ChevronLeft className="mr-1 size-4" />
-            Back to Settings
+            {copy.back}
           </Link>
         </Button>
 
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/80 px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
             <Palette className="size-3.5" />
-            Agency branding
+            {copy.eyebrow}
           </div>
           <h1 className="text-3xl font-semibold tracking-tight font-display" style={{ textWrap: "balance" }}>
-            Brand the exported client surface
+            {copy.title}
           </h1>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            This is the dedicated source for your agency name, contact details, icon, logo, and export color accents.
-            Snapshot exports should read from here instead of burying branding inside generated payloads.
+            {copy.description}
           </p>
         </div>
       </div>
@@ -127,22 +222,22 @@ export function BrandingPageClient() {
           <CardContent className="space-y-8 p-6">
             <section className="space-y-4">
               <div className="space-y-1">
-                <h2 className="text-xl font-semibold tracking-tight">Identity</h2>
+                <h2 className="text-xl font-semibold tracking-tight">{copy.identity}</h2>
                 <p className="text-sm text-muted-foreground">
-                  Use stable branding values here. This is not per-snapshot copy.
+                  {copy.identityDescription}
                 </p>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="agencyName">Agency name</Label>
+                  <Label htmlFor="agencyName">{copy.agencyName}</Label>
                   <Input id="agencyName" value={profile.agencyName} onChange={(event) => updateField("agencyName", event.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="logoUrl">Logo URL</Label>
+                  <Label htmlFor="logoUrl">{copy.logoUrl}</Label>
                   <Input id="logoUrl" value={profile.logoUrl} onChange={(event) => updateField("logoUrl", event.target.value)} placeholder="https://…" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="iconUrl">Icon URL</Label>
+                  <Label htmlFor="iconUrl">{copy.iconUrl}</Label>
                   <Input id="iconUrl" value={profile.iconUrl} onChange={(event) => updateField("iconUrl", event.target.value)} placeholder="https://…" />
                 </div>
               </div>
@@ -150,26 +245,26 @@ export function BrandingPageClient() {
 
             <section className="space-y-4">
               <div className="space-y-1">
-                <h2 className="text-xl font-semibold tracking-tight">Contact</h2>
+                <h2 className="text-xl font-semibold tracking-tight">{copy.contact}</h2>
                 <p className="text-sm text-muted-foreground">
-                  The export layer should not guess who the client should contact.
+                  {copy.contactDescription}
                 </p>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="contactName">Contact name</Label>
+                  <Label htmlFor="contactName">{copy.contactName}</Label>
                   <Input id="contactName" value={profile.contactName} onChange={(event) => updateField("contactName", event.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contactEmail">Contact email</Label>
+                  <Label htmlFor="contactEmail">{copy.contactEmail}</Label>
                   <Input id="contactEmail" type="email" value={profile.contactEmail} onChange={(event) => updateField("contactEmail", event.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contactPhone">Contact phone</Label>
+                  <Label htmlFor="contactPhone">{copy.contactPhone}</Label>
                   <Input id="contactPhone" value={profile.contactPhone} onChange={(event) => updateField("contactPhone", event.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="websiteUrl">Agency website</Label>
+                  <Label htmlFor="websiteUrl">{copy.websiteUrl}</Label>
                   <Input id="websiteUrl" value={profile.websiteUrl} onChange={(event) => updateField("websiteUrl", event.target.value)} placeholder="https://…" />
                 </div>
               </div>
@@ -177,44 +272,44 @@ export function BrandingPageClient() {
 
             <section className="space-y-4">
               <div className="space-y-1">
-                <h2 className="text-xl font-semibold tracking-tight">Export colors</h2>
+                <h2 className="text-xl font-semibold tracking-tight">{copy.exportColors}</h2>
                 <p className="text-sm text-muted-foreground">
-                  Keep this restrained. These colors should accent exports, not turn them into marketing pages.
+                  {copy.exportColorsDescription}
                 </p>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="primaryColor">Primary color</Label>
+                  <Label htmlFor="primaryColor">{copy.primaryColor}</Label>
                   <div className="flex gap-3">
                     <Input id="primaryColor" value={profile.primaryColor} onChange={(event) => updateField("primaryColor", event.target.value)} />
-                    <Input aria-label="Primary color picker" type="color" className="h-10 w-14 rounded-lg p-1" value={profile.primaryColor} onChange={(event) => updateField("primaryColor", event.target.value)} />
+                    <Input aria-label={copy.primaryColor} type="color" className="h-10 w-14 rounded-lg p-1" value={profile.primaryColor} onChange={(event) => updateField("primaryColor", event.target.value)} />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="accentColor">Accent color</Label>
+                  <Label htmlFor="accentColor">{copy.accentColor}</Label>
                   <div className="flex gap-3">
                     <Input id="accentColor" value={profile.accentColor} onChange={(event) => updateField("accentColor", event.target.value)} />
-                    <Input aria-label="Accent color picker" type="color" className="h-10 w-14 rounded-lg p-1" value={profile.accentColor} onChange={(event) => updateField("accentColor", event.target.value)} />
+                    <Input aria-label={copy.accentColor} type="color" className="h-10 w-14 rounded-lg p-1" value={profile.accentColor} onChange={(event) => updateField("accentColor", event.target.value)} />
                   </div>
                 </div>
               </div>
             </section>
 
             <section className="space-y-2">
-              <Label htmlFor="footerNote">Footer note</Label>
+              <Label htmlFor="footerNote">{copy.footerNote}</Label>
               <Textarea
                 id="footerNote"
                 rows={4}
                 value={profile.footerNote}
                 onChange={(event) => updateField("footerNote", event.target.value)}
-                placeholder="Optional note shown in branded exports."
+                placeholder={copy.footerPlaceholder}
               />
             </section>
 
             <div className="flex justify-end">
               <Button onClick={handleSave} disabled={saving} className="rounded-full">
                 <Save className="mr-2 size-4" />
-                {saving ? "Saving…" : "Save branding"}
+                {saving ? copy.saving : copy.save}
               </Button>
             </div>
           </CardContent>
@@ -225,11 +320,11 @@ export function BrandingPageClient() {
             <CardContent className="space-y-5 p-6">
               <div className="flex items-center justify-between gap-3">
                 <div className="space-y-1">
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Preview</p>
-                  <h2 className="text-xl font-semibold tracking-tight">Snapshot brand card</h2>
+                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{copy.preview}</p>
+                  <h2 className="text-xl font-semibold tracking-tight">{copy.previewTitle}</h2>
                 </div>
                 <Badge variant="outline" className="rounded-full">
-                  Export-facing
+                  {copy.exportFacing}
                 </Badge>
               </div>
 
@@ -248,8 +343,8 @@ export function BrandingPageClient() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <div className="truncate text-lg font-semibold">{profile.agencyName || "Your agency name"}</div>
-                      <div className="text-sm text-muted-foreground">Prepared for branded client snapshots</div>
+                      <div className="truncate text-lg font-semibold">{profile.agencyName || copy.agencyFallback}</div>
+                      <div className="text-sm text-muted-foreground">{copy.preparedFor}</div>
                     </div>
                   </div>
                   {profile.logoUrl ? (
@@ -261,7 +356,7 @@ export function BrandingPageClient() {
                 <div className="mt-5 grid gap-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <User2 className="size-4" />
-                    <span>{profile.contactName || "Contact name"}</span>
+                    <span>{profile.contactName || copy.contactNameFallback}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Mail className="size-4" />
@@ -269,11 +364,11 @@ export function BrandingPageClient() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Phone className="size-4" />
-                    <span>{profile.contactPhone || "Phone number"}</span>
+                    <span>{profile.contactPhone || copy.phoneFallback}</span>
                   </div>
                   {profile.websiteUrl ? (
                     <a href={profile.websiteUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-medium" style={{ color: profile.primaryColor }}>
-                      Visit agency website
+                      {copy.visitWebsite}
                       <ExternalLink className="size-4" />
                     </a>
                   ) : null}
@@ -295,14 +390,14 @@ export function BrandingPageClient() {
 
           <Card className="rounded-lg border-border/70 shadow-sm">
             <CardContent className="space-y-3 p-6 text-sm text-muted-foreground">
-              <h3 className="font-semibold text-foreground">What this page owns</h3>
+              <h3 className="font-semibold text-foreground">{copy.ownsTitle}</h3>
               <ul className="space-y-2">
-                <li>Agency identity and contact information for exports.</li>
-                <li>Default logo/icon URLs used by branded snapshot generation.</li>
-                <li>Color accents and optional footer copy.</li>
+                {copy.owns.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
               </ul>
               <p>
-                What it does not own: live dashboard analysis, durable action state, or per-snapshot copy edits.
+                {copy.notOwns}
               </p>
             </CardContent>
           </Card>

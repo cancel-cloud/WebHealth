@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { SupportedLanguage } from "@webhealth/shared/lib/language";
 
 export const AI_PROMPT_TEMPLATE_PURPOSES = [
   "gsc_source_summary",
@@ -164,6 +165,15 @@ export function buildAiActionIdentity(input: {
     targetType: input.target.type,
     targetKey,
   };
+}
+
+export function buildAiRecommendationLanguageInstruction(language: SupportedLanguage): string {
+  const outputLanguage = language === "de" ? "German" : "English";
+  return [
+    `Write user-visible recommendation fields (title, summary, clientSafeSummary) in ${outputLanguage}.`,
+    "Preserve URLs, queries, metrics, evidence anchor labels and values, source labels, model names, vendor names, product names, and technical identifiers verbatim.",
+    "Do not translate evidence values or invent localized metric labels when they came from source data.",
+  ].join(" ");
 }
 
 export function buildDefaultAiPromptTemplateSeeds(): AiPromptTemplateSeed[] {

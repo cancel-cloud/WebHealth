@@ -1,7 +1,9 @@
 import { headers } from "next/headers";
 import { SettingsForm } from "./settings-form";
+import { ADMIN_PAGE_COPY, getAdminLanguage } from "../admin-page-copy";
 
 export default async function GlobalSettingsPage() {
+  const copy = ADMIN_PAGE_COPY[await getAdminLanguage()].globalSettings;
   const res = await fetch(
     `${process.env.BETTER_AUTH_URL}/api/admin/global-settings`,
     {
@@ -15,9 +17,9 @@ export default async function GlobalSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Global Settings</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{copy.title}</h1>
         <p className="text-muted-foreground text-sm">
-          Configure plan tier limits. Leave blank for unlimited.
+          {copy.description}
         </p>
       </div>
       <SettingsForm initialSettings={settings} />

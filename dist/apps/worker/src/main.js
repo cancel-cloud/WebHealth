@@ -304,7 +304,7 @@ async function main() {
   markWorkerPhase(runtimeState, "imports");
   const sharedDbModule = await import("./chunks/db-VBV7VJDO.js");
   const { ensureWorkerDatabaseReady } = await import("./chunks/worker-db-bootstrap-KWVAEAVL.js");
-  const { startPropertyRefreshWorkerLoop, runSinglePropertyRefreshWorkerTick } = await import("./chunks/property-refresh-worker-GPZNWYYJ.js");
+  const { startPropertyRefreshWorkerLoop, runSinglePropertyRefreshWorkerTick } = await import("./chunks/property-refresh-worker-7DDK4BCJ.js");
   const { startMetricsBackfillWorkerLoop, runSingleMetricsBackfillWorkerTick } = await import("./chunks/metrics-cache-3X3KDPIY.js");
   const { startActivePropertyAutomationScheduler } = await import("./chunks/active-property-automation-BW52APZZ.js");
   const { startOpenAICostReconciliationScheduler } = await import("./chunks/openai-cost-reconciliation-3V2SB7FG.js");

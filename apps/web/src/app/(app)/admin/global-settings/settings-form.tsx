@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { getAppErrorMessage } from "@/lib/client/app-error";
 import { requestJson } from "@/lib/client/api";
+import { useAppLanguage } from "@/lib/app-language";
 
 interface TierSetting {
   id: string;
@@ -36,6 +37,10 @@ function stringToLimit(s: string): number | null {
 }
 
 export function SettingsForm({ initialSettings }: { initialSettings: TierSetting[] }) {
+  const language = useAppLanguage();
+  const copy = language === "de"
+    ? { maxProperties: "Max. Properties", unlimited: "Unbegrenzt", saving: "Speichert…", saved: "Gespeichert ✓", save: "Speichern", failed: "Einstellungen konnten nicht gespeichert werden" }
+    : { maxProperties: "Max Properties", unlimited: "Unlimited", saving: "Saving…", saved: "Saved ✓", save: "Save", failed: "Failed to save settings" };
   const [settings, setSettings] = useState(() =>
     initialSettings.map((s) => ({
       ...s,
@@ -86,7 +91,7 @@ export function SettingsForm({ initialSettings }: { initialSettings: TierSetting
           s.tier === tier ? { ...s, saving: false, saved: false } : s,
         ),
       );
-      toast.error(getAppErrorMessage(error, "Failed to save settings"));
+      toast.error(getAppErrorMessage(error, copy.failed));
     }
   };
 
@@ -95,7 +100,7 @@ export function SettingsForm({ initialSettings }: { initialSettings: TierSetting
       <TableHeader>
         <TableRow>
           <TableHead>Tier</TableHead>
-          <TableHead>Max Properties</TableHead>
+          <TableHead>{copy.maxProperties}</TableHead>
           <TableHead className="w-24" />
         </TableRow>
       </TableHeader>
@@ -111,7 +116,7 @@ export function SettingsForm({ initialSettings }: { initialSettings: TierSetting
                 onChange={(e) =>
                   updateField(row.tier, "propertiesInput", e.target.value)
                 }
-                placeholder="Unlimited"
+                placeholder={copy.unlimited}
                 className="w-32"
               />
             </TableCell>
@@ -122,7 +127,7 @@ export function SettingsForm({ initialSettings }: { initialSettings: TierSetting
                 disabled={row.saving}
                 variant={row.saved ? "outline" : "default"}
               >
-                {row.saving ? "Saving…" : row.saved ? "Saved ✓" : "Save"}
+                {row.saving ? copy.saving : row.saved ? copy.saved : copy.save}
               </Button>
             </TableCell>
           </TableRow>

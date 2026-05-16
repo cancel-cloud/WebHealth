@@ -67,7 +67,7 @@ type FreshnessSource = LiveDashboardData["freshness"]["sources"][number];
 
 const TERMINAL_REFRESH_TOAST_DURATION_MS = 5000;
 
-const DASHBOARD_COPY = {
+export const DASHBOARD_COPY = {
   en: {
     properties: "Properties",
     verified: "Verified",
@@ -81,9 +81,20 @@ const DASHBOARD_COPY = {
     exportJson: "Export JSON",
     demoOnly: "Demo only",
     rerunning: "Rerunning...",
-    rankedFixList: "Ranked fix list",
-    rankedFixListLead: "AI-prioritised by impact across GSC, GA4, and the latest crawl",
+    rankedFixList: "Ranked action list",
+    rankedFixListLead: "AI-prioritized actions across GSC, GA4, and the latest crawl",
     rerun: "Re-run",
+    rerunAllData: "Rerun all data",
+    reset: "Reset",
+    apply: "Apply",
+    liveWorkspace: "Live workspace",
+    dataComplete: "Data complete",
+    technicalScanStale: "Technical scan stale",
+    partialWindow: "Partial window",
+    dataUnavailable: "Data unavailable",
+    recomputingActionsShort: "Recomputing ranked actions",
+    refreshingSourceDataShort: "Refreshing source data",
+    refreshingTechnicalScan: "Refreshing technical scan",
     whyThisMatters: "Why this matters",
     affectedPages: "Affected pages",
     affectedTarget: "Affected target",
@@ -142,6 +153,8 @@ const DASHBOARD_COPY = {
     system: "System",
     override: "Override",
     snapshotTrailEntry: "Snapshot trail entry",
+    recentCaptures: "Recent captures",
+    snapshotTrail: "Snapshot trail",
     snapshotTrailDescription: "Review the frozen window, freshness state, and top-line metrics captured from the live dashboard.",
     loadingSnapshotDetails: "Loading snapshot details...",
     capturedWindow: "Captured window",
@@ -202,6 +215,34 @@ const DASHBOARD_COPY = {
     benchmark: "benchmark",
     lostClicks: "lost clicks",
     peak: "peak",
+    actionStateUpdated: "Action state updated.",
+    actionStateUpdateFailed: "Could not update action state.",
+    actionAssigned: "Action assigned to you.",
+    actionAssignFailed: "Could not assign action.",
+    snapshotCaptured: "Snapshot captured.",
+    snapshotCaptureFailed: "Could not capture snapshot.",
+    refreshSourceFailed: "Could not refresh source data.",
+    refreshCrawlFailed: "Could not refresh the technical scan.",
+    refreshCrawlQueued: "Technical refresh queued.",
+    refreshSourceSuccess: "Source data refreshed.",
+    refreshSourceSuccessRange: (start: string, end: string) => `Data refreshed for ${start} to ${end}.`,
+    rerunLoading: "Rerunning GA4, Search Console and crawl...",
+    rerunQueued: "Rerun queued.",
+    rerunFailed: "Rerun failed. Showing last valid dashboard.",
+    updateInProgress: "Update in progress",
+    rerunInProgressMessage: "Re-run in progress for the displayed data.",
+    recomputingActions: "Recomputing ranked actions...",
+    refreshingSourceData: "Refreshing source data...",
+    refreshingDisplayedData: "Refreshing the displayed data...",
+    taskCopied: "Task draft copied.",
+    taskCopyFailed: "Could not copy task draft.",
+    shareCreated: "Client share link created.",
+    shareCreateFailed: "Could not create share link.",
+    shareCopied: "Share link copied.",
+    shareCopyFailed: "Could not copy share link.",
+    priorityOverrideUpdated: "Priority override updated.",
+    priorityOverrideFailed: "Could not update the priority override.",
+    snapshotLoadFailed: "Could not load snapshot details.",
   },
   de: {
     properties: "Properties",
@@ -216,9 +257,20 @@ const DASHBOARD_COPY = {
     exportJson: "JSON exportieren",
     demoOnly: "Nur Demo",
     rerunning: "Läuft neu...",
-    rankedFixList: "Priorisierte Fix-Liste",
-    rankedFixListLead: "Nach Impact über GSC, GA4 und den letzten Crawl priorisiert",
+    rankedFixList: "Maßnahmenliste",
+    rankedFixListLead: "Nach Impact priorisierte Maßnahmen über GSC, GA4 und den letzten Crawl",
     rerun: "Neu berechnen",
+    rerunAllData: "Alle Daten neu berechnen",
+    reset: "Zurücksetzen",
+    apply: "Anwenden",
+    liveWorkspace: "Live-Arbeitsbereich",
+    dataComplete: "Daten vollständig",
+    technicalScanStale: "Technischer Scan veraltet",
+    partialWindow: "Teilweises Zeitfenster",
+    dataUnavailable: "Daten nicht verfügbar",
+    recomputingActionsShort: "Maßnahmenliste wird neu berechnet",
+    refreshingSourceDataShort: "Quelldaten werden aktualisiert",
+    refreshingTechnicalScan: "Technischer Scan wird aktualisiert",
     whyThisMatters: "Warum das wichtig ist",
     affectedPages: "Betroffene Seiten",
     affectedTarget: "Betroffenes Ziel",
@@ -277,6 +329,8 @@ const DASHBOARD_COPY = {
     system: "System",
     override: "Override",
     snapshotTrailEntry: "Snapshot-Eintrag",
+    recentCaptures: "Aktuelle Erfassungen",
+    snapshotTrail: "Snapshot-Verlauf",
     snapshotTrailDescription: "Prüfe das eingefrorene Zeitfenster, die Datenfrische und die Top-Metriken aus dem Live-Dashboard.",
     loadingSnapshotDetails: "Snapshot-Details werden geladen...",
     capturedWindow: "Erfasstes Zeitfenster",
@@ -337,12 +391,40 @@ const DASHBOARD_COPY = {
     benchmark: "Benchmark",
     lostClicks: "verlorene Klicks",
     peak: "Peak",
+    actionStateUpdated: "Maßnahmenstatus aktualisiert.",
+    actionStateUpdateFailed: "Maßnahmenstatus konnte nicht aktualisiert werden.",
+    actionAssigned: "Maßnahme dir zugewiesen.",
+    actionAssignFailed: "Maßnahme konnte nicht zugewiesen werden.",
+    snapshotCaptured: "Snapshot erfasst.",
+    snapshotCaptureFailed: "Snapshot konnte nicht erfasst werden.",
+    refreshSourceFailed: "Quelldaten konnten nicht aktualisiert werden.",
+    refreshCrawlFailed: "Technischer Scan konnte nicht aktualisiert werden.",
+    refreshCrawlQueued: "Technische Aktualisierung wurde eingereiht.",
+    refreshSourceSuccess: "Quelldaten aktualisiert.",
+    refreshSourceSuccessRange: (start: string, end: string) => `Daten für ${start} bis ${end} aktualisiert.`,
+    rerunLoading: "GA4, Search Console und Crawl werden neu berechnet...",
+    rerunQueued: "Neuberechnung wurde eingereiht.",
+    rerunFailed: "Neuberechnung fehlgeschlagen. Das letzte gültige Dashboard bleibt sichtbar.",
+    updateInProgress: "Aktualisierung läuft",
+    rerunInProgressMessage: "Neuberechnung für die angezeigten Daten läuft.",
+    recomputingActions: "Maßnahmenliste wird neu berechnet...",
+    refreshingSourceData: "Quelldaten werden aktualisiert...",
+    refreshingDisplayedData: "Angezeigte Daten werden aktualisiert...",
+    taskCopied: "Aufgabenentwurf kopiert.",
+    taskCopyFailed: "Aufgabenentwurf konnte nicht kopiert werden.",
+    shareCreated: "Kunden-Share-Link erstellt.",
+    shareCreateFailed: "Share-Link konnte nicht erstellt werden.",
+    shareCopied: "Share-Link kopiert.",
+    shareCopyFailed: "Share-Link konnte nicht kopiert werden.",
+    priorityOverrideUpdated: "Prioritäts-Override aktualisiert.",
+    priorityOverrideFailed: "Prioritäts-Override konnte nicht aktualisiert werden.",
+    snapshotLoadFailed: "Snapshot-Details konnten nicht geladen werden.",
   },
 } as const;
 
-type DashboardCopy = Readonly<Record<keyof typeof DASHBOARD_COPY.en, string>>;
+type DashboardCopy = (typeof DASHBOARD_COPY)[DashboardLanguage];
 
-function buildOptimisticRerunState(propertyId: string, baseState: PropertyRefreshState | null): PropertyRefreshState {
+function buildOptimisticRerunState(propertyId: string, baseState: PropertyRefreshState | null, copy: DashboardCopy): PropertyRefreshState {
   const now = new Date().toISOString();
 
   return {
@@ -350,7 +432,7 @@ function buildOptimisticRerunState(propertyId: string, baseState: PropertyRefres
     jobType: "decision_refresh",
     status: "queued",
     phase: "rerun_queued",
-    message: "Re-run in progress for the displayed data.",
+    message: copy.rerunInProgressMessage,
     progressMeta: baseState?.progressMeta ?? null,
     startedAt: baseState?.startedAt ?? null,
     finishedAt: null,
@@ -358,20 +440,20 @@ function buildOptimisticRerunState(propertyId: string, baseState: PropertyRefres
   };
 }
 
-function getActiveRefreshMessage(state: PropertyRefreshState) {
+function getActiveRefreshMessage(state: PropertyRefreshState, copy: DashboardCopy) {
   if (state.message) {
     return state.message;
   }
 
   if (state.phase === "analysis") {
-    return "Recomputing ranked actions...";
+    return copy.recomputingActions;
   }
 
   if (state.phase.startsWith("source_data")) {
-    return "Refreshing source data...";
+    return copy.refreshingSourceData;
   }
 
-  return "Refreshing the displayed data...";
+  return copy.refreshingDisplayedData;
 }
 
 const ACTION_STATES: Array<{ value: ActionRow["state"]; label: string }> = [
@@ -1137,10 +1219,10 @@ export function PropertyDashboardClient({
           snoozedUntil: state === "snoozed" ? addDays(new Date().toISOString().slice(0, 10), 7) : null,
         }),
       });
-      toast.success("Action state updated.");
+      toast.success(copy.actionStateUpdated);
       router.refresh();
     } catch (error) {
-      toast.error(getAppErrorMessage(error, "Could not update action state."));
+      toast.error(getAppErrorMessage(error, copy.actionStateUpdateFailed));
     } finally {
       setPendingStateKey(null);
     }
@@ -1170,10 +1252,10 @@ export function PropertyDashboardClient({
           assigneeEmail: currentUser.email,
         }),
       });
-      toast.success("Action assigned to you.");
+      toast.success(copy.actionAssigned);
       router.refresh();
     } catch (error) {
-      toast.error(getAppErrorMessage(error, "Could not assign action."));
+      toast.error(getAppErrorMessage(error, copy.actionAssignFailed));
     } finally {
       setPendingStateKey(null);
     }
@@ -1196,10 +1278,10 @@ export function PropertyDashboardClient({
           endDate: dashboard.analysisWindow.requestedEndDate,
         }),
       });
-      toast.success("Snapshot captured.");
+      toast.success(copy.snapshotCaptured);
       router.refresh();
     } catch (error) {
-      toast.error(getAppErrorMessage(error, "Could not capture snapshot."));
+      toast.error(getAppErrorMessage(error, copy.snapshotCaptureFailed));
     } finally {
       setSnapshotLoading(false);
     }
@@ -1229,12 +1311,12 @@ export function PropertyDashboardClient({
 
       toast.success(
         response
-          ? `Data refreshed for ${formatDateLabel(response.dateStart)} to ${formatDateLabel(response.dateEnd)}.`
-          : "Source data refreshed.",
+          ? copy.refreshSourceSuccessRange(formatDateLabel(response.dateStart), formatDateLabel(response.dateEnd))
+          : copy.refreshSourceSuccess,
       );
       router.refresh();
     } catch (error) {
-      toast.error(getAppErrorMessage(error, "Could not refresh source data."));
+      toast.error(getAppErrorMessage(error, copy.refreshSourceFailed));
     } finally {
       setRefreshLoading(false);
     }
@@ -1262,10 +1344,10 @@ export function PropertyDashboardClient({
       );
 
       setCurrentRefreshState(response?.refresh ?? null);
-      toast.success("Technical refresh queued.");
+      toast.success(copy.refreshCrawlQueued);
       router.refresh();
     } catch (error) {
-      toast.error(getAppErrorMessage(error, "Could not refresh the technical scan."));
+      toast.error(getAppErrorMessage(error, copy.refreshCrawlFailed));
     } finally {
       setRefreshLoading(false);
     }
@@ -1277,8 +1359,8 @@ export function PropertyDashboardClient({
       return;
     }
     setRerunLoading(true);
-    setCurrentRefreshState((state) => buildOptimisticRerunState(dashboard.property.id, state));
-    toast.loading("Rerunning GA4, Search Console and crawl…", {
+    setCurrentRefreshState((state) => buildOptimisticRerunState(dashboard.property.id, state, copy));
+    toast.loading(copy.rerunLoading, {
       id: refreshToastId,
       duration: Infinity,
     });
@@ -1302,19 +1384,19 @@ export function PropertyDashboardClient({
 
       if (response?.status === "failed") {
         setCurrentRefreshState(null);
-        toast.error("Rerun failed. Showing last valid dashboard.", {
+        toast.error(copy.rerunFailed, {
           id: refreshToastId,
           duration: TERMINAL_REFRESH_TOAST_DURATION_MS,
         });
       } else if (response?.warnings?.length) {
-        toast.loading(`Rerun queued. ${response.warnings[0]}`, { id: refreshToastId, duration: Infinity });
+        toast.loading(`${copy.rerunQueued} ${response.warnings[0]}`, { id: refreshToastId, duration: Infinity });
       } else {
-        toast.loading("Rerun queued.", { id: refreshToastId, duration: Infinity });
+        toast.loading(copy.rerunQueued, { id: refreshToastId, duration: Infinity });
       }
       router.refresh();
     } catch (error) {
       setCurrentRefreshState(null);
-      toast.error(getAppErrorMessage(error, "Rerun failed. Showing last valid dashboard."), {
+      toast.error(getAppErrorMessage(error, copy.rerunFailed), {
         id: refreshToastId,
         duration: TERMINAL_REFRESH_TOAST_DURATION_MS,
       });
@@ -1364,9 +1446,9 @@ export function PropertyDashboardClient({
 
     try {
       await navigator.clipboard.writeText(taskDraft);
-      toast.success("Task draft copied.");
+      toast.success(copy.taskCopied);
     } catch (error) {
-      toast.error(getAppErrorMessage(error, "Could not copy task draft."));
+      toast.error(getAppErrorMessage(error, copy.taskCopyFailed));
     }
   };
 
@@ -1401,9 +1483,9 @@ export function PropertyDashboardClient({
     try {
       const shareUrl = await createShareLink();
       window.open(shareUrl, "_blank", "noopener,noreferrer");
-      toast.success("Client share link created.");
+      toast.success(copy.shareCreated);
     } catch (error) {
-      toast.error(getAppErrorMessage(error, "Could not create share link."));
+      toast.error(getAppErrorMessage(error, copy.shareCreateFailed));
     } finally {
       setExportLoading(null);
     }
@@ -1414,9 +1496,9 @@ export function PropertyDashboardClient({
     try {
       const shareUrl = await createShareLink();
       await navigator.clipboard.writeText(shareUrl);
-      toast.success("Share link copied.");
+      toast.success(copy.shareCopied);
     } catch (error) {
-      toast.error(getAppErrorMessage(error, "Could not copy share link."));
+      toast.error(getAppErrorMessage(error, copy.shareCopyFailed));
     } finally {
       setExportLoading(null);
     }
@@ -1462,10 +1544,10 @@ export function PropertyDashboardClient({
           priorityOverride,
         }),
       });
-      toast.success("Priority override updated.");
+      toast.success(copy.priorityOverrideUpdated);
       router.refresh();
     } catch (error) {
-      toast.error(getAppErrorMessage(error, "Could not update the priority override."));
+      toast.error(getAppErrorMessage(error, copy.priorityOverrideFailed));
     } finally {
       setPendingStateKey(null);
     }
@@ -1486,7 +1568,7 @@ export function PropertyDashboardClient({
       setSnapshotDetail(response?.snapshot ?? null);
     } catch (error) {
       setIsSnapshotSheetOpen(false);
-      toast.error(getAppErrorMessage(error, "Could not load snapshot details."));
+      toast.error(getAppErrorMessage(error, copy.snapshotLoadFailed));
     } finally {
       setSnapshotDetailLoading(false);
     }
@@ -1504,6 +1586,7 @@ export function PropertyDashboardClient({
           startDate={dashboard.analysisWindow.startDate}
           endDate={dashboard.analysisWindow.requestedEndDate}
           onStateChange={setCurrentRefreshState}
+          language={language}
         />
       )}
       <div className="space-y-5">
@@ -1731,8 +1814,8 @@ export function PropertyDashboardClient({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="previous_period">Previous period</SelectItem>
-                  <SelectItem value="same_period_last_year">Same period last year</SelectItem>
-                  <SelectItem value="none">No comparison</SelectItem>
+                  <SelectItem value="same_period_last_year">{copy.samePeriodLastYear}</SelectItem>
+                  <SelectItem value="none">{copy.noComparison}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -1741,10 +1824,10 @@ export function PropertyDashboardClient({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="last_7d">Last 7 days</SelectItem>
-                  <SelectItem value="last_28d">Last 28 days</SelectItem>
-                  <SelectItem value="last_90d">Last 90 days</SelectItem>
-                  <SelectItem value="custom">Custom range</SelectItem>
+                  <SelectItem value="last_7d">{copy.last7Days}</SelectItem>
+                  <SelectItem value="last_28d">{copy.last28Days}</SelectItem>
+                  <SelectItem value="last_90d">{copy.last90Days}</SelectItem>
+                  <SelectItem value="custom">{copy.customRange}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -1758,11 +1841,11 @@ export function PropertyDashboardClient({
                 setStartDate(dashboard.analysisWindow.startDate);
                 setEndDate(dashboard.analysisWindow.requestedEndDate);
               }}>
-                Reset
+                {copy.reset}
               </Button>
-              <Button size="sm" className="h-9 rounded-full" onClick={applyFilters}>Apply</Button>
+              <Button size="sm" className="h-9 rounded-full" onClick={applyFilters}>{copy.apply}</Button>
               <Button variant="outline" size="sm" className="h-9 rounded-full bg-white" onClick={rerunAllData} disabled={rerunDisabled}>
-                {renderRerunButtonContent("Rerun all data")}
+                {renderRerunButtonContent(copy.rerunAllData)}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1778,7 +1861,7 @@ export function PropertyDashboardClient({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={copyShareLink} disabled={isBackendOperationDisabled || exportLoading !== null}>
                     <Link className="mr-2 size-4" />
-                    Copy share link
+                    {copy.copyShareLink}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={downloadSnapshotJson}>
                     <Download className="mr-2 size-4" />
@@ -1834,8 +1917,8 @@ export function PropertyDashboardClient({
             <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
               <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin" />
               <div>
-                <div className="font-semibold">Update in progress</div>
-                <div>{getActiveRefreshMessage(activeRefreshState)}</div>
+                <div className="font-semibold">{copy.updateInProgress}</div>
+                <div>{getActiveRefreshMessage(activeRefreshState, copy)}</div>
               </div>
             </div>
           ) : null}
@@ -2246,18 +2329,18 @@ export function PropertyDashboardClient({
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline" className="rounded-full border-primary/20 bg-primary/[0.06] px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-primary dark:border-primary/30 dark:bg-primary/10">
-                Live workspace
+                {copy.liveWorkspace}
               </Badge>
               <Badge variant={freshnessBadgeVariant(dashboard.freshness.state)} className="rounded-full px-3 py-1">
-                {dashboard.freshness.state === "complete" ? "Data complete" : dashboard.freshness.state === "stale" ? "Technical scan stale" : dashboard.freshness.state === "partial" ? "Partial window" : "Data unavailable"}
+                {dashboard.freshness.state === "complete" ? copy.dataComplete : dashboard.freshness.state === "stale" ? copy.technicalScanStale : dashboard.freshness.state === "partial" ? copy.partialWindow : copy.dataUnavailable}
               </Badge>
               {currentRefreshState && (currentRefreshState.status === "queued" || currentRefreshState.status === "processing") ? (
                 <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-3 py-1 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
                   {currentRefreshState.phase === "analysis"
-                    ? "Recomputing ranked actions"
+                    ? copy.recomputingActionsShort
                     : currentRefreshState.phase.startsWith("source_data")
-                      ? "Refreshing source data"
-                      : "Refreshing technical scan"}
+                      ? copy.refreshingSourceDataShort
+                      : copy.refreshingTechnicalScan}
                 </Badge>
               ) : null}
             </div>
@@ -2350,7 +2433,7 @@ export function PropertyDashboardClient({
                   disabled={isBackendOperationDisabled || refreshLoading}
                 >
                   <Zap className="mr-2 size-4" />
-                  Refresh technical scan
+                  {language === "de" ? "Technischen Scan aktualisieren" : "Refresh technical scan"}
                 </Button>
               </PropertyMetaPill>
               <PropertyMetaPill>
@@ -2360,7 +2443,7 @@ export function PropertyDashboardClient({
                   onClick={rerunAllData}
                   disabled={rerunDisabled}
                 >
-                  {renderRerunButtonContent("Rerun all data")}
+                  {renderRerunButtonContent(copy.rerunAllData)}
                 </Button>
               </PropertyMetaPill>
               <DropdownMenu>
@@ -2381,7 +2464,7 @@ export function PropertyDashboardClient({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={copyShareLink} disabled={isBackendOperationDisabled || exportLoading !== null}>
                     <Link className="mr-2 size-4" />
-                    Copy share link
+                    {copy.copyShareLink}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={downloadSnapshotJson}>
                     <Download className="mr-2 size-4" />
@@ -2471,10 +2554,10 @@ export function PropertyDashboardClient({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="last_7d">Last 7 days</SelectItem>
-                      <SelectItem value="last_28d">Last 28 days</SelectItem>
-                      <SelectItem value="last_90d">Last 90 days</SelectItem>
-                      <SelectItem value="custom">Custom range</SelectItem>
+                      <SelectItem value="last_7d">{copy.last7Days}</SelectItem>
+                      <SelectItem value="last_28d">{copy.last28Days}</SelectItem>
+                      <SelectItem value="last_90d">{copy.last90Days}</SelectItem>
+                      <SelectItem value="custom">{copy.customRange}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -2487,8 +2570,8 @@ export function PropertyDashboardClient({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="previous_period">Previous period</SelectItem>
-                      <SelectItem value="same_period_last_year">Same period last year</SelectItem>
-                      <SelectItem value="none">No comparison</SelectItem>
+                      <SelectItem value="same_period_last_year">{copy.samePeriodLastYear}</SelectItem>
+                      <SelectItem value="none">{copy.noComparison}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -2820,8 +2903,8 @@ export function PropertyDashboardClient({
             <div className="rounded-[28px] border border-zinc-200/95 bg-white/80 p-5 shadow-[0_18px_42px_-24px_rgba(15,23,42,0.24)] backdrop-blur dark:border-white/8 dark:bg-white/[0.05] dark:shadow-[0_22px_50px_-28px_rgba(0,0,0,0.65)]">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">Recent captures</p>
-                  <h3 className="mt-1 text-lg font-semibold">Snapshot trail</h3>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">{copy.recentCaptures}</p>
+                  <h3 className="mt-1 text-lg font-semibold">{copy.snapshotTrail}</h3>
                 </div>
                 <Badge variant="outline" className="rounded-full">{dashboard.recentSnapshots.length}</Badge>
               </div>

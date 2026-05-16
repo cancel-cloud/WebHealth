@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { requestJson } from "@/lib/client/api";
 import { getAppErrorMessage } from "@/lib/client/app-error";
+import { useAppLanguage } from "@/lib/app-language";
 
 type AiPromptTemplate = {
   id: string;
@@ -112,6 +113,48 @@ export function AiPromptsEditor({
   initialRuntimeSettings: AiRuntimeSettings | null;
   latestRuns: LatestAiRun[];
 }) {
+  const language = useAppLanguage();
+  const copy = language === "de"
+    ? {
+        promptSaved: "Prompt-Version gespeichert.",
+        promptSaveFailed: "Prompt-Vorlage konnte nicht gespeichert werden.",
+        runtimeSaved: "AI-Laufzeiteinstellungen gespeichert.",
+        runtimeSaveFailed: "AI-Laufzeiteinstellungen konnten nicht gespeichert werden.",
+        runtimeTitle: "OpenAI-Laufzeiteinstellungen",
+        runtimeDescription: "Wird vom Worker für Source Summaries und Analyzer-Aufrufe genutzt. Änderungen erzeugen beim nächsten AI-Lauf einen neuen Source-Version-Hash.",
+        summaryModel: "Summary-Modell",
+        analyzerModel: "Analyzer-Modell",
+        maxOutputTokens: "Max. Output-Tokens",
+        saving: "Speichert...",
+        saveSettings: "Einstellungen speichern",
+        diagnosticsTitle: "Neueste AI-Laufdiagnosen",
+        diagnosticsDescription: "Aktuelle Worker-Ergebnisse mit Fehlern, Token-Nutzung und AI run estimates.",
+        noRuns: "Noch keine AI-Läufe erfasst.",
+        purpose: "Zweck",
+        saveVersion: "Neue Version speichern",
+        summaries: "Summaries",
+        analyzer: "Analyzer",
+      }
+    : {
+        promptSaved: "Prompt version saved.",
+        promptSaveFailed: "Could not save prompt template.",
+        runtimeSaved: "AI runtime settings saved.",
+        runtimeSaveFailed: "Could not save AI runtime settings.",
+        runtimeTitle: "OpenAI runtime settings",
+        runtimeDescription: "Used by the worker for source summaries and analyzer calls. Changing this creates a new source-version hash on the next AI run.",
+        summaryModel: "Summary model",
+        analyzerModel: "Analyzer model",
+        maxOutputTokens: "Max output tokens",
+        saving: "Saving...",
+        saveSettings: "Save settings",
+        diagnosticsTitle: "Latest AI run diagnostics",
+        diagnosticsDescription: "Recent worker outcomes with errors, token usage, and AI run estimates.",
+        noRuns: "No AI runs have been recorded yet.",
+        purpose: "Purpose",
+        saveVersion: "Save new version",
+        summaries: "summaries",
+        analyzer: "analyzer",
+      };
   const initialRows = useMemo(() => groupActiveTemplates(initialTemplates), [initialTemplates]);
   const startingRuntimeSettings = initialRuntimeSettings ?? DEFAULT_RUNTIME_SETTINGS;
   const [rows, setRows] = useState<EditablePrompt[]>(() =>
@@ -158,10 +201,10 @@ export function AiPromptsEditor({
             : item,
         ),
       );
-      toast.success("Prompt version saved.");
+      toast.success(copy.promptSaved);
     } catch (error) {
       setRows((current) => current.map((item) => item.purpose === row.purpose ? { ...item, saving: false } : item));
-      toast.error(getAppErrorMessage(error, "Could not save prompt template."));
+      toast.error(getAppErrorMessage(error, copy.promptSaveFailed));
     }
   };
 
@@ -186,9 +229,9 @@ export function AiPromptsEditor({
           maxOutputTokens: String(saved.maxOutputTokens),
         });
       }
-      toast.success("AI runtime settings saved.");
+      toast.success(copy.runtimeSaved);
     } catch (error) {
-      toast.error(getAppErrorMessage(error, "Could not save AI runtime settings."));
+      toast.error(getAppErrorMessage(error, copy.runtimeSaveFailed));
     } finally {
       setRuntimeSaving(false);
     }
@@ -198,15 +241,15 @@ export function AiPromptsEditor({
     <div className="space-y-6">
       <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
         <div className="mb-4">
-          <h2 className="font-display text-lg font-semibold">OpenAI runtime settings</h2>
+          <h2 className="font-display text-lg font-semibold">{copy.runtimeTitle}</h2>
           <p className="text-sm text-muted-foreground">
-            Used by the worker for source summaries and analyzer calls. Changing this creates a new source-version hash on the next AI run.
+            {copy.runtimeDescription}
           </p>
         </div>
         <div className="grid gap-3 md:grid-cols-[1fr_1fr_180px_auto] md:items-end">
           <div>
             <label className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground" htmlFor="summary-model">
-              Summary model
+              {copy.summaryModel}
             </label>
             <Input
               id="summary-model"
@@ -217,7 +260,7 @@ export function AiPromptsEditor({
           </div>
           <div>
             <label className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground" htmlFor="analyzer-model">
-              Analyzer model
+              {copy.analyzerModel}
             </label>
             <Input
               id="analyzer-model"
@@ -228,7 +271,7 @@ export function AiPromptsEditor({
           </div>
           <div>
             <label className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground" htmlFor="max-output-tokens">
-              Max output tokens
+              {copy.maxOutputTokens}
             </label>
             <Input
               id="max-output-tokens"
@@ -242,15 +285,15 @@ export function AiPromptsEditor({
             />
           </div>
           <Button onClick={saveRuntimeSettings} disabled={runtimeSaving}>
-            {runtimeSaving ? "Saving..." : "Save settings"}
+            {runtimeSaving ? copy.saving : copy.saveSettings}
           </Button>
         </div>
       </section>
 
       <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
         <div className="mb-4">
-          <h2 className="font-display text-lg font-semibold">Latest AI run diagnostics</h2>
-          <p className="text-sm text-muted-foreground">Recent worker outcomes with errors, token usage, and AI run estimates.</p>
+          <h2 className="font-display text-lg font-semibold">{copy.diagnosticsTitle}</h2>
+          <p className="text-sm text-muted-foreground">{copy.diagnosticsDescription}</p>
         </div>
         <div className="space-y-3">
           {latestRuns.map((run) => (
@@ -263,7 +306,7 @@ export function AiPromptsEditor({
                     <span className="text-sm font-medium">{run.propertyName ?? run.propertyId}</span>
                   </div>
                   <div className="mt-2 text-xs text-muted-foreground">
-                    {run.summaryModel ?? "-"} summaries · {run.analyzerModel ?? "-"} analyzer · {formatUsage(run.usageSnapshot)}
+                    {run.summaryModel ?? "-"} {copy.summaries} · {run.analyzerModel ?? "-"} {copy.analyzer} · {formatUsage(run.usageSnapshot)}
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground md:text-right">
@@ -280,7 +323,7 @@ export function AiPromptsEditor({
           ))}
           {!latestRuns.length ? (
             <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
-              No AI runs have been recorded yet.
+              {copy.noRuns}
             </div>
           ) : null}
         </div>
@@ -294,10 +337,10 @@ export function AiPromptsEditor({
                 <h2 className="font-display text-lg font-semibold">{PURPOSE_LABELS[row.purpose] ?? row.purpose}</h2>
                 <Badge variant="outline">v{row.version}</Badge>
               </div>
-              <p className="text-sm text-muted-foreground">Purpose: <span className="font-mono">{row.purpose}</span></p>
+              <p className="text-sm text-muted-foreground">{copy.purpose}: <span className="font-mono">{row.purpose}</span></p>
             </div>
             <Button onClick={() => save(row)} disabled={row.saving}>
-              {row.saving ? "Saving..." : "Save new version"}
+              {row.saving ? copy.saving : copy.saveVersion}
             </Button>
           </div>
           <div className="grid gap-3">

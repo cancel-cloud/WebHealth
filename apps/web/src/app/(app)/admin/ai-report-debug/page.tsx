@@ -1,12 +1,14 @@
 import { DebugConsole } from "./debug-console";
+import { ADMIN_PAGE_COPY, getAdminLanguage } from "../admin-page-copy";
 
-export default function AiReportDebugPage() {
+export default async function AiReportDebugPage() {
+  const copy = ADMIN_PAGE_COPY[await getAdminLanguage()].aiDebug;
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Operations Debug Console</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{copy.title}</h1>
         <p className="text-muted-foreground text-sm">
-          Inspect source-data refreshes, property refreshes, AI run estimates, and OpenAI billed cost in one place.
+          {copy.description}
         </p>
       </div>
       <DebugConsole />

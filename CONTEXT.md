@@ -16,6 +16,22 @@ The language inferred from the user's Google account during sign-in. It can init
 
 The application language captured when a user creates a snapshot or share link. Client-facing snapshot artifacts use the captured snapshot language so the same artifact remains stable over time.
 
+### Maßnahmenliste
+
+The canonical German product term for ranked, prioritized, or fix/action lists shown to customers.
+
+Avoid: Fix-Liste, Fixliste.
+
+### KI-Insights
+
+The customer-facing German term for AI-assisted website insights and recommendations.
+
+Avoid for customer UI: AI Insights.
+
+### Generated recommendation language
+
+The application language used when WebHealth creates new AI-generated recommendation titles, summaries, and client-safe details. Existing stored recommendations keep their original language until a new AI run creates replacements.
+
 ### AI run estimate
 
 The estimated OpenAI cost attributed to one WebHealth AI analysis run from recorded response usage.

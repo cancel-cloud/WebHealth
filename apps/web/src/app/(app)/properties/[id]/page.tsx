@@ -13,6 +13,25 @@ import { getUserPreferredLanguage } from "@/lib/server/language";
 import { PropertyDashboardClient } from "./property-dashboard-client";
 import { SetupDismissButton } from "../../dashboard/setup-dismiss-button";
 
+const PROPERTY_DETAIL_COPY = {
+  en: {
+    analyticsNotLinked: "This Analytics property is active, but it is not linked to Search Console yet.",
+    limitedDashboard: "Limited dashboard",
+    ga4Limited: "Prioritized actions need both GA4 and Search Console. Link this GA4 source to a matching Search Console property on the Properties page to unlock the live decision surface.",
+    openProperties: "Open Properties",
+    incompleteTitle: "Analytics setup is incomplete",
+    incompleteDescription: "Prioritized actions are limited without a linked GA4 property. Open Properties to connect the matching Analytics source.",
+  },
+  de: {
+    analyticsNotLinked: "Diese Analytics-Property ist aktiv, aber noch nicht mit Search Console verknüpft.",
+    limitedDashboard: "Eingeschränktes Dashboard",
+    ga4Limited: "Priorisierte Maßnahmen benötigen GA4 und Search Console. Verknüpfe diese GA4-Quelle auf der Properties-Seite mit einer passenden Search-Console-Property, um die Live-Entscheidungsfläche freizuschalten.",
+    openProperties: "Properties öffnen",
+    incompleteTitle: "Analytics-Setup ist unvollständig",
+    incompleteDescription: "Priorisierte Maßnahmen sind ohne verknüpfte GA4-Property eingeschränkt. Öffne Properties, um die passende Analytics-Quelle zu verbinden.",
+  },
+} as const;
+
 export default async function PropertyDashboardPage({
   params,
   searchParams,
@@ -26,6 +45,7 @@ export default async function PropertyDashboardPage({
   const propertyId = decodeRouteParam(id);
   const query = await searchParams;
   const language = await getUserPreferredLanguage(session.user.id);
+  const copy = PROPERTY_DETAIL_COPY[language];
 
   let resolved;
   try {
@@ -41,16 +61,16 @@ export default async function PropertyDashboardPage({
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">{property.name}</h1>
             <p className="mt-1 max-w-2xl text-muted-foreground">
-              This Analytics property is active, but it is not linked to Search Console yet.
+              {copy.analyticsNotLinked}
             </p>
           </div>
           <div className="rounded-lg border border-amber-200/70 bg-amber-50/70 p-5 text-amber-950">
-            <h2 className="text-lg font-semibold">Limited dashboard</h2>
+            <h2 className="text-lg font-semibold">{copy.limitedDashboard}</h2>
             <p className="mt-2 text-sm">
-              Ranked actions need both GA4 and Search Console. Link this GA4 source to a matching Search Console property on the Properties page to unlock the live decision surface.
+              {copy.ga4Limited}
             </p>
             <Link className="mt-4 inline-flex text-sm font-semibold text-primary" href="/properties">
-              Open Properties
+              {copy.openProperties}
             </Link>
           </div>
         </div>
@@ -85,12 +105,12 @@ export default async function PropertyDashboardPage({
       {!resolved.linkedGa4Property && !setupDismissal ? (
         <div className="flex items-start justify-between gap-4 rounded-lg border border-amber-200/70 bg-amber-50/70 p-4 text-amber-950">
           <div>
-            <h2 className="text-sm font-semibold">Analytics setup is incomplete</h2>
+            <h2 className="text-sm font-semibold">{copy.incompleteTitle}</h2>
             <p className="mt-1 text-sm">
-              Ranked actions are limited without a linked GA4 property. Open Properties to connect the matching Analytics source.
+              {copy.incompleteDescription}
             </p>
             <Link className="mt-2 inline-flex text-sm font-semibold text-primary" href="/properties">
-              Open Properties
+              {copy.openProperties}
             </Link>
           </div>
           <SetupDismissButton propertyId={resolved.canonicalGscProperty.id} />
