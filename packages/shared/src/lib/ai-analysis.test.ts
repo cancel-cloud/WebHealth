@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   AI_PROMPT_TEMPLATE_PURPOSES,
   buildAiActionIdentity,
+  buildAiRecommendationLanguageInstruction,
   buildDefaultAiPromptTemplateSeeds,
   buildDefaultAiPromptTemplateRows,
   validateAiRecommendation,
@@ -34,6 +35,21 @@ test("validateAiRecommendation accepts evidence-backed AI recommendations", () =
   });
 
   assert.equal(result.ok, true);
+});
+
+test("buildAiRecommendationLanguageInstruction selects German for user-visible recommendation fields", () => {
+  const instruction = buildAiRecommendationLanguageInstruction("de");
+
+  assert.match(instruction, /German/);
+  assert.match(instruction, /title, summary, clientSafeSummary/);
+  assert.match(instruction, /Preserve URLs, queries, metrics/);
+});
+
+test("buildAiRecommendationLanguageInstruction selects English for user-visible recommendation fields", () => {
+  const instruction = buildAiRecommendationLanguageInstruction("en");
+
+  assert.match(instruction, /English/);
+  assert.match(instruction, /technical identifiers verbatim/);
 });
 
 test("validateAiRecommendation rejects action items without a concrete target and two evidence anchors", () => {

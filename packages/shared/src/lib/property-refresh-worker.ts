@@ -14,6 +14,7 @@ import {
 import { resolveTeamReportSources } from "@webhealth/shared/lib/properties/reportable-properties-db";
 import { runAiAnalysisForPropertyWindow } from "@webhealth/shared/lib/ai-analysis-runner";
 import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
+import { DEFAULT_SUPPORTED_LANGUAGE, parseSupportedLanguage } from "@webhealth/shared/lib/language";
 
 async function isRefreshPropertyActive(job: ClaimedPropertyRefreshJob) {
   const property = await db.query.properties.findFirst({
@@ -35,6 +36,19 @@ async function warmDashboardFromPayload(job: ClaimedPropertyRefreshJob) {
     startDate: typeof payload.startDate === "string" ? payload.startDate : null,
     endDate: typeof payload.endDate === "string" ? payload.endDate : null,
   });
+}
+
+async function getRefreshJobLanguage(job: ClaimedPropertyRefreshJob) {
+  const payload = (job.payload ?? {}) as Record<string, unknown>;
+  const payloadLanguage = parseSupportedLanguage(payload.language);
+  if (payloadLanguage) return payloadLanguage;
+
+  if (!job.triggeredByUserId) return DEFAULT_SUPPORTED_LANGUAGE;
+  const settings = await db.query.userSettings.findFirst({
+    where: (table, { eq }) => eq(table.userId, job.triggeredByUserId!),
+    columns: { preferredLanguage: true },
+  });
+  return parseSupportedLanguage(settings?.preferredLanguage) ?? DEFAULT_SUPPORTED_LANGUAGE;
 }
 
 function assertPropertyRefreshLease<T>(job: T | null): T {
@@ -142,6 +156,7 @@ async function processClaimedJob(job: ClaimedPropertyRefreshJob, workerId: strin
         compareMode: typeof payload.compareMode === "string" ? payload.compareMode : null,
         startDate: typeof payload.startDate === "string" ? payload.startDate : null,
         endDate: typeof payload.endDate === "string" ? payload.endDate : null,
+        language: await getRefreshJobLanguage(job),
       });
       console.log(`[property-refresh][INFO] completed decision refresh job=${job.id} property=${job.propertyId}`);
       const completed = await completePropertyRefreshJob({

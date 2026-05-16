@@ -1,7 +1,9 @@
 import { headers } from "next/headers";
 import { LogsTable } from "./logs-table";
+import { ADMIN_PAGE_COPY, getAdminLanguage } from "../admin-page-copy";
 
 export default async function AdminLogsPage() {
+  const copy = ADMIN_PAGE_COPY[await getAdminLanguage()].logs;
   const res = await fetch(
     `${process.env.BETTER_AUTH_URL}/api/admin/logs?limit=50`,
     {
@@ -15,9 +17,9 @@ export default async function AdminLogsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">System Logs</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{copy.title}</h1>
         <p className="text-muted-foreground text-sm">
-          Admin syncs, background refreshes, AI insight runs, action changes, and snapshot activity.
+          {copy.description}
         </p>
       </div>
       <LogsTable initialLogs={logs} />

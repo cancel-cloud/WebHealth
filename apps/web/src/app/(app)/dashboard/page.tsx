@@ -16,6 +16,7 @@ import { WorkspaceActionBoard } from "./workspace-action-board";
 import { ManagePropertiesDialog } from "./manage-properties-dialog";
 import { SetupDismissButton } from "./setup-dismiss-button";
 import { getUserPreferredLanguage } from "@/lib/server/language";
+import type { SupportedLanguage } from "@webhealth/shared/lib/language";
 
 const DASHBOARD_PAGE_COPY = {
   en: {
@@ -28,6 +29,64 @@ const DASHBOARD_PAGE_COPY = {
     activeSourcesDescription: "Synced sources enabled for dashboard work.",
     liveDashboards: "Live dashboards",
     liveDashboardsDescription: "Active website surfaces ready for decisions.",
+    workspaceBoardTitle: "Workspace action board",
+    workspaceBoardSubtitle: "Operate the whole workspace here first, then drop into a property when you need evidence.",
+    open: "Open",
+    openDescription: "Unresolved actions across sites",
+    inProgress: "In progress",
+    inProgressDescription: "Actions currently being worked",
+    snoozed: "Snoozed",
+    snoozedDescription: "Deferred follow-up work",
+    critical: "Critical",
+    criticalDescription: "Pinned or top-ranked blockers",
+    refreshing: "Refreshing",
+    refreshingDescription: "Properties updating in the background",
+    openActionsTitle: "Open actions across websites",
+    openActionsSubtitle: "System rank stays primary. Property status stays visible.",
+    propertiesAttentionTitle: "Properties needing attention",
+    propertiesAttentionSubtitle: "Refresh failures and active background work stay visible here.",
+    noTechnicalScan: "No technical scan captured yet.",
+    staleTechnicalScan: "Technical scan is stale.",
+    needsReview: "Needs review",
+    noPropertiesAttention: "No properties are currently refreshing or failed.",
+    aiRunCenterTitle: "AI Run Center",
+    aiRunCenterSubtitle: "Monitor AI review work across active properties. Property dashboards remain the source of prioritized action-list execution.",
+    estimatedSpend: "Estimated spend",
+    queued: "Queued",
+    queuedDescription: "Waiting to start",
+    processing: "Processing",
+    processingDescription: "Currently running",
+    complete: "Complete",
+    completeDescription: "Finished reviews",
+    failed: "Failed",
+    failedDescription: "Needs retry or review",
+    total: "Total",
+    totalDescription: "Tracked AI runs",
+    recentAiRuns: "Recent AI runs",
+    recentAiRunsSubtitle: "Latest source-summary and analyzer jobs by property.",
+    property: "Property",
+    status: "Status",
+    phase: "Phase",
+    model: "Model",
+    cost: "Cost",
+    updated: "Updated",
+    noAiRuns: "No AI runs have been recorded yet.",
+    latestAiFindings: "Latest AI findings",
+    latestAiFindingsSubtitle: "Evidence-backed findings that can appear in prioritized action lists.",
+    noAiRecommendations: "No AI recommendations have been saved yet.",
+    linked: "Linked",
+    ga4Only: "GA4 only",
+    gscOnly: "GSC only",
+    readyNow: "Ready now",
+    limited: "Limited",
+    linkGscSetup: "Link Search Console on the Properties page to unlock ranked actions.",
+    linkGa4Setup: "Link GA4 on the Properties page to complete traffic context.",
+    sources: "Sources",
+    dashboard: "Dashboard",
+    live: "Live",
+    sourceSetup: "Source setup",
+    linkedSources: "GSC + GA4 linked",
+    openDashboard: "Open dashboard",
   },
   de: {
     title: "Live-Website-Dashboard öffnen",
@@ -39,6 +98,64 @@ const DASHBOARD_PAGE_COPY = {
     activeSourcesDescription: "Synchronisierte Quellen für Dashboard-Arbeit.",
     liveDashboards: "Live-Dashboards",
     liveDashboardsDescription: "Aktive Website-Flächen bereit für Entscheidungen.",
+    workspaceBoardTitle: "Maßnahmenliste im Arbeitsbereich",
+    workspaceBoardSubtitle: "Steuere zuerst den gesamten Arbeitsbereich und öffne dann eine Property, wenn du Belege brauchst.",
+    open: "Offen",
+    openDescription: "Ungelöste Maßnahmen über alle Sites",
+    inProgress: "In Arbeit",
+    inProgressDescription: "Maßnahmen, die gerade bearbeitet werden",
+    snoozed: "Zurückgestellt",
+    snoozedDescription: "Auf später verschobene Arbeit",
+    critical: "Kritisch",
+    criticalDescription: "Gepinnte oder hoch priorisierte Blocker",
+    refreshing: "Aktualisiert",
+    refreshingDescription: "Properties laufen im Hintergrund",
+    openActionsTitle: "Offene Maßnahmen über Websites",
+    openActionsSubtitle: "Der Systemrang bleibt führend. Der Property-Status bleibt sichtbar.",
+    propertiesAttentionTitle: "Properties mit Handlungsbedarf",
+    propertiesAttentionSubtitle: "Fehlgeschlagene Aktualisierungen und laufende Hintergrundarbeit bleiben hier sichtbar.",
+    noTechnicalScan: "Noch kein technischer Scan erfasst.",
+    staleTechnicalScan: "Der technische Scan ist veraltet.",
+    needsReview: "Prüfung nötig",
+    noPropertiesAttention: "Aktuell werden keine Properties aktualisiert oder als fehlgeschlagen markiert.",
+    aiRunCenterTitle: "KI-Laufcenter",
+    aiRunCenterSubtitle: "Überwache KI-Prüfungen über aktive Properties. Property-Dashboards bleiben die Quelle für die priorisierte Maßnahmenliste.",
+    estimatedSpend: "Geschätzte Kosten",
+    queued: "Wartend",
+    queuedDescription: "Wartet auf Start",
+    processing: "Läuft",
+    processingDescription: "Wird gerade ausgeführt",
+    complete: "Abgeschlossen",
+    completeDescription: "Fertige Prüfungen",
+    failed: "Fehlgeschlagen",
+    failedDescription: "Braucht Wiederholung oder Prüfung",
+    total: "Gesamt",
+    totalDescription: "Erfasste KI-Läufe",
+    recentAiRuns: "Neueste KI-Läufe",
+    recentAiRunsSubtitle: "Aktuelle Source-Summary- und Analyzer-Jobs je Property.",
+    property: "Property",
+    status: "Status",
+    phase: "Phase",
+    model: "Modell",
+    cost: "Kosten",
+    updated: "Aktualisiert",
+    noAiRuns: "Noch keine KI-Läufe erfasst.",
+    latestAiFindings: "Neueste KI-Erkenntnisse",
+    latestAiFindingsSubtitle: "Beleggestützte Erkenntnisse, die in Maßnahmenlisten erscheinen können.",
+    noAiRecommendations: "Noch keine KI-Empfehlungen gespeichert.",
+    linked: "Verknüpft",
+    ga4Only: "Nur GA4",
+    gscOnly: "Nur GSC",
+    readyNow: "Bereit",
+    limited: "Eingeschränkt",
+    linkGscSetup: "Verknüpfe Search Console auf der Properties-Seite, um priorisierte Maßnahmen freizuschalten.",
+    linkGa4Setup: "Verknüpfe GA4 auf der Properties-Seite, um den Traffic-Kontext zu vervollständigen.",
+    sources: "Quellen",
+    dashboard: "Dashboard",
+    live: "Live",
+    sourceSetup: "Quellen-Setup",
+    linkedSources: "GSC + GA4 verknüpft",
+    openDashboard: "Dashboard öffnen",
   },
 } as const;
 
@@ -90,7 +207,7 @@ export default async function DashboardPage({
     if (params?.view === "ai-insights") {
       const isAdmin = await isAdminEmail(session!.user.email ?? null);
       const aiRunCenter = await getAiRunCenterData(targetTeamId);
-      return <AiRunCenterView data={aiRunCenter} isAdmin={isAdmin} />;
+      return <AiRunCenterView data={aiRunCenter} isAdmin={isAdmin} language={language} />;
     }
 
     const userProperties = await db.query.properties.findMany({
@@ -152,6 +269,7 @@ export default async function DashboardPage({
                 key={website.id}
                 website={website}
                 setupDismissed={dismissedSetupPropertyIds.has(website.id)}
+                language={language}
               />
             ))}
           </div>
@@ -179,32 +297,32 @@ export default async function DashboardPage({
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-xl font-semibold tracking-tight">Workspace action board</h2>
-              <p className="text-sm text-muted-foreground">Operate the whole workspace here first, then drop into a property when you need evidence.</p>
+              <h2 className="text-xl font-semibold tracking-tight">{copy.workspaceBoardTitle}</h2>
+              <p className="text-sm text-muted-foreground">{copy.workspaceBoardSubtitle}</p>
             </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-5">
-            <SummaryTile label="Open" value={workspaceBoard.counts.open} description="Unresolved actions across sites" />
-            <SummaryTile label="In progress" value={workspaceBoard.counts.inProgress} description="Actions currently being worked" />
-            <SummaryTile label="Snoozed" value={workspaceBoard.counts.snoozed} description="Deferred follow-up work" />
-            <SummaryTile label="Critical" value={workspaceBoard.counts.blocked} description="Pinned or top-ranked blockers" />
-            <SummaryTile label="Refreshing" value={workspaceBoard.counts.refreshing} description="Properties updating in the background" />
+            <SummaryTile label={copy.open} value={workspaceBoard.counts.open} description={copy.openDescription} />
+            <SummaryTile label={copy.inProgress} value={workspaceBoard.counts.inProgress} description={copy.inProgressDescription} />
+            <SummaryTile label={copy.snoozed} value={workspaceBoard.counts.snoozed} description={copy.snoozedDescription} />
+            <SummaryTile label={copy.critical} value={workspaceBoard.counts.blocked} description={copy.criticalDescription} />
+            <SummaryTile label={copy.refreshing} value={workspaceBoard.counts.refreshing} description={copy.refreshingDescription} />
           </div>
 
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
             <div className="rounded-lg border border-border/70 bg-card/90 p-5 shadow-sm">
               <div className="mb-4">
-                <h3 className="text-lg font-semibold tracking-tight">Open actions across websites</h3>
-                <p className="text-sm text-muted-foreground">System rank stays primary. Property status stays visible.</p>
+                <h3 className="text-lg font-semibold tracking-tight">{copy.openActionsTitle}</h3>
+                <p className="text-sm text-muted-foreground">{copy.openActionsSubtitle}</p>
               </div>
               <WorkspaceActionBoard board={workspaceBoard} />
             </div>
 
             <div className="rounded-lg border border-border/70 bg-card/90 p-5 shadow-sm">
               <div className="mb-4">
-                <h3 className="text-lg font-semibold tracking-tight">Properties needing attention</h3>
-                <p className="text-sm text-muted-foreground">Refresh failures and active background work stay visible here.</p>
+                <h3 className="text-lg font-semibold tracking-tight">{copy.propertiesAttentionTitle}</h3>
+                <p className="text-sm text-muted-foreground">{copy.propertiesAttentionSubtitle}</p>
               </div>
               <div className="space-y-3">
                 {workspaceBoard.propertiesNeedingAttention.length ? workspaceBoard.propertiesNeedingAttention.map((property) => (
@@ -217,14 +335,14 @@ export default async function DashboardPage({
                     <div className="mt-1 text-xs text-muted-foreground">
                       {property.refreshState?.message
                         ?? (property.crawlState.missing
-                          ? "No technical scan captured yet."
+                          ? copy.noTechnicalScan
                           : property.crawlState.stale
-                            ? "Technical scan is stale."
-                            : "Needs review")}
+                            ? copy.staleTechnicalScan
+                            : copy.needsReview)}
                     </div>
                   </Link>
                 )) : (
-                  <div className="rounded-lg border border-border/70 px-4 py-6 text-sm text-muted-foreground">No properties are currently refreshing or failed.</div>
+                  <div className="rounded-lg border border-border/70 px-4 py-6 text-sm text-muted-foreground">{copy.noPropertiesAttention}</div>
                 )}
               </div>
             </div>
@@ -248,7 +366,8 @@ function formatDate(value: string) {
   return new Date(value).toLocaleString();
 }
 
-function AiRunCenterView({ data, isAdmin }: { data: AiRunCenterData; isAdmin: boolean }) {
+function AiRunCenterView({ data, isAdmin, language }: { data: AiRunCenterData; isAdmin: boolean; language: SupportedLanguage }) {
+  const copy = DASHBOARD_PAGE_COPY[language];
   const visibleRuns = isAdmin ? data.runs : data.runs.filter((run) => run.status !== "failed");
   const visibleCounts = isAdmin
     ? data.counts
@@ -262,43 +381,43 @@ function AiRunCenterView({ data, isAdmin }: { data: AiRunCenterData; isAdmin: bo
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">AI Run Center</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{copy.aiRunCenterTitle}</h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">
-            Monitor AI review work across active properties. Property dashboards remain the source of ranked fix-list execution.
+            {copy.aiRunCenterSubtitle}
           </p>
         </div>
         {isAdmin ? (
           <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
             <Bot className="size-4" />
-            <span>Estimated spend: {formatUsd(data.estimatedCostUsd)}</span>
+            <span>{copy.estimatedSpend}: {formatUsd(data.estimatedCostUsd)}</span>
           </div>
         ) : null}
       </div>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <SummaryTile label="Queued" value={visibleCounts.queued} description="Waiting to start" />
-        <SummaryTile label="Processing" value={visibleCounts.processing} description="Currently running" />
-        <SummaryTile label="Complete" value={visibleCounts.complete} description="Finished reviews" />
-        {isAdmin ? <SummaryTile label="Failed" value={visibleCounts.failed} description="Needs retry or review" /> : null}
-        <SummaryTile label="Total" value={visibleCounts.total} description="Tracked AI runs" />
+        <SummaryTile label={copy.queued} value={visibleCounts.queued} description={copy.queuedDescription} />
+        <SummaryTile label={copy.processing} value={visibleCounts.processing} description={copy.processingDescription} />
+        <SummaryTile label={copy.complete} value={visibleCounts.complete} description={copy.completeDescription} />
+        {isAdmin ? <SummaryTile label={copy.failed} value={visibleCounts.failed} description={copy.failedDescription} /> : null}
+        <SummaryTile label={copy.total} value={visibleCounts.total} description={copy.totalDescription} />
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
         <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
           <div className="mb-4">
-            <h2 className="font-display text-lg font-semibold">Recent AI runs</h2>
-            <p className="text-sm text-muted-foreground">Latest source-summary and analyzer jobs by property.</p>
+            <h2 className="font-display text-lg font-semibold">{copy.recentAiRuns}</h2>
+            <p className="text-sm text-muted-foreground">{copy.recentAiRunsSubtitle}</p>
           </div>
           <div className="overflow-x-auto">
             <table className={`w-full text-left text-sm ${isAdmin ? "min-w-[760px]" : "min-w-[520px]"}`}>
               <thead className="border-b text-xs uppercase tracking-[0.12em] text-muted-foreground">
                 <tr>
-                  <th className="py-2 pr-4">Property</th>
-                  <th className="py-2 pr-4">Status</th>
-                  <th className="py-2 pr-4">Phase</th>
-                  {isAdmin ? <th className="py-2 pr-4">Model</th> : null}
-                  {isAdmin ? <th className="py-2 pr-4">Cost</th> : null}
-                  {isAdmin ? <th className="py-2 pr-4">Updated</th> : null}
+                  <th className="py-2 pr-4">{copy.property}</th>
+                  <th className="py-2 pr-4">{copy.status}</th>
+                  <th className="py-2 pr-4">{copy.phase}</th>
+                  {isAdmin ? <th className="py-2 pr-4">{copy.model}</th> : null}
+                  {isAdmin ? <th className="py-2 pr-4">{copy.cost}</th> : null}
+                  {isAdmin ? <th className="py-2 pr-4">{copy.updated}</th> : null}
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -328,7 +447,7 @@ function AiRunCenterView({ data, isAdmin }: { data: AiRunCenterData; isAdmin: bo
                 {!visibleRuns.length ? (
                   <tr>
                     <td colSpan={isAdmin ? 6 : 3} className="py-8 text-center text-muted-foreground">
-                      No AI runs have been recorded yet.
+                      {copy.noAiRuns}
                     </td>
                   </tr>
                 ) : null}
@@ -339,8 +458,8 @@ function AiRunCenterView({ data, isAdmin }: { data: AiRunCenterData; isAdmin: bo
 
         <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
           <div className="mb-4">
-            <h2 className="font-display text-lg font-semibold">Latest AI findings</h2>
-            <p className="text-sm text-muted-foreground">Evidence-backed findings that can appear in ranked fix lists.</p>
+            <h2 className="font-display text-lg font-semibold">{copy.latestAiFindings}</h2>
+            <p className="text-sm text-muted-foreground">{copy.latestAiFindingsSubtitle}</p>
           </div>
           <div className="space-y-3">
             {data.recommendations.map((item) => (
@@ -367,7 +486,7 @@ function AiRunCenterView({ data, isAdmin }: { data: AiRunCenterData; isAdmin: bo
             ))}
             {!data.recommendations.length ? (
               <div className="rounded-lg border border-border/70 px-4 py-6 text-sm text-muted-foreground">
-                No AI recommendations have been saved yet.
+                {copy.noAiRecommendations}
               </div>
             ) : null}
           </div>
@@ -399,17 +518,18 @@ type WebsiteLauncherCardProps = {
   website: Awaited<ReturnType<typeof listTeamCombinedReportableProperties>>[number];
 };
 
-function WebsiteLauncherCard({ website, setupDismissed }: WebsiteLauncherCardProps & { setupDismissed: boolean }) {
-  const statusLabel = website.isLinked ? "Linked" : website.sourceCoverage === "ga4_only" ? "GA4 only" : "GSC only";
+function WebsiteLauncherCard({ website, setupDismissed, language }: WebsiteLauncherCardProps & { setupDismissed: boolean; language: SupportedLanguage }) {
+  const copy = DASHBOARD_PAGE_COPY[language];
+  const statusLabel = website.isLinked ? copy.linked : website.sourceCoverage === "ga4_only" ? copy.ga4Only : copy.gscOnly;
   const statusClassName = website.isLinked
     ? "border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300"
     : "border-amber-200/80 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300";
   const sourceCount = website.isLinked ? "2" : "1";
-  const sourceMix = website.isLinked ? "GSC + GA4" : website.sourceCoverage === "ga4_only" ? "GA4 only" : "GSC only";
-  const setupSummary = website.isLinked ? "Ready now" : "Limited";
+  const sourceMix = website.isLinked ? "GSC + GA4" : website.sourceCoverage === "ga4_only" ? copy.ga4Only : copy.gscOnly;
+  const setupSummary = website.isLinked ? copy.readyNow : copy.limited;
   const setupMessage = website.sourceCoverage === "ga4_only"
-    ? "Link Search Console on the Properties page to unlock ranked actions."
-    : "Link GA4 on the Properties page to complete traffic context.";
+    ? copy.linkGscSetup
+    : copy.linkGa4Setup;
 
   return (
     <div className="group overflow-hidden rounded-lg border border-border/70 bg-card/95 p-5 shadow-sm transition-colors hover:border-primary/35 hover:bg-card">
@@ -436,13 +556,13 @@ function WebsiteLauncherCard({ website, setupDismissed }: WebsiteLauncherCardPro
 
       <div className="mt-6 grid grid-cols-2 gap-6">
         <div>
-          <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Sources</div>
+          <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{copy.sources}</div>
           <div className="mt-1 text-3xl font-semibold tracking-tight">{sourceCount}</div>
           <div className="mt-1 text-sm font-medium text-emerald-600 dark:text-emerald-400">{sourceMix}</div>
         </div>
         <div>
-          <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Dashboard</div>
-          <div className="mt-1 text-3xl font-semibold tracking-tight">Live</div>
+          <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{copy.dashboard}</div>
+          <div className="mt-1 text-3xl font-semibold tracking-tight">{copy.live}</div>
           <div className="mt-1 text-sm font-medium text-muted-foreground">{setupSummary}</div>
         </div>
       </div>
@@ -450,14 +570,14 @@ function WebsiteLauncherCard({ website, setupDismissed }: WebsiteLauncherCardPro
       <div className="mt-5 border-t border-dashed border-border/70 pt-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 text-sm text-muted-foreground">
-            Source setup:{" "}
-            <span className="font-semibold text-foreground">{website.isLinked ? "GSC + GA4 linked" : setupMessage}</span>
+            {copy.sourceSetup}:{" "}
+            <span className="font-semibold text-foreground">{website.isLinked ? copy.linkedSources : setupMessage}</span>
           </div>
           <Link
             href={`/properties/${encodeURIComponent(website.id)}`}
             className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary transition-transform group-hover:translate-x-0.5"
           >
-            Open dashboard
+            {copy.openDashboard}
             <ArrowRight className="size-4" />
           </Link>
         </div>

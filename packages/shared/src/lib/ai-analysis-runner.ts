@@ -13,6 +13,7 @@ import {
 import {
   buildAiEvidenceIndex,
   buildAiActionIdentity,
+  buildAiRecommendationLanguageInstruction,
   buildDefaultAiPromptTemplateRows,
   resolveAiAnalysisRunConflictAction,
   validateAiRecommendation,
@@ -37,6 +38,7 @@ import { extractOpenAIRequestId } from "@webhealth/shared/lib/openai/request-tra
 import { recordProductEvent } from "@webhealth/shared/lib/product-event-store";
 import { getAiRuntimeSettings } from "@webhealth/shared/lib/ai-runtime-settings";
 import { buildAiRunFailedCostProperties } from "@webhealth/shared/lib/product-events";
+import { normalizeSupportedLanguage, type SupportedLanguage } from "@webhealth/shared/lib/language";
 
 type DateString = string;
 
@@ -436,6 +438,7 @@ export async function runAiAnalysisForPropertyWindow(params: {
   compareMode?: string | null;
   startDate?: string | null;
   endDate?: string | null;
+  language?: SupportedLanguage | null;
 }) {
   const property = await db.query.properties.findFirst({
     where: and(eq(properties.id, params.propertyId), eq(properties.teamId, params.teamId)),
@@ -455,6 +458,8 @@ export async function runAiAnalysisForPropertyWindow(params: {
 
   const prompts = await ensurePromptTemplates();
   const runtimeSettings = await getAiRuntimeSettings();
+  const language = normalizeSupportedLanguage(params.language);
+  const languageInstruction = buildAiRecommendationLanguageInstruction(language);
   const promptVersions = Object.fromEntries(
     [...prompts.entries()].map(([purpose, template]) => [purpose, template.version]),
   ) as AiPromptVersionMap;
@@ -491,6 +496,7 @@ export async function runAiAnalysisForPropertyWindow(params: {
       analyzerModel: runtimeSettings.analyzerModel,
       maxOutputTokens: runtimeSettings.maxOutputTokens,
     },
+    language,
   });
   const runId = `air_${nanoid(12)}`;
   const conflictTarget = [
@@ -639,6 +645,7 @@ export async function runAiAnalysisForPropertyWindow(params: {
       model: analyzerModel,
       systemPrompt: prompts.get("main_analyzer")!.systemPrompt,
       userInput: {
+        languageInstruction,
         window,
         summaries: {
           gsc: gscSummary.output,
@@ -716,6 +723,7 @@ export async function runAiAnalysisForPropertyWindow(params: {
           systemScore: Math.max(1, 80 - index * 5),
           priorityOverride: existingAction?.priorityOverride ?? "none",
           lastEvaluatedAt: new Date(),
+          language,
           updatedAt: new Date(),
         })
         .onConflictDoUpdate({
@@ -726,6 +734,7 @@ export async function runAiAnalysisForPropertyWindow(params: {
             systemRank: 20 + index,
             systemScore: Math.max(1, 80 - index * 5),
             lastEvaluatedAt: new Date(),
+            language,
             updatedAt: new Date(),
           },
         })

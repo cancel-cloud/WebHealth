@@ -41,3 +41,24 @@ test("sync success copy still reports newly synced properties", () => {
     "Synced 2 GSC, 1 GA4 new properties • 1 auto-linked.",
   );
 });
+
+test("sync success copy localizes German no-property and auto-linked states", () => {
+  assert.equal(
+    formatPropertiesSyncSuccess({
+      gscCount: 0,
+      ga4Count: 0,
+      discoveredGscCount: 0,
+      discoveredGa4Count: 0,
+      autoLinked: 0,
+    }, "de"),
+    "Mit diesem Google-Konto sind noch keine Search-Console- oder Analytics-Properties verbunden.",
+  );
+  assert.equal(
+    formatPropertiesSyncSuccess({
+      gscCount: 1,
+      ga4Count: 1,
+      autoLinked: 2,
+    }, "de"),
+    "1 GSC, 1 GA4 neue Properties synchronisiert • 2 automatisch verknüpft.",
+  );
+});

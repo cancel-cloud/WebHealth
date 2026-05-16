@@ -81,6 +81,19 @@ const PROPERTIES_COPY = {
     openLiveDashboard: "Open live dashboard",
     linkGa4ThenActivate: "Link GA4, then activate.",
     secondary: "Secondary to the website dashboard.",
+    ga4Linked: "GA4 linked!",
+    genericError: "An error occurred",
+    linkGa4: "Link GA4",
+    linkGa4Title: "Link GA4 Property",
+    linkGa4Description: (name: string) => <>Select a GA4 property to link with <strong>{name}</strong>.</>,
+    selectGa4: "Select a GA4 property…",
+    cancel: "Cancel",
+    linking: "Linking…",
+    link: "Link",
+    autoSyncLoading: "Properties are syncing. Please wait a few seconds…",
+    googleAccessNeedsAttention: "Google access needs attention before properties can sync.",
+    autoSyncFailed: "Auto-sync failed",
+    unknownError: "Unknown error",
   },
   de: {
     activated: "Property aktiviert",
@@ -109,6 +122,19 @@ const PROPERTIES_COPY = {
     openLiveDashboard: "Live-Dashboard öffnen",
     linkGa4ThenActivate: "GA4 verknüpfen, dann aktivieren.",
     secondary: "Sekundär zum Website-Dashboard.",
+    ga4Linked: "GA4 verknüpft!",
+    genericError: "Ein Fehler ist aufgetreten",
+    linkGa4: "GA4 verknüpfen",
+    linkGa4Title: "GA4-Property verknüpfen",
+    linkGa4Description: (name: string) => <><strong>{name}</strong> mit einer GA4-Property verknüpfen.</>,
+    selectGa4: "GA4-Property auswählen…",
+    cancel: "Abbrechen",
+    linking: "Verknüpft…",
+    link: "Verknüpfen",
+    autoSyncLoading: "Properties werden synchronisiert. Bitte warte ein paar Sekunden…",
+    googleAccessNeedsAttention: "Google-Zugriff braucht Aufmerksamkeit, bevor Properties synchronisiert werden können.",
+    autoSyncFailed: "Auto-Sync fehlgeschlagen",
+    unknownError: "Unbekannter Fehler",
   },
 } as const;
 
@@ -137,6 +163,8 @@ function LinkGa4Dialog({
   const [selectedGa4Id, setSelectedGa4Id] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { hasBlockingIssue } = useGoogleAccessRecovery();
+  const language = useAppLanguage();
+  const copy = PROPERTIES_COPY[language];
 
   const ga4Options = getGa4PropertyOptions(ga4Properties);
 
@@ -152,12 +180,12 @@ function LinkGa4Dialog({
           body: JSON.stringify({ ga4PropertyId: selectedGa4Id }),
         },
       );
-      toast.success("GA4 linked!");
+      toast.success(copy.ga4Linked);
       setOpen(false);
       dispatchAppSidebarPropertiesRefresh();
       onLinked();
     } catch (err) {
-      toast.error(getAppErrorMessage(err, "An error occurred"));
+      toast.error(getAppErrorMessage(err, copy.genericError));
     } finally {
       setIsSubmitting(false);
     }
@@ -173,21 +201,21 @@ function LinkGa4Dialog({
         disabled={ga4Options.length === 0 || hasBlockingIssue}
       >
         <Link2 className="size-3" />
-        Link GA4
+        {copy.linkGa4}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle className="font-display">Link GA4 Property</DialogTitle>
+            <DialogTitle className="font-display">{copy.linkGa4Title}</DialogTitle>
             <DialogDescription>
-              Select a GA4 property to link with <strong>{gscProperty.name}</strong>.
+              {copy.linkGa4Description(gscProperty.name)}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Select value={selectedGa4Id} onValueChange={setSelectedGa4Id}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a GA4 property…" />
+                <SelectValue placeholder={copy.selectGa4} />
               </SelectTrigger>
               <SelectContent>
                 {ga4Options.map((property) => (
@@ -200,10 +228,10 @@ function LinkGa4Dialog({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
+              {copy.cancel}
             </Button>
             <Button onClick={handleLink} disabled={!selectedGa4Id || isSubmitting} className="rounded-full">
-              {isSubmitting ? "Linking…" : "Link"}
+              {isSubmitting ? copy.linking : copy.link}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -259,22 +287,22 @@ export default function PropertiesPage() {
     })();
 
     void toast.promise(syncPromise, {
-      loading: "Properties are syncing. Please wait a few seconds…",
-      success: (data) => formatPropertiesSyncSuccess(data),
+      loading: copy.autoSyncLoading,
+      success: (data) => formatPropertiesSyncSuccess(data, language),
       error: (err) => {
         const code = err instanceof Error && "code" in err ? (err as { code?: string | null }).code : null;
         if (getGoogleAccessIssueFromCode(code)) {
           void refreshHealth();
-          return "Google access needs attention before properties can sync.";
+          return copy.googleAccessNeedsAttention;
         }
-        return `Auto-sync failed: ${err instanceof Error ? err.message : "Unknown error"}`;
+        return `${copy.autoSyncFailed}: ${err instanceof Error ? err.message : copy.unknownError}`;
       },
     });
 
     void syncPromise.finally(() => {
       setIsAutoSyncing(false);
     });
-  }, [hasBlockingIssue, isAutoSyncing, loading, loadProperties, properties.length, refreshHealth]);
+  }, [copy, hasBlockingIssue, isAutoSyncing, language, loading, loadProperties, properties.length, refreshHealth]);
 
   const ga4Properties = properties.filter((p) => p.type === "ga4");
   const managedRows = buildManagedPropertyRows(properties);

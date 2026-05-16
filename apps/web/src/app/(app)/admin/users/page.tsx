@@ -1,7 +1,9 @@
 import { headers } from "next/headers";
 import { UsersTable } from "./users-table";
+import { ADMIN_PAGE_COPY, getAdminLanguage } from "../admin-page-copy";
 
 export default async function AdminUsersPage() {
+  const copy = ADMIN_PAGE_COPY[await getAdminLanguage()].users;
   const res = await fetch(
     `${process.env.BETTER_AUTH_URL}/api/admin/users`,
     {
@@ -15,9 +17,9 @@ export default async function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">User Management</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{copy.title}</h1>
         <p className="text-muted-foreground text-sm">
-          All registered users with their team and property usage.
+          {copy.description}
         </p>
       </div>
       <UsersTable users={users} />

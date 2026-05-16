@@ -12,14 +12,18 @@ import {
   buildAiRunFailedCostProperties
 } from "./chunk-DWZQMWUX.js";
 import {
+  DEFAULT_SUPPORTED_LANGUAGE,
   buildAiActionIdentity,
   buildAiEvidenceIndex,
+  buildAiRecommendationLanguageInstruction,
   buildDefaultAiPromptTemplateRows,
+  normalizeSupportedLanguage,
+  parseSupportedLanguage,
   resolveAiAnalysisRunConflictAction,
   resolveAnalysisWindow,
   resolveTeamReportSources,
   validateAiRecommendation
-} from "./chunk-TJBJ3VFI.js";
+} from "./chunk-NCBD42PS.js";
 import {
   claimNextPropertyRefreshJob,
   completePropertyRefreshJob,
@@ -800,6 +804,8 @@ async function runAiAnalysisForPropertyWindow(params) {
   }
   const prompts = await ensurePromptTemplates();
   const runtimeSettings = await getAiRuntimeSettings();
+  const language = normalizeSupportedLanguage(params.language);
+  const languageInstruction = buildAiRecommendationLanguageInstruction(language);
   const promptVersions = Object.fromEntries(
     [...prompts.entries()].map(([purpose, template]) => [purpose, template.version])
   );
@@ -831,7 +837,8 @@ async function runAiAnalysisForPropertyWindow(params) {
       summaryModel: runtimeSettings.summaryModel,
       analyzerModel: runtimeSettings.analyzerModel,
       maxOutputTokens: runtimeSettings.maxOutputTokens
-    }
+    },
+    language
   });
   const runId = `air_${nanoid(12)}`;
   const conflictTarget = [
@@ -966,6 +973,7 @@ async function runAiAnalysisForPropertyWindow(params) {
       model: analyzerModel,
       systemPrompt: prompts.get("main_analyzer").systemPrompt,
       userInput: {
+        languageInstruction,
         window,
         summaries: {
           gsc: gscSummary.output,
@@ -1035,6 +1043,7 @@ async function runAiAnalysisForPropertyWindow(params) {
         systemScore: Math.max(1, 80 - index * 5),
         priorityOverride: existingAction?.priorityOverride ?? "none",
         lastEvaluatedAt: /* @__PURE__ */ new Date(),
+        language,
         updatedAt: /* @__PURE__ */ new Date()
       }).onConflictDoUpdate({
         target: [actionItems.propertyId, actionItems.fingerprint],
@@ -1044,6 +1053,7 @@ async function runAiAnalysisForPropertyWindow(params) {
           systemRank: 20 + index,
           systemScore: Math.max(1, 80 - index * 5),
           lastEvaluatedAt: /* @__PURE__ */ new Date(),
+          language,
           updatedAt: /* @__PURE__ */ new Date()
         }
       }).returning();
@@ -1110,7 +1120,7 @@ async function isRefreshPropertyActive(job) {
 }
 async function warmDashboardFromPayload(job) {
   const payload = job.payload ?? {};
-  const { getLiveDashboardData } = await import("./live-dashboard-VXJ6ISK7.js");
+  const { getLiveDashboardData } = await import("./live-dashboard-UQBTTGPS.js");
   await getLiveDashboardData({
     teamId: job.teamId,
     propertyId: job.propertyId,
@@ -1119,6 +1129,17 @@ async function warmDashboardFromPayload(job) {
     startDate: typeof payload.startDate === "string" ? payload.startDate : null,
     endDate: typeof payload.endDate === "string" ? payload.endDate : null
   });
+}
+async function getRefreshJobLanguage(job) {
+  const payload = job.payload ?? {};
+  const payloadLanguage = parseSupportedLanguage(payload.language);
+  if (payloadLanguage) return payloadLanguage;
+  if (!job.triggeredByUserId) return DEFAULT_SUPPORTED_LANGUAGE;
+  const settings = await db.query.userSettings.findFirst({
+    where: (table, { eq: eq3 }) => eq3(table.userId, job.triggeredByUserId),
+    columns: { preferredLanguage: true }
+  });
+  return parseSupportedLanguage(settings?.preferredLanguage) ?? DEFAULT_SUPPORTED_LANGUAGE;
 }
 function assertPropertyRefreshLease(job) {
   if (!job) throw new Error("Property refresh job lease was lost");
@@ -1214,7 +1235,8 @@ async function processClaimedJob(job, workerId) {
         preset: typeof payload.preset === "string" ? payload.preset : null,
         compareMode: typeof payload.compareMode === "string" ? payload.compareMode : null,
         startDate: typeof payload.startDate === "string" ? payload.startDate : null,
-        endDate: typeof payload.endDate === "string" ? payload.endDate : null
+        endDate: typeof payload.endDate === "string" ? payload.endDate : null,
+        language: await getRefreshJobLanguage(job)
       });
       console.log(`[property-refresh][INFO] completed decision refresh job=${job.id} property=${job.propertyId}`);
       const completed = await completePropertyRefreshJob({

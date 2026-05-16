@@ -13,6 +13,7 @@ import {
 } from "./page.logic";
 import { buildPosthogInstallCheckConfigStatus } from "@/app/api/admin/posthog/install-check/route.logic";
 import { resolvePosthogProjectToken } from "@webhealth/shared/lib/product-events";
+import { ADMIN_PAGE_COPY, getAdminLanguage } from "../admin-page-copy";
 
 type MetricRow = {
   label: string;
@@ -52,7 +53,67 @@ function formatUsdDisplay(amount: string | number) {
   }).format(value);
 }
 
+const PRODUCT_ANALYTICS_TABLE_COPY = {
+  en: {
+    metricLabels: {
+      "Snapshots captured": "Snapshots captured",
+      "Share links created": "Share links created",
+      "Source-data refresh jobs": "Source-data refresh jobs",
+      "Property refresh jobs": "Property refresh jobs",
+      "Open action items": "Open action items",
+      "Completed action items": "Completed action items",
+    },
+    description: "Product usage, snapshots, source-data jobs, property refreshes, OpenAI billed cost, and AI run estimates.",
+    recentEvents: "Recent Product Events",
+    event: "Event",
+    source: "Source",
+    created: "Created",
+    noEvents: "No product events have been stored locally yet.",
+    teamUsage: "Team Usage",
+    team: "Team",
+    snapshots: "Snapshots",
+    shareLinks: "Share Links",
+    actions: "Actions",
+    done: "Done",
+    sourceJobs: "Source Jobs",
+    refreshJobs: "Refresh Jobs",
+    opens: "Opens",
+    lastActivity: "Last Activity",
+    never: "Never",
+  },
+  de: {
+    metricLabels: {
+      "Snapshots captured": "Erfasste Snapshots",
+      "Share links created": "Erstellte Share-Links",
+      "Source-data refresh jobs": "Source-Data-Refresh-Jobs",
+      "Property refresh jobs": "Property-Refresh-Jobs",
+      "Open action items": "Offene Maßnahmen",
+      "Completed action items": "Erledigte Maßnahmen",
+    },
+    description: "Produktnutzung, Snapshots, Source-Data-Jobs, Property-Refreshes, OpenAI billed cost und AI run estimates.",
+    recentEvents: "Aktuelle Produkt-Events",
+    event: "Event",
+    source: "Quelle",
+    created: "Erstellt",
+    noEvents: "Noch keine Produkt-Events lokal gespeichert.",
+    teamUsage: "Team-Nutzung",
+    team: "Team",
+    snapshots: "Snapshots",
+    shareLinks: "Share-Links",
+    actions: "Maßnahmen",
+    done: "Erledigt",
+    sourceJobs: "Source-Jobs",
+    refreshJobs: "Refresh-Jobs",
+    opens: "Öffnungen",
+    lastActivity: "Letzte Aktivität",
+    never: "Nie",
+  },
+} as const;
+
 export default async function ProductAnalyticsPage() {
+  const language = await getAdminLanguage();
+  const copy = ADMIN_PAGE_COPY[language].productAnalytics;
+  const tableCopy = PRODUCT_ANALYTICS_TABLE_COPY[language];
   const [
     actualDailyCostRows,
     estimatedDailyCostRows,
@@ -201,7 +262,7 @@ export default async function ProductAnalyticsPage() {
     ...Array.from(snapshotStatusRows),
   ] as JobThroughputRow[]);
   const metrics = Array.from(metricRows).map((row) => ({
-    label: String(row.label ?? ""),
+    label: tableCopy.metricLabels[String(row.label ?? "") as keyof typeof tableCopy.metricLabels] ?? String(row.label ?? ""),
     value: Number(row.value ?? 0),
   }));
   const teamActivity = Array.from(teamActivityRows).map((row) => ({
@@ -233,9 +294,9 @@ export default async function ProductAnalyticsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight font-display">Product Analytics</h1>
+        <h1 className="text-3xl font-semibold tracking-tight font-display">{copy.title}</h1>
         <p className="mt-1 text-muted-foreground">
-          Product usage, snapshots, source-data jobs, property refreshes, OpenAI billed cost, and AI run estimates.
+          {tableCopy.description}
         </p>
       </div>
 
@@ -265,14 +326,14 @@ export default async function ProductAnalyticsPage() {
       <PosthogInstallCheck initialConfig={posthogConfig} />
 
       <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
-        <h2 className="text-xl font-semibold font-display">Recent Product Events</h2>
+        <h2 className="text-xl font-semibold font-display">{tableCopy.recentEvents}</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-muted-foreground">
-                <th className="py-2 pr-4 font-medium">Event</th>
-                <th className="py-2 pr-4 font-medium">Source</th>
-                <th className="py-2 font-medium">Created</th>
+                <th className="py-2 pr-4 font-medium">{tableCopy.event}</th>
+                <th className="py-2 pr-4 font-medium">{tableCopy.source}</th>
+                <th className="py-2 font-medium">{tableCopy.created}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -286,7 +347,7 @@ export default async function ProductAnalyticsPage() {
               {!recentProductEvents.length ? (
                 <tr>
                   <td className="py-3 text-muted-foreground" colSpan={3}>
-                    No product events have been stored locally yet.
+                    {tableCopy.noEvents}
                   </td>
                 </tr>
               ) : null}
@@ -305,20 +366,20 @@ export default async function ProductAnalyticsPage() {
       </div>
 
       <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
-        <h2 className="text-xl font-semibold font-display">Team Usage</h2>
+        <h2 className="text-xl font-semibold font-display">{tableCopy.teamUsage}</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[960px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-muted-foreground">
-                <th className="py-2 pr-4 font-medium">Team</th>
-                <th className="py-2 pr-4 font-medium">Snapshots</th>
-                <th className="py-2 pr-4 font-medium">Share Links</th>
-                <th className="py-2 pr-4 font-medium">Actions</th>
-                <th className="py-2 pr-4 font-medium">Done</th>
-                <th className="py-2 pr-4 font-medium">Source Jobs</th>
-                <th className="py-2 pr-4 font-medium">Refresh Jobs</th>
-                <th className="py-2 pr-4 font-medium">Opens</th>
-                <th className="py-2 font-medium">Last Activity</th>
+                <th className="py-2 pr-4 font-medium">{tableCopy.team}</th>
+                <th className="py-2 pr-4 font-medium">{tableCopy.snapshots}</th>
+                <th className="py-2 pr-4 font-medium">{tableCopy.shareLinks}</th>
+                <th className="py-2 pr-4 font-medium">{tableCopy.actions}</th>
+                <th className="py-2 pr-4 font-medium">{tableCopy.done}</th>
+                <th className="py-2 pr-4 font-medium">{tableCopy.sourceJobs}</th>
+                <th className="py-2 pr-4 font-medium">{tableCopy.refreshJobs}</th>
+                <th className="py-2 pr-4 font-medium">{tableCopy.opens}</th>
+                <th className="py-2 font-medium">{tableCopy.lastActivity}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -336,7 +397,7 @@ export default async function ProductAnalyticsPage() {
                   <td className="py-3 pr-4">{row.property_refresh_count}</td>
                   <td className="py-3 pr-4">{row.property_open_count}</td>
                   <td className="py-3">
-                    {row.last_activity_at ? new Date(row.last_activity_at).toLocaleString() : "Never"}
+                    {row.last_activity_at ? new Date(row.last_activity_at).toLocaleString() : tableCopy.never}
                   </td>
                 </tr>
               ))}
