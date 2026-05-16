@@ -195,7 +195,7 @@ function recordPosthogWorkerError(event, recorder) {
     void recorder(event);
     return;
   }
-  void import("./chunks/product-event-store-I6RBYADM.js").then(({ recordProductEvent }) => recordProductEvent(event)).catch(() => {
+  void import("./chunks/product-event-store-QTJIW4EX.js").then(({ recordProductEvent }) => recordProductEvent(event)).catch(() => {
   });
 }
 function initWorkerMonitoring(env = process.env) {
@@ -302,12 +302,12 @@ async function main() {
   healthServer = startWorkerHealthServer({ state: runtimeState });
   workerPhase = "imports";
   markWorkerPhase(runtimeState, "imports");
-  const sharedDbModule = await import("./chunks/db-VBV7VJDO.js");
+  const sharedDbModule = await import("./chunks/db-J7MSJUF6.js");
   const { ensureWorkerDatabaseReady } = await import("./chunks/worker-db-bootstrap-KWVAEAVL.js");
-  const { startPropertyRefreshWorkerLoop, runSinglePropertyRefreshWorkerTick } = await import("./chunks/property-refresh-worker-7DDK4BCJ.js");
-  const { startMetricsBackfillWorkerLoop, runSingleMetricsBackfillWorkerTick } = await import("./chunks/metrics-cache-3X3KDPIY.js");
-  const { startActivePropertyAutomationScheduler } = await import("./chunks/active-property-automation-BW52APZZ.js");
-  const { startOpenAICostReconciliationScheduler } = await import("./chunks/openai-cost-reconciliation-3V2SB7FG.js");
+  const { startPropertyRefreshWorkerLoop, runSinglePropertyRefreshWorkerTick } = await import("./chunks/property-refresh-worker-ZOGLL6QK.js");
+  const { startMetricsBackfillWorkerLoop, runSingleMetricsBackfillWorkerTick } = await import("./chunks/metrics-cache-NAGX2CWU.js");
+  const { startActivePropertyAutomationScheduler } = await import("./chunks/active-property-automation-IB2H6ITI.js");
+  const { startOpenAICostReconciliationScheduler } = await import("./chunks/openai-cost-reconciliation-ON7SJ3TF.js");
   closeDb = sharedDbModule.closeDb;
   workerPhase = "database-ready";
   markWorkerPhase(runtimeState, "database-ready");

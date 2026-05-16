@@ -6,6 +6,7 @@ import {
   type AiRecommendation,
 } from "@webhealth/shared/lib/ai-analysis";
 import type { WeeklyActionRow } from "@webhealth/shared/lib/action-types";
+import type { SupportedLanguage } from "@webhealth/shared/lib/language";
 
 type AiActionIdentity = ReturnType<typeof buildAiActionIdentity>;
 
@@ -71,6 +72,7 @@ export async function getLatestCompleteAiActions(params: {
   compareMode: string;
   compareStartDate: string | null;
   compareEndDate: string | null;
+  language: SupportedLanguage;
 }): Promise<Array<WeeklyActionRow & AiActionIdentity>> {
   const run = await db.query.aiAnalysisRuns.findFirst({
     where: and(
@@ -80,6 +82,7 @@ export async function getLatestCompleteAiActions(params: {
       eq(aiAnalysisRuns.startDate, params.startDate),
       eq(aiAnalysisRuns.endDate, params.endDate),
       eq(aiAnalysisRuns.compareMode, params.compareMode),
+      eq(aiAnalysisRuns.language, params.language),
       params.compareStartDate
         ? eq(aiAnalysisRuns.compareStartDate, params.compareStartDate)
         : isNull(aiAnalysisRuns.compareStartDate),

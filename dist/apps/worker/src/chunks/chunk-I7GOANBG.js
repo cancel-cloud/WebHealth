@@ -2,13 +2,13 @@ import {
   getLatestPropertyCrawl,
   getLatestPropertyRefreshState,
   getLatestPropertyRefreshStateForWindow
-} from "./chunk-LFZV57ZT.js";
+} from "./chunk-NJNNY4LE.js";
 import {
   getLatestMetricsBackfillState
-} from "./chunk-6YN5OF6M.js";
+} from "./chunk-2JYD3WZO.js";
 import {
   db
-} from "./chunk-PCKVAB6H.js";
+} from "./chunk-NO6FDL7M.js";
 import {
   actionItems,
   aiAnalysisRuns,
@@ -16,7 +16,7 @@ import {
   analysisWindowCache,
   propertyShareLinks,
   snapshotExports
-} from "./chunk-EBBHWYW3.js";
+} from "./chunk-W7P3RKIV.js";
 
 // packages/shared/src/lib/live-dashboard.ts
 import { createHash as createHash2 } from "node:crypto";
@@ -1418,6 +1418,7 @@ async function getLatestCompleteAiActions(params) {
       eq(aiAnalysisRuns.startDate, params.startDate),
       eq(aiAnalysisRuns.endDate, params.endDate),
       eq(aiAnalysisRuns.compareMode, params.compareMode),
+      eq(aiAnalysisRuns.language, params.language),
       params.compareStartDate ? eq(aiAnalysisRuns.compareStartDate, params.compareStartDate) : isNull(aiAnalysisRuns.compareStartDate),
       params.compareEndDate ? eq(aiAnalysisRuns.compareEndDate, params.compareEndDate) : isNull(aiAnalysisRuns.compareEndDate)
     ),
@@ -2122,6 +2123,7 @@ function mergeActionWorkflowState(params) {
 }
 async function getLiveDashboardData(input) {
   const property = await fetchAuthorizedProperty(input.teamId, input.propertyId);
+  const language = normalizeSupportedLanguage(input.language);
   const today = normalizeDateString(input.today) ?? formatDate(/* @__PURE__ */ new Date());
   const safeLatestDate = buildSafeLatestDate(today);
   const window = resolveAnalysisWindow({
@@ -2320,7 +2322,8 @@ async function getLiveDashboardData(input) {
     endDate: window.endDate,
     compareMode: window.compareMode,
     compareStartDate: window.compareStartDate,
-    compareEndDate: window.compareEndDate
+    compareEndDate: window.compareEndDate,
+    language
   });
   if (aiActions.length) {
     const deterministicActions = payload.actions.filter((action) => action.source !== "ai").map((action) => ({ ...action, source: action.source ?? "rules" }));
@@ -2544,6 +2547,7 @@ async function createSnapshotExport(params) {
   const dashboard = await getLiveDashboardData({
     teamId: params.teamId,
     propertyId: params.propertyId,
+    language: params.language,
     preset: params.preset,
     compareMode: params.compareMode,
     startDate: params.startDate,
@@ -2694,6 +2698,7 @@ async function createPropertyShareLink(params) {
   const dashboard = await getLiveDashboardData({
     teamId: params.teamId,
     propertyId: params.propertyId,
+    language: params.language,
     preset: params.preset,
     compareMode: params.compareMode,
     startDate: params.startDate,
