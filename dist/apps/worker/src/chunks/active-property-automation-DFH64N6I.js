@@ -1,23 +1,32 @@
+import { createRequire } from "node:module"; const require = createRequire(import.meta.url);
 import {
   enqueuePropertyRefreshJob
-} from "./chunk-NJNNY4LE.js";
+} from "./chunk-I7SB5PNI.js";
 import {
   createMetricsBackfillJob
-} from "./chunk-2JYD3WZO.js";
+} from "./chunk-QVK4I53Z.js";
+import "./chunk-3WHTUT5J.js";
 import {
   db
-} from "./chunk-NO6FDL7M.js";
+} from "./chunk-4PAZP4FF.js";
+import {
+  desc
+} from "./chunk-ZV6HF4A7.js";
+import {
+  and,
+  eq,
+  inArray,
+  isNull
+} from "./chunk-EJUXHIF3.js";
 import {
   account,
   metricsBackfillJobs,
+  propertyCrawlSnapshots,
   propertyRefreshJobs,
   teamMembers
-} from "./chunk-W7P3RKIV.js";
-import "./chunk-EJ6QGHXW.js";
-import "./chunk-3LHI6BO3.js";
-
-// packages/shared/src/lib/active-property-automation.ts
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+} from "./chunk-BBVSZM4K.js";
+import "./chunk-VNGVKUAM.js";
+import "./chunk-3RY4ISVK.js";
 
 // packages/shared/src/lib/active-property-automation-policy.ts
 function toDateString(value) {
@@ -78,34 +87,50 @@ async function loadAutomationProperties() {
     })
   ]);
   const tierByTeamId = new Map(teamRows.map((team) => [team.id, team.tier]));
-  return Promise.all(rows.map(async (property) => {
-    const [latestCrawl, refreshJobs, metricsJob] = await Promise.all([
-      property.type === "gsc" ? db.query.propertyCrawlSnapshots.findFirst({
-        where: (crawl, { eq: eqFn }) => eqFn(crawl.propertyId, property.id),
-        orderBy: (crawl) => [desc(crawl.createdAt)],
-        columns: { createdAt: true }
-      }) : Promise.resolve(null),
-      property.type === "gsc" ? db.query.propertyRefreshJobs.findMany({
-        where: and(
-          eq(propertyRefreshJobs.propertyId, property.id),
-          isNull(propertyRefreshJobs.supersededAt),
-          inArray(propertyRefreshJobs.status, ["queued", "processing"])
-        ),
-        columns: { payload: true }
-      }) : Promise.resolve([]),
-      property.type === "gsc" ? db.query.metricsBackfillJobs.findFirst({
-        where: and(
-          eq(metricsBackfillJobs.targetPropertyId, property.id),
-          eq(metricsBackfillJobs.reason, "active_property_daily"),
-          inArray(metricsBackfillJobs.status, ["queued", "processing"])
-        ),
-        columns: { id: true }
-      }) : Promise.resolve(null)
-    ]);
-    const sources = refreshJobs.map((job) => {
-      const payload = job.payload ?? null;
-      return payload?.triggerSource === "automation" || payload?.triggerSource === "scheduler" ? "automation" : "manual";
-    });
+  const gscPropertyIds = rows.filter((property) => property.type === "gsc").map((property) => property.id);
+  const [crawlRows, refreshJobRows, metricsJobRows] = gscPropertyIds.length === 0 ? [[], [], []] : await Promise.all([
+    db.query.propertyCrawlSnapshots.findMany({
+      where: inArray(propertyCrawlSnapshots.propertyId, gscPropertyIds),
+      orderBy: (crawl) => [desc(crawl.createdAt)],
+      columns: { propertyId: true, createdAt: true }
+    }),
+    db.query.propertyRefreshJobs.findMany({
+      where: and(
+        inArray(propertyRefreshJobs.propertyId, gscPropertyIds),
+        isNull(propertyRefreshJobs.supersededAt),
+        inArray(propertyRefreshJobs.status, ["queued", "processing"])
+      ),
+      columns: { propertyId: true, payload: true }
+    }),
+    db.query.metricsBackfillJobs.findMany({
+      where: and(
+        inArray(metricsBackfillJobs.targetPropertyId, gscPropertyIds),
+        eq(metricsBackfillJobs.reason, "active_property_daily"),
+        inArray(metricsBackfillJobs.status, ["queued", "processing"])
+      ),
+      columns: { targetPropertyId: true }
+    })
+  ]);
+  const latestCrawlByPropertyId = /* @__PURE__ */ new Map();
+  for (const crawl of crawlRows) {
+    if (!latestCrawlByPropertyId.has(crawl.propertyId)) {
+      latestCrawlByPropertyId.set(crawl.propertyId, crawl.createdAt);
+    }
+  }
+  const refreshSourcesByPropertyId = /* @__PURE__ */ new Map();
+  for (const job of refreshJobRows) {
+    const payload = job.payload ?? null;
+    const source = payload?.triggerSource === "automation" || payload?.triggerSource === "scheduler" ? "automation" : "manual";
+    const sources = refreshSourcesByPropertyId.get(job.propertyId) ?? [];
+    sources.push(source);
+    refreshSourcesByPropertyId.set(job.propertyId, sources);
+  }
+  const metricsJobPropertyIds = new Set(
+    metricsJobRows.map((job) => job.targetPropertyId).filter((propertyId) => Boolean(propertyId))
+  );
+  return rows.map((property) => {
+    const latestCrawlCreatedAt = latestCrawlByPropertyId.get(property.id);
+    const sources = refreshSourcesByPropertyId.get(property.id) ?? [];
     return {
       id: property.id,
       teamId: property.teamId,
@@ -115,12 +140,12 @@ async function loadAutomationProperties() {
       url: property.url,
       ga4PropertyId: property.ga4PropertyId,
       active: property.active,
-      latestCrawlCreatedAt: latestCrawl?.createdAt?.toISOString() ?? null,
+      latestCrawlCreatedAt: latestCrawlCreatedAt?.toISOString() ?? null,
       hasActiveAutomationRefresh: sources.includes("automation"),
       hasActiveManualRefresh: sources.includes("manual"),
-      hasActiveMetricsJob: Boolean(metricsJob)
+      hasActiveMetricsJob: metricsJobPropertyIds.has(property.id)
     };
-  }));
+  });
 }
 async function getTeamOwnerWithGoogleAccount(teamId) {
   const owner = await db.query.teamMembers.findFirst({

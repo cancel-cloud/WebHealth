@@ -730,9 +730,44 @@ export async function runSingleMetricsBackfillWorkerTick(workerId = `mbw_${nanoi
   }
 }
 
+export function resolveMetricsBackfillWorkerConcurrency(input?: {
+  value?: string | number;
+  fallback?: number;
+  max?: number;
+}) {
+  const fallback = input?.fallback ?? 1;
+  const max = input?.max ?? 4;
+  const parsed = Number(input?.value ?? fallback);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(Math.floor(parsed), max);
+}
+
+async function runMetricsBackfillWorkerBatch(
+  workerId: string,
+  options: { concurrency: number },
+) {
+  const concurrency = resolveMetricsBackfillWorkerConcurrency({
+    value: options.concurrency,
+    fallback: 1,
+  });
+  const results = await Promise.allSettled(
+    Array.from({ length: concurrency }, () => runSingleMetricsBackfillWorkerTick(workerId)),
+  );
+  const jobIds: string[] = [];
+  for (const result of results) {
+    if (result.status === "rejected") {
+      console.error("[metrics-backfill][ERROR] worker slot failed", result.reason);
+      continue;
+    }
+    if (result.value.processed) jobIds.push(result.value.jobId);
+  }
+  return { processed: jobIds.length > 0, jobIds };
+}
+
 export function startMetricsBackfillWorkerLoop(input: {
   intervalMs?: number;
   maxPollMs?: number;
+  concurrency?: number;
 } = {}) {
   let stopped = false;
   let isRunning = false;
@@ -740,6 +775,10 @@ export function startMetricsBackfillWorkerLoop(input: {
   const workerId = `mbw_${nanoid(8)}`;
   const intervalMs = input.intervalMs ?? parseInt(process.env.METRICS_BACKFILL_WORKER_POLL_MS ?? "4000", 10);
   const maxPollMs = input.maxPollMs ?? parseInt(process.env.METRICS_BACKFILL_WORKER_MAX_POLL_MS ?? "30000", 10);
+  const concurrency = resolveMetricsBackfillWorkerConcurrency({
+    value: input.concurrency ?? process.env.METRICS_BACKFILL_WORKER_CONCURRENCY,
+    fallback: 2,
+  });
   let idleCount = 0;
 
   const loop = async () => {
@@ -747,10 +786,10 @@ export function startMetricsBackfillWorkerLoop(input: {
     isRunning = true;
     let processed = false;
     try {
-      const result = await runSingleMetricsBackfillWorkerTick(workerId);
+      const result = await runMetricsBackfillWorkerBatch(workerId, { concurrency });
       processed = result.processed;
       if (processed) {
-        console.log(`[metrics-backfill][INFO] processed job worker=${workerId} job=${result.jobId}`);
+        console.log(`[metrics-backfill][INFO] processed jobs worker=${workerId} jobs=${result.jobIds.join(",")}`);
       }
     } catch (error) {
       console.error("[metrics-backfill][ERROR] worker loop error", error);
@@ -764,7 +803,7 @@ export function startMetricsBackfillWorkerLoop(input: {
     }
   };
 
-  console.log(`[metrics-backfill][INFO] loop started worker=${workerId} pollMs=${intervalMs} maxPollMs=${maxPollMs}`);
+  console.log(`[metrics-backfill][INFO] loop started worker=${workerId} pollMs=${intervalMs} maxPollMs=${maxPollMs} concurrency=${concurrency}`);
   void loop();
 
   return {

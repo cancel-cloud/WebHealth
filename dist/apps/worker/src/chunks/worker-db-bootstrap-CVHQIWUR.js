@@ -1,17 +1,58 @@
+import { createRequire } from "node:module"; const require = createRequire(import.meta.url);
 import {
+  drizzle,
+  src_default,
   validateDirectDatabaseUrl,
   validateRuntimeDatabaseUrl
-} from "./chunk-EJ6QGHXW.js";
-import "./chunk-3LHI6BO3.js";
+} from "./chunk-ZV6HF4A7.js";
+import "./chunk-EJUXHIF3.js";
+import "./chunk-VNGVKUAM.js";
+import "./chunk-3RY4ISVK.js";
 
 // packages/shared/src/db/worker-db-bootstrap.ts
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readMigrationFiles } from "drizzle-orm/migrator";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+
+// node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.15.6_kysely@0.28.17_postgres@3.4.8/node_modules/drizzle-orm/migrator.js
+import crypto from "node:crypto";
+import fs from "node:fs";
+function readMigrationFiles(config) {
+  const migrationFolderTo = config.migrationsFolder;
+  const migrationQueries = [];
+  const journalPath = `${migrationFolderTo}/meta/_journal.json`;
+  if (!fs.existsSync(journalPath)) {
+    throw new Error(`Can't find meta/_journal.json file`);
+  }
+  const journalAsString = fs.readFileSync(`${migrationFolderTo}/meta/_journal.json`).toString();
+  const journal = JSON.parse(journalAsString);
+  for (const journalEntry of journal.entries) {
+    const migrationPath = `${migrationFolderTo}/${journalEntry.tag}.sql`;
+    try {
+      const query = fs.readFileSync(`${migrationFolderTo}/${journalEntry.tag}.sql`).toString();
+      const result = query.split("--> statement-breakpoint").map((it) => {
+        return it;
+      });
+      migrationQueries.push({
+        sql: result,
+        bps: journalEntry.breakpoints,
+        folderMillis: journalEntry.when,
+        hash: crypto.createHash("sha256").update(query).digest("hex")
+      });
+    } catch {
+      throw new Error(`No file ${migrationPath} found in ${migrationFolderTo} folder`);
+    }
+  }
+  return migrationQueries;
+}
+
+// node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.15.6_kysely@0.28.17_postgres@3.4.8/node_modules/drizzle-orm/postgres-js/migrator.js
+async function migrate(db, config) {
+  const migrations = readMigrationFiles(config);
+  await db.dialect.migrate(migrations, db.session, config);
+}
+
+// packages/shared/src/db/worker-db-bootstrap.ts
 var __filename = fileURLToPath(import.meta.url);
 var __dirname = path.dirname(__filename);
 var DEFAULT_MIGRATIONS_DIR = path.resolve(__dirname, "../../../../drizzle");
@@ -124,7 +165,7 @@ async function runWorkerDatabaseMigrations() {
     );
   }
   console.log(`[worker] ensuring DB schema via migrations in ${config.migrationsFolder}`);
-  const migrationClient = postgres(config.migrationDatabaseUrl, {
+  const migrationClient = src_default(config.migrationDatabaseUrl, {
     max: 1,
     idle_timeout: 20,
     connect_timeout: 15

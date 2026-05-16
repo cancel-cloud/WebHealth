@@ -1,18 +1,21 @@
+import { createRequire } from "node:module"; const require = createRequire(import.meta.url);
+import {
+  nanoid
+} from "./chunk-3WHTUT5J.js";
 import {
   buildPosthogCaptureEndpoint,
   buildPosthogCapturePayload,
   buildProductEventPayload,
   resolvePosthogProjectToken
-} from "./chunk-DWZQMWUX.js";
+} from "./chunk-YMKACVQK.js";
 import {
   db
-} from "./chunk-NO6FDL7M.js";
+} from "./chunk-4PAZP4FF.js";
 import {
   productEvents
-} from "./chunk-W7P3RKIV.js";
+} from "./chunk-BBVSZM4K.js";
 
 // packages/shared/src/lib/product-event-store.ts
-import { nanoid } from "nanoid";
 async function recordProductEvent(input) {
   const payload = buildProductEventPayload(input);
   await db.insert(productEvents).values({

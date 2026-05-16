@@ -1,14 +1,27 @@
+import { createRequire } from "node:module"; const require = createRequire(import.meta.url);
 import {
   getLatestPropertyCrawl,
   getLatestPropertyRefreshState,
   getLatestPropertyRefreshStateForWindow
-} from "./chunk-NJNNY4LE.js";
+} from "./chunk-I7SB5PNI.js";
 import {
   getLatestMetricsBackfillState
-} from "./chunk-2JYD3WZO.js";
+} from "./chunk-QVK4I53Z.js";
+import {
+  nanoid
+} from "./chunk-3WHTUT5J.js";
 import {
   db
-} from "./chunk-NO6FDL7M.js";
+} from "./chunk-4PAZP4FF.js";
+import {
+  desc
+} from "./chunk-ZV6HF4A7.js";
+import {
+  and,
+  eq,
+  isNull,
+  lt
+} from "./chunk-EJUXHIF3.js";
 import {
   actionItems,
   aiAnalysisRuns,
@@ -16,12 +29,10 @@ import {
   analysisWindowCache,
   propertyShareLinks,
   snapshotExports
-} from "./chunk-W7P3RKIV.js";
+} from "./chunk-BBVSZM4K.js";
 
 // packages/shared/src/lib/live-dashboard.ts
 import { createHash as createHash2 } from "node:crypto";
-import { and as and2, eq as eq2, isNull as isNull2, lt } from "drizzle-orm";
-import { nanoid as nanoid2 } from "nanoid";
 
 // packages/shared/src/lib/deterministic-insights.ts
 function asNumber(n) {
@@ -1138,7 +1149,7 @@ function resolveReportSourcesFromProperties(allProperties, selectedPropertyId, o
 // packages/shared/src/lib/properties/reportable-properties-db.ts
 async function listTeamProperties(teamId) {
   return db.query.properties.findMany({
-    where: (p, { eq: eq3 }) => eq3(p.teamId, teamId)
+    where: (p, { eq: eq2 }) => eq2(p.teamId, teamId)
   });
 }
 async function resolveTeamReportSources(teamId, selectedPropertyId) {
@@ -1150,7 +1161,6 @@ async function resolveTeamReportSources(teamId, selectedPropertyId) {
 }
 
 // packages/shared/src/lib/team-branding.ts
-import { nanoid } from "nanoid";
 var EMPTY_TEAM_BRANDING_PROFILE = {
   agencyName: "",
   contactName: "",
@@ -1201,7 +1211,7 @@ function toPartialBrandingProfile(value) {
 }
 async function getTeamBrandingProfile(teamId) {
   const row = await db.query.teamBrandingProfiles.findFirst({
-    where: (table, { eq: eq3 }) => eq3(table.teamId, teamId)
+    where: (table, { eq: eq2 }) => eq2(table.teamId, teamId)
   });
   return normalizeTeamBrandingProfile(toPartialBrandingProfile(row));
 }
@@ -1218,9 +1228,6 @@ function normalizeSupportedLanguage(value) {
   if (normalized === "en" || normalized.startsWith("en-")) return "en";
   return DEFAULT_SUPPORTED_LANGUAGE;
 }
-
-// packages/shared/src/lib/ai-dashboard-actions.ts
-import { and, desc, eq, isNull } from "drizzle-orm";
 
 // packages/shared/src/lib/ai-analysis.ts
 import { createHash } from "node:crypto";
@@ -1873,7 +1880,7 @@ async function fetchAuthorizedProperty(teamId, propertyId) {
 }
 async function fetchLatestSnapshots(teamId, propertyId) {
   const rows = await db.query.snapshotExports.findMany({
-    where: (table, { and: and3, eq: eq3 }) => and3(eq3(table.teamId, teamId), eq3(table.propertyId, propertyId)),
+    where: (table, { and: and2, eq: eq2 }) => and2(eq2(table.teamId, teamId), eq2(table.propertyId, propertyId)),
     orderBy: (table, { desc: descOrder }) => [descOrder(table.createdAt)],
     limit: 5
   });
@@ -1981,14 +1988,14 @@ async function fetchWindowData(params) {
 }
 async function readCache(params) {
   const row = await db.query.analysisWindowCache.findFirst({
-    where: and2(
-      eq2(analysisWindowCache.propertyId, params.property.id),
-      eq2(analysisWindowCache.startDate, params.window.startDate),
-      eq2(analysisWindowCache.endDate, params.window.endDate),
-      eq2(analysisWindowCache.compareMode, params.window.compareMode),
-      params.window.compareStartDate ? eq2(analysisWindowCache.compareStartDate, params.window.compareStartDate) : isNull2(analysisWindowCache.compareStartDate),
-      params.window.compareEndDate ? eq2(analysisWindowCache.compareEndDate, params.window.compareEndDate) : isNull2(analysisWindowCache.compareEndDate),
-      eq2(analysisWindowCache.sourceVersionHash, params.sourceVersionHash)
+    where: and(
+      eq(analysisWindowCache.propertyId, params.property.id),
+      eq(analysisWindowCache.startDate, params.window.startDate),
+      eq(analysisWindowCache.endDate, params.window.endDate),
+      eq(analysisWindowCache.compareMode, params.window.compareMode),
+      params.window.compareStartDate ? eq(analysisWindowCache.compareStartDate, params.window.compareStartDate) : isNull(analysisWindowCache.compareStartDate),
+      params.window.compareEndDate ? eq(analysisWindowCache.compareEndDate, params.window.compareEndDate) : isNull(analysisWindowCache.compareEndDate),
+      eq(analysisWindowCache.sourceVersionHash, params.sourceVersionHash)
     ),
     orderBy: (table, { desc: descOrder }) => [descOrder(table.updatedAt)]
   });
@@ -1999,7 +2006,7 @@ async function readCache(params) {
 }
 async function writeCache(params) {
   await db.insert(analysisWindowCache).values({
-    id: `awc_${nanoid2(12)}`,
+    id: `awc_${nanoid(12)}`,
     teamId: params.property.teamId,
     propertyId: params.property.id,
     preset: params.window.preset,
@@ -2043,7 +2050,7 @@ async function syncActionsToStore(params) {
       where: (table, { and: andFn, eq: eqFn }) => andFn(eqFn(table.propertyId, params.propertyId), eqFn(table.fingerprint, action.fingerprint))
     });
     await db.insert(actionItems).values({
-      id: existing?.id ?? `ai_${nanoid2(12)}`,
+      id: existing?.id ?? `ai_${nanoid(12)}`,
       teamId: params.teamId,
       propertyId: params.propertyId,
       fingerprint: action.fingerprint,
@@ -2397,7 +2404,7 @@ async function upsertActionItemState(params) {
     where: (table, { and: andFn, eq: eqFn }) => andFn(eqFn(table.propertyId, params.propertyId), eqFn(table.fingerprint, params.fingerprint))
   });
   const [row] = await db.insert(actionItems).values({
-    id: existing?.id ?? `ai_${nanoid2(12)}`,
+    id: existing?.id ?? `ai_${nanoid(12)}`,
     teamId: params.teamId,
     propertyId: params.propertyId,
     fingerprint: params.fingerprint,
@@ -2454,9 +2461,9 @@ async function upsertActionItemState(params) {
 }
 async function getLatestDashboardPayloadVersion(params) {
   const row = await db.query.analysisWindowCache.findFirst({
-    where: and2(
-      eq2(analysisWindowCache.teamId, params.teamId),
-      eq2(analysisWindowCache.propertyId, params.propertyId)
+    where: and(
+      eq(analysisWindowCache.teamId, params.teamId),
+      eq(analysisWindowCache.propertyId, params.propertyId)
     ),
     orderBy: (table, { desc: descOrder }) => [descOrder(table.updatedAt)]
   });
@@ -2555,7 +2562,7 @@ async function createSnapshotExport(params) {
   });
   const brandingSnapshot = await getTeamBrandingProfile(params.teamId);
   const [row] = await db.insert(snapshotExports).values({
-    id: `se_${nanoid2(12)}`,
+    id: `se_${nanoid(12)}`,
     teamId: params.teamId,
     propertyId: dashboard.property.id,
     createdByUserId: params.createdByUserId,
@@ -2705,9 +2712,9 @@ async function createPropertyShareLink(params) {
     endDate: params.endDate
   });
   const brandSnapshot = await getTeamBrandingProfile(params.teamId);
-  const token = `ps_${nanoid2(32)}`;
+  const token = `ps_${nanoid(32)}`;
   const [row] = await db.insert(propertyShareLinks).values({
-    id: `psl_${nanoid2(12)}`,
+    id: `psl_${nanoid(12)}`,
     teamId: params.teamId,
     propertyId: dashboard.property.id,
     token,

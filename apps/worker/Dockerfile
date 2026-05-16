@@ -1,10 +1,7 @@
-FROM node:24-bookworm-slim
+FROM node:24-alpine
 
 WORKDIR /app
 ENV NODE_ENV=production
-
-COPY dist/package.json ./package.json
-RUN npm install --omit=dev --ignore-scripts --no-audit --no-fund
 
 COPY dist ./dist
 
