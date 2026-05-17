@@ -16,6 +16,7 @@ import {
   getAgencyPricingPath,
   getAgencySeoTopicPath,
 } from "./agency-seo.logic";
+import { getAgencyResourcesPath } from "./agency-content-cluster";
 import { shouldUseStandaloneAgencyChrome } from "./marketing-shell.logic";
 
 function LegalFooterLinksFallback() {
@@ -69,6 +70,13 @@ function MarketingFooter() {
               style={{ color: "oklch(0.55 0.02 250)" }}
             >
               {topicLabel}
+            </Link>
+            <Link
+              href={getAgencyResourcesPath(language)}
+              className="text-xs transition-colors hover:underline"
+              style={{ color: "oklch(0.55 0.02 250)" }}
+            >
+              {language === "de" ? "Wissen" : "Resources"}
             </Link>
             <Link
               href={getAgencyAboutPath(language)}

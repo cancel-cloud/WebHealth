@@ -34,7 +34,7 @@ const AGENCY_SEO_DESCRIPTIONS: Record<AgencyLandingLanguage, string> = {
 };
 
 const AGENCY_TOPIC_TITLES: Record<AgencyLandingLanguage, string> = {
-  de: "SEO Reporting Tool für Agenturen — Monats-Snapshots",
+  de: "SEO Reporting Software für Agenturen",
   en: "SEO Reporting Software for Agencies — Monthly Snapshots",
 };
 

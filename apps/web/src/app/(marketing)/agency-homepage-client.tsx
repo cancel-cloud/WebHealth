@@ -6,6 +6,7 @@ import { CookieSettingsButton } from "@/components/cookie-consent";
 import { AgencyComparisonSection } from "./agency-comparison-section";
 import { AgencyHeader } from "./agency-header";
 import { AgencyWorkspaceDemo } from "./agency-workspace-demo";
+import { getAgencyResourcesPath } from "./agency-content-cluster";
 import { getAgencyDemoPath, getAgencySeoTopicPath } from "./agency-seo.logic";
 import {
   buildLegalHref,
@@ -1092,6 +1093,12 @@ export function AgencyHomepageClient({
                 {language === "de"
                   ? "SEO Reporting Tool für Agenturen"
                   : "SEO reporting software for agencies"}
+              </Link>
+              <Link
+                href={getAgencyResourcesPath(language)}
+                className="transition-colors hover:text-foreground"
+              >
+                {language === "de" ? "Wissen" : "Resources"}
               </Link>
               <a href="#pricing" className="transition-colors hover:text-foreground">
                 {getLocalizedValue(AGENCY_HOME_COPY.footer.pricing, language)}

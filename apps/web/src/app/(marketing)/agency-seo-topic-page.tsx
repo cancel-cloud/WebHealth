@@ -2,42 +2,40 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Check, MousePointerClick } from "lucide-react";
 import { AgencyComparisonSection } from "./agency-comparison-section";
+import { AgencyHeader } from "./agency-header";
 import type { AgencyLandingLanguage } from "./agency-homepage.logic";
 import {
   AGENCY_FAQ_ITEMS,
   AGENCY_HOME_COPY,
-  AGENCY_PILOT,
   AGENCY_TOPIC_FAQ_ITEMS,
 } from "./agency-homepage.content";
 import { getLocalizedValue } from "./agency-homepage.logic";
 import { AgencyWorkspaceDemo } from "./agency-workspace-demo";
+import { getAgencySeoTopicPath } from "./agency-seo.logic";
 import {
-  getAgencyHomePath,
-  getAgencySeoTopicPath,
-} from "./agency-seo.logic";
+  getAgencyResourcesPath,
+  getCommercialPageBullets,
+  getPrimaryClusterCta,
+} from "./agency-content-cluster";
 
 const TOPIC_COPY = {
   de: {
     eyebrow: "SEO Reporting Tool für Agenturen",
-    title: "SEO Reporting Tool für Agenturen: Monatsreports, die zu Maßnahmen werden.",
+    title: "SEO Reporting Software für Agenturen: Monatsreports, die zu Maßnahmen werden.",
     lead:
-      "WebHealth hilft Agenturen, GSC-, GA4- und Crawl-Daten nicht nur zu sammeln, sondern in einen priorisierten Maßnahmenplan für Kundenmeetings zu übersetzen.",
+      "WebHealth hilft Agenturen, GSC-, GA4- und Crawl-Daten nicht nur zu sammeln, sondern in Monats-Snapshots und priorisierte Maßnahmenlisten für Kundenmeetings zu übersetzen.",
     screenshotAlt:
       "Screenshot eines fiktiven WebHealth Agentur-Workspace mit Kundenübersicht und SEO-Maßnahmen",
     sample: "Fiktive Beispieldaten, keine Kundenergebnisse.",
-    primary: "12-Minuten Pilot-Check buchen",
-    secondary: "Loslegen",
-    heroPoints: [
-      "Mehrere Kunden-Websites in einem Reporting-Workspace",
-      "Monats-Snapshot mit GSC, GA4 und Crawl-Signalen",
-      "Priorisierte P1/P2/P3-Maßnahmen statt reiner Datenablage",
-    ],
+    primary: "Demo ansehen",
+    secondary: "Wissen lesen",
+    heroPoints: getCommercialPageBullets("de"),
     problemTitle: "Warum Agentur-Reporting oft hängen bleibt",
     problemBody:
       "Viele SEO-Reports entstehen noch aus mehreren Exporten: Search Console für Klicks, Impressionen und Queries, GA4 für Sitzungen und Landingpages, ein Crawl für technische Fehler, danach manuelles Sortieren in Slides oder Tabellen. Das Ergebnis sieht nach Arbeit aus, beantwortet aber häufig nicht die wichtigste Kundenfrage: Was machen wir als Nächstes, und warum genau diese Reihenfolge?",
     workflowTitle: "So sieht der Workflow im Produkt aus",
     workflowLead:
-      "Die Demo zeigt den geplanten Agenturfluss: erst Portfolio-Überblick, dann Klick in eine Kunden-Website, dann priorisierte Maßnahmen mit erwarteter Wirkung. Im Pilot wird dieser Ablauf founder-led eingerichtet, damit wir mit echten Agenturprozessen lernen, bevor wir breiter skalieren.",
+      "Die Demo zeigt den Agenturfluss: erst Portfolio-Überblick, dann Klick in eine Kunden-Website, dann priorisierte Maßnahmen mit erwarteter Wirkung. Im Pilot wird dieser Ablauf founder-led eingerichtet, damit WebHealth an echten Agenturprozessen geschärft wird.",
     deliversTitle: "Was WebHealth im Pilot liefert",
     deliverables: [
       {
@@ -45,12 +43,12 @@ const TOPIC_COPY = {
         body: "Ein kompaktes Bild pro Kunde: KPI-Veränderungen, Seiten mit Bewegung, Query-Chancen und technische Crawl-Signale.",
       },
       {
-        title: "Interner Maßnahmen-Backlog",
-        body: "Eine priorisierte Liste für dein Team, damit Reports nicht bei Charts enden, sondern in Umsetzung übergehen.",
+        title: "Priorisierte Maßnahmenliste",
+        body: "Eine klare Liste für Ihr Team, damit Reports nicht bei Charts enden, sondern in Umsetzung übergehen.",
       },
       {
         title: "Kundenmeeting-Vorbereitung",
-        body: "Klare Zusammenfassung, was passiert ist, was wichtig ist und welche nächsten Schritte du erklären kannst.",
+        body: "Klare Zusammenfassung, was passiert ist, was wichtig ist und welche nächsten Schritte Sie erklären können.",
       },
     ],
     boundaryTitle: "Kein Ersatz für Ahrefs, Semrush oder Screaming Frog",
@@ -67,12 +65,8 @@ const TOPIC_COPY = {
       "Screenshot of a fictional WebHealth agency workspace with client overview and SEO action items",
     sample: "Fictional sample data, not customer results.",
     primary: "Book a 12-min pilot fit check",
-    secondary: "Try for yourself",
-    heroPoints: [
-      "Multiple client sites in one agency reporting workspace",
-      "Monthly snapshot from GSC, GA4, and crawl signals",
-      "Prioritized P1/P2/P3 actions instead of raw data storage",
-    ],
+    secondary: "Read resources",
+    heroPoints: getCommercialPageBullets("en"),
     problemTitle: "Why agency SEO reporting gets stuck",
     problemBody:
       "Many SEO reports are still assembled from several exports: Search Console for clicks, impressions, and queries, GA4 for sessions and landing pages, a crawl for technical issues, then manual sorting into slides or spreadsheets. The output looks like work, but often fails to answer the client question that matters most: what should we do next, and why in this order?",
@@ -107,27 +101,22 @@ export function AgencySeoTopicPage({
   language: AgencyLandingLanguage;
 }) {
   const copy = TOPIC_COPY[language];
-  const alternateLanguage = language === "de" ? "en" : "de";
   const faqItems = [...AGENCY_FAQ_ITEMS, ...AGENCY_TOPIC_FAQ_ITEMS];
+  const primaryCta = getPrimaryClusterCta(language);
+  const resourcesPath = getAgencyResourcesPath(language);
 
   return (
     <main className="bg-background text-foreground">
+      <AgencyHeader
+        language={language}
+        languageSwitcherHrefByLanguage={{
+          de: getAgencySeoTopicPath("de"),
+          en: getAgencySeoTopicPath("en"),
+        }}
+      />
       <section className="border-b border-border bg-muted/30 px-6 py-16 sm:py-20">
         <div className="mx-auto max-w-7xl">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <Link href={getAgencyHomePath(language)} className="font-display text-lg font-bold">
-              WebHealth
-            </Link>
-            <Link
-              href={getAgencySeoTopicPath(alternateLanguage)}
-              hrefLang={alternateLanguage}
-              className="rounded-full border border-border px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {alternateLanguage.toUpperCase()}
-            </Link>
-          </div>
-
-          <div className="mt-14 grid gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+          <div className="grid gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                 {copy.eyebrow}
@@ -148,14 +137,14 @@ export function AgencySeoTopicPage({
               </div>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a
-                  href={AGENCY_PILOT.bookingUrl}
+                  href={primaryCta.href}
                   className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20"
                 >
-                  {copy.primary}
+                  {primaryCta.label}
                   <ArrowRight className="ml-2 size-4" aria-hidden="true" />
                 </a>
                 <Link
-                  href="/dashboard"
+                  href={resourcesPath}
                   className="inline-flex h-11 items-center justify-center rounded-full border border-border bg-background px-6 text-sm font-semibold"
                 >
                   {copy.secondary}
@@ -245,7 +234,7 @@ export function AgencySeoTopicPage({
                   : "Which 3-5 actions belong in this week?"}
               </strong>{" "}
               {language === "de"
-                ? "Der Snapshot endet mit einem reviewbaren Backlog, nicht mit einer reinen Diagrammsammlung."
+                ? "Der Snapshot endet mit einer reviewbaren Maßnahmenliste, nicht mit einer reinen Diagrammsammlung."
                 : "The snapshot ends with a reviewable backlog, not just a collection of charts."}
             </li>
           </ul>
@@ -343,17 +332,21 @@ export function AgencySeoTopicPage({
         <div className="mx-auto flex max-w-5xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="font-display text-2xl font-semibold">
-              {AGENCY_HOME_COPY.closingCta.title[language]}
+              {language === "de"
+                ? "Machen Sie aus dem nächsten Monatsreport eine priorisierte Maßnahmenliste."
+                : AGENCY_HOME_COPY.closingCta.title[language]}
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {AGENCY_HOME_COPY.closingCta.subtitle[language]}
+              {language === "de"
+                ? "Die Demo zeigt, wie WebHealth GSC-, GA4- und Crawl-Signale zu einem Agentur-Workflow für das nächste Kunden-Update verdichtet."
+                : AGENCY_HOME_COPY.closingCta.subtitle[language]}
             </p>
           </div>
           <a
-            href={AGENCY_PILOT.bookingUrl}
+            href={primaryCta.href}
             className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground"
           >
-            {copy.primary}
+            {primaryCta.label}
           </a>
         </div>
       </section>

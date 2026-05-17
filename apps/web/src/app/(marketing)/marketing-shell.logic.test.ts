@@ -23,6 +23,20 @@ test("localized agency pages use their standalone header and footer", () => {
   assert.equal(shouldUseStandaloneAgencyChrome("/about"), true);
   assert.equal(shouldUseStandaloneAgencyChrome("/de/about"), true);
   assert.equal(shouldUseStandaloneAgencyChrome("/en/about"), true);
+  assert.equal(shouldUseStandaloneAgencyChrome("/de/wissen"), true);
+  assert.equal(shouldUseStandaloneAgencyChrome("/en/resources"), true);
+  assert.equal(
+    shouldUseStandaloneAgencyChrome(
+      "/de/wissen/seo-reporting-agenturen-monatsreport",
+    ),
+    true,
+  );
+  assert.equal(
+    shouldUseStandaloneAgencyChrome(
+      "/en/resources/seo-reporting-agenturen-monatsreport",
+    ),
+    true,
+  );
   assert.equal(shouldUseStandaloneAgencyChrome("/en/"), true);
 });
 

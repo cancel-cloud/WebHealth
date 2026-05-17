@@ -13,6 +13,13 @@ import {
   getAgencyPricingPath,
   getAgencySeoTopicPath,
 } from "./agency-seo.logic";
+import {
+  CLUSTER_ARTICLES,
+  CLUSTER_ARTICLE_SLUGS,
+  HUB_COPY,
+  getClusterArticle,
+  getClusterArticlePath,
+} from "./agency-content-cluster";
 import { getLegalDocument } from "./legal/legal-content";
 import {
   buildLegalHref,
@@ -38,6 +45,12 @@ const MARKDOWN_DOCUMENT_PATHS = new Set([
   "/de/about",
   "/en/seo-reporting-software-agencies",
   "/de/seo-reporting-tool-agenturen",
+  "/de/wissen",
+  "/en/resources",
+  ...CLUSTER_ARTICLE_SLUGS.flatMap((slug) => [
+    getClusterArticlePath("de", slug),
+    getClusterArticlePath("en", slug),
+  ]),
   ...LEGAL_DOCUMENT_IDS.flatMap((documentId) => [
     buildLegalHref(documentId, "en"),
     buildLegalHref(documentId, "de"),
@@ -143,6 +156,8 @@ export function getRobotsTxt() {
     "Allow: /en",
     "Allow: /de/seo-reporting-tool-agenturen",
     "Allow: /en/seo-reporting-software-agencies",
+    "Allow: /de/wissen",
+    "Allow: /en/resources",
     "Allow: /about",
     "Allow: /en/about",
     "Allow: /de/about",
@@ -197,6 +212,8 @@ function publicLinks() {
     `- [Über WebHealth](${AGENCY_PRODUCTION_BASE_URL}${getAgencyAboutPath("de")})`,
     `- [SEO reporting software for agencies](${AGENCY_PRODUCTION_BASE_URL}/en/seo-reporting-software-agencies)`,
     `- [SEO Reporting Tool für Agenturen](${AGENCY_PRODUCTION_BASE_URL}/de/seo-reporting-tool-agenturen)`,
+    `- [SEO reporting resources](${AGENCY_PRODUCTION_BASE_URL}/en/resources)`,
+    `- [SEO-Reporting Wissen](${AGENCY_PRODUCTION_BASE_URL}/de/wissen)`,
     `- [Privacy Policy](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("privacy", "en")})`,
     `- [Datenschutzhinweise](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("privacy", "de")})`,
     `- [Terms of Service](${AGENCY_PRODUCTION_BASE_URL}${buildLegalHref("terms", "en")})`,
@@ -443,7 +460,7 @@ function topicMarkdown(language: AgencyLandingLanguage) {
       : "SEO reporting software for agencies that turns monthly reports into action.";
   const lead =
     language === "de"
-      ? "WebHealth hilft Agenturen, GSC-, GA4- und Crawl-Daten nicht nur zu sammeln, sondern in einen priorisierten Maßnahmenplan für Kundenmeetings zu übersetzen."
+      ? "WebHealth hilft Agenturen, GSC-, GA4- und Crawl-Daten nicht nur zu sammeln, sondern in Monats-Snapshots und priorisierte Maßnahmenlisten für Kundenmeetings zu übersetzen."
       : "WebHealth helps agencies turn GSC, GA4, and crawl data into a prioritized action plan for client meetings, not just another reporting archive.";
   const boundary =
     language === "de"
@@ -458,7 +475,7 @@ ${lead}
 ## What WebHealth delivers
 
 - Monthly SEO snapshots from GSC, GA4, and crawl signals.
-- Internal prioritized action backlogs for agency teams.
+- Internal prioritized action lists for agency teams.
 - Client meeting preparation with clear next steps.
 
 ## Boundary
@@ -470,6 +487,67 @@ ${boundary}
 - [Homepage](${AGENCY_PRODUCTION_BASE_URL}${getAgencyHomePath(language)})
 - [Public demo](${AGENCY_PRODUCTION_BASE_URL}${getAgencyDemoPath(language)})
 - [Pricing](${AGENCY_PRODUCTION_BASE_URL}${getAgencyPricingPath(language)})
+`);
+}
+
+function resourcesMarkdown(language: AgencyLandingLanguage) {
+  const copy = HUB_COPY[language];
+
+  return withTokenEstimate(`
+# ${copy.title}
+
+${copy.intro}
+
+## Audience
+
+${copy.audience}
+
+## Published resources
+
+${CLUSTER_ARTICLES.map(
+  (article) =>
+    `- [${article.title[language]}](${AGENCY_PRODUCTION_BASE_URL}${getClusterArticlePath(language, article.slug)})`,
+).join("\n")}
+
+## Conversion path
+
+- [SEO reporting software for agencies](${AGENCY_PRODUCTION_BASE_URL}${getAgencySeoTopicPath(language)})
+- [Public demo](${AGENCY_PRODUCTION_BASE_URL}${getAgencyDemoPath(language)})
+`);
+}
+
+function articleMarkdown(language: AgencyLandingLanguage, slug: string) {
+  const article = getClusterArticle(slug);
+  if (!article) return null;
+
+  return withTokenEstimate(`
+# ${article.title[language]}
+
+${article.intro[language]}
+
+${article.sections
+  .map(
+    (section) => `## ${section.title[language]}
+
+${section.body[language].join("\n\n")}`,
+  )
+  .join("\n\n")}
+
+## Practical workflow
+
+${list(article.workflow[language])}
+
+## Common mistakes
+
+${list(article.mistakes[language])}
+
+## WebHealth
+
+${article.webhealth[language]}
+
+## Sources
+
+${article.sources.map((source) => `- [${source.label}](${source.href})`).join("\n")}
 `);
 }
 
@@ -489,6 +567,16 @@ export function getMarkdownDocument(pathname: string): MarkdownDocument | null {
   if (normalizedPathname === "/de/about") return aboutMarkdown("de");
   if (normalizedPathname === "/en/seo-reporting-software-agencies") return topicMarkdown("en");
   if (normalizedPathname === "/de/seo-reporting-tool-agenturen") return topicMarkdown("de");
+  if (normalizedPathname === "/en/resources") return resourcesMarkdown("en");
+  if (normalizedPathname === "/de/wissen") return resourcesMarkdown("de");
+  for (const slug of CLUSTER_ARTICLE_SLUGS) {
+    if (normalizedPathname === getClusterArticlePath("en", slug)) {
+      return articleMarkdown("en", slug);
+    }
+    if (normalizedPathname === getClusterArticlePath("de", slug)) {
+      return articleMarkdown("de", slug);
+    }
+  }
   for (const documentId of LEGAL_DOCUMENT_IDS) {
     if (normalizedPathname === buildLegalHref(documentId, "en")) {
       return legalMarkdown(documentId, "en");
