@@ -17,6 +17,7 @@ test("agency SEO topic page renders product proof, interactive demo, and visible
   assert.match(source, /AgencyComparisonSection/);
   assert.match(source, /Fiktive Beispieldaten, keine Kundenergebnisse/);
   assert.match(source, /Fictional sample data, not customer results/);
+  assert.match(source, /Priorisierte Maßnahmenliste/);
   assert.match(source, /Kein Ersatz für Ahrefs, Semrush oder Screaming Frog/);
   assert.match(source, /Not an Ahrefs, Semrush, or Screaming Frog replacement/);
 });

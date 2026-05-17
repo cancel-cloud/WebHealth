@@ -23,5 +23,14 @@ export function shouldUseStandaloneAgencyChrome(pathname: string | null) {
       ? pathname.slice(0, -1)
       : pathname;
 
+  if (
+    normalizedPathname === "/de/wissen" ||
+    normalizedPathname.startsWith("/de/wissen/") ||
+    normalizedPathname === "/en/resources" ||
+    normalizedPathname.startsWith("/en/resources/")
+  ) {
+    return true;
+  }
+
   return STANDALONE_AGENCY_PATHS.has(normalizedPathname);
 }

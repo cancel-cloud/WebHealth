@@ -16,9 +16,11 @@ import {
   getAgencyHomePath,
   getAgencyPricingPath,
 } from "./agency-seo.logic";
+import { getAgencyResourcesPath } from "./agency-content-cluster";
 
 const NAV_ITEMS = [
   { id: "demo", key: "demo" },
+  { id: "resources", key: "resources" },
   { id: "pricing", key: "pricing" },
   { id: "faq", key: "faq" },
   { id: "about", key: "about" },
@@ -35,17 +37,34 @@ function getSectionHref({
 }) {
   if (id === "demo") return getAgencyDemoPath(language);
   if (id === "about") return getAgencyAboutPath(language);
+  if (id === "resources") return getAgencyResourcesPath(language);
   return samePageAnchors ? `#${id}` : `${getAgencyHomePath(language)}#${id}`;
+}
+
+function getNavLabel({
+  key,
+  language,
+}: {
+  key: (typeof NAV_ITEMS)[number]["key"];
+  language: AgencyLandingLanguage;
+}) {
+  if (key === "resources") return language === "de" ? "Wissen" : "Resources";
+  return getLocalizedValue(
+    AGENCY_HOME_COPY.nav[key as keyof typeof AGENCY_HOME_COPY.nav],
+    language,
+  );
 }
 
 export function AgencyHeader({
   language,
   samePageAnchors = false,
   languageSwitcherPage = "home",
+  languageSwitcherHrefByLanguage,
 }: {
   language: AgencyLandingLanguage;
   samePageAnchors?: boolean;
   languageSwitcherPage?: "home" | "pricing" | "demo" | "about";
+  languageSwitcherHrefByLanguage?: Partial<Record<AgencyLandingLanguage, string>>;
 }) {
   const { data: session, isPending } = authClient.useSession();
 
@@ -92,7 +111,7 @@ export function AgencyHeader({
                   : "text-muted-foreground"
               }`}
             >
-              {getLocalizedValue(AGENCY_HOME_COPY.nav[item.key], language)}
+              {getNavLabel({ key: item.key, language })}
             </Link>
           ))}
         </nav>
@@ -107,13 +126,14 @@ export function AgencyHeader({
               <Link
                 key={nextLanguage}
                 href={
-                  languageSwitcherPage === "pricing"
+                  languageSwitcherHrefByLanguage?.[nextLanguage] ??
+                  (languageSwitcherPage === "pricing"
                     ? getAgencyPricingPath(nextLanguage)
                     : languageSwitcherPage === "demo"
                       ? getAgencyDemoPath(nextLanguage)
                       : languageSwitcherPage === "about"
                         ? getAgencyAboutPath(nextLanguage)
-                        : getAgencyHomePath(nextLanguage)
+                        : getAgencyHomePath(nextLanguage))
                 }
                 hrefLang={nextLanguage}
                 className={`rounded-full px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-widest transition-colors sm:px-3 ${

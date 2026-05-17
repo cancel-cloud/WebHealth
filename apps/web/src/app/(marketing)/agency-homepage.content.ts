@@ -371,11 +371,11 @@ export const AGENCY_HOME_COPY = {
   comparison: {
     eyebrow: {
       en: "Before Webhealth vs. after",
-      de: "Vor Webhealth vs. nachher",
+      de: "Vor WebHealth vs. nachher",
     },
     title: {
       en: "The honest math on monthly snapshot work.",
-      de: "Die ehrliche Rechnung für Monatssnapshoting.",
+      de: "Die ehrliche Rechnung für Monats-Snapshots.",
     },
     lead: {
       en: 'What a 10-client agency usually spends on exports, formatting, and "what should we do next?" calls.',

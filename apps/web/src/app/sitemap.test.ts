@@ -31,3 +31,30 @@ test("sitemap includes localized legal pages and no legacy legal URLs", () => {
   assert.equal(urls.some((url) => url.includes("?lang=de")), false);
   assert.equal(urls.includes("https://webhealth.devbrew.dev/privacy"), false);
 });
+
+test("sitemap includes the localized agency SEO cluster", () => {
+  const urls = sitemap().map((entry) => entry.url);
+
+  assert.ok(urls.includes("https://webhealth.devbrew.dev/de/wissen"));
+  assert.ok(urls.includes("https://webhealth.devbrew.dev/en/resources"));
+  assert.ok(
+    urls.includes(
+      "https://webhealth.devbrew.dev/de/wissen/seo-reporting-agenturen-monatsreport",
+    ),
+  );
+  assert.ok(
+    urls.includes(
+      "https://webhealth.devbrew.dev/en/resources/seo-reporting-agenturen-monatsreport",
+    ),
+  );
+  assert.ok(
+    urls.includes(
+      "https://webhealth.devbrew.dev/de/wissen/seo-massnahmen-priorisieren-backlog-agentur",
+    ),
+  );
+  assert.ok(
+    urls.includes(
+      "https://webhealth.devbrew.dev/en/resources/seo-massnahmen-priorisieren-backlog-agentur",
+    ),
+  );
+});
