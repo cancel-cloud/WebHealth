@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, ClipboardCheck } from "lucide-react";
 import { AgencyHeader } from "./agency-header";
 import { ArticleCTA } from "./article-cta";
 import type { AgencyLandingLanguage } from "./agency-homepage.logic";
@@ -196,6 +196,84 @@ export function ClusterArticlePage({
                 </div>
               </section>
             ))}
+
+            {article.comparison ? (
+              <section>
+                <h2 className="font-display text-2xl font-semibold">
+                  {article.comparison.title[language]}
+                </h2>
+                <p className="mt-3 text-base leading-7 text-muted-foreground">
+                  {article.comparison.intro[language]}
+                </p>
+                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                  {article.comparison.items.map((item) => (
+                    <article
+                      key={item.title[language]}
+                      className="rounded-lg border border-border bg-card p-5"
+                    >
+                      <h3 className="font-display text-xl font-semibold">
+                        {item.title[language]}
+                      </h3>
+                      <p className="mt-3 text-sm font-semibold leading-6 text-primary">
+                        {item.question[language]}
+                      </p>
+                      <ul className="mt-4 space-y-3 text-sm leading-6 text-muted-foreground">
+                        {item.signals[language].map((signal) => (
+                          <li key={signal} className="flex gap-3">
+                            <CheckCircle2
+                              className="mt-0.5 size-4 shrink-0 text-primary"
+                              aria-hidden="true"
+                            />
+                            <span>{signal}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {article.checklist ? (
+              <section>
+                <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                  <ClipboardCheck className="size-4" aria-hidden="true" />
+                  {language === "de" ? "Für den nächsten Call" : "For the next call"}
+                </p>
+                <h2 className="mt-3 font-display text-2xl font-semibold">
+                  {article.checklist.title[language]}
+                </h2>
+                <p className="mt-3 text-base leading-7 text-muted-foreground">
+                  {article.checklist.intro[language]}
+                </p>
+                <ol className="mt-6 space-y-4">
+                  {article.checklist.stages.map((stage) => (
+                    <li
+                      key={stage.title[language]}
+                      className="rounded-lg border border-border bg-muted/30 p-5"
+                    >
+                      <h3 className="font-display text-lg font-semibold">
+                        {stage.title[language]}
+                      </h3>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                        {stage.description[language]}
+                      </p>
+                      <ul className="mt-4 space-y-2 text-sm leading-6">
+                        {stage.items[language].map((item) => (
+                          <li key={item} className="flex gap-3">
+                            <CheckCircle2
+                              className="mt-0.5 size-4 shrink-0 text-primary"
+                              aria-hidden="true"
+                            />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ) : null}
 
             <section>
               <h2 className="font-display text-2xl font-semibold">

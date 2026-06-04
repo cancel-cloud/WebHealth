@@ -11,7 +11,8 @@ export type ClusterPageKind = "hub" | "article";
 
 export type ClusterArticleSlug =
   | "seo-reporting-agenturen-monatsreport"
-  | "seo-massnahmen-priorisieren-backlog-agentur";
+  | "seo-massnahmen-priorisieren-backlog-agentur"
+  | "gsc-ga4-agentur-reporting-monatscall";
 
 export type ClusterArticle = {
   slug: ClusterArticleSlug;
@@ -27,6 +28,24 @@ export type ClusterArticle = {
   }>;
   mistakes: Record<AgencyLandingLanguage, string[]>;
   workflow: Record<AgencyLandingLanguage, string[]>;
+  comparison?: {
+    title: Record<AgencyLandingLanguage, string>;
+    intro: Record<AgencyLandingLanguage, string>;
+    items: Array<{
+      title: Record<AgencyLandingLanguage, string>;
+      question: Record<AgencyLandingLanguage, string>;
+      signals: Record<AgencyLandingLanguage, string[]>;
+    }>;
+  };
+  checklist?: {
+    title: Record<AgencyLandingLanguage, string>;
+    intro: Record<AgencyLandingLanguage, string>;
+    stages: Array<{
+      title: Record<AgencyLandingLanguage, string>;
+      description: Record<AgencyLandingLanguage, string>;
+      items: Record<AgencyLandingLanguage, string[]>;
+    }>;
+  };
   webhealth: Record<AgencyLandingLanguage, string>;
   faqs: Array<{
     question: Record<AgencyLandingLanguage, string>;
@@ -48,6 +67,7 @@ export type ClusterArticle = {
 export const CLUSTER_ARTICLE_SLUGS: ClusterArticleSlug[] = [
   "seo-reporting-agenturen-monatsreport",
   "seo-massnahmen-priorisieren-backlog-agentur",
+  "gsc-ga4-agentur-reporting-monatscall",
 ];
 
 export const CLUSTER_ARTICLES: ClusterArticle[] = [
@@ -178,7 +198,7 @@ export const CLUSTER_ARTICLES: ClusterArticle[] = [
       },
       {
         label: "Google Analytics Help: Search Console integration",
-        href: "https://support.google.com/analytics/answer/13086258",
+        href: "https://support.google.com/analytics/answer/10737381",
       },
     ],
     cta: {
@@ -344,6 +364,330 @@ export const CLUSTER_ARTICLES: ClusterArticle[] = [
       secondaryLabel: {
         de: "Monatsreport-Workflow lesen",
         en: "Read the monthly reporting workflow",
+      },
+      secondaryHref: {
+        de: "/de/wissen/seo-reporting-agenturen-monatsreport",
+        en: "/en/resources/seo-reporting-agenturen-monatsreport",
+      },
+    },
+  },
+  {
+    slug: "gsc-ga4-agentur-reporting-monatscall",
+    category: "GSC + GA4 Reporting",
+    date: "2026-06-04",
+    title: {
+      de: "GSC + GA4 im Agentur-Reporting: Welche Daten wirklich in den Monatscall gehören",
+      en: "GSC + GA4 for Agency Reporting: What Belongs in the Monthly Client Call",
+    },
+    metaTitle: {
+      de: "GSC + GA4 im Agentur-Reporting",
+      en: "GSC + GA4 for Agency Reporting",
+    },
+    description: {
+      de: "Welche GSC- und GA4-Daten gehören wirklich in den SEO-Monatscall? Ein pragmatischer Leitfaden für Agenturen mit mehreren Kunden.",
+      en: "Which GSC and GA4 data belongs in the monthly SEO client call? A practical guide for agencies managing multiple clients.",
+    },
+    intro: {
+      de: "Viele Agenturen packen in den Monatscall alles hinein, was GSC und GA4 hergeben. Das Ergebnis: zu viele Kennzahlen, falsche Vergleiche und zu wenig Klarheit. Der bessere Ansatz gibt beiden Systemen einen klaren Job.",
+      en: "Many agencies bring everything GSC and GA4 can provide into the monthly client call. The result is too many metrics, misleading comparisons, and too little clarity. A better approach gives each system a clear job.",
+    },
+    sections: [
+      {
+        title: {
+          de: "Welchen Job GSC im Monatscall hat",
+          en: "The job GSC has in the monthly call",
+        },
+        body: {
+          de: [
+            "Google Search Console beantwortet vor allem die Frage: Wie sichtbar war die Website in der Google-Suche und wie gut wurde diese Sichtbarkeit in Klicks umgewandelt? Dafür sind Klicks, Impressionen, CTR und durchschnittliche Position die zentralen Signale.",
+            "In den Call gehören deshalb nicht pauschal alle Top-Queries. Relevant sind Veränderungen auf wichtigen Seitentypen, CTR-Bewegungen bei strategischen Queries, Positionstrends auf Seiten mit Geschäftswert und auffällige Einbrüche gegenüber dem Vergleichszeitraum.",
+          ],
+          en: [
+            "Google Search Console primarily answers: how visible was the website in Google Search, and how effectively did that visibility turn into clicks? Clicks, impressions, CTR, and average position are the central signals.",
+            "The call therefore does not need every top query. It needs changes on important page types, CTR movement on strategic queries, position trends on commercially valuable pages, and notable declines against the comparison period.",
+          ],
+        },
+      },
+      {
+        title: {
+          de: "Welchen Job GA4 im Monatscall hat",
+          en: "The job GA4 has in the monthly call",
+        },
+        body: {
+          de: [
+            "GA4 beantwortet die nächste Frage: Was passiert nach dem Klick? Für den Monatscall sind organische Landingpages, Sessions, Nutzer, relevante Events und idealerweise sauber definierte Key Events wichtiger als eine vollständige Analytics-Tour.",
+            "Key Events sind eine GA4-Best-Practice für besonders wichtige Geschäftshandlungen. Prüfen Sie diese gemeinsam mit Landingpages und Akquisitionsberichten. Beachten Sie dabei, dass User Acquisition und Traffic Acquisition unterschiedliche Scopes haben und nicht als gleichwertige Ansichten verglichen werden sollten.",
+          ],
+          en: [
+            "GA4 answers the next question: what happens after the click? For the monthly call, organic landing pages, sessions, users, relevant events, and ideally well-defined Key Events matter more than a complete analytics tour.",
+            "Key Events are a GA4 best practice for business-critical actions. Review them alongside landing pages and acquisition reports. User Acquisition and Traffic Acquisition use different scopes and should not be treated as equivalent views.",
+          ],
+        },
+      },
+      {
+        title: {
+          de: "Was nicht in den Monatscall gehört",
+          en: "What does not belong in the monthly call",
+        },
+        body: {
+          de: [
+            "Nicht hilfreich sind umfangreiche Channel-Tabellen ohne konkrete SEO-Frage, Events ohne Geschäftsbedeutung oder der Versuch, GSC-Klicks und GA4-Sessions exakt gleichzusetzen.",
+            "Beide Systeme messen unterschiedliche Schritte mit unterschiedlichen Definitionen und Verarbeitungslogiken. GSC erklärt Auffindbarkeit und Klicks. GA4 erklärt Verhalten und Ergebnisse nach dem Klick. Eine Abweichung ist deshalb nicht automatisch ein Messfehler.",
+          ],
+          en: [
+            "Large channel tables without a concrete SEO question, events without business meaning, and attempts to make GSC clicks exactly equal GA4 sessions are not useful in the monthly call.",
+            "The systems measure different steps with different definitions and processing logic. GSC explains discovery and clicks. GA4 explains behavior and outcomes after the click. A discrepancy is therefore not automatically a measurement error.",
+          ],
+        },
+      },
+      {
+        title: {
+          de: "Ein Beispiel aus der öffentlichen WebHealth-Demo",
+          en: "An example from the public WebHealth demo",
+        },
+        body: {
+          de: [
+            "Bei der fiktiven Acme Bakery steigen beispielsweise Impressionen und GA4-Sessions, während das wichtige Ereignis „Checkout gestartet“ auf demselben Niveau bleibt. Daraus folgt weder pauschal „SEO läuft gut“ noch „Das Tracking ist kaputt“.",
+            "Die belastbarere Interpretation lautet: Mehr Menschen finden und besuchen die Website, doch das gewünschte Verhalten wächst nicht mit. Als Nächstes prüft die Agentur die betroffenen Landingpages, ergänzt bei Bedarf passende Crawl-Hinweise und formuliert daraus eine klar begründete Maßnahme für die Maßnahmenliste.",
+          ],
+          en: [
+            "For the fictional Acme Bakery, impressions or sessions can rise while an important checkout-start event stays flat. The right conclusion is neither simply “SEO is doing well” nor “Analytics is broken.”",
+            "A more useful interpretation is that reach or visits are moving, but the desired behavior is not growing at the same rate. The next step is to review the affected landing pages, add relevant crawl evidence, and formulate a reviewable action.",
+          ],
+        },
+      },
+    ],
+    comparison: {
+      title: {
+        de: "GSC und GA4 haben unterschiedliche Jobs",
+        en: "GSC and GA4 have different jobs",
+      },
+      intro: {
+        de: "Teilen Sie die Systeme nach der Frage auf, die sie im Monatscall beantworten sollen.",
+        en: "Separate the systems by the question each should answer in the monthly client call.",
+      },
+      items: [
+        {
+          title: { de: "Google Search Console", en: "Google Search Console" },
+          question: {
+            de: "Wie wurden wir gefunden und in Klicks umgewandelt?",
+            en: "How were we discovered and converted into clicks?",
+          },
+          signals: {
+            de: [
+              "Klicks, Impressionen, CTR und durchschnittliche Position",
+              "Strategische Queries und wichtige Seitentypen",
+              "Veränderungen gegenüber dem Vergleichszeitraum",
+            ],
+            en: [
+              "Clicks, impressions, CTR, and average position",
+              "Strategic queries and important page types",
+              "Changes against the comparison period",
+            ],
+          },
+        },
+        {
+          title: { de: "Google Analytics 4", en: "Google Analytics 4" },
+          question: {
+            de: "Was geschah nach dem Klick?",
+            en: "What happened after the click?",
+          },
+          signals: {
+            de: [
+              "Organische Landingpages, Sessions und Nutzer",
+              "Relevante Events und idealerweise Key Events",
+              "Traffic Acquisition passend zur SEO-Frage",
+            ],
+            en: [
+              "Organic landing pages, sessions, and users",
+              "Relevant events and ideally Key Events",
+              "Traffic Acquisition matched to the SEO question",
+            ],
+          },
+        },
+      ],
+    },
+    checklist: {
+      title: {
+        de: "Monatscall-Checkliste: drei Stufen statt Analytics-Rundgang",
+        en: "Monthly call checklist: three stages instead of an analytics tour",
+      },
+      intro: {
+        de: "Nutzen Sie diese Reihenfolge, um den Call auf Veränderungen, Erklärung und nächste Arbeit zu konzentrieren.",
+        en: "Use this sequence to keep the call focused on change, explanation, and next work.",
+      },
+      stages: [
+        {
+          title: { de: "1. GSC: Veränderung erkennen", en: "1. GSC: identify the change" },
+          description: {
+            de: "Beginnen Sie bei Sichtbarkeit und Klicks auf wichtigen Seiten und Queries.",
+            en: "Start with visibility and clicks on important pages and queries.",
+          },
+          items: {
+            de: [
+              "Größte relevante Klick- und Impressionen-Veränderungen auswählen",
+              "CTR- und Positionsbewegungen auf strategischen Seiten prüfen",
+              "Nur Abweichungen mit Kundenrelevanz in den Call aufnehmen",
+            ],
+            en: [
+              "Select the largest relevant click and impression changes",
+              "Review CTR and position movement on strategic pages",
+              "Bring only client-relevant changes into the call",
+            ],
+          },
+        },
+        {
+          title: { de: "2. GA4: Wirkung einordnen", en: "2. GA4: interpret the outcome" },
+          description: {
+            de: "Lesen Sie dieselben Landingpages gegen Verhalten und Geschäftsergebnis.",
+            en: "Read the same landing pages against behavior and business outcomes.",
+          },
+          items: {
+            de: [
+              "Organische Landingpages, Sessions und Nutzer vergleichen",
+              "Relevante Events und vorhandene Key Events prüfen",
+              "Keine 1:1-Gleichheit zwischen GSC-Klicks und GA4-Sessions erwarten",
+            ],
+            en: [
+              "Compare organic landing pages, sessions, and users",
+              "Review relevant events and available Key Events",
+              "Do not expect a one-to-one match between GSC clicks and GA4 sessions",
+            ],
+          },
+        },
+        {
+          title: {
+            de: "3. Entscheidung: Maßnahmenliste festlegen",
+            en: "3. Decision: define the action list",
+          },
+          description: {
+            de: "Nutzen Sie Crawl-Hinweise nur dort, wo sie eine ausgewählte Abweichung erklären helfen.",
+            en: "Use crawl evidence only where it helps explain a selected anomaly.",
+          },
+          items: {
+            de: [
+              "Interpretation in einem verständlichen Satz festhalten",
+              "Bei Bedarf Crawl-Evidenz zur Diagnose ergänzen",
+              "Drei bis fünf priorisierte Maßnahmen mit Owner und Ziel formulieren",
+            ],
+            en: [
+              "Capture the interpretation in one understandable sentence",
+              "Add crawl evidence where needed for diagnosis",
+              "Define three to five prioritized actions with owner and goal",
+            ],
+          },
+        },
+      ],
+    },
+    mistakes: {
+      de: [
+        "GSC und GA4 als konkurrierende Wahrheiten behandeln.",
+        "Den Monatscall mit Akquisitionsdetails überladen, obwohl die SEO-Frage auf Landingpage- und Query-Ebene liegt.",
+        "User Acquisition und Traffic Acquisition ohne Beachtung ihrer unterschiedlichen Scopes vergleichen.",
+        "Aus einer Abweichung sofort eine Ursache ableiten, ohne Landingpage oder unterstützende Crawl-Evidenz zu prüfen.",
+      ],
+      en: [
+        "Treating GSC and GA4 as competing versions of truth.",
+        "Overloading the call with acquisition detail when the SEO question sits at landing-page and query level.",
+        "Comparing User Acquisition and Traffic Acquisition without accounting for their different scopes.",
+        "Assigning a cause immediately without reviewing the landing page or supporting crawl evidence.",
+      ],
+    },
+    workflow: {
+      de: [
+        "GSC auf relevante Seiten- und Query-Veränderungen prüfen.",
+        "Dieselben Landingpages in GA4 gegen Sessions, Nutzer, relevante Events und vorhandene Key Events lesen.",
+        "Ausgewählte Auffälligkeiten bei Bedarf mit Crawl-Evidenz diagnostisch ergänzen.",
+        "Interpretation und nächste Arbeit in eine priorisierte Maßnahmenliste überführen.",
+      ],
+      en: [
+        "Review GSC for relevant page and query changes.",
+        "Read the same landing pages in GA4 against sessions, users, relevant events, and available Key Events.",
+        "Add crawl evidence to selected anomalies where it supports diagnosis.",
+        "Turn the interpretation and next work into a prioritized action list.",
+      ],
+    },
+    webhealth: {
+      de: "WebHealth nutzt heute GSC-Signale, GA4-Reportingdaten wie Sessions, Nutzer, Landingpages und Events sowie Crawl-Hinweise. Daraus entsteht eine Entscheidungsebene für Monats-Snapshots und priorisierte Maßnahmenlisten. Die fachliche Auswahl geschäftskritischer Ereignisse bleibt Teil des Agentur-Workflows.",
+      en: "WebHealth currently uses GSC signals, GA4 reporting data such as sessions, users, landing pages, and events, plus crawl findings. It turns those inputs into a decision layer for monthly snapshots and prioritized action lists. Selecting business-critical events remains part of the agency workflow.",
+    },
+    faqs: [
+      {
+        question: {
+          de: "Warum stimmen GSC-Klicks und GA4-Sessions nicht exakt überein?",
+          en: "Why do GSC clicks and GA4 sessions not match exactly?",
+        },
+        answer: {
+          de: "Weil beide Systeme unterschiedliche Schritte mit unterschiedlichen Definitionen und Verarbeitungslogiken messen. Eine Abweichung ist deshalb nicht automatisch ein Fehler.",
+          en: "Because the systems measure different steps with different definitions and processing logic. A discrepancy is therefore not automatically an error.",
+        },
+      },
+      {
+        question: {
+          de: "Welche GA4-Reports sind für SEO besonders hilfreich?",
+          en: "Which GA4 reports are especially useful for SEO?",
+        },
+        answer: {
+          de: "Der Landingpage-Report, relevante Events beziehungsweise Key Events und je nach Fragestellung Traffic Acquisition. User Acquisition beantwortet eine andere, nutzerbezogene Frage.",
+          en: "The Landing Page report, relevant events or Key Events, and Traffic Acquisition where appropriate. User Acquisition answers a different, user-scoped question.",
+        },
+      },
+      {
+        question: {
+          de: "Wie weit reichen Search-Console-Daten in GA4 zurück?",
+          en: "How far back does Search Console data in GA4 go?",
+        },
+        answer: {
+          de: "Die Search-Console-Integration stellt in GA4 maximal 16 Monate bereit und die Daten sind typischerweise etwa 48 Stunden verzögert.",
+          en: "The Search Console integration provides a maximum of 16 months in GA4, and the data is typically delayed by about 48 hours.",
+        },
+      },
+      {
+        question: {
+          de: "Kann man Search-Console-Metriken in GA4 frei kombinieren?",
+          en: "Can Search Console metrics be freely combined in GA4?",
+        },
+        answer: {
+          de: "Nein. Google erlaubt nur ausgewählte Analytics-Dimensionen für die Kombination mit Search-Console-Metriken.",
+          en: "No. Google allows only selected Analytics dimensions to be combined with Search Console metrics.",
+        },
+      },
+    ],
+    sources: [
+      {
+        label: "Google Analytics Help: Search Console integration",
+        href: "https://support.google.com/analytics/answer/10737381",
+      },
+      {
+        label: "Google Search Console Help: Performance report",
+        href: "https://support.google.com/webmasters/answer/7576553",
+      },
+      {
+        label: "Google Analytics Help: Key Events",
+        href: "https://support.google.com/analytics/answer/9267568",
+      },
+      {
+        label: "Google Analytics Help: Landing Page report",
+        href: "https://support.google.com/analytics/answer/12931766",
+      },
+      {
+        label: "Google Analytics Help: Acquisition reports",
+        href: "https://support.google.com/analytics/answer/11080067",
+      },
+    ],
+    cta: {
+      eyebrow: { de: "GSC + GA4 mit WebHealth", en: "GSC + GA4 with WebHealth" },
+      title: {
+        de: "Vergleichen Sie Ihre GSC- und GA4-Report-Logik mit dem WebHealth-Workflow.",
+        en: "Compare your GSC and GA4 reporting logic with the WebHealth workflow.",
+      },
+      description: {
+        de: "Die Demo zeigt, wie ausgewählte GSC-, GA4- und Crawl-Signale in einen Monats-Snapshot und eine priorisierte Maßnahmenliste übergehen.",
+        en: "The demo shows how selected GSC, GA4, and crawl signals become a monthly snapshot and prioritized action list.",
+      },
+      secondaryLabel: {
+        de: "Monatsreport-Artikel lesen",
+        en: "Read the monthly reporting article",
       },
       secondaryHref: {
         de: "/de/wissen/seo-reporting-agenturen-monatsreport",

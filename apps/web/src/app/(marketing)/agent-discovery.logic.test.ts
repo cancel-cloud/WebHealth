@@ -115,6 +115,20 @@ test("markdown documents expose public marketing content without private routes"
   assert.doesNotMatch(document?.markdown ?? "", /\/api\/|\/dashboard|\/admin|\/properties|\/settings/);
 });
 
+test("localized GSC and GA4 article is available as public markdown", () => {
+  const german = getMarkdownDocument(
+    "/de/wissen/gsc-ga4-agentur-reporting-monatscall",
+  );
+  const english = getMarkdownDocument(
+    "/en/resources/gsc-ga4-agentur-reporting-monatscall",
+  );
+
+  assert.match(german?.markdown ?? "", /GSC \+ GA4 im Agentur-Reporting/);
+  assert.match(german?.markdown ?? "", /Monatscall-Checkliste/);
+  assert.match(english?.markdown ?? "", /GSC \+ GA4 for Agency Reporting/);
+  assert.match(english?.markdown ?? "", /Monthly call checklist/);
+});
+
 test("localized legal markdown documents are available", () => {
   const document = getMarkdownDocument("/de/privacy");
 
