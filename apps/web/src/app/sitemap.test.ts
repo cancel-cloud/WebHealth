@@ -57,4 +57,14 @@ test("sitemap includes the localized agency SEO cluster", () => {
       "https://webhealth.devbrew.dev/en/resources/seo-massnahmen-priorisieren-backlog-agentur",
     ),
   );
+  assert.ok(
+    urls.includes(
+      "https://webhealth.devbrew.dev/de/wissen/gsc-ga4-agentur-reporting-monatscall",
+    ),
+  );
+  assert.ok(
+    urls.includes(
+      "https://webhealth.devbrew.dev/en/resources/gsc-ga4-agentur-reporting-monatscall",
+    ),
+  );
 });

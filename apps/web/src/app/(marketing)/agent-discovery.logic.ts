@@ -533,6 +533,34 @@ ${section.body[language].join("\n\n")}`,
   )
   .join("\n\n")}
 
+${article.comparison ? `## ${article.comparison.title[language]}
+
+${article.comparison.intro[language]}
+
+${article.comparison.items
+  .map(
+    (item) => `### ${item.title[language]}
+
+${item.question[language]}
+
+${list(item.signals[language])}`,
+  )
+  .join("\n\n")}` : ""}
+
+${article.checklist ? `## ${article.checklist.title[language]}
+
+${article.checklist.intro[language]}
+
+${article.checklist.stages
+  .map(
+    (stage) => `### ${stage.title[language]}
+
+${stage.description[language]}
+
+${list(stage.items[language])}`,
+  )
+  .join("\n\n")}` : ""}
+
 ## Practical workflow
 
 ${list(article.workflow[language])}
