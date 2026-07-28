@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@better-fetch/fetch": "^1.1.21",
-    "better-auth": "^1.6.0",
+    "better-auth": "^1.6.22",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
