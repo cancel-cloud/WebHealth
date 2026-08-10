@@ -24,7 +24,7 @@
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.45.2",
     "googleapis": "^171.4.0",
-    "nanoid": "^5.1.6",
+    "nanoid": "^5.1.16",
     "openai": "^6.22.0",
     "postgres": "^3.4.8",
     "tailwind-merge": "^3.5.0",
